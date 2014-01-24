@@ -1,7 +1,6 @@
 #ifndef CONCURRENCY_RWLOCK_HPP_
 #define CONCURRENCY_RWLOCK_HPP_
 
-#include "concurrency/access.hpp"
 #include "concurrency/cond_var.hpp"
 #include "containers/intrusive_list.hpp"
 

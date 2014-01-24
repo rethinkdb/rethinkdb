@@ -241,11 +241,11 @@ void insert_root(block_id_t root_id, superblock_t *sb);
 /* Create a stat block for the superblock if it doesn't already have one. */
 void ensure_stat_block(superblock_t *sb);
 
-void get_btree_superblock(txn_t *txn, alt_access_t access,
+void get_btree_superblock(txn_t *txn, access_t access,
                           scoped_ptr_t<real_superblock_t> *got_superblock_out);
 
 void get_btree_superblock_and_txn(btree_slice_t *slice,
-                                  alt_access_t superblock_access,
+                                  access_t superblock_access,
                                   int expected_change_count,
                                   repli_timestamp_t tstamp,
                                   write_durability_t durability,

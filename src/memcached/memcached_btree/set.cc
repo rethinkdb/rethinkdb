@@ -89,7 +89,7 @@ struct memcached_set_oper_t : public memcached_modify_oper_t {
         b.append_region(leaf, data->size());
         buffer_group_t bg;
         blob_acq_t acq;
-        b.expose_region(leaf, alt_access_t::write,
+        b.expose_region(leaf, access_t::write,
                         0, data->size(), &bg, &acq);
 
         buffer_group_copy_data(&bg, data->buf(), data->size());

@@ -126,14 +126,14 @@ bool get_superblock_metainfo(buf_lock_t *superblock,
         const btree_superblock_t *data
             = static_cast<const btree_superblock_t *>(read.get_data_read());
 
-        // The const cast is okay because we access the data with alt_access_t::read.
+        // The const cast is okay because we access the data with access_t::read.
         blob_t blob(superblock->cache()->get_block_size(),
                          const_cast<char *>(data->metainfo_blob),
                          btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
 
         blob_acq_t acq;
         buffer_group_t group;
-        blob.expose_all(buf_parent_t(superblock), alt_access_t::read, &group, &acq);
+        blob.expose_all(buf_parent_t(superblock), access_t::read, &group, &acq);
 
         int64_t group_size = group.get_size();
         metainfo.resize(group_size);
@@ -165,14 +165,14 @@ void get_superblock_metainfo(
         const btree_superblock_t *data
             = static_cast<const btree_superblock_t *>(read.get_data_read());
 
-        // The const cast is okay because we access the data with alt_access_t::read
+        // The const cast is okay because we access the data with access_t::read
         // and don't write to the blob.
         blob_t blob(superblock->cache()->get_block_size(),
                          const_cast<char *>(data->metainfo_blob),
                          btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
         blob_acq_t acq;
         buffer_group_t group;
-        blob.expose_all(buf_parent_t(superblock), alt_access_t::read,
+        blob.expose_all(buf_parent_t(superblock), access_t::read,
                         &group, &acq);
 
         const int64_t group_size = group.get_size();
@@ -206,7 +206,7 @@ void set_superblock_metainfo(buf_lock_t *superblock,
     {
         blob_acq_t acq;
         buffer_group_t group;
-        blob.expose_all(buf_parent_t(superblock), alt_access_t::read,
+        blob.expose_all(buf_parent_t(superblock), access_t::read,
                         &group, &acq);
 
         int64_t group_size = group.get_size();
@@ -254,7 +254,7 @@ void set_superblock_metainfo(buf_lock_t *superblock,
     {
         blob_acq_t acq;
         buffer_group_t write_group;
-        blob.expose_all(buf_parent_t(superblock), alt_access_t::write,
+        blob.expose_all(buf_parent_t(superblock), access_t::write,
                         &write_group, &acq);
 
         buffer_group_t group_cpy;
@@ -278,7 +278,7 @@ void delete_superblock_metainfo(buf_lock_t *superblock,
     {
         blob_acq_t acq;
         buffer_group_t group;
-        blob.expose_all(buf_parent_t(superblock), alt_access_t::read,
+        blob.expose_all(buf_parent_t(superblock), access_t::read,
                         &group, &acq);
 
         int64_t group_size = group.get_size();
@@ -309,7 +309,7 @@ void delete_superblock_metainfo(buf_lock_t *superblock,
         {
             blob_acq_t acq;
             buffer_group_t write_group;
-            blob.expose_all(buf_parent_t(superblock), alt_access_t::write,
+            blob.expose_all(buf_parent_t(superblock), access_t::write,
                             &write_group, &acq);
 
             buffer_group_t group_cpy;
@@ -351,7 +351,7 @@ buf_lock_t get_root(value_sizer_t<void> *sizer, superblock_t *sb) {
     const block_id_t node_id = sb->get_root_block_id();
 
     if (node_id != NULL_BLOCK_ID) {
-        return buf_lock_t(sb->expose_buf(), node_id, alt_access_t::write);
+        return buf_lock_t(sb->expose_buf(), node_id, access_t::write);
     } else {
         buf_lock_t lock(sb->expose_buf(), alt_create_t::create);
         {
@@ -475,7 +475,7 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer,
         }
 
         // Now decide whether to merge or level.
-        buf_lock_t sib_buf(last_buf, sib_node_id, alt_access_t::write);
+        buf_lock_t sib_buf(last_buf, sib_node_id, access_t::write);
 
         bool node_is_mergable;
         {
@@ -581,7 +581,7 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer,
     }
 }
 
-void get_btree_superblock(txn_t *txn, alt_access_t access,
+void get_btree_superblock(txn_t *txn, access_t access,
                           scoped_ptr_t<real_superblock_t> *got_superblock_out) {
     buf_lock_t tmp_buf(buf_parent_t(txn), SUPERBLOCK_ID, access);
     scoped_ptr_t<real_superblock_t> tmp_sb(new real_superblock_t(std::move(tmp_buf)));
@@ -589,7 +589,7 @@ void get_btree_superblock(txn_t *txn, alt_access_t access,
 }
 
 void get_btree_superblock_and_txn(btree_slice_t *slice,
-                                  alt_access_t superblock_access,
+                                  access_t superblock_access,
                                   int expected_change_count,
                                   repli_timestamp_t tstamp,
                                   write_durability_t durability,
@@ -614,7 +614,7 @@ void get_btree_superblock_and_txn_for_backfilling(btree_slice_t *slice,
     // KSI: Does using a backfill account needlessly slow other operations down?
     txn->set_account(slice->get_backfill_account());
 
-    get_btree_superblock(txn, alt_access_t::read, got_superblock_out);
+    get_btree_superblock(txn, access_t::read, got_superblock_out);
     // RSI: This is bad -- we want to backfill, we don't want to snapshot from the
     // superblock (and therefore secondary indexes)-- we really want to snapshot the
     // subtree underneath the root node.
@@ -631,7 +631,7 @@ void get_btree_superblock_and_txn_for_reading(btree_slice_t *slice,
     txn_t *txn = new txn_t(slice->cache(), alt_read_access_t::read);
     txn_out->init(txn);
 
-    get_btree_superblock(txn, alt_access_t::read, got_superblock_out);
+    get_btree_superblock(txn, access_t::read, got_superblock_out);
 
     // RSI: As mentioned, snapshotting here is stupid.
     if (snapshotted == CACHE_SNAPSHOTTED_YES) {

@@ -29,7 +29,7 @@ bool btree_depth_first_traversal(btree_slice_t *slice, superblock_t *superblock,
             profile::starter_t starter("Acquire block for read.", cb->get_trace());
             root_block = make_counted<counted_buf_lock_t>(superblock->expose_buf(),
                                                           root_block_id,
-                                                          alt_access_t::read);
+                                                          access_t::read);
             // Release the superblock ASAP because that's good.
             superblock->release();
             // Wait for read acquisition of the root block, so that `starter`'s
@@ -66,7 +66,7 @@ bool btree_depth_first_traversal(btree_slice_t *slice,
             {
                 profile::starter_t starter("Acquire block for read.", cb->get_trace());
                 lock = make_counted<counted_buf_lock_t>(block.get(), pair->lnode,
-                                                        alt_access_t::read);
+                                                        access_t::read);
             }
             if (!btree_depth_first_traversal(slice,
                                              std::move(lock),

@@ -351,14 +351,14 @@ template <class protocol_t>
 buf_lock_t btree_store_t<protocol_t>::acquire_sindex_block_for_read(
         buf_parent_t parent,
         block_id_t sindex_block_id) {
-    return buf_lock_t(parent, sindex_block_id, alt_access_t::read);
+    return buf_lock_t(parent, sindex_block_id, access_t::read);
 }
 
 template <class protocol_t>
 buf_lock_t btree_store_t<protocol_t>::acquire_sindex_block_for_write(
         buf_parent_t parent,
         block_id_t sindex_block_id) {
-    return buf_lock_t(parent, sindex_block_id, alt_access_t::write);
+    return buf_lock_t(parent, sindex_block_id, access_t::write);
 }
 
 template <class region_map_t>
@@ -423,7 +423,7 @@ void clear_sindex(
         /* We pass the txn as a parent, this is because
          * sindex.superblock was detached and thus now has no parent. */
         buf_lock_t sindex_superblock_lock(
-                buf_parent_t(txn), superblock_id, alt_access_t::write);
+                buf_parent_t(txn), superblock_id, access_t::write);
         real_superblock_t sindex_superblock(std::move(sindex_superblock_lock));
 
         erase_all(sizer, slice,
@@ -432,7 +432,7 @@ void clear_sindex(
 
     {
         buf_lock_t sindex_superblock_lock(
-                buf_parent_t(txn), superblock_id, alt_access_t::write);
+                buf_parent_t(txn), superblock_id, access_t::write);
         sindex_superblock_lock.mark_deleted();
     }
 }
@@ -608,7 +608,7 @@ MUST_USE bool btree_store_t<protocol_t>::acquire_sindex_superblock_for_read(
         throw sindex_not_post_constructed_exc_t(id);
     }
 
-    buf_lock_t superblock_lock(&sindex_block, sindex.superblock, alt_access_t::read);
+    buf_lock_t superblock_lock(&sindex_block, sindex.superblock, access_t::read);
     sindex_block.reset_buf_lock();
     sindex_sb_out->init(new real_superblock_t(std::move(superblock_lock)));
     return true;
@@ -638,7 +638,7 @@ MUST_USE bool btree_store_t<protocol_t>::acquire_sindex_superblock_for_write(
 
 
     buf_lock_t superblock_lock(&sindex_block, sindex.superblock,
-                               alt_access_t::write);
+                               access_t::write);
     sindex_block.reset_buf_lock();
     sindex_sb_out->init(new real_superblock_t(std::move(superblock_lock)));
     return true;
@@ -715,7 +715,7 @@ bool btree_store_t<protocol_t>::acquire_sindex_superblocks_for_write(
         sindex_slice->assert_thread();
 
         buf_lock_t superblock_lock(
-                sindex_block, it->second.superblock, alt_access_t::write);
+                sindex_block, it->second.superblock, access_t::write);
 
         sindex_sbs_out->push_back(new
                 sindex_access_t(get_sindex_slice(it->first), it->second, new
@@ -747,7 +747,7 @@ bool btree_store_t<protocol_t>::acquire_sindex_superblocks_for_write(
         sindex_slice->assert_thread();
 
         buf_lock_t superblock_lock(
-                sindex_block, it->second.superblock, alt_access_t::write);
+                sindex_block, it->second.superblock, access_t::write);
 
         sindex_sbs_out->push_back(new
                 sindex_access_t(get_sindex_slice(it->first), it->second, new
@@ -949,7 +949,7 @@ void btree_store_t<protocol_t>::acquire_superblock_for_write(
     object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer(token);
     wait_interruptible(token->get(), interruptor);
 
-    get_btree_superblock_and_txn(btree.get(), alt_access_t::write,
+    get_btree_superblock_and_txn(btree.get(), access_t::write,
                                  expected_change_count, timestamp,
                                  durability, sb_out, txn_out);
 }

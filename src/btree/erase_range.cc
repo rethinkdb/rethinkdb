@@ -77,8 +77,8 @@ public:
         cb->no_more_interesting_children();
     }
 
-    alt_access_t btree_superblock_mode() { return alt_access_t::write; }
-    alt_access_t btree_node_mode() { return alt_access_t::write; }
+    access_t btree_superblock_mode() { return access_t::write; }
+    access_t btree_node_mode() { return access_t::write; }
 
     ~erase_range_helper_t() { }
 

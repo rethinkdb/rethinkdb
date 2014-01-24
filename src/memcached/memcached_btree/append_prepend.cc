@@ -34,11 +34,11 @@ struct memcached_append_prepend_oper_t : public memcached_modify_oper_t {
         size_t old_size = b.valuesize();
         if (append) {
             b.append_region(leaf, data->size());
-            b.expose_region(leaf, alt_access_t::write,
+            b.expose_region(leaf, access_t::write,
                             old_size, data->size(), &buffer_group, &acqs);
         } else {
             b.prepend_region(leaf, data->size());
-            b.expose_region(leaf, alt_access_t::write,
+            b.expose_region(leaf, access_t::write,
                             0, data->size(), &buffer_group, &acqs);
         }
 

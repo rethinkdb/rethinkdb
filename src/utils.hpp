@@ -22,6 +22,10 @@
 
 namespace ph = std::placeholders;
 
+// For specifying read or write access.  The only valid values of this type are, and
+// always will be, `read` and `write`.
+enum class access_t { read, write };
+
 class Term;
 void pb_print(Term *t);
 

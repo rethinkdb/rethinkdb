@@ -157,7 +157,7 @@ current_page_acq_t::current_page_acq_t()
 
 current_page_acq_t::current_page_acq_t(page_txn_t *txn,
                                        block_id_t block_id,
-                                       alt_access_t access,
+                                       access_t access,
                                        bool create)
     : page_cache_(NULL), the_txn_(NULL) {
     init(txn, block_id, access, create);
@@ -178,16 +178,16 @@ current_page_acq_t::current_page_acq_t(page_cache_t *page_cache,
 
 void current_page_acq_t::init(page_txn_t *txn,
                               block_id_t block_id,
-                              alt_access_t access,
+                              access_t access,
                               bool create) {
-    if (access == alt_access_t::read) {
+    if (access == access_t::read) {
         rassert(create == false);
         init(txn->page_cache(), block_id, alt_read_access_t::read);
     } else {
         txn->page_cache()->assert_thread();
         guarantee(page_cache_ == NULL);
         page_cache_ = txn->page_cache();
-        the_txn_ = (access == alt_access_t::write ? txn : NULL);
+        the_txn_ = (access == access_t::write ? txn : NULL);
         access_ = access;
         declared_snapshotted_ = false;
         block_id_ = block_id;
@@ -209,7 +209,7 @@ void current_page_acq_t::init(page_txn_t *txn,
     guarantee(page_cache_ == NULL);
     page_cache_ = txn->page_cache();
     the_txn_ = txn;
-    access_ = alt_access_t::write;
+    access_ = access_t::write;
     declared_snapshotted_ = false;
     current_page_ = page_cache_->page_for_new_block_id(&block_id_);
     dirtied_page_ = false;
@@ -225,7 +225,7 @@ void current_page_acq_t::init(page_cache_t *page_cache,
     guarantee(page_cache_ == NULL);
     page_cache_ = page_cache;
     the_txn_ = NULL;
-    access_ = alt_access_t::read;
+    access_ = access_t::read;
     declared_snapshotted_ = false;
     block_id_ = block_id;
     current_page_ = page_cache_->page_for_block_id(block_id);
@@ -239,7 +239,7 @@ current_page_acq_t::~current_page_acq_t() {
     // Checking page_cache_ != NULL makes sure this isn't a default-constructed acq.
     if (page_cache_ != NULL) {
         if (the_txn_ != NULL) {
-            guarantee(access_ == alt_access_t::write);
+            guarantee(access_ == access_t::write);
             the_txn_->remove_acquirer(this);
         }
         if (current_page_ != NULL) {
@@ -250,7 +250,7 @@ current_page_acq_t::~current_page_acq_t() {
 
 void current_page_acq_t::declare_readonly() {
     assert_thread();
-    access_ = alt_access_t::read;
+    access_ = access_t::read;
     if (current_page_ != NULL) {
         current_page_->pulse_pulsables(this);
     }
@@ -258,7 +258,7 @@ void current_page_acq_t::declare_readonly() {
 
 void current_page_acq_t::declare_snapshotted() {
     assert_thread();
-    rassert(access_ == alt_access_t::read);
+    rassert(access_ == access_t::read);
 
     // Allow redeclaration of snapshottedness.
     if (!declared_snapshotted_) {
@@ -275,7 +275,7 @@ signal_t *current_page_acq_t::read_acq_signal() {
 
 signal_t *current_page_acq_t::write_acq_signal() {
     assert_thread();
-    rassert(access_ == alt_access_t::write);
+    rassert(access_ == access_t::write);
     return &write_cond_;
 }
 
@@ -297,7 +297,7 @@ repli_timestamp_t current_page_acq_t::recency() const {
 
 page_t *current_page_acq_t::current_page_for_write() {
     assert_thread();
-    rassert(access_ == alt_access_t::write);
+    rassert(access_ == access_t::write);
     rassert(current_page_ != NULL);
     write_cond_.wait();
     rassert(current_page_ != NULL);
@@ -307,7 +307,7 @@ page_t *current_page_acq_t::current_page_for_write() {
 
 void current_page_acq_t::mark_deleted() {
     assert_thread();
-    rassert(access_ == alt_access_t::write);
+    rassert(access_ == access_t::write);
     rassert(current_page_ != NULL);
     write_cond_.wait();
     rassert(current_page_ != NULL);
@@ -390,10 +390,10 @@ void current_page_t::add_acquirer(current_page_acq_t *acq) {
            ? acq->page_cache()->recency_for_block_id(acq->block_id())
            : back->recency_);
 
-    acq->block_version_ = acq->access_ == alt_access_t::write ?
+    acq->block_version_ = acq->access_ == access_t::write ?
         prev_version.subsequent() : prev_version;
 
-    if (acq->access_ == alt_access_t::read) {
+    if (acq->access_ == access_t::read) {
         rassert(acq->the_txn_ == NULL);
         acq->recency_ = prev_recency;
     } else {
@@ -432,14 +432,14 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq) {
     // First, avoid pulsing when there's nothing to pulse.
     {
         current_page_acq_t *prev = acquirers_.prev(acq);
-        if (!(prev == NULL || (prev->access_ == alt_access_t::read
+        if (!(prev == NULL || (prev->access_ == access_t::read
                                && prev->read_cond_.is_pulsed()))) {
             return;
         }
     }
 
     // Second, avoid re-pulsing already-pulsed chains.
-    if (acq->access_ == alt_access_t::read && acq->read_cond_.is_pulsed()
+    if (acq->access_ == access_t::read && acq->read_cond_.is_pulsed()
         && !acq->declared_snapshotted_) {
         return;
     }
@@ -451,7 +451,7 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq) {
         // readable, so we pulse the current node as readable.
         cur->pulse_read_available();
 
-        if (cur->access_ == alt_access_t::read) {
+        if (cur->access_ == access_t::read) {
             current_page_acq_t *next = acquirers_.next(cur);
             if (cur->declared_snapshotted_) {
                 // Snapshotters get kicked out of the queue, to make way for
@@ -1038,12 +1038,12 @@ void page_txn_t::set_account(alt_cache_account_t *cache_account) {
 }
 
 void page_txn_t::add_acquirer(current_page_acq_t *acq) {
-    rassert(acq->access_ == alt_access_t::write);
+    rassert(acq->access_ == access_t::write);
     live_acqs_.push_back(acq);
 }
 
 void page_txn_t::remove_acquirer(current_page_acq_t *acq) {
-    guarantee(acq->access_ == alt_access_t::write);
+    guarantee(acq->access_ == access_t::write);
     // This is called by acq's destructor.
     {
         auto it = std::find(live_acqs_.begin(), live_acqs_.end(), acq);

@@ -35,7 +35,7 @@ struct memcached_incr_decr_oper_t : public memcached_modify_oper_t {
         if (b.valuesize() < 50) {
             buffer_group_t buffergroup;
             blob_acq_t acqs;
-            b.expose_region(leaf, alt_access_t::read,
+            b.expose_region(leaf, access_t::read,
                             0, b.valuesize(), &buffergroup, &acqs);
             rassert(buffergroup.num_buffers() == 1);
 
@@ -80,7 +80,7 @@ struct memcached_incr_decr_oper_t : public memcached_modify_oper_t {
         b.append_region(leaf, tmp.size());
         buffer_group_t group;
         blob_acq_t acqs;
-        b.expose_region(leaf, alt_access_t::write,
+        b.expose_region(leaf, access_t::write,
                         0, b.valuesize(), &group, &acqs);
         rassert(group.num_buffers() == 1);
         rassert(group.get_buffer(0).size == tmp.size(), "expecting %zd == %d", group.get_buffer(0).size, tmp.size());

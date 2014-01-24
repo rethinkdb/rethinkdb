@@ -118,7 +118,7 @@ void run_OneReadAcq() {
     mock_ser_t mock;
     test_cache_t page_cache(mock.ser.get(), mock.tracker.get());
     test_txn_t txn(&page_cache);
-    current_page_acq_t acq(&txn, 0, alt_access_t::read);
+    current_page_acq_t acq(&txn, 0, access_t::read);
     // Do nothing with the acq.
 }
 
@@ -130,7 +130,7 @@ void run_OneWriteAcq() {
     mock_ser_t mock;
     test_cache_t page_cache(mock.ser.get(), mock.tracker.get());
     test_txn_t txn(&page_cache);
-    current_page_acq_t acq(&txn, 0, alt_access_t::write);
+    current_page_acq_t acq(&txn, 0, access_t::write);
     // Do nothing with the acq.
 }
 
@@ -283,7 +283,7 @@ private:
             txn2_ptr = &txn2;
 
             ASSERT_NE(NULL_BLOCK_ID, b[6]);
-            auto acq6 = make_scoped<current_page_acq_t>(&txn2, b[6], alt_access_t::write);
+            auto acq6 = make_scoped<current_page_acq_t>(&txn2, b[6], access_t::write);
 
             condC.pulse();
 
@@ -343,7 +343,7 @@ private:
 
             condC.wait();
             ASSERT_NE(NULL_BLOCK_ID, b[6]);
-            auto acq6 = make_scoped<current_page_acq_t>(&txn3, b[6], alt_access_t::read);
+            auto acq6 = make_scoped<current_page_acq_t>(&txn3, b[6], access_t::read);
 
             condD.pulse();
 
@@ -353,14 +353,14 @@ private:
             condI.wait();
 
             ASSERT_NE(NULL_BLOCK_ID, b[7]);
-            auto acq7 = make_scoped<current_page_acq_t>(&txn3, b[7], alt_access_t::read);
+            auto acq7 = make_scoped<current_page_acq_t>(&txn3, b[7], access_t::read);
             acq6.reset();
 
             check_value(acq7, "t2");
             ASSERT_TRUE(acq7->read_acq_signal()->is_pulsed());
 
             ASSERT_NE(NULL_BLOCK_ID, b[8]);
-            auto acq8 = make_scoped<current_page_acq_t>(&txn3, b[8], alt_access_t::read);
+            auto acq8 = make_scoped<current_page_acq_t>(&txn3, b[8], access_t::read);
             acq7.reset();
 
             acq8->read_acq_signal()->wait();
@@ -391,7 +391,7 @@ private:
             condD.wait();
             ASSERT_NE(NULL_BLOCK_ID, b[6]);
             auto acq6 = make_scoped<current_page_acq_t>(&txn4, b[6],
-                                                        alt_access_t::write);
+                                                        access_t::write);
 
             condH.pulse();
 
@@ -404,14 +404,14 @@ private:
             acq6->write_acq_signal()->wait();
             ASSERT_NE(NULL_BLOCK_ID, b[7]);
             auto acq7 = make_scoped<current_page_acq_t>(&txn4, b[7],
-                                                        alt_access_t::write);
+                                                        access_t::write);
             acq6.reset();
 
             check_value(acq7, "t2");
             acq7->write_acq_signal()->wait();
             ASSERT_NE(NULL_BLOCK_ID, b[8]);
             auto acq8 = make_scoped<current_page_acq_t>(&txn4, b[8],
-                                                        alt_access_t::write);
+                                                        access_t::write);
             acq7.reset();
 
             acq8->read_acq_signal()->wait();
@@ -433,14 +433,14 @@ private:
             condH.wait();
             ASSERT_NE(NULL_BLOCK_ID, b[6]);
             auto acq6 = make_scoped<current_page_acq_t>(&txn5, b[6],
-                                                        alt_access_t::write);
+                                                        access_t::write);
 
             condM.pulse();
             acq6->write_acq_signal()->wait();
             check_value(acq6, "t1t2");
             ASSERT_NE(NULL_BLOCK_ID, b[7]);
             auto acq7 = make_scoped<current_page_acq_t>(&txn5, b[7],
-                                                        alt_access_t::write);
+                                                        access_t::write);
             acq6.reset();
             acq7->write_acq_signal()->wait();
             check_and_append(acq7, "t2", "t5");
@@ -550,7 +550,7 @@ private:
             auto_drainer_t subdrainer;
 
             condM.wait();
-            auto acq6 = make_scoped<current_page_acq_t>(&txn9, b[6], alt_access_t::write);
+            auto acq6 = make_scoped<current_page_acq_t>(&txn9, b[6], access_t::write);
 
             condP.pulse();
 
@@ -588,13 +588,13 @@ private:
     }
 
     void run_txn9B(test_txn_t *txn9, auto_drainer_t::lock_t) {
-        auto acq7 = make_scoped<current_page_acq_t>(txn9, b[7], alt_access_t::write);
+        auto acq7 = make_scoped<current_page_acq_t>(txn9, b[7], access_t::write);
 
         condQ2.pulse();
 
         acq7->write_acq_signal()->wait();
         check_value(acq7, "t2t5");
-        auto acq10 = make_scoped<current_page_acq_t>(txn9, b[10], alt_access_t::write);
+        auto acq10 = make_scoped<current_page_acq_t>(txn9, b[10], access_t::write);
         acq7.reset();
         acq10->write_acq_signal()->wait();
         check_value(acq10, "t5");
@@ -672,7 +672,7 @@ private:
         condR3.wait();
 
         ASSERT_NE(NULL_BLOCK_ID, b[16]);
-        auto acq16 = make_scoped<current_page_acq_t>(txn9, b[16], alt_access_t::write);
+        auto acq16 = make_scoped<current_page_acq_t>(txn9, b[16], access_t::write);
 
         condS1.pulse();
         condS2.pulse();
@@ -695,18 +695,18 @@ private:
             condP.wait();
             test_txn_t txn10(c);
 
-            auto acq6 = make_scoped<current_page_acq_t>(&txn10, b[6], alt_access_t::read);
+            auto acq6 = make_scoped<current_page_acq_t>(&txn10, b[6], access_t::read);
             condV.pulse();
             check_value(acq6, "t1t2t9");
 
-            auto acq7 = make_scoped<current_page_acq_t>(&txn10, b[7], alt_access_t::read);
+            auto acq7 = make_scoped<current_page_acq_t>(&txn10, b[7], access_t::read);
             acq6.reset();
 
             check_value(acq7, "t2t5");
 
-            auto acq8 = make_scoped<current_page_acq_t>(&txn10, b[8], alt_access_t::read);
-            auto acq9 = make_scoped<current_page_acq_t>(&txn10, b[9], alt_access_t::read);
-            auto acq10 = make_scoped<current_page_acq_t>(&txn10, b[10], alt_access_t::read);
+            auto acq8 = make_scoped<current_page_acq_t>(&txn10, b[8], access_t::read);
+            auto acq9 = make_scoped<current_page_acq_t>(&txn10, b[9], access_t::read);
+            auto acq10 = make_scoped<current_page_acq_t>(&txn10, b[10], access_t::read);
 
             acq7->declare_snapshotted();
 
@@ -753,16 +753,16 @@ private:
             test_txn_t txn11(c);
             condV.wait();
 
-            auto acq6 = make_scoped<current_page_acq_t>(&txn11, b[6], alt_access_t::write);
+            auto acq6 = make_scoped<current_page_acq_t>(&txn11, b[6], access_t::write);
             condW.pulse();
 
             check_value(acq6, "t1t2t9");
             acq6->write_acq_signal()->wait();
-            auto acq7 = make_scoped<current_page_acq_t>(&txn11, b[7], alt_access_t::write);
+            auto acq7 = make_scoped<current_page_acq_t>(&txn11, b[7], access_t::write);
             acq6.reset();
             check_value(acq7, "t2t5");
             acq7->write_acq_signal()->wait();
-            auto acq8 = make_scoped<current_page_acq_t>(&txn11, b[8], alt_access_t::write);
+            auto acq8 = make_scoped<current_page_acq_t>(&txn11, b[8], access_t::write);
             acq7.reset();
 
             acq8->mark_deleted();
@@ -778,12 +778,12 @@ private:
             test_txn_t txn12(c);
             condW.wait();
 
-            auto acq6 = make_scoped<current_page_acq_t>(&txn12, b[6], alt_access_t::write);
+            auto acq6 = make_scoped<current_page_acq_t>(&txn12, b[6], access_t::write);
             condY.pulse();
 
             check_value(acq6, "t1t2t9");
             acq6->write_acq_signal()->wait();
-            auto acq7 = make_scoped<current_page_acq_t>(&txn12, b[7], alt_access_t::write);
+            auto acq7 = make_scoped<current_page_acq_t>(&txn12, b[7], access_t::write);
             check_value(acq7, "t2t5");
             acq7->write_acq_signal()->wait();
 
@@ -810,14 +810,14 @@ private:
             test_txn_t txn13(c);
             condY.wait();
 
-            auto acq6 = make_scoped<current_page_acq_t>(&txn13, b[6], alt_access_t::write);
+            auto acq6 = make_scoped<current_page_acq_t>(&txn13, b[6], access_t::write);
             check_value(acq6, "t1t2t9");
             acq6->write_acq_signal()->wait();
-            auto acq7 = make_scoped<current_page_acq_t>(&txn13, b[7], alt_access_t::write);
+            auto acq7 = make_scoped<current_page_acq_t>(&txn13, b[7], access_t::write);
             acq6.reset();
             check_value(acq7, "t2t5");
             acq7->write_acq_signal()->wait();
-            auto acq8 = make_scoped<current_page_acq_t>(&txn13, b[8], alt_access_t::write);
+            auto acq8 = make_scoped<current_page_acq_t>(&txn13, b[8], access_t::write);
             acq7.reset();
             check_and_append(acq8, "t12", "t13");
             condZ4.pulse();
@@ -830,17 +830,17 @@ private:
         {
             test_txn_t txn14(c);
             auto acq3 = make_scoped<current_page_acq_t>(&txn14, b[3],
-                                                        alt_access_t::write);
+                                                        access_t::write);
             check_and_append(acq3, "t7", "t14");
             acq3.reset();
             bad1.pulse();
             bad2.wait();
             auto acq4i = make_scoped<current_page_acq_t>(&txn14, b[4],
-                                                         alt_access_t::write);
+                                                         access_t::write);
             check_and_append(acq4i, "t7t15", "t14i");
             // We try to re-acquire the same block!  While this txn still holds it!
             auto acq4ii = make_scoped<current_page_acq_t>(&txn14, b[4],
-                                                          alt_access_t::write);
+                                                          access_t::write);
             acq4i.reset();
             check_and_append(acq4ii, "t7t15t14i", "t14ii");
             acq4ii.reset();
@@ -852,11 +852,11 @@ private:
             test_txn_t txn15(c);
             bad1.wait();
             auto acq3 = make_scoped<current_page_acq_t>(&txn15, b[3],
-                                                        alt_access_t::write);
+                                                        access_t::write);
             check_and_append(acq3, "t7t14", "t15");
             acq3.reset();
             auto acq4 = make_scoped<current_page_acq_t>(&txn15, b[4],
-                                                        alt_access_t::write);
+                                                        access_t::write);
             check_and_append(acq4, "t7", "t15");
             acq4.reset();
             bad2.pulse();
@@ -902,7 +902,7 @@ private:
     void check_value(page_txn_t *txn, block_id_t block_id,
                      const std::string &expected) {
         SCOPED_TRACE(block_id);
-        auto acq = make_scoped<current_page_acq_t>(txn, block_id, alt_access_t::read);
+        auto acq = make_scoped<current_page_acq_t>(txn, block_id, access_t::read);
         check_value(acq, expected);
     }
 

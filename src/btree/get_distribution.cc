@@ -72,12 +72,12 @@ public:
         cb->no_more_interesting_children();
     }
 
-    alt_access_t btree_superblock_mode() {
-        return alt_access_t::read;
+    access_t btree_superblock_mode() {
+        return access_t::read;
     }
 
-    alt_access_t btree_node_mode() {
-        return alt_access_t::read;
+    access_t btree_node_mode() {
+        return access_t::read;
     }
 
     int depth_limit;

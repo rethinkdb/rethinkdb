@@ -10,11 +10,10 @@
 
 #include "backfill_progress.hpp"
 #include "buffer_cache/types.hpp"
-#include "concurrency/access.hpp"
 #include "concurrency/signal.hpp"
 #include "containers/scoped.hpp"
 
-enum class alt_access_t;
+enum class access_t;
 class buf_lock_t;
 class buf_parent_t;
 struct btree_superblock_t;
@@ -137,8 +136,8 @@ struct btree_traversal_helper_t {
             ranged_block_ids_t *ids_source,
             interesting_children_callback_t *cb) = 0;
 
-    virtual alt_access_t btree_superblock_mode() = 0;
-    virtual alt_access_t btree_node_mode() = 0;
+    virtual access_t btree_superblock_mode() = 0;
+    virtual access_t btree_node_mode() = 0;
 
 
     virtual ~btree_traversal_helper_t() { }

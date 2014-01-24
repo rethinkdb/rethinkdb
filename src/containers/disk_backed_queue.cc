@@ -57,7 +57,7 @@ void internal_disk_backed_queue_t::push(const write_message_t &wm) {
     }
 
     auto _head = make_scoped<buf_lock_t>(buf_parent_t(&txn), head_block_id,
-                                         alt_access_t::write);
+                                         access_t::write);
     auto write = make_scoped<buf_write_t>(_head.get());
     queue_block_t *head = static_cast<queue_block_t *>(write->get_data_write());
 
@@ -75,7 +75,7 @@ void internal_disk_backed_queue_t::push(const write_message_t &wm) {
         _head.reset();
         add_block_to_head(&txn);
         _head.init(new buf_lock_t(buf_parent_t(&txn), head_block_id,
-                                  alt_access_t::write));
+                                  access_t::write));
         write.init(new buf_write_t(_head.get()));
         head = static_cast<queue_block_t *>(write->get_data_write());
     }
@@ -95,7 +95,7 @@ void internal_disk_backed_queue_t::pop(buffer_group_viewer_t *viewer) {
     // No need for hard durability with an unlinked dbq file.
     txn_t txn(cache.get(), write_durability_t::SOFT, repli_timestamp_t::distant_past, 2);
 
-    buf_lock_t _tail(buf_parent_t(&txn), tail_block_id, alt_access_t::write);
+    buf_lock_t _tail(buf_parent_t(&txn), tail_block_id, access_t::write);
 
     /* Grab the data from the blob and delete it. */
     {
@@ -117,7 +117,7 @@ void internal_disk_backed_queue_t::pop(buffer_group_viewer_t *viewer) {
     {
         blob_acq_t acq_group;
         buffer_group_t blob_group;
-        blob.expose_all(buf_parent_t(&_tail), alt_access_t::read,
+        blob.expose_all(buf_parent_t(&_tail), access_t::read,
                         &blob_group, &acq_group);
 
         viewer->view_buffer_group(const_view(&blob_group));
@@ -163,7 +163,7 @@ void internal_disk_backed_queue_t::add_block_to_head(txn_t *txn) {
         head_block_id = tail_block_id = _new_head.block_id();
     } else {
         buf_lock_t _old_head(buf_parent_t(txn), head_block_id,
-                             alt_access_t::write);
+                             access_t::write);
         buf_write_t old_write(&_old_head);
         queue_block_t *old_head
             = static_cast<queue_block_t *>(old_write.get_data_write());
@@ -180,7 +180,7 @@ void internal_disk_backed_queue_t::add_block_to_head(txn_t *txn) {
 void internal_disk_backed_queue_t::remove_block_from_tail(txn_t *txn) {
     rassert(tail_block_id != NULL_BLOCK_ID);
     buf_lock_t _old_tail(buf_parent_t(txn), tail_block_id,
-                         alt_access_t::write);
+                         access_t::write);
 
     {
         buf_write_t old_write(&_old_tail);

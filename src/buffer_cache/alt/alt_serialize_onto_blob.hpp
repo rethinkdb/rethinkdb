@@ -27,7 +27,7 @@ void deserialize_from_blob(buf_parent_t parent, blob_t *blob,
                            T *value_out) {
     buffer_group_t group;
     blob_acq_t acq;
-    blob->expose_all(parent, alt_access_t::read, &group, &acq);
+    blob->expose_all(parent, access_t::read, &group, &acq);
     deserialize_from_group(const_view(&group), value_out);
 }
 

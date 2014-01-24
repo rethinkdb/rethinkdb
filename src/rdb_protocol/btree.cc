@@ -1306,8 +1306,8 @@ public:
     // is bad for some reason (if it actually touches the superblock).  Think about
     // that, make sindexes better, and talk to other people about known sindex
     // problems.
-    alt_access_t btree_superblock_mode() { return alt_access_t::read; }
-    alt_access_t btree_node_mode() { return alt_access_t::read; }
+    access_t btree_superblock_mode() { return access_t::read; }
+    access_t btree_node_mode() { return access_t::read; }
 
     btree_store_t<rdb_protocol_t> *store_;
     const std::set<uuid_u> &sindexes_to_post_construct_;

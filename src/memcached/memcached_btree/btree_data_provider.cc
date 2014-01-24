@@ -17,7 +17,7 @@ counted_t<data_buffer_t> value_to_data_buffer(const memcached_value_t *value,
 
     buffer_group_t group;
     blob_acq_t acqs;
-    blob.expose_region(parent, alt_access_t::read, 0, blob.valuesize(), &group, &acqs);
+    blob.expose_region(parent, access_t::read, 0, blob.valuesize(), &group, &acqs);
     size_t sz = group.get_size();
     counted_t<data_buffer_t> ret = data_buffer_t::create(sz);
     buffer_group_t tmp;

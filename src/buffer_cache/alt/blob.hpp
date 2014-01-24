@@ -44,7 +44,7 @@ memcpy(tmp, ref, blob::ref_size(bs, ref, mrl));
         blob_acq_t acq;
         buffer_group_t group;
 
-        tmp.expose_region(leafnode, alt_access_t::write, old_size, x.size(),
+        tmp.expose_region(leafnode, access_t::write, old_size, x.size(),
                           &group, &acq);
         // There are better ways to shovel data into a buffer group if it's not
         // already in a string -- please avoid excessive copying!
@@ -57,7 +57,7 @@ write_blob_ref_to_something(tmp, blob::ref_size(bs, ref, mrl));
 
  */
 
-enum class alt_access_t;
+enum class access_t;
 class buf_lock_t;
 class buf_parent_t;
 class buf_read_t;
@@ -179,10 +179,10 @@ public:
     // used.  If you want to expose the region in a _readonly_
     // fashion, use a const_cast!  I am so sorry.
     void expose_region(buf_parent_t root,
-                       alt_access_t mode, int64_t offset,
+                       access_t mode, int64_t offset,
                        int64_t size, buffer_group_t *buffer_group_out,
                        blob_acq_t *acq_group_out);
-    void expose_all(buf_parent_t root, alt_access_t mode,
+    void expose_all(buf_parent_t root, access_t mode,
                     buffer_group_t *buffer_group_out,
                     blob_acq_t *acq_group_out);
 

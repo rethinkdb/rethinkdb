@@ -304,7 +304,7 @@ public:
     // RSI: Clean up the interface (w.r.t. this create = false parameter).
     current_page_acq_t(page_txn_t *txn,
                        block_id_t block_id,
-                       alt_access_t access,
+                       access_t access,
                        bool create = false);
     current_page_acq_t(page_txn_t *txn,
                        alt_create_t create);
@@ -327,7 +327,7 @@ public:
     page_t *snapshotted_page_ptr();
 
     block_id_t block_id() const { return block_id_; }
-    alt_access_t access() const { return access_; }
+    access_t access() const { return access_; }
     repli_timestamp_t recency() const;
 
     void mark_deleted();
@@ -337,7 +337,7 @@ public:
 private:
     void init(page_txn_t *txn,
               block_id_t block_id,
-              alt_access_t access,
+              access_t access,
               bool create);
     void init(page_txn_t *txn,
               alt_create_t create);
@@ -361,7 +361,7 @@ private:
     // RSI: the_txn_ is NULL if and only if access_ == read, these fields are redundant.
     page_cache_t *page_cache_;
     page_txn_t *the_txn_;  // RSI: Rename back to txn_.
-    alt_access_t access_;
+    access_t access_;
     bool declared_snapshotted_;
     // The block id of the page we acquired.
     block_id_t block_id_;

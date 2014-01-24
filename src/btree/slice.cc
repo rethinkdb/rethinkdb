@@ -26,7 +26,7 @@ void btree_slice_t::create(block_id_t superblock_id,
                            const std::vector<char> &metainfo_value) {
     // The superblock was already created.  KSI: Make this be the thing that creates
     // the block.  It would be simpler.
-    buf_lock_t superblock(parent, superblock_id, alt_access_t::write);
+    buf_lock_t superblock(parent, superblock_id, access_t::write);
 
     buf_write_t sb_write(&superblock);
     auto sb = static_cast<btree_superblock_t *>(sb_write.get_data_write());

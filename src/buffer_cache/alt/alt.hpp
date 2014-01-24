@@ -125,7 +125,7 @@ public:
 
     cache_t *cache() { return inner_->cache(); }
     page_txn_t *page_txn() { return inner_->page_txn(); }
-    alt_access_t access() const { return access_; }
+    access_t access() const { return access_; }
 
     void set_account(alt_cache_account_t *cache_account);
 
@@ -139,7 +139,7 @@ private:
                                   int64_t saved_expected_change_count,
                                   auto_drainer_t::lock_t);
 
-    const alt_access_t access_;
+    const access_t access_;
 
     // Only applicable if access_ == write.
     const write_durability_t durability_;
@@ -171,7 +171,7 @@ public:
     // Acquires an existing block for read or write access.
     buf_lock_t(buf_parent_t parent,
                block_id_t block_id,
-               alt_access_t access);
+               access_t access);
 
     // Creates a new block with a specified block id, one that doesn't have a parent.
     buf_lock_t(txn_t *txn,
@@ -187,7 +187,7 @@ public:
     // Acquires an existing block given the parent.
     buf_lock_t(buf_lock_t *parent,
                block_id_t block_id,
-               alt_access_t access);
+               access_t access);
 
     // Creates a block, a new child of the given parent.  It gets assigned a block id
     // from one of the unused block id's.
@@ -221,7 +221,7 @@ public:
 
     repli_timestamp_t get_recency() const;
 
-    alt_access_t access() const {
+    access_t access() const {
         guarantee(!empty());
         return current_page_acq()->access();
     }
@@ -241,11 +241,11 @@ public:
     cache_t *cache() const { return txn_->cache(); }
 
 private:
-    void help_construct(buf_parent_t parent, block_id_t block_id, alt_access_t access);
+    void help_construct(buf_parent_t parent, block_id_t block_id, access_t access);
     void help_construct(buf_parent_t parent, alt_create_t create);
     void help_construct(buf_parent_t parent, block_id_t block_id, alt_create_t create);
 
-    static void wait_for_parent(buf_parent_t parent, alt_access_t access);
+    static void wait_for_parent(buf_parent_t parent, access_t access);
     static alt_snapshot_node_t *
     get_or_create_child_snapshot_node(cache_t *cache,
                                       alt_snapshot_node_t *parent,

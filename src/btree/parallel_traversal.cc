@@ -349,7 +349,7 @@ void btree_parallel_traversal(superblock_t *superblock, btree_slice_t *slice,
     traversal_state_t state(slice, helper, interruptor);
 
     /* Make sure there's a stat block*/
-    if (helper->btree_node_mode() == alt_access_t::write) {
+    if (helper->btree_node_mode() == access_t::write) {
         ensure_stat_block(superblock);
     }
 
@@ -359,7 +359,7 @@ void btree_parallel_traversal(superblock_t *superblock, btree_slice_t *slice,
     if (state.stat_block != NULL_BLOCK_ID) {
         /* Give the helper a look at the stat block */
         buf_lock_t stat_block(superblock->expose_buf(),
-                              state.stat_block, alt_access_t::read);
+                              state.stat_block, access_t::read);
         helper->read_stat_block(&stat_block);
     } else {
         helper->read_stat_block(NULL);
@@ -526,7 +526,7 @@ void process_a_leaf_node(traversal_state_t *state, buf_lock_t buf,
         `interruptor` has been pulsed */
     }
 
-    if (state->helper->btree_node_mode() != alt_access_t::write) {
+    if (state->helper->btree_node_mode() != access_t::write) {
         rassert(population_change == 0, "A read only operation claims it change the population of a leaf.\n");
         buf.reset_buf_lock();
     } else if (population_change != 0) {
@@ -534,7 +534,7 @@ void process_a_leaf_node(traversal_state_t *state, buf_lock_t buf,
         // RSI: See operations.tcc for another use of the stat block.
         // RSI: having buf as the parent doesn't really make sense. The stat block
         // doesn't really have a parent.
-        buf_lock_t stat_block(&buf, state->stat_block, alt_access_t::write);
+        buf_lock_t stat_block(&buf, state->stat_block, access_t::write);
         buf.reset_buf_lock();
         buf_write_t stat_block_write(&stat_block);
         auto stat_block_buf =

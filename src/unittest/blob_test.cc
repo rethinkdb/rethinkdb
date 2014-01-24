@@ -37,7 +37,7 @@ public:
 
         buffer_group_t bg;
         blob_acq_t bacq;
-        blob_.expose_region(buf_parent_t(txn), alt_access_t::read, offset, size,
+        blob_.expose_region(buf_parent_t(txn), access_t::read, offset, size,
                             &bg, &bacq);
 
         ASSERT_EQ(size, static_cast<int64_t>(bg.get_size()));
@@ -94,7 +94,7 @@ public:
         {
             buffer_group_t bg;
             blob_acq_t bacq;
-            blob_.expose_region(buf_parent_t(txn), alt_access_t::write,
+            blob_.expose_region(buf_parent_t(txn), access_t::write,
                                 expected_.size(), n, &bg, &bacq);
 
             ASSERT_EQ(static_cast<size_t>(n), bg.get_size());
@@ -121,7 +121,7 @@ public:
         {
             buffer_group_t bg;
             blob_acq_t bacq;
-            blob_.expose_region(buf_parent_t(txn), alt_access_t::write, 0, n,
+            blob_.expose_region(buf_parent_t(txn), access_t::write, 0, n,
                                 &bg, &bacq);
 
             ASSERT_EQ(n, static_cast<int64_t>(bg.get_size()));

@@ -71,8 +71,8 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
         // do nothing
     }
 
-    alt_access_t btree_superblock_mode() { return alt_access_t::read; }
-    alt_access_t btree_node_mode() { return alt_access_t::read; }
+    access_t btree_superblock_mode() { return access_t::read; }
+    access_t btree_node_mode() { return access_t::read; }
 
     void filter_interesting_children(buf_parent_t parent,
                                      ranged_block_ids_t *ids_source,
@@ -89,7 +89,7 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
                 // RSI: We ignore recency.  What does this even do?
                 repli_timestamp_t recency;
                 {
-                    buf_lock_t lock(parent, id, alt_access_t::read);
+                    buf_lock_t lock(parent, id, access_t::read);
                     recency = lock.get_recency();
                 }
                 cb->receive_interesting_child(i);

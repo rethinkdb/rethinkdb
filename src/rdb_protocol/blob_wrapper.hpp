@@ -26,7 +26,7 @@ public:
     int64_t valuesize() const;
 
     /* This function only works in read mode. */
-    void expose_all(buf_parent_t parent, alt_access_t mode,
+    void expose_all(buf_parent_t parent, access_t mode,
                     buffer_group_t *buffer_group_out,
                     blob_acq_t *acq_group_out);
 

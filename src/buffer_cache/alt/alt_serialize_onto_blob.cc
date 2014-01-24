@@ -7,7 +7,7 @@ void write_onto_blob(buf_parent_t parent, blob_t *blob,
 
     blob_acq_t acq;
     buffer_group_t group;
-    blob->expose_all(parent, alt_access_t::write, &group, &acq);
+    blob->expose_all(parent, access_t::write, &group, &acq);
 
     buffer_group_write_stream_t stream(&group);
     int res = send_write_message(&stream, &wm);

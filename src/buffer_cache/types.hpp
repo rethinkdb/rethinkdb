@@ -8,8 +8,6 @@
 #include "containers/archive/archive.hpp"
 #include "serializer/types.hpp"
 
-enum class alt_access_t { read, write };
-
 // write_durability_t::INVALID is an invalid value, notably it can't be serialized.
 enum class write_durability_t { INVALID, SOFT, HARD };
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(write_durability_t, int8_t,

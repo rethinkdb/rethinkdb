@@ -51,14 +51,14 @@ void run_sindex_low_level_operations_test() {
         order_token_t otok = order_source.check_in("sindex unittest");
         scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
-        get_btree_superblock_and_txn(&btree, alt_access_t::write, 1,
+        get_btree_superblock_and_txn(&btree, access_t::write, 1,
                                      repli_timestamp_t::invalid,
                                      write_durability_t::SOFT,
                                      &superblock, &txn);
 
         buf_lock_t sindex_block(superblock->expose_buf(),
                                 superblock->get_sindex_block_id(),
-                                alt_access_t::write);
+                                access_t::write);
 
         initialize_secondary_indexes(&sindex_block);
     }
@@ -77,13 +77,13 @@ void run_sindex_low_level_operations_test() {
         order_token_t otok = order_source.check_in("sindex unittest");
         scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
-        get_btree_superblock_and_txn(&btree, alt_access_t::write, 1,
+        get_btree_superblock_and_txn(&btree, access_t::write, 1,
                                      repli_timestamp_t::invalid,
                                      write_durability_t::SOFT,
                                      &superblock, &txn);
         buf_lock_t sindex_block(superblock->expose_buf(),
                                 superblock->get_sindex_block_id(),
-                                alt_access_t::write);
+                                access_t::write);
 
         set_secondary_index(&sindex_block, id, s);
     }
@@ -92,13 +92,13 @@ void run_sindex_low_level_operations_test() {
         order_token_t otok = order_source.check_in("sindex unittest");
         scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
-        get_btree_superblock_and_txn(&btree, alt_access_t::write, 1,
+        get_btree_superblock_and_txn(&btree, access_t::write, 1,
                                      repli_timestamp_t::invalid,
                                      write_durability_t::SOFT,
                                      &superblock, &txn);
         buf_lock_t sindex_block(superblock->expose_buf(),
                                 superblock->get_sindex_block_id(),
-                                alt_access_t::write);
+                                access_t::write);
 
         std::map<std::string, secondary_index_t> sindexes;
         get_secondary_indexes(&sindex_block, &sindexes);

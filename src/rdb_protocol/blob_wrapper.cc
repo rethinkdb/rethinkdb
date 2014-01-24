@@ -32,10 +32,10 @@ int64_t rdb_blob_wrapper_t::valuesize() const {
 }
 
 void rdb_blob_wrapper_t::expose_all(
-        buf_parent_t parent, alt_access_t mode,
+        buf_parent_t parent, access_t mode,
         buffer_group_t *buffer_group_out,
         blob_acq_t *acq_group_out) {
-    guarantee(mode == alt_access_t::read,
+    guarantee(mode == access_t::read,
         "Other blocks might be referencing this blob, it's invalid to modify it in place.");
     internal.expose_all(parent, mode, buffer_group_out, acq_group_out);
 }
