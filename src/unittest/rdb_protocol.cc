@@ -364,6 +364,8 @@ TEST(RDBProtocol, OvershardedSindexList) {
 
 void run_sindex_oversized_keys_test(namespace_interface_t<rdb_protocol_t> *nsi, order_source_t *osource) {
     std::string sindex_id = create_sindex(nsi, osource);
+    // RSI: Ugh.
+    nap(1000);
 
     for (size_t i = 0; i < 20; ++i) {
         for (size_t j = 100; j < 200; j += 5) {
