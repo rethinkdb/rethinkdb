@@ -302,7 +302,7 @@ void post_construct_secondary_indexes(
     THROWS_ONLY(interrupted_exc_t);
 
 class rdb_value_deleter_t : public value_deleter_t {
-friend void rdb_update_sindexes(
+    friend void rdb_update_sindexes(
         const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,
         const rdb_modification_report_t *modification, txn_t *txn);
 

@@ -1598,6 +1598,8 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     void operator()(const sindex_drop_t &d) {
         sindex_drop_response_t res;
         value_sizer_t<rdb_value_t> sizer(btree->cache()->get_block_size());
+        // RSI: This is wrong, surely.  It actually deletes the blob.  From an
+        // sindex!
         rdb_value_deleter_t deleter;
 
         res.success = store->drop_sindex(d.id,
@@ -1913,7 +1915,6 @@ void store_t::protocol_reset_data(const region_t& subregion,
                                   signal_t *interruptor) {
     with_priority_t p(CORO_PRIORITY_RESET_DATA);
     value_sizer_t<rdb_value_t> sizer(btree->cache()->get_block_size());
-    rdb_value_deleter_t deleter;
 
     always_true_key_tester_t key_tester;
     buf_lock_t sindex_block
