@@ -44,7 +44,8 @@ memcpy(tmp, ref, blob::ref_size(bs, ref, mrl));
         blob_acq_t acq;
         buffer_group_t group;
 
-        tmp.expose_region(leafnode, rwi_write, old_size, x.size(), &group, &acq);
+        tmp.expose_region(leafnode, alt_access_t::write, old_size, x.size(),
+                          &group, &acq);
         // There are better ways to shovel data into a buffer group if it's not
         // already in a string -- please avoid excessive copying!
         copy_string_to_buffer_group(&group, x);

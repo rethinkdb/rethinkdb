@@ -36,7 +36,7 @@ public:
 
     const signal_t *read_signal() const { return &read_cond_; }
     const signal_t *write_signal() const {
-        guarantee(access_ == rwi_write);
+        guarantee(access_ == access_t::write);
         return &write_cond_;
     }
 

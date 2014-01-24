@@ -28,7 +28,7 @@ void rwlock_t::pulse_pulsables(rwlock_in_line_t *p) {
         // should pulse p (and only p) for write.  (This is typical: When we remove a
         // read-acquirer that has been pulsed for read, the subsequent chain of nodes
         // will already have been pulsed for read.)
-        if (p->access_ == rwi_write && acqs_.prev(p) == NULL) {
+        if (p->access_ == access_t::write && acqs_.prev(p) == NULL) {
             p->write_cond_.pulse_if_not_already_pulsed();
         }
         return;
@@ -45,7 +45,7 @@ void rwlock_t::pulse_pulsables(rwlock_in_line_t *p) {
                 return;
             }
             // Should we stop pulsing (and maybe pulse p for write)?
-            if (p->access_ == rwi_write) {
+            if (p->access_ == access_t::write) {
                 if (prev == NULL) {
                     p->write_cond_.pulse();
                 }

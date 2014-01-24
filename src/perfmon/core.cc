@@ -28,7 +28,7 @@ public:
 
     stats_collection_context_t(rwlock_t *constituents_lock,
                                const intrusive_list_t<perfmon_membership_t> &constituents) :
-        lock_sentry(constituents_lock, rwi_read),
+        lock_sentry(constituents_lock, access_t::read),
         DEBUG_ONLY(size(constituents.size()), )
         contexts(new void *[constituents.size()]) {
         lock_sentry.read_signal()->wait();
@@ -96,7 +96,7 @@ void perfmon_collection_t::add(perfmon_membership_t *perfmon) {
         thread_switcher.init(new on_thread_t(home_thread()));
     }
 
-    rwlock_in_line_t write_acq(&constituents_access, rwi_write);
+    rwlock_in_line_t write_acq(&constituents_access, access_t::write);
     write_acq.write_signal()->wait();
     constituents.push_back(perfmon);
 }
@@ -107,7 +107,7 @@ void perfmon_collection_t::remove(perfmon_membership_t *perfmon) {
         thread_switcher.init(new on_thread_t(home_thread()));
     }
 
-    rwlock_in_line_t write_acq(&constituents_access, rwi_write);
+    rwlock_in_line_t write_acq(&constituents_access, access_t::write);
     write_acq.write_signal()->wait();
     constituents.remove(perfmon);
 }

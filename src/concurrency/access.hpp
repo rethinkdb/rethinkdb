@@ -2,16 +2,13 @@
 #ifndef CONCURRENCY_ACCESS_HPP_
 #define CONCURRENCY_ACCESS_HPP_
 
-enum access_t {
-    // Intent to read
-    rwi_read,
-
-    // Intent to write
-    rwi_write,
+enum class access_t {
+    read,
+    write,
 };
 
 inline bool is_read_mode(access_t mode) {
-    return mode == rwi_read;
+    return mode == access_t::read;
 }
 inline bool is_write_mode(access_t mode) {
     return !is_read_mode(mode);
