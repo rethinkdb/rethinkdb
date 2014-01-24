@@ -379,28 +379,8 @@ bool is_subordinate(alt_access_t parent, alt_access_t child) {
     return parent == alt_access_t::write || child == alt_access_t::read;
 }
 
-buf_lock_t::buf_lock_t(txn_t *txn,
-                       block_id_t block_id,
-                       alt_create_t)
-    : txn_(txn),
-      current_page_acq_(new current_page_acq_t(txn->page_txn(), block_id,
-                                               alt_access_t::write, true)),
-      snapshot_node_(NULL),
-      access_ref_count_(0) {
-    guarantee(is_subordinate(txn_->access(), alt_access_t::write));
-#if ALT_DEBUG
-    debugf("%p: buf_lock_t %p create %lu\n", cache(), this, block_id);
-#endif
-}
-
-// RSI: So much duplicated code all over these constructors.
-buf_lock_t::buf_lock_t(buf_parent_t parent,
-                       block_id_t block_id,
-                       alt_create_t)
-    : txn_(parent.txn()),
-      current_page_acq_(),
-      snapshot_node_(NULL),
-      access_ref_count_(0) {
+void buf_lock_t::help_construct(buf_parent_t parent, block_id_t block_id,
+                                alt_create_t) {
     buf_lock_t::wait_for_parent(parent, alt_access_t::write);
 
     // Makes sure nothing funny can happen in current_page_acq_t constructor.
@@ -429,7 +409,26 @@ buf_lock_t::buf_lock_t(buf_parent_t parent,
                cache(), this, block_id());
 #endif
     }
+}
 
+buf_lock_t::buf_lock_t(txn_t *txn,
+                       block_id_t block_id,
+                       alt_create_t create)
+    : txn_(txn),
+      current_page_acq_(),
+      snapshot_node_(NULL),
+      access_ref_count_(0) {
+    help_construct(buf_parent_t(txn), block_id, create);
+}
+
+buf_lock_t::buf_lock_t(buf_parent_t parent,
+                       block_id_t block_id,
+                       alt_create_t create)
+    : txn_(parent.txn()),
+      current_page_acq_(),
+      snapshot_node_(NULL),
+      access_ref_count_(0) {
+    help_construct(parent, block_id, create);
 }
 
 void buf_lock_t::mark_deleted() {
@@ -493,7 +492,7 @@ buf_lock_t::buf_lock_t(buf_lock_t *parent,
 #endif
 }
 
-void buf_lock_t::help_construct(buf_parent_t parent, UNUSED alt_create_t create) {
+void buf_lock_t::help_construct(buf_parent_t parent, alt_create_t) {
     buf_lock_t::wait_for_parent(parent, alt_access_t::write);
 
     // Makes sure nothing funny can happen in current_page_acq_t constructor.
