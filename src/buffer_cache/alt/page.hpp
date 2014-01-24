@@ -249,7 +249,7 @@ private:
 
     void convert_from_serializer_if_necessary(current_page_help_t help);
 
-    void mark_deleted();
+    void mark_deleted(current_page_help_t help);
 
     // page_txn_t should not access our fields directly.
     friend class page_txn_t;

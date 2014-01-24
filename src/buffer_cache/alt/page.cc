@@ -8,12 +8,6 @@
 #include "serializer/serializer.hpp"
 #include "stl_utils.hpp"
 
-// RSI: Have good assertions about nobody trying to acquire a block that is deleted.
-
-// RSI: Regarding above, there was a change recently that helped support trying to
-// acquire a block that is deleted (for write mode) which would then create the
-// block.  How about we remove this (serializer_filestream_t is fixed).
-
 page_cache_t::page_cache_t(serializer_t *serializer,
                            const page_cache_config_t &config,
                            memory_tracker_t *tracker)
@@ -24,7 +18,6 @@ page_cache_t::page_cache_t(serializer_t *serializer,
       drainer_(make_scoped<auto_drainer_t>()) {
     {
         on_thread_t thread_switcher(serializer->home_thread());
-        // RSI: Maybe these values should come from some sort of dynamic config.
         reads_io_account.init(serializer->make_io_account(config.io_priority_reads));
         writes_io_account.init(serializer->make_io_account(config.io_priority_writes));
         index_write_sink.init(new fifo_enforcer_sink_t);
@@ -55,7 +48,9 @@ current_page_t *page_cache_t::page_for_block_id(block_id_t block_id) {
     }
 
     if (current_pages_[block_id] == NULL) {
-        // RSI: Find some way to assert that the block isn't being created here.
+        // RSI: This code is never hit by the unit tests.
+        rassert(recency_for_block_id(block_id) != repli_timestamp_t::invalid,
+                "expected block %" PR_BLOCK_ID "not to be deleted", block_id);
         current_pages_[block_id] = new current_page_t();
     } else {
         rassert(!current_pages_[block_id]->is_deleted());
@@ -80,9 +75,9 @@ current_page_t *page_cache_t::page_for_new_chosen_block_id(block_id_t block_id) 
 }
 
 current_page_t *page_cache_t::internal_page_for_new_chosen(block_id_t block_id) {
-    // RSI: Make this actually assert that the existing block id is definitely
-    // deleted in the serializer.
     assert_thread();
+    rassert(recency_for_block_id(block_id) == repli_timestamp_t::invalid,
+            "expected chosen block %" PR_BLOCK_ID "to be deleted", block_id);
     if (current_pages_.size() <= block_id) {
         current_pages_.resize(block_id + 1, NULL);
     }
@@ -308,7 +303,7 @@ void current_page_acq_t::mark_deleted() {
     write_cond_.wait();
     rassert(current_page_ != NULL);
     dirtied_page_ = true;
-    current_page_->mark_deleted();
+    current_page_->mark_deleted(help());
 }
 
 bool current_page_acq_t::dirtied_page() const {
@@ -504,9 +499,11 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq) {
     }
 }
 
-void current_page_t::mark_deleted() {
+void current_page_t::mark_deleted(current_page_help_t help) {
     rassert(!is_deleted_);
     is_deleted_ = true;
+    help.page_cache->set_recency_for_block_id(help.block_id,
+                                              repli_timestamp_t::invalid);
     page_.reset();
 }
 
