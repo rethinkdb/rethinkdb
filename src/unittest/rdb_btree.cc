@@ -21,8 +21,6 @@
 #define TOTAL_KEYS_TO_INSERT 100
 #define MAX_RETRIES_FOR_SINDEX_POSTCONSTRUCT 5
 
-#pragma GCC diagnostic ignored "-Wshadow"
-
 namespace unittest {
 
 void insert_rows(int start, int finish, btree_store_t<rdb_protocol_t> *store) {

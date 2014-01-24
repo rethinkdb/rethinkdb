@@ -29,9 +29,6 @@
 #include "rpc/semilattice/watchable.hpp"
 #include "serializer/config.hpp"
 
-// Ignore clang errors for ql macros
-#pragma GCC diagnostic ignored "-Wshadow"
-
 typedef rdb_protocol_details::backfill_atom_t rdb_backfill_atom_t;
 typedef rdb_protocol_details::range_key_tester_t range_key_tester_t;
 

@@ -4,8 +4,6 @@
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/minidriver.hpp"
 
-#pragma GCC diagnostic ignored "-Wshadow"
-
 namespace ql {
 argspec_t::argspec_t(int n) : min(n), max(n) { }
 argspec_t::argspec_t(int _min, int _max) : min(_min), max(_max) { }
