@@ -563,7 +563,7 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
         auto_drainer_t sindex_erase_drainer;
         spawn_sindex_erase_ranges(&sindex_superblocks, key_range,
                 &sindex_erase_drainer, auto_drainer_t::lock_t(&sindex_erase_drainer),
-                true, /* release the superblock */ interruptor);
+                true /* release the superblock */, interruptor);
 
         /* Notice, when we exit this block we destruct the sindex_erase_drainer
          * which means we'll wait until all of the sindex_erase_ranges finish
