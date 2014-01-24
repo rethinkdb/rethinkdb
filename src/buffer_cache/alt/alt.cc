@@ -7,7 +7,7 @@
 #include "buffer_cache/alt/stats.hpp"
 #include "concurrency/auto_drainer.hpp"
 
-// RSI: get rid of this.
+// RSI: Get rid of this.
 #define ALT_DEBUG 0
 
 // There are very few ASSERT_NO_CORO_WAITING calls (instead we have
@@ -170,7 +170,8 @@ txn_t::txn_t(cache_t *cache,
              alt_read_access_t,
              txn_t *preceding_txn)
     : access_(access_t::read),
-      durability_(valgrind_undefined(write_durability_t::INVALID)),
+      // RSI: Why does OvershardedSindexCreateDrop depend on this being SOFT or HARD?
+      durability_(write_durability_t::HARD),
       // RSI: Fix the semaphore so that we don't have to use 1.
       saved_expected_change_count_(1) {
     help_construct(cache, repli_timestamp_t::invalid, preceding_txn);
@@ -417,12 +418,12 @@ void buf_lock_t::help_construct(buf_parent_t parent, block_id_t block_id,
                                           current_page_acq_->block_id());
 #if ALT_DEBUG
         debugf("%p: buf_lock_t %p create %lu (as child of %lu)\n",
-               cache(), this, block_id(), parent.lock_or_null_->block_id());
+               cache(), this, buf_lock_t::block_id(), parent.lock_or_null_->block_id());
 #endif
     } else {
 #if ALT_DEBUG
         debugf("%p: buf_lock_t %p create %lu (no parent)\n",
-               cache(), this, block_id());
+               cache(), this, buf_lock_t::block_id());
 #endif
     }
 }
