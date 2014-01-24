@@ -49,6 +49,8 @@ public:
         for (size_t i = 0; i < keys_to_delete.size(); ++i) {
             bool found = leaf::lookup(sizer_, node, keys_to_delete[i].btree_key(), value.get());
             guarantee(found);
+            // RSI: Presumably, delete_value, if called from here, should detach
+            // blobs.
             deleter_->delete_value(buf_parent_t(leaf_node_buf), value.get());
             leaf::erase_presence(sizer_, node, keys_to_delete[i].btree_key(),
                                  key_modification_proof_t::real_proof());
