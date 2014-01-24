@@ -263,6 +263,8 @@ void run_sindex_btree_store_api_test() {
             = store.acquire_sindex_block_for_write(super_block->expose_buf(),
                                                    super_block->get_sindex_block_id());
 
+        // KSI: Probably the only reason drop_sindex takes a deleter is for weird
+        // unit tests like this one.
         store.drop_sindex(
                 *it, &sindex_block, &sizer, &deleter, &dummy_interruptor);
     }
