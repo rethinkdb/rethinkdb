@@ -466,14 +466,17 @@ void rdb_delete(const store_key_t &key, btree_slice_t *slice,
     response->result = (exists ? point_delete_result_t::DELETED : point_delete_result_t::MISSING);
 }
 
-// RSI: Ensure that everything calling this function is using it correctly -- and
-// make this function take a txn, I think, because this should only be used to delete
-// a detached blob.
-void rdb_value_deleter_t::delete_value(buf_parent_t parent, void *value) {
-    rdb_blob_wrapper_t blob(parent.cache()->get_block_size(),
-                            static_cast<rdb_value_t *>(value)->value_ref(),
-                            blob::btree_maxreflen);
+// Remember that secondary indexes and the main btree both point to the same rdb
+// value -- you don't want to double-delete that value!
+void actually_delete_rdb_value(buf_parent_t parent, void *value) {
+    blob_t blob(parent.cache()->get_block_size(),
+                static_cast<rdb_value_t *>(value)->value_ref(),
+                blob::btree_maxreflen);
     blob.clear(parent);
+}
+
+void rdb_value_deleter_t::delete_value(buf_parent_t parent, void *value) {
+    actually_delete_rdb_value(parent, value);
 }
 
 void rdb_value_non_deleter_t::delete_value(buf_parent_t, void *) {
@@ -1159,13 +1162,15 @@ void rdb_update_sindexes(const sindex_access_vector_t &sindexes,
 
     /* All of the sindex have been updated now it's time to actually clear the
      * deleted blob if it exists. */
-    std::vector<char> ref_cpy(modification->info.deleted.second);
     if (modification->info.deleted.first) {
+        // Deleting the value unfortunately updates the ref in-place as it operates, so
+        // we need to make a copy of the blob reference that is extended to the
+        // appropriate width.
+        std::vector<char> ref_cpy(modification->info.deleted.second);
         ref_cpy.insert(ref_cpy.end(), blob::btree_maxreflen - ref_cpy.size(), 0);
         guarantee(ref_cpy.size() == static_cast<size_t>(blob::btree_maxreflen));
 
-        rdb_value_deleter_t deleter;
-        deleter.delete_value(buf_parent_t(txn), ref_cpy.data());
+        actually_delete_rdb_value(buf_parent_t(txn), ref_cpy.data());
     }
 }
 

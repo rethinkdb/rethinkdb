@@ -31,14 +31,6 @@ public:
                     blob_acq_t *acq_group_out);
 
 private:
-    friend class rdb_value_deleter_t;
-
-    /* This method is inherently unsafe but also necessary. It's private so
-     * that you have to explicitly white list places where it occurs. If you're
-     * not 100% sure it's safe to call clear from a certain location don't
-     * friend it. */
-    void clear(buf_parent_t parent);
-
     blob_t internal;
 };
 

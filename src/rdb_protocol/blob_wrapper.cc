@@ -39,7 +39,3 @@ void rdb_blob_wrapper_t::expose_all(
         "Other blocks might be referencing this blob, it's invalid to modify it in place.");
     internal.expose_all(parent, mode, buffer_group_out, acq_group_out);
 }
-
-void rdb_blob_wrapper_t::clear(buf_parent_t parent) {
-    internal.clear(parent);
-}
