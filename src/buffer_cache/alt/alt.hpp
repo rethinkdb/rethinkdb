@@ -246,6 +246,7 @@ public:
     cache_t *cache() const { return txn_->cache(); }
 
 private:
+    void help_construct(buf_parent_t parent, block_id_t block_id, alt_access_t access);
     void help_construct(buf_parent_t parent, alt_create_t create);
     void help_construct(buf_parent_t parent, block_id_t block_id, alt_create_t create);
 
