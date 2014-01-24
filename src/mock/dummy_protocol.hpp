@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef MOCK_DUMMY_PROTOCOL_HPP_
 #define MOCK_DUMMY_PROTOCOL_HPP_
 
@@ -10,7 +10,6 @@
 
 #include "backfill_progress.hpp"
 #include "concurrency/fifo_checker.hpp"
-#include "concurrency/rwi_lock.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "protocol_api.hpp"
 #include "rpc/serialize_macros.hpp"

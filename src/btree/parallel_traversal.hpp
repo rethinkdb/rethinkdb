@@ -11,7 +11,6 @@
 #include "backfill_progress.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/access.hpp"
-#include "concurrency/rwi_lock.hpp"
 #include "concurrency/signal.hpp"
 #include "containers/scoped.hpp"
 
@@ -25,6 +24,16 @@ class btree_slice_t;
 struct btree_key_t;
 struct internal_node_t;
 class superblock_t;
+
+struct lock_in_line_callback_t {
+public:
+    lock_in_line_callback_t() { }
+    virtual void on_in_line() = 0;
+protected:
+    virtual ~lock_in_line_callback_t() { }
+private:
+    DISABLE_COPYING(lock_in_line_callback_t);
+};
 
 
 // HEY: Make this an abstract class, have two separate implementation

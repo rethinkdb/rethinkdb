@@ -11,7 +11,6 @@
 #include "buffer_cache/types.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/fifo_enforcer.hpp"
-#include "concurrency/rwi_lock.hpp"
 #include "concurrency/signal.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "containers/binary_blob.hpp"

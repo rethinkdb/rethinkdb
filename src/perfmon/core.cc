@@ -20,17 +20,19 @@ perfmon_t::~perfmon_t() {
 
 struct stats_collection_context_t : public home_thread_mixin_t {
 private:
-    rwi_lock_t::read_acq_t lock_sentry;
+    rwlock_acq_t lock_sentry;
 public:
     DEBUG_ONLY(size_t size;)
+    // KSI: Is size even used?  We can put contexts in a scoped_array_t.
     void **contexts;
 
-    stats_collection_context_t(rwi_lock_t *constituents_lock,
+    stats_collection_context_t(rwlock_t *constituents_lock,
                                const intrusive_list_t<perfmon_membership_t> &constituents) :
-        lock_sentry(constituents_lock),
+        lock_sentry(constituents_lock, rwi_read),
         DEBUG_ONLY(size(constituents.size()), )
-        contexts(new void *[constituents.size()])
-    { }
+        contexts(new void *[constituents.size()]) {
+        lock_sentry.read_signal()->wait();
+    }
 
     ~stats_collection_context_t() {
         delete[] contexts;
@@ -94,7 +96,8 @@ void perfmon_collection_t::add(perfmon_membership_t *perfmon) {
         thread_switcher.init(new on_thread_t(home_thread()));
     }
 
-    rwi_lock_t::write_acq_t write_acq(&constituents_access);
+    rwlock_acq_t write_acq(&constituents_access, rwi_write);
+    write_acq.write_signal()->wait();
     constituents.push_back(perfmon);
 }
 
@@ -104,7 +107,8 @@ void perfmon_collection_t::remove(perfmon_membership_t *perfmon) {
         thread_switcher.init(new on_thread_t(home_thread()));
     }
 
-    rwi_lock_t::write_acq_t write_acq(&constituents_access);
+    rwlock_acq_t write_acq(&constituents_access, rwi_write);
+    write_acq.write_signal()->wait();
     constituents.remove(perfmon);
 }
 

@@ -9,7 +9,7 @@
 #include <vector>
 #include <set>
 
-#include "concurrency/rwi_lock.hpp"
+#include "concurrency/rwlock.hpp"
 #include "containers/intrusive_list.hpp"
 #include "containers/scoped.hpp"
 #include "utils.hpp"
@@ -66,7 +66,7 @@ private:
     void add(perfmon_membership_t *perfmon);
     void remove(perfmon_membership_t *perfmon);
 
-    rwi_lock_t constituents_access;
+    rwlock_t constituents_access;
     intrusive_list_t<perfmon_membership_t> constituents;
 };
 

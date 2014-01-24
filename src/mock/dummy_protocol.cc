@@ -5,7 +5,6 @@
 #include "arch/timing.hpp"
 #include "btree/btree_store.hpp"
 #include "clustering/immediate_consistency/branch/metadata.hpp"
-#include "concurrency/rwi_lock.hpp"
 #include "concurrency/signal.hpp"
 #include "concurrency/wait_any.hpp"
 #include "containers/printf_buffer.hpp"
