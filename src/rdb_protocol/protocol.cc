@@ -202,7 +202,7 @@ void bring_sindexes_up_to_date(
         sindexes_to_bring_up_to_date_uuid.insert(sindexes[*it].id);
     }
 
-    coro_t::spawn_sometime(boost::bind(
+    coro_t::spawn_sometime(std::bind(
                 &post_construct_and_drain_queue,
                 auto_drainer_t::lock_t(&store->drainer),
                 sindexes_to_bring_up_to_date_uuid,

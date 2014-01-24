@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_NAMESPACE_METADATA_HPP_
 #define CLUSTERING_ADMINISTRATION_NAMESPACE_METADATA_HPP_
 
@@ -6,9 +6,6 @@
 #include <set>
 #include <string>
 #include <utility>
-
-#include "utils.hpp"
-#include <boost/bind.hpp>
 
 #include "clustering/administration/database_metadata.hpp"
 #include "clustering/administration/datacenter_metadata.hpp"
