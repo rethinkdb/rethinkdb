@@ -23,16 +23,19 @@ bool btree_depth_first_traversal(btree_slice_t *slice, superblock_t *superblock,
     } else {
         counted_t<counted_buf_lock_t> root_block;
         {
-            // RSI: This profile information might be wrong, because before it seems
-            // to measure how long it takes to acquire the block, but now (I think)
-            // it just measures how long it takes to "get in line" i.e. no time at
-            // all.
+            // We know that `superblock` is already read-acquired because we call
+            // get_block_id() above -- so `starter` won't measure time waiting for
+            // the parent to become acquired.
             profile::starter_t starter("Acquire block for read.", cb->get_trace());
             root_block = make_counted<counted_buf_lock_t>(superblock->expose_buf(),
                                                           root_block_id,
                                                           alt_access_t::read);
+            // Release the superblock ASAP because that's good.
+            superblock->release();
+            // Wait for read acquisition of the root block, so that `starter`'s
+            // profiling information is correct.
+            root_block->read_acq_signal()->wait();
         }
-        superblock->release();
         return btree_depth_first_traversal(slice, std::move(root_block), range, cb,
                                            direction);
     }
@@ -43,7 +46,7 @@ bool btree_depth_first_traversal(btree_slice_t *slice,
                                  const key_range_t &range,
                                  depth_first_traversal_callback_t *cb,
                                  direction_t direction) {
-    alt_buf_read_t read(block.get());
+    buf_read_t read(block.get());
     const node_t *node = static_cast<const node_t *>(read.get_data_read());
     if (node::is_internal(node)) {
         const internal_node_t *inode = reinterpret_cast<const internal_node_t *>(node);

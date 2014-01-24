@@ -58,11 +58,6 @@ public:
     void new_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token_out);
     void new_write_token(object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token_out);
 
-    /* These functions get tokens for both the main B-Tree and the secondary
-     * structures. */
-    void new_read_token_pair(read_token_pair_t *token_pair_out);
-    void new_write_token_pair(write_token_pair_t *token_pair_out);
-
     typedef region_map_t<protocol_t, binary_blob_t> metainfo_t;
 
     void do_get_metainfo(
@@ -122,7 +117,7 @@ public:
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
-    void lock_sindex_queue(alt_buf_lock_t *sindex_block, mutex_t::acq_t *acq);
+    void lock_sindex_queue(buf_lock_t *sindex_block, mutex_t::acq_t *acq);
 
     void register_sindex_queue(
             internal_disk_backed_queue_t *disk_backed_queue,
@@ -145,31 +140,23 @@ public:
 
     progress_completion_fraction_t get_progress(uuid_u id);
 
-    // RSI: This used to take an interruptor.  Wouldn't it be neat for this to be
-    // interruptible?
-    void acquire_sindex_block_for_read(
-            alt_buf_parent_t parent,
-            scoped_ptr_t<alt_buf_lock_t> *sindex_block_out,
-            block_id_t sindex_block_id)
-        THROWS_ONLY(interrupted_exc_t);
+    MUST_USE buf_lock_t acquire_sindex_block_for_read(
+            buf_parent_t parent,
+            block_id_t sindex_block_id);
 
-    void acquire_sindex_block_for_write(
-            alt_buf_parent_t parent,
-            scoped_ptr_t<alt_buf_lock_t> *sindex_block_out,
-            block_id_t sindex_block_id)
-        THROWS_ONLY(interrupted_exc_t);
+    MUST_USE buf_lock_t acquire_sindex_block_for_write(
+            buf_parent_t parent,
+            block_id_t sindex_block_id);
 
-    // RSI: This used to take an interruptor.  Probably for some stupid reason.
     MUST_USE bool add_sindex(
         const std::string &id,
         const secondary_index_t::opaque_definition_t &definition,
-        alt_buf_lock_t *sindex_block)
-    THROWS_ONLY(interrupted_exc_t);
+        buf_lock_t *sindex_block);
 
     // RSI: Is interruptor actually used?
     void set_sindexes(
         const std::map<std::string, secondary_index_t> &sindexes,
-        alt_buf_lock_t *sindex_block,
+        buf_lock_t *sindex_block,
         value_sizer_t<void> *sizer,
         value_deleter_t *deleter,
         std::set<std::string> *created_sindexes_out,
@@ -178,26 +165,18 @@ public:
 
     bool mark_index_up_to_date(
         const std::string &id,
-        alt_buf_lock_t *sindex_block)
+        buf_lock_t *sindex_block)
     THROWS_NOTHING;
 
     bool mark_index_up_to_date(
         uuid_u id,
-        alt_buf_lock_t *sindex_block)
+        buf_lock_t *sindex_block)
     THROWS_NOTHING;
 
     // RSI: Is interruptor actually used?
     bool drop_sindex(
         const std::string &id,
-        alt_buf_lock_t *sindex_block,
-        value_sizer_t<void> *sizer,
-        value_deleter_t *deleter,
-        signal_t *interruptor)
-    THROWS_ONLY(interrupted_exc_t);
-
-    // RSI: drop_all_sindexes is unused.
-    void drop_all_sindexes(
-        superblock_t *super_block,
+        buf_lock_t *sindex_block,
         value_sizer_t<void> *sizer,
         value_deleter_t *deleter,
         signal_t *interruptor)
@@ -207,33 +186,28 @@ public:
     // sindex_block (so that sindex_list_t and sindex_status_t, the queries which use
     // this, don't block other queries).  It would be nice in general if we supported
     // passing the superblock_t in some way by rvalue reference.
-    // RSI: This used to take an interruptor.
     void get_sindexes(
         superblock_t *super_block,
-        std::map<std::string, secondary_index_t> *sindexes_out)
-    THROWS_ONLY(interrupted_exc_t);
+        std::map<std::string, secondary_index_t> *sindexes_out);
 
     void get_sindexes(
-        alt_buf_lock_t *sindex_block,
-        std::map<std::string, secondary_index_t> *sindexes_out)
-    THROWS_NOTHING;
+        buf_lock_t *sindex_block,
+        std::map<std::string, secondary_index_t> *sindexes_out);
 
-    // RSI: This used to take an interruptor.
     MUST_USE bool acquire_sindex_superblock_for_read(
             const std::string &id,
             block_id_t sindex_block_id,
-            alt_buf_parent_t parent,
+            buf_parent_t parent,
             scoped_ptr_t<real_superblock_t> *sindex_sb_out,
             std::vector<char> *opaque_definition_out) // Optional, may be NULL
-        THROWS_ONLY(interrupted_exc_t, sindex_not_post_constructed_exc_t);
+        THROWS_ONLY(sindex_not_post_constructed_exc_t);
 
-    // RSI: This used to take an interruptor.
     MUST_USE bool acquire_sindex_superblock_for_write(
             const std::string &id,
             block_id_t sindex_block_id,
-            alt_buf_parent_t parent,
+            buf_parent_t parent,
             scoped_ptr_t<real_superblock_t> *sindex_sb_out)
-        THROWS_ONLY(interrupted_exc_t, sindex_not_post_constructed_exc_t);
+        THROWS_ONLY(sindex_not_post_constructed_exc_t);
 
     struct sindex_access_t {
         sindex_access_t(btree_slice_t *_btree, secondary_index_t _sindex,
@@ -249,32 +223,31 @@ public:
 
     typedef boost::ptr_vector<sindex_access_t> sindex_access_vector_t;
 
-    // RSI: This used to take an interruptor.
     void acquire_all_sindex_superblocks_for_write(
             block_id_t sindex_block_id,
-            alt_buf_parent_t parent,
+            buf_parent_t parent,
             sindex_access_vector_t *sindex_sbs_out)
-        THROWS_ONLY(interrupted_exc_t, sindex_not_post_constructed_exc_t);
+        THROWS_ONLY(sindex_not_post_constructed_exc_t);
 
     void acquire_all_sindex_superblocks_for_write(
-            alt_buf_lock_t *sindex_block,
+            buf_lock_t *sindex_block,
             sindex_access_vector_t *sindex_sbs_out)
         THROWS_ONLY(sindex_not_post_constructed_exc_t);
 
     void acquire_post_constructed_sindex_superblocks_for_write(
-            alt_buf_lock_t *sindex_block,
+            buf_lock_t *sindex_block,
             sindex_access_vector_t *sindex_sbs_out)
     THROWS_NOTHING;
 
     bool acquire_sindex_superblocks_for_write(
             boost::optional<std::set<std::string> > sindexes_to_acquire, //none means acquire all sindexes
-            alt_buf_lock_t *sindex_block,
+            buf_lock_t *sindex_block,
             sindex_access_vector_t *sindex_sbs_out)
     THROWS_ONLY(sindex_not_post_constructed_exc_t);
 
     bool acquire_sindex_superblocks_for_write(
             boost::optional<std::set<uuid_u> > sindexes_to_acquire, //none means acquire all sindexes
-            alt_buf_lock_t *sindex_block,
+            buf_lock_t *sindex_block,
             sindex_access_vector_t *sindex_sbs_out)
     THROWS_ONLY(sindex_not_post_constructed_exc_t);
 
@@ -298,7 +271,7 @@ public:
     virtual void protocol_send_backfill(const region_map_t<protocol_t, state_timestamp_t> &start_point,
                                         chunk_fun_callback_t<protocol_t> *chunk_fun_cb,
                                         superblock_t *superblock,
-                                        alt_buf_lock_t *sindex_block,
+                                        buf_lock_t *sindex_block,
                                         btree_slice_t *btree,
                                         typename protocol_t::backfill_progress_t *progress,
                                         signal_t *interruptor)
@@ -314,59 +287,42 @@ public:
                                      superblock_t *superblock,
                                      signal_t *interruptor) = 0;
 
-    void get_metainfo_internal(alt_buf_lock_t *sb_buf,
+    void get_metainfo_internal(buf_lock_t *sb_buf,
                                region_map_t<protocol_t, binary_blob_t> *out)
         const THROWS_NOTHING;
 
-    // RSI: Does this really use the interruptor?
     void acquire_superblock_for_read(
             object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
-            scoped_ptr_t<alt_txn_t> *txn_out,
+            scoped_ptr_t<txn_t> *txn_out,
             scoped_ptr_t<real_superblock_t> *sb_out,
             signal_t *interruptor,
             bool use_snapshot)
             THROWS_ONLY(interrupted_exc_t);
 
-    // RSI: Does this really use the interruptor?
     void acquire_superblock_for_backfill(
             object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
-            scoped_ptr_t<alt_txn_t> *txn_out,
+            scoped_ptr_t<txn_t> *txn_out,
             scoped_ptr_t<real_superblock_t> *sb_out,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
 
-    // RSI: Does this really use the interruptor?
     void acquire_superblock_for_write(
             repli_timestamp_t timestamp,
             int expected_change_count,
             write_durability_t durability,
             write_token_pair_t *token_pair,
-            scoped_ptr_t<alt_txn_t> *txn_out,
-            scoped_ptr_t<real_superblock_t> *sb_out,
-            signal_t *interruptor)
-            THROWS_ONLY(interrupted_exc_t);
-
-    // RSI: Does this really use the interruptor?
-    void acquire_superblock_for_write(
-            alt_access_t superblock_access,  // RSI: redundant
-            repli_timestamp_t timestamp,
-            int expected_change_count,
-            write_durability_t durability,
-            write_token_pair_t *token_pair,
-            scoped_ptr_t<alt_txn_t> *txn_out,
+            scoped_ptr_t<txn_t> *txn_out,
             scoped_ptr_t<real_superblock_t> *sb_out,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
 
 private:
-    // RSI: Does this really use the interruptor?
     void acquire_superblock_for_write(
-            alt_access_t superblock_access,  // RSI: redundant
             repli_timestamp_t timestamp,
             int expected_change_count,
             write_durability_t durability,
             object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
-            scoped_ptr_t<alt_txn_t> *txn_out,
+            scoped_ptr_t<txn_t> *txn_out,
             scoped_ptr_t<real_superblock_t> *sb_out,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
@@ -383,7 +339,6 @@ public:
         real_superblock_t *superblock) const
         THROWS_NOTHING;
 
-    // RSI: Seriously?  Why is this function const?
     void update_metainfo(const metainfo_t &old_metainfo,
                          const metainfo_t &new_metainfo,
                          real_superblock_t *superblock) const THROWS_NOTHING;
@@ -394,7 +349,7 @@ public:
     perfmon_collection_t perfmon_collection;
     // Mind the constructor ordering. We must destruct the cache and btree
     // before we destruct perfmon_collection
-    scoped_ptr_t<alt_cache_t> cache;
+    scoped_ptr_t<cache_t> cache;
     scoped_ptr_t<btree_slice_t> btree;
     io_backender_t *io_backender_;
     base_path_t base_path_;
@@ -403,6 +358,7 @@ public:
     boost::ptr_map<const std::string, btree_slice_t> secondary_index_slices;
 
     std::vector<internal_disk_backed_queue_t *> sindex_queues;
+    // RSI: mutex_t is a horrible type.
     mutex_t sindex_queue_mutex;
     std::map<uuid_u, const parallel_traversal_progress_t *> progress_trackers;
 

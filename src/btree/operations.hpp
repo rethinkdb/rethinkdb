@@ -41,8 +41,7 @@ public:
     virtual block_id_t get_sindex_block_id() = 0;
     virtual void set_sindex_block_id(block_id_t new_block_id) = 0;
 
-    // RSI: Add buf_lock_parent_t or something.
-    virtual alt_buf_parent_t expose_buf() = 0;
+    virtual buf_parent_t expose_buf() = 0;
 
 private:
     DISABLE_COPYING(superblock_t);
@@ -52,10 +51,10 @@ private:
    structure. */
 class real_superblock_t : public superblock_t {
 public:
-    explicit real_superblock_t(alt_buf_lock_t &&sb_buf);
+    explicit real_superblock_t(buf_lock_t &&sb_buf);
 
     void release();
-    alt_buf_lock_t *get() { return &sb_buf_; }
+    buf_lock_t *get() { return &sb_buf_; }
 
     block_id_t get_root_block_id();
     void set_root_block_id(block_id_t new_root_block);
@@ -66,10 +65,10 @@ public:
     block_id_t get_sindex_block_id();
     void set_sindex_block_id(block_id_t new_block_id);
 
-    alt_buf_parent_t expose_buf() { return alt_buf_parent_t(&sb_buf_); }
+    buf_parent_t expose_buf() { return buf_parent_t(&sb_buf_); }
 
 private:
-    alt_buf_lock_t sb_buf_;
+    buf_lock_t sb_buf_;
 };
 
 class btree_stats_t;
@@ -96,10 +95,10 @@ public:
     promise_t<superblock_t *> *pass_back_superblock;
 
     // The parent buf of buf, if buf is not the root node.  This is hacky.
-    alt_buf_lock_t last_buf;
+    buf_lock_t last_buf;
 
     // The buf owning the leaf node which contains the value.
-    alt_buf_lock_t buf;
+    buf_lock_t buf;
 
     bool there_originally_was_value;
     // If the key/value pair was found, a pointer to a copy of the
@@ -127,8 +126,8 @@ private:
 };
 
 
-// RSI: This type is stupid because the only subclass is
-// null_key_modification_callback_t is null_key_modification_callback_t?
+// KSI: This type is stupid because the only subclass is
+// null_key_modification_callback_t?
 template <class Value>
 class key_modification_callback_t {
 public:
@@ -205,38 +204,36 @@ private:
     char *value_ptr;
 };
 
-// RSI: Have this return the alt_buf_lock_t.
-void get_root(value_sizer_t<void> *sizer, superblock_t *sb,
-              alt_buf_lock_t *buf_out);
+buf_lock_t get_root(value_sizer_t<void> *sizer, superblock_t *sb);
 
 void check_and_handle_split(value_sizer_t<void> *sizer,
-                            alt_buf_lock_t *buf,
-                            alt_buf_lock_t *last_buf,
+                            buf_lock_t *buf,
+                            buf_lock_t *last_buf,
                             superblock_t *sb,
                             const btree_key_t *key, void *new_value);
 
 void check_and_handle_underfull(value_sizer_t<void> *sizer,
-                                alt_buf_lock_t *buf,
-                                alt_buf_lock_t *last_buf,
+                                buf_lock_t *buf,
+                                buf_lock_t *last_buf,
                                 superblock_t *sb,
                                 const btree_key_t *key);
 
 // Metainfo functions
-bool get_superblock_metainfo(alt_buf_lock_t *superblock,
+bool get_superblock_metainfo(buf_lock_t *superblock,
                              const std::vector<char> &key,
                              std::vector<char> *value_out);
 
 void get_superblock_metainfo(
-    alt_buf_lock_t *superblock,
+    buf_lock_t *superblock,
     std::vector< std::pair<std::vector<char>, std::vector<char> > > *kv_pairs_out);
 
-void set_superblock_metainfo(alt_buf_lock_t *superblock,
+void set_superblock_metainfo(buf_lock_t *superblock,
                              const std::vector<char> &key,
                              const std::vector<char> &value);
 
-void delete_superblock_metainfo(alt_buf_lock_t *superblock,
+void delete_superblock_metainfo(buf_lock_t *superblock,
                                 const std::vector<char> &key);
-void clear_superblock_metainfo(alt_buf_lock_t *superblock);
+void clear_superblock_metainfo(buf_lock_t *superblock);
 
 /* Set sb to have root id as its root block and release sb */
 void insert_root(block_id_t root_id, superblock_t *sb);
@@ -244,8 +241,7 @@ void insert_root(block_id_t root_id, superblock_t *sb);
 /* Create a stat block for the superblock if it doesn't already have one. */
 void ensure_stat_block(superblock_t *sb);
 
-// RSI: return the scoped_ptr_t.
-void get_btree_superblock(alt_txn_t *txn, alt_access_t access,
+void get_btree_superblock(txn_t *txn, alt_access_t access,
                           scoped_ptr_t<real_superblock_t> *got_superblock_out);
 
 void get_btree_superblock_and_txn(btree_slice_t *slice,
@@ -254,16 +250,16 @@ void get_btree_superblock_and_txn(btree_slice_t *slice,
                                   repli_timestamp_t tstamp,
                                   write_durability_t durability,
                                   scoped_ptr_t<real_superblock_t> *got_superblock_out,
-                                  scoped_ptr_t<alt_txn_t> *txn_out);
+                                  scoped_ptr_t<txn_t> *txn_out);
 
 void get_btree_superblock_and_txn_for_backfilling(btree_slice_t *slice,
                                                   scoped_ptr_t<real_superblock_t> *got_superblock_out,
-                                                  scoped_ptr_t<alt_txn_t> *txn_out);
+                                                  scoped_ptr_t<txn_t> *txn_out);
 
 void get_btree_superblock_and_txn_for_reading(btree_slice_t *slice,
                                               cache_snapshotted_t snapshotted,
                                               scoped_ptr_t<real_superblock_t> *got_superblock_out,
-                                              scoped_ptr_t<alt_txn_t> *txn_out);
+                                              scoped_ptr_t<txn_t> *txn_out);
 
 #include "btree/operations.tcc"
 

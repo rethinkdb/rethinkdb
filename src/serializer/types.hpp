@@ -2,10 +2,6 @@
 #ifndef SERIALIZER_TYPES_HPP_
 #define SERIALIZER_TYPES_HPP_
 
-#ifndef __STDC_FORMAT_MACROS
-#define __STDC_FORMAT_MACROS
-#endif
-
 #include <inttypes.h>
 #include <time.h>
 
@@ -265,46 +261,9 @@ struct serializer_traits_t<serializer_t> {
     typedef standard_block_token_t block_token_type;
 };
 
+// TODO: This is obsolete because the serializer multiplexer isn't used with multiple
+// files any more.
 typedef int64_t creation_timestamp_t;
-
-class serializer_data_ptr_t {
-public:
-    serializer_data_ptr_t() { }
-    explicit serializer_data_ptr_t(void *ptr) : ptr_(ptr) { }
-    explicit serializer_data_ptr_t(scoped_malloc_t<ser_buffer_t> &&ptr)
-        : ptr_(std::move(ptr)) { }
-
-    void free();
-    void init_malloc(serializer_t *ser);
-    void init_clone(serializer_t *ser, const serializer_data_ptr_t &other);
-    void swap(serializer_data_ptr_t &other) {
-        std::swap(ptr_, other.ptr_);
-    }
-
-    bool has() const {
-        return ptr_.has();
-    }
-
-    ser_buffer_t *get_ser_buffer() const {
-        rassert(ptr_.has());
-        return ptr_.get();
-    }
-
-    void *get() const {
-        rassert(ptr_.has());
-        char *ret = ptr_->cache_data;
-        return ret;
-    }
-
-    // TODO: All uses of this function are disgusting.
-    bool equals(const void *buf) const {
-        return (ptr_.has() ? ptr_->cache_data : NULL) == buf;
-    }
-
-private:
-    scoped_malloc_t<ser_buffer_t> ptr_;
-    DISABLE_COPYING(serializer_data_ptr_t);
-};
 
 
 class serializer_read_ahead_callback_t {

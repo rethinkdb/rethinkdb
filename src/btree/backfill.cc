@@ -17,14 +17,14 @@
 #include "protocol_api.hpp"
 
 struct backfill_traversal_helper_t : public btree_traversal_helper_t, public home_thread_mixin_debug_only_t {
-    void process_a_leaf(alt_buf_lock_t *leaf_node_buf,
+    void process_a_leaf(buf_lock_t *leaf_node_buf,
                         const btree_key_t *left_exclusive_or_null,
                         const btree_key_t *right_inclusive_or_null,
                         signal_t *interruptor,
                         int * /*population_change_out*/)
         THROWS_ONLY(interrupted_exc_t) {
         assert_thread();
-        alt_buf_read_t read(leaf_node_buf);
+        buf_read_t read(leaf_node_buf);
         const leaf_node_t *data = static_cast<const leaf_node_t *>(read.get_data_read());
 
         key_range_t clipped_range(
@@ -35,7 +35,7 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
         clipped_range = clipped_range.intersection(key_range_);
 
         struct our_cb_t : public leaf::entry_reception_callback_t {
-            explicit our_cb_t(alt_buf_parent_t _parent) : parent(_parent) { }
+            explicit our_cb_t(buf_parent_t _parent) : parent(_parent) { }
             void lost_deletions() {
                 cb->on_delete_range(range, interruptor);
             }
@@ -53,12 +53,12 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
             }
 
             agnostic_backfill_callback_t *cb;
-            alt_buf_parent_t parent;
+            buf_parent_t parent;
             key_range_t range;
             signal_t *interruptor;
         };
 
-        our_cb_t x((alt_buf_parent_t(leaf_node_buf)));
+        our_cb_t x((buf_parent_t(leaf_node_buf)));
         x.cb = callback_;
         x.range = clipped_range;
         x.interruptor = interruptor;
@@ -66,7 +66,7 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
         leaf::dump_entries_since_time(sizer_, data, since_when_, leaf_node_buf->get_recency(), &x);
     }
 
-    void postprocess_internal_node(UNUSED alt_buf_lock_t *internal_node_buf) {
+    void postprocess_internal_node(UNUSED buf_lock_t *internal_node_buf) {
         assert_thread();
         // do nothing
     }
@@ -74,35 +74,7 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
     alt_access_t btree_superblock_mode() { return alt_access_t::read; }
     alt_access_t btree_node_mode() { return alt_access_t::read; }
 
-    struct annoying_t : public get_subtree_recencies_callback_t {
-        interesting_children_callback_t *cb;
-        scoped_array_t<block_id_t> block_ids;
-        scoped_array_t<repli_timestamp_t> recencies;
-        repli_timestamp_t since_when;
-        cond_t *done_cond;
-
-        void got_subtree_recencies() {
-            coro_t::spawn_sometime(boost::bind(&annoying_t::do_got_subtree_recencies, this));
-        }
-
-        void do_got_subtree_recencies() {
-            rassert(coro_t::self());
-
-            for (int i = 0, e = block_ids.size(); i < e; ++i) {
-                if (block_ids[i] != NULL_BLOCK_ID && recencies[i] >= since_when) {
-                    cb->receive_interesting_child(i);
-                }
-            }
-
-            interesting_children_callback_t *local_cb = cb;
-            cond_t *local_done_cond = done_cond;
-            delete this;
-            local_cb->no_more_interesting_children();
-            local_done_cond->pulse();
-        }
-    };
-
-    void filter_interesting_children(alt_buf_parent_t parent,
+    void filter_interesting_children(buf_parent_t parent,
                                      ranged_block_ids_t *ids_source,
                                      interesting_children_callback_t *cb) {
         assert_thread();
@@ -117,7 +89,7 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
                 // RSI: We ignore recency.  What does this even do?
                 repli_timestamp_t recency;
                 {
-                    alt_buf_lock_t lock(parent, id, alt_access_t::read);
+                    buf_lock_t lock(parent, id, alt_access_t::read);
                     recency = lock.get_recency();
                 }
                 cb->receive_interesting_child(i);
@@ -170,15 +142,12 @@ void do_agnostic_btree_backfill(value_sizer_t<void> *sizer,
                                 repli_timestamp_t since_when,
                                 agnostic_backfill_callback_t *callback,
                                 superblock_t *superblock,
-                                alt_buf_lock_t *sindex_block,
+                                buf_lock_t *sindex_block,
                                 parallel_traversal_progress_t *p,
                                 signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
     rassert(coro_t::self());
 
-    // RSI: Investigate secondary index backfill logic.  Do we backfill information
-    // about the current state of secondary indexes?  Is it possible that we could
-    // have inconsistent sindexing?
     std::map<std::string, secondary_index_t> sindexes;
     get_secondary_indexes(sindex_block, &sindexes);
     callback->on_sindexes(sindexes, interruptor);

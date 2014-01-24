@@ -3,7 +3,7 @@
 #define MEMCACHED_MEMCACHED_BTREE_VALUE_HPP_
 
 #include "errors.hpp"
-#include "buffer_cache/alt/alt_blob.hpp"
+#include "buffer_cache/alt/blob.hpp"
 
 
 // Note: The metadata values are stored in the order

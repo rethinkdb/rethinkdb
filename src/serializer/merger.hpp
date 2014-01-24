@@ -30,9 +30,6 @@ public:
     /* serializer_t interface */
 
     scoped_malloc_t<ser_buffer_t> malloc() { return inner->malloc(); }
-    scoped_malloc_t<ser_buffer_t> clone(const ser_buffer_t *b) {
-        return inner->clone(b);
-    }
 
     /* Allocates a new io account for the underlying file.
     Use delete to free it. */
@@ -73,11 +70,6 @@ public:
      * created. */
     block_id_t max_block_id() { return inner->max_block_id(); }
 
-    /* Gets a block's timestamp.  This may return repli_timestamp_t::invalid. */
-    repli_timestamp_t get_recency(block_id_t id) { return inner->get_recency(id); }
-
-    /* Gets timestamps of all blocks with ids first + step*k, for k = 0, 1, 2,
-       ... */
     segmented_vector_t<repli_timestamp_t> get_all_recencies(block_id_t first,
                                                             block_id_t step) {
         return inner->get_all_recencies(first, step);
@@ -106,7 +98,7 @@ public:
     }
 
     /* The size, in bytes, of each serializer block */
-    block_size_t get_block_size() const { return inner->get_block_size(); }
+    block_size_t max_block_size() const { return inner->max_block_size(); }
 
     /* Return true if no other processes have the file locked */
     bool coop_lock_and_check() { return inner->coop_lock_and_check(); }

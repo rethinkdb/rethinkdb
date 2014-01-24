@@ -3,7 +3,7 @@
 
 #include "btree/slice.hpp"
 #include "buffer_cache/alt/alt.hpp"
-#include "buffer_cache/alt/alt_blob.hpp"
+#include "buffer_cache/alt/blob.hpp"
 #include "memcached/memcached_btree/node.hpp"
 #include "memcached/memcached_btree/value.hpp"
 
@@ -18,7 +18,7 @@ void memcached_erase_range(btree_slice_t *slice, key_tester_t *tester,
     value_sizer_t<void> *sizer = &mc_sizer;
 
     struct : public value_deleter_t {
-        void delete_value(alt_buf_parent_t leaf_node, void *value) {
+        void delete_value(buf_parent_t leaf_node, void *value) {
             blob_t blob(leaf_node.cache()->get_block_size(),
                              static_cast<memcached_value_t *>(value)->value_ref(),
                              blob::btree_maxreflen);

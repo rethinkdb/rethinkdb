@@ -8,9 +8,9 @@ namespace unittest {
 
 TEST(SizeofTest, Sizes) {
     EXPECT_GT(1000u, sizeof(standard_serializer_t));
-    EXPECT_GT(1000u, sizeof(alt_cache_t));
-    EXPECT_GT(1000u, sizeof(alt_buf_lock_t));
-    EXPECT_GT(1000u, sizeof(alt_txn_t));
+    EXPECT_GT(1000u, sizeof(cache_t));
+    EXPECT_GT(1000u, sizeof(buf_lock_t));
+    EXPECT_GT(1000u, sizeof(txn_t));
 }
 
 TEST(SizeofTest, SerBuffer) {

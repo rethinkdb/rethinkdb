@@ -11,8 +11,6 @@
 #include "rdb_protocol/pseudo_literal.hpp"
 #include "rdb_protocol/minidriver.hpp"
 
-#pragma GCC diagnostic ignored "-Wshadow"
-
 namespace ql {
 
 // This term is used for functions that are polymorphic on objects and

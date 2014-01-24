@@ -15,10 +15,12 @@
 
 struct index_write_op_t {
     block_id_t block_id;
-    // Buf to write. None if not to be modified. Initialized but a null ptr if to be removed from lba.
+    // Buf to write.  boost::none if not to be modified.  Initialized to an empty
+    // counted_t if the block is to be deleted.
     boost::optional<counted_t<standard_block_token_t> > token;
-    // RSI: Shouldn't recency always be modified?
-    boost::optional<repli_timestamp_t> recency; // Recency, if it should be modified.
+    // Recency, if it should be modified.  (It's unmodified when the data block
+    // manager moves blocks around while garbage collecting.)
+    boost::optional<repli_timestamp_t> recency;
 
     explicit index_write_op_t(block_id_t _block_id,
                               boost::optional<counted_t<standard_block_token_t> > _token = boost::none,
@@ -47,8 +49,6 @@ public:
     these functions. They can be safely called from any thread. */
 
     virtual scoped_malloc_t<ser_buffer_t> malloc() = 0;
-    // RSI: Does the new cache use clone?
-    virtual scoped_malloc_t<ser_buffer_t> clone(const ser_buffer_t *) = 0;
 
     /* Allocates a new io account for the underlying file.
     Use delete to free it. */
@@ -80,24 +80,22 @@ public:
      * created. */
     virtual block_id_t max_block_id() = 0;
 
-    // RSI: Is this obsolete?
-    /* Gets a block's timestamp.  This may return repli_timestamp_t::invalid. */
-    /* You must never call this after _writing_ a block. */
-    virtual repli_timestamp_t get_recency(block_id_t id) = 0;
-
     /* Returns all recencies, for all block ids of the form first + step * k, for k =
        0, 1, 2, 3, ..., in order by block id.  Non-existant block ids have recency
-       repli_timestamp_t::invalid.  You must never call this after _writing_ a block. */
+       repli_timestamp_t::invalid.  You must only call this before _writing_ a
+       block to this serializer_t instance, because otherwise the information you get
+       back could be wrong. */
     virtual segmented_vector_t<repli_timestamp_t>
     get_all_recencies(block_id_t first, block_id_t step) = 0;
 
-    /* Returns all recencies, indexed by block id. */
+    /* Returns all recencies, indexed by block id.  (See above.) */
     segmented_vector_t<repli_timestamp_t> get_all_recencies() {
         return get_all_recencies(0, 1);
     }
 
-    /* Reads the block's delete bit. */
-    // RSI: Does this actually get used by the new cache?
+    /* Reads the block's delete bit.  You must only call this on startup, before
+       _writing_ a block to this serializer_t instance, because otherwise the
+       information you get back could be wrong. */
     virtual bool get_delete_bit(block_id_t id) = 0;
 
     /* Reads the block's actual data */
@@ -113,8 +111,7 @@ public:
                  iocallback_t *cb) = 0;
 
     /* The size, in bytes, of each serializer block */
-    // RSI: Rename to max_block_size or default_block_size.
-    virtual block_size_t get_block_size() const = 0;
+    virtual block_size_t max_block_size() const = 0;
 
     /* Return true if no other processes have the file locked */
     virtual bool coop_lock_and_check() = 0;

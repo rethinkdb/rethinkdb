@@ -2,7 +2,7 @@
 #include "memcached/memcached_btree/set.hpp"
 
 #include "buffer_cache/alt/alt.hpp"
-#include "buffer_cache/alt/alt_blob.hpp"
+#include "buffer_cache/alt/blob.hpp"
 #include "containers/buffer_group.hpp"
 #include "containers/data_buffer.hpp"
 #include "memcached/memcached_btree/modify_oper.hpp"
@@ -19,7 +19,7 @@ struct memcached_set_oper_t : public memcached_modify_oper_t {
 
     ~memcached_set_oper_t() { }
 
-    bool operate(alt_buf_parent_t leaf,
+    bool operate(buf_parent_t leaf,
                  scoped_malloc_t<memcached_value_t> *value) {
         const block_size_t block_size = leaf.cache()->get_block_size();
         // We may be instructed to abort, depending on the old value.
@@ -88,22 +88,11 @@ struct memcached_set_oper_t : public memcached_modify_oper_t {
 
         b.append_region(leaf, data->size());
         buffer_group_t bg;
-        // RSI: We shouldn't have to do the scoped_ptr thing here, let blob_acq_t
-        // have a reset method.
-        scoped_ptr_t<blob_acq_t> acq(new blob_acq_t);
+        blob_acq_t acq;
         b.expose_region(leaf, alt_access_t::write,
-                        0, data->size(), &bg, acq.get());
+                        0, data->size(), &bg, &acq);
 
-        try {
-            // RSI: What the fuck is going on here?  How could buffer_group_copy_data
-            // throw an exception?  Fix this.
-            buffer_group_copy_data(&bg, data->buf(), data->size());
-        } catch (...) {
-            // Gotta release ownership of all those bufs first.
-            acq.reset();
-            b.clear(leaf);
-            throw;
-        }
+        buffer_group_copy_data(&bg, data->buf(), data->size());
 
         result = sr_stored;
         return true;

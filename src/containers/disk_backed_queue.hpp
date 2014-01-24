@@ -2,23 +2,20 @@
 #ifndef CONTAINERS_DISK_BACKED_QUEUE_HPP_
 #define CONTAINERS_DISK_BACKED_QUEUE_HPP_
 
-// RSI: Rename to DBQ_MAX_REF_SIZE or something.
-#define MAX_REF_SIZE 251
-
 #include <string>
 #include <vector>
 
-#include "buffer_cache/serialize_onto_blob.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/mutex.hpp"
 #include "containers/buffer_group.hpp"
+#include "containers/archive/buffer_group_stream.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "containers/scoped.hpp"
 #include "perfmon/core.hpp"
 #include "serializer/types.hpp"
 
-class alt_cache_t;
-class alt_txn_t;
+class cache_t;
+class txn_t;
 class io_backender_t;
 class perfmon_collection_t;
 
@@ -27,7 +24,7 @@ class perfmon_collection_t;
 
 struct queue_block_t {
     block_id_t next;
-    int data_size, live_data_offset;
+    int32_t data_size, live_data_offset;
     char data[0];
 };
 
@@ -60,8 +57,8 @@ public:
     int64_t size();
 
 private:
-    void add_block_to_head(alt_txn_t *txn);
-    void remove_block_from_tail(alt_txn_t *txn);
+    void add_block_to_head(txn_t *txn);
+    void remove_block_from_tail(txn_t *txn);
 
     mutex_t mutex;
 
@@ -77,7 +74,7 @@ private:
     // The end we pop from.
     block_id_t tail_block_id;
     scoped_ptr_t<standard_serializer_t> serializer;
-    scoped_ptr_t<alt_cache_t> cache;
+    scoped_ptr_t<cache_t> cache;
 
     DISABLE_COPYING(internal_disk_backed_queue_t);
 };

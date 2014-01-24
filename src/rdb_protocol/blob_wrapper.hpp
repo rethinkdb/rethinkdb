@@ -5,7 +5,7 @@
 #include <string>
 
 #include "btree/btree_store.hpp"
-#include "buffer_cache/alt/alt_blob.hpp"
+#include "buffer_cache/alt/blob.hpp"
 
 /* This class wraps a blob_t but hides some of its methods. We do this because
  * due to storing multiple references to blobs in btrees there are methods that
@@ -19,14 +19,14 @@ public:
      * the methods to do this are normally not present due to shared
      * references. */
     rdb_blob_wrapper_t(block_size_t block_size, char *ref, int maxreflen,
-                       alt_buf_parent_t parent, const std::string &data);
+                       buf_parent_t parent, const std::string &data);
 
     int refsize(block_size_t block_size) const;
 
     int64_t valuesize() const;
 
     /* This function only works in read mode. */
-    void expose_all(alt_buf_parent_t parent, alt_access_t mode,
+    void expose_all(buf_parent_t parent, alt_access_t mode,
                     buffer_group_t *buffer_group_out,
                     blob_acq_t *acq_group_out);
 
@@ -37,7 +37,7 @@ private:
      * that you have to explicitly white list places where it occurs. If you're
      * not 100% sure it's safe to call clear from a certain location don't
      * friend it. */
-    void clear(alt_buf_parent_t parent);
+    void clear(buf_parent_t parent);
 
     blob_t internal;
 };

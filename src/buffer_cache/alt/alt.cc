@@ -10,7 +10,39 @@
 // RSI: get rid of this.
 #define ALT_DEBUG 0
 
-// RSI: Add ASSERT_FINITE_CORO_WAITING or ASSERT_NO_CORO_WAITING wherever we can.
+// There are very few ASSERT_NO_CORO_WAITING calls (instead we have
+// ASSERT_FINITE_CORO_WAITING) because most of the time we're at the mercy of the
+// page cache, which often may need to load or evict blocks, which may involve a
+// spawn_now call.
+
+
+// The intrusive list of alt_snapshot_node_t contains all the snapshot nodes for a
+// given block id, in order by version.  (See
+// cache_t::snapshot_nodes_by_block_id_.)
+class alt_snapshot_node_t : public intrusive_list_node_t<alt_snapshot_node_t> {
+public:
+    explicit alt_snapshot_node_t(scoped_ptr_t<current_page_acq_t> &&acq);
+    ~alt_snapshot_node_t();
+
+private:
+    friend class buf_lock_t;
+    friend class cache_t;
+
+    // This is never null (and is always a current_page_acq_t that has had
+    // declare_snapshotted() called).
+    scoped_ptr_t<current_page_acq_t> current_page_acq_;
+
+    // RSP: std::map memory usage.
+    // A NULL pointer associated with a block id indicates that the block is deleted.
+    std::map<block_id_t, alt_snapshot_node_t *> children_;
+
+    // The number of buf_lock_t's referring to this node, plus the number of
+    // alt_snapshot_node_t's referring to this node (via its children_ vector).
+    int64_t ref_count_;
+
+
+    DISABLE_COPYING(alt_snapshot_node_t);
+};
 
 alt_memory_tracker_t::alt_memory_tracker_t()
     : semaphore_(200) { }
@@ -33,30 +65,30 @@ void alt_memory_tracker_t::end_txn(int64_t saved_expected_change_count) {
     semaphore_.unlock(saved_expected_change_count);
 }
 
-// RSI: Use the perfmon_collection.
-alt_cache_t::alt_cache_t(serializer_t *serializer, const alt_cache_config_t &config,
-                         perfmon_collection_t *perfmon_collection)
+cache_t::cache_t(serializer_t *serializer, const alt_cache_config_t &config,
+                 perfmon_collection_t *perfmon_collection)
     : stats_(make_scoped<alt_cache_stats_t>(perfmon_collection)),
       tracker_(),
       page_cache_(serializer, config.page_config, &tracker_),
       drainer_(make_scoped<auto_drainer_t>()) { }
 
-alt_cache_t::~alt_cache_t() {
+cache_t::~cache_t() {
     drainer_.reset();
 }
 
-block_size_t alt_cache_t::max_block_size() const {
+block_size_t cache_t::max_block_size() const {
     return page_cache_.max_block_size();
 }
 
-void alt_cache_t::create_cache_account(int priority,
-                                       scoped_ptr_t<alt_cache_account_t> *out) {
+void cache_t::create_cache_account(int priority,
+                                   scoped_ptr_t<alt_cache_account_t> *out) {
     page_cache_.create_cache_account(priority, out);
 }
 
 alt_snapshot_node_t *
-alt_cache_t::matching_snapshot_node_or_null(block_id_t block_id,
-                                            block_version_t block_version) {
+cache_t::matching_snapshot_node_or_null(block_id_t block_id,
+                                        block_version_t block_version) {
+    ASSERT_NO_CORO_WAITING;
     intrusive_list_t<alt_snapshot_node_t> *list
         = &snapshot_nodes_by_block_id_[block_id];
     for (alt_snapshot_node_t *p = list->tail(); p != NULL; p = list->prev(p)) {
@@ -67,12 +99,14 @@ alt_cache_t::matching_snapshot_node_or_null(block_id_t block_id,
     return NULL;
 }
 
-void alt_cache_t::add_snapshot_node(block_id_t block_id,
-                                     alt_snapshot_node_t *node) {
+void cache_t::add_snapshot_node(block_id_t block_id,
+                                alt_snapshot_node_t *node) {
+    ASSERT_NO_CORO_WAITING;
     snapshot_nodes_by_block_id_[block_id].push_back(node);
 }
 
-void alt_cache_t::remove_snapshot_node(block_id_t block_id, alt_snapshot_node_t *node) {
+void cache_t::remove_snapshot_node(block_id_t block_id, alt_snapshot_node_t *node) {
+    ASSERT_FINITE_CORO_WAITING;
     // In some hypothetical cache data structure (a disk backed queue) we could have
     // a long linked list of snapshot nodes.  So we avoid _recursively_ removing
     // snapshot nodes.
@@ -114,7 +148,7 @@ void alt_cache_t::remove_snapshot_node(block_id_t block_id, alt_snapshot_node_t 
     }
 }
 
-alt_inner_txn_t::alt_inner_txn_t(alt_cache_t *cache,
+alt_inner_txn_t::alt_inner_txn_t(cache_t *cache,
                                  repli_timestamp_t txn_recency,
                                  alt_inner_txn_t *preceding_txn)
     : cache_(cache),
@@ -122,9 +156,7 @@ alt_inner_txn_t::alt_inner_txn_t(alt_cache_t *cache,
                 txn_recency,
                 preceding_txn == NULL ? NULL : &preceding_txn->page_txn_) { }
 
-alt_inner_txn_t::~alt_inner_txn_t() {
-    // RSI: Do anything?
-}
+alt_inner_txn_t::~alt_inner_txn_t() { }
 
 alt_cache_account_t::alt_cache_account_t(threadnum_t thread, file_account_t *io_account)
     : thread_(thread), io_account_(io_account) { }
@@ -134,63 +166,63 @@ alt_cache_account_t::~alt_cache_account_t() {
     delete io_account_;
 }
 
-alt_txn_t::alt_txn_t(alt_cache_t *cache,
-                     UNUSED alt_read_access_t read_access,
-                     alt_txn_t *preceding_txn)
+txn_t::txn_t(cache_t *cache,
+             alt_read_access_t,
+             txn_t *preceding_txn)
     : access_(alt_access_t::read),
-      durability_(write_durability_t::SOFT),  // A B.S. value.  RSI: use valgrind_undefined
-      saved_expected_change_count_(0) {
-    // RSI: We could dedup the constructor body a bit.
-    cache->assert_thread();
-    // RSI: If I remember correctly the mirrored cache used 1 for some reason.
-    cache->tracker_.begin_txn_or_throttle(saved_expected_change_count_);
-    inner_.init(new alt_inner_txn_t(cache,
-                                    repli_timestamp_t::invalid,
-                                    preceding_txn == NULL ? NULL
-                                    : preceding_txn->inner_.get()));
-
+      durability_(valgrind_undefined(write_durability_t::INVALID)),
+      // RSI: Fix the semaphore so that we don't have to use 1.
+      saved_expected_change_count_(1) {
+    help_construct(cache, repli_timestamp_t::invalid, preceding_txn);
 }
 
-alt_txn_t::alt_txn_t(alt_cache_t *cache,
-                     write_durability_t durability,
-                     repli_timestamp_t txn_timestamp,
-                     int64_t expected_change_count,
-                     alt_txn_t *preceding_txn)
+txn_t::txn_t(cache_t *cache,
+             write_durability_t durability,
+             repli_timestamp_t txn_timestamp,
+             int64_t expected_change_count,
+             txn_t *preceding_txn)
     : access_(alt_access_t::write),
       durability_(durability),
-      saved_expected_change_count_(expected_change_count) {
-    cache->assert_thread();
-    cache->tracker_.begin_txn_or_throttle(expected_change_count);
-    inner_.init(new alt_inner_txn_t(cache,
-                                    txn_timestamp,
-                                    preceding_txn == NULL ? NULL
-                                    : preceding_txn->inner_.get()));
+      // RSI: Fix the semaphore so that we don't have to use 1.
+      saved_expected_change_count_(std::max<int64_t>(expected_change_count, 1)) {
+    help_construct(cache, txn_timestamp, preceding_txn);
 }
 
-void alt_txn_t::destroy_inner_txn(alt_inner_txn_t *inner, alt_cache_t *cache,
-                                  int64_t saved_expected_change_count,
-                                  auto_drainer_t::lock_t) {
+void txn_t::help_construct(cache_t *cache,
+                           repli_timestamp_t txn_timestamp,
+                           txn_t *preceding_txn) {
+    cache->assert_thread();
+    cache->tracker_.begin_txn_or_throttle(saved_expected_change_count_);
+    ASSERT_FINITE_CORO_WAITING;
+    inner_.init(new alt_inner_txn_t(cache, txn_timestamp,
+                                    preceding_txn == NULL ?
+                                    NULL : preceding_txn->inner_.get()));
+}
+
+void txn_t::destroy_inner_txn(alt_inner_txn_t *inner, cache_t *cache,
+                              int64_t saved_expected_change_count,
+                              auto_drainer_t::lock_t) {
     delete inner;
     cache->tracker_.end_txn(saved_expected_change_count);
 }
 
-alt_txn_t::~alt_txn_t() {
-    alt_cache_t *cache = inner_->cache();
+txn_t::~txn_t() {
+    cache_t *cache = inner_->cache();
     cache->assert_thread();
     alt_inner_txn_t *inner = inner_.release();
     if (durability_ == write_durability_t::SOFT) {
-        coro_t::spawn_sometime(std::bind(&alt_txn_t::destroy_inner_txn,
+        coro_t::spawn_sometime(std::bind(&txn_t::destroy_inner_txn,
                                          inner,
                                          cache,
                                          saved_expected_change_count_,
                                          cache->drainer_->lock()));
     } else {
-        alt_txn_t::destroy_inner_txn(inner, cache, saved_expected_change_count_,
-                                     cache->drainer_->lock());
+        txn_t::destroy_inner_txn(inner, cache, saved_expected_change_count_,
+                                 cache->drainer_->lock());
     }
 }
 
-void alt_txn_t::set_account(alt_cache_account_t *cache_account) {
+void txn_t::set_account(alt_cache_account_t *cache_account) {
     inner_->page_txn()->set_account(cache_account);
 }
 
@@ -206,13 +238,11 @@ alt_snapshot_node_t::~alt_snapshot_node_t() {
     rassert(children_.empty());
 }
 
-alt_buf_lock_t::alt_buf_lock_t()
+buf_lock_t::buf_lock_t()
     : txn_(NULL),
       current_page_acq_(),
       snapshot_node_(NULL),
-      access_ref_count_(0),
-      was_destroyed_(false) {
-}
+      access_ref_count_(0) { }
 
 #if ALT_DEBUG
 const char *show(alt_access_t access) {
@@ -226,9 +256,10 @@ const char *show(alt_access_t access) {
 // transaction that we need to jump ahead of.
 
 alt_snapshot_node_t *
-alt_buf_lock_t::get_or_create_child_snapshot_node(alt_cache_t *cache,
-                                                  alt_snapshot_node_t *parent,
-                                                  block_id_t child_id) {
+buf_lock_t::get_or_create_child_snapshot_node(cache_t *cache,
+                                              alt_snapshot_node_t *parent,
+                                              block_id_t child_id) {
+    ASSERT_FINITE_CORO_WAITING;
     auto it = parent->children_.find(child_id);
     if (it == parent->children_.end()) {
         // RSI: We could check snapshot_nodes_by_block_id_[child_id] here?  First see
@@ -248,10 +279,11 @@ alt_buf_lock_t::get_or_create_child_snapshot_node(alt_cache_t *cache,
     }
 }
 
-void alt_buf_lock_t::create_child_snapshot_nodes(alt_cache_t *cache,
-                                                 block_version_t parent_version,
-                                                 block_id_t parent_id,
-                                                 block_id_t child_id) {
+void buf_lock_t::create_child_snapshot_nodes(cache_t *cache,
+                                             block_version_t parent_version,
+                                             block_id_t parent_id,
+                                             block_id_t child_id) {
+    ASSERT_FINITE_CORO_WAITING;
     // We create at most one child snapshot node.
 
     alt_snapshot_node_t *child = NULL;
@@ -260,7 +292,6 @@ void alt_buf_lock_t::create_child_snapshot_nodes(alt_cache_t *cache,
     for (alt_snapshot_node_t *p = list->tail(); p != NULL; p = list->prev(p)) {
         auto it = p->children_.find(child_id);
         if (it != p->children_.end()) {
-            // RSI: Can we kick nodes with children out of this list?
             // Already has a child, continue.
             continue;
         }
@@ -285,10 +316,11 @@ void alt_buf_lock_t::create_child_snapshot_nodes(alt_cache_t *cache,
 }
 
 // Puts markers in the parent saying that no such child exists.
-void alt_buf_lock_t::create_empty_child_snapshot_nodes(alt_cache_t *cache,
-                                                       block_version_t parent_version,
-                                                       block_id_t parent_id,
-                                                       block_id_t child_id) {
+void buf_lock_t::create_empty_child_snapshot_nodes(cache_t *cache,
+                                                   block_version_t parent_version,
+                                                   block_id_t parent_id,
+                                                   block_id_t child_id) {
+    ASSERT_NO_CORO_WAITING;
     intrusive_list_t<alt_snapshot_node_t> *list
         = &cache->snapshot_nodes_by_block_id_[parent_id];
 
@@ -308,17 +340,12 @@ void alt_buf_lock_t::create_empty_child_snapshot_nodes(alt_cache_t *cache,
     }
 }
 
-alt_buf_lock_t::alt_buf_lock_t(alt_buf_parent_t parent,
-                               block_id_t block_id,
-                               alt_access_t access)
-    : txn_(parent.txn()),
-      current_page_acq_(),
-      snapshot_node_(NULL),
-      access_ref_count_(0),
-      was_destroyed_(false) {
-    alt_buf_lock_t::wait_for_parent(parent, access);
+void buf_lock_t::help_construct(buf_parent_t parent, block_id_t block_id,
+                                alt_access_t access) {
+    buf_lock_t::wait_for_parent(parent, access);
+    ASSERT_FINITE_CORO_WAITING;
     if (parent.lock_or_null_ != NULL && parent.lock_or_null_->snapshot_node_ != NULL) {
-        alt_buf_lock_t *parent_lock = parent.lock_or_null_;
+        buf_lock_t *parent_lock = parent.lock_or_null_;
         rassert(!parent_lock->current_page_acq_.has());
         snapshot_node_
             = get_or_create_child_snapshot_node(txn_->cache(),
@@ -340,39 +367,37 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_parent_t parent,
     }
 
 #if ALT_DEBUG
-    debugf("%p: alt_buf_lock_t %p %s %lu\n", cache(), this, show(access), block_id);
+    debugf("%p: buf_lock_t %p %s %lu\n", cache(), this, show(access), block_id);
 #endif
+}
+
+buf_lock_t::buf_lock_t(buf_parent_t parent,
+                       block_id_t block_id,
+                       alt_access_t access)
+    : txn_(parent.txn()),
+      current_page_acq_(),
+      snapshot_node_(NULL),
+      access_ref_count_(0) {
+    help_construct(parent, block_id, access);
+}
+
+buf_lock_t::buf_lock_t(buf_lock_t *parent,
+                       block_id_t block_id,
+                       alt_access_t access)
+    : txn_(parent->txn_),
+      current_page_acq_(),
+      snapshot_node_(NULL),
+      access_ref_count_(0) {
+    help_construct(buf_parent_t(parent), block_id, access);
 }
 
 bool is_subordinate(alt_access_t parent, alt_access_t child) {
     return parent == alt_access_t::write || child == alt_access_t::read;
 }
 
-alt_buf_lock_t::alt_buf_lock_t(alt_txn_t *txn,
-                               block_id_t block_id,
-                               UNUSED alt_create_t create)
-    : txn_(txn),
-      current_page_acq_(new current_page_acq_t(txn->page_txn(), block_id,
-                                               alt_access_t::write, true)),
-      snapshot_node_(NULL),
-      access_ref_count_(0),
-      was_destroyed_(false) {
-    guarantee(is_subordinate(txn_->access(), alt_access_t::write));
-#if ALT_DEBUG
-    debugf("%p: alt_buf_lock_t %p create %lu\n", cache(), this, block_id);
-#endif
-}
-
-// RSI: So much duplicated code all over these constructors.
-alt_buf_lock_t::alt_buf_lock_t(alt_buf_parent_t parent,
-                               block_id_t block_id,
-                               UNUSED alt_create_t create)
-    : txn_(parent.txn()),
-      current_page_acq_(),
-      snapshot_node_(NULL),
-      access_ref_count_(0),
-      was_destroyed_(false) {
-    alt_buf_lock_t::wait_for_parent(parent, alt_access_t::write);
+void buf_lock_t::help_construct(buf_parent_t parent, block_id_t block_id,
+                                alt_create_t) {
+    buf_lock_t::wait_for_parent(parent, alt_access_t::write);
 
     // Makes sure nothing funny can happen in current_page_acq_t constructor.
     // Otherwise, we'd need to make choosing a block id a separate function, and call
@@ -391,29 +416,49 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_parent_t parent,
                                           parent.lock_or_null_->block_id(),
                                           current_page_acq_->block_id());
 #if ALT_DEBUG
-        debugf("%p: alt_buf_lock_t %p create %lu (as child of %lu)\n",
+        debugf("%p: buf_lock_t %p create %lu (as child of %lu)\n",
                cache(), this, block_id(), parent.lock_or_null_->block_id());
 #endif
     } else {
 #if ALT_DEBUG
-        debugf("%p: alt_buf_lock_t %p create %lu (no parent)\n",
+        debugf("%p: buf_lock_t %p create %lu (no parent)\n",
                cache(), this, block_id());
 #endif
     }
-
 }
 
-void alt_buf_lock_t::mark_deleted() {
+buf_lock_t::buf_lock_t(txn_t *txn,
+                       block_id_t block_id,
+                       alt_create_t create)
+    : txn_(txn),
+      current_page_acq_(),
+      snapshot_node_(NULL),
+      access_ref_count_(0) {
+    help_construct(buf_parent_t(txn), block_id, create);
+}
+
+buf_lock_t::buf_lock_t(buf_parent_t parent,
+                       block_id_t block_id,
+                       alt_create_t create)
+    : txn_(parent.txn()),
+      current_page_acq_(),
+      snapshot_node_(NULL),
+      access_ref_count_(0) {
+    help_construct(parent, block_id, create);
+}
+
+void buf_lock_t::mark_deleted() {
+    ASSERT_FINITE_CORO_WAITING;
 #if ALT_DEBUG
-    debugf("%p: alt_buf_lock_t %p delete %lu\n", cache(), this, block_id());
+    debugf("%p: buf_lock_t %p delete %lu\n", cache(), this, block_id());
 #endif
     guarantee(!empty());
     current_page_acq()->mark_deleted();
 }
 
-void alt_buf_lock_t::wait_for_parent(alt_buf_parent_t parent, alt_access_t access) {
+void buf_lock_t::wait_for_parent(buf_parent_t parent, alt_access_t access) {
     if (parent.lock_or_null_ != NULL) {
-        alt_buf_lock_t *lock = parent.lock_or_null_;
+        buf_lock_t *lock = parent.lock_or_null_;
         guarantee(is_subordinate(lock->access(), access));
         if (access == alt_access_t::write) {
             lock->write_acq_signal()->wait();
@@ -425,51 +470,8 @@ void alt_buf_lock_t::wait_for_parent(alt_buf_parent_t parent, alt_access_t acces
     }
 }
 
-alt_buf_lock_t::alt_buf_lock_t(alt_buf_lock_t *parent,
-                               block_id_t block_id,
-                               alt_access_t access)
-    : txn_(parent->txn_),
-      current_page_acq_(),
-      snapshot_node_(NULL),
-      access_ref_count_(0),
-      was_destroyed_(false) {
-    // This implementation should be identical to the alt_buf_parent_t version of
-    // this constructor.  (Unfortunately, we support compilers that lack full C++11
-    // support.)
-
-    alt_buf_lock_t::wait_for_parent(alt_buf_parent_t(parent), access);
-
-    if (parent->snapshot_node_ != NULL) {
-        rassert(!parent->current_page_acq_.has());
-        snapshot_node_
-            = get_or_create_child_snapshot_node(txn_->cache(),
-                                                parent->snapshot_node_, block_id);
-        guarantee(snapshot_node_ != NULL,
-                  "Tried to acquire a deleted block (with read access.");
-        ++snapshot_node_->ref_count_;
-    } else {
-        if (access == alt_access_t::write) {
-            create_child_snapshot_nodes(txn_->cache(),
-                                        parent->current_page_acq()->block_version(),
-                                        parent->block_id(), block_id);
-        }
-        current_page_acq_.init(new current_page_acq_t(txn_->page_txn(), block_id,
-                                                      access));
-    }
-
-#if ALT_DEBUG
-    debugf("%p: alt_buf_lock_t %p %s %lu\n", cache(), this, show(access), block_id);
-#endif
-}
-
-alt_buf_lock_t::alt_buf_lock_t(alt_buf_parent_t parent,
-                               UNUSED alt_create_t create)
-    : txn_(parent.txn()),
-      current_page_acq_(),
-      snapshot_node_(NULL),
-      access_ref_count_(0),
-      was_destroyed_(false) {
-    alt_buf_lock_t::wait_for_parent(parent, alt_access_t::write);
+void buf_lock_t::help_construct(buf_parent_t parent, alt_create_t) {
+    buf_lock_t::wait_for_parent(parent, alt_access_t::write);
 
     // Makes sure nothing funny can happen in current_page_acq_t constructor.
     // Otherwise, we'd need to make choosing a block id a separate function, and call
@@ -486,51 +488,39 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_parent_t parent,
                                           parent.lock_or_null_->block_id(),
                                           current_page_acq_->block_id());
 #if ALT_DEBUG
-        debugf("%p: alt_buf_lock_t %p create %lu (as child of %lu)\n",
+        debugf("%p: buf_lock_t %p create %lu (as child of %lu)\n",
                cache(), this, block_id(), parent.lock_or_null_->block_id());
 #endif
     } else {
 #if ALT_DEBUG
-        debugf("%p: alt_buf_lock_t %p create %lu (no parent)\n",
+        debugf("%p: buf_lock_t %p create %lu (no parent)\n",
                cache(), this, block_id());
 #endif
     }
 }
 
-alt_buf_lock_t::alt_buf_lock_t(alt_buf_lock_t *parent,
-                               UNUSED alt_create_t create)
+buf_lock_t::buf_lock_t(buf_parent_t parent,
+                       alt_create_t create)
+    : txn_(parent.txn()),
+      current_page_acq_(),
+      snapshot_node_(NULL),
+      access_ref_count_(0) {
+    help_construct(parent, create);
+}
+
+buf_lock_t::buf_lock_t(buf_lock_t *parent,
+                       alt_create_t create)
     : txn_(parent->txn_),
       current_page_acq_(),
       snapshot_node_(NULL),
-      access_ref_count_(0),
-      was_destroyed_(false) {
-    alt_buf_lock_t::wait_for_parent(alt_buf_parent_t(parent), alt_access_t::write);
-
-    // Makes sure nothing funny can happen in current_page_acq_t constructor.
-    // Otherwise, we'd need to make choosing a block id a separate function, and call
-    // create_empty_child_snapshot_nodes before constructing the current_page_acq_t.
-    // RSI: Probably we should do that anyway.
-    ASSERT_FINITE_CORO_WAITING;
-
-    current_page_acq_.init(new current_page_acq_t(txn_->page_txn(),
-                                                  alt_create_t::create));
-
-    create_empty_child_snapshot_nodes(txn_->cache(),
-                                      parent->current_page_acq()->block_version(),
-                                      parent->block_id(),
-                                      current_page_acq_->block_id());
-
-#if ALT_DEBUG
-    debugf("%p: alt_buf_lock_t %p create %lu\n", cache(), this, block_id());
-#endif
+      access_ref_count_(0) {
+    help_construct(buf_parent_t(parent), create);
 }
 
-alt_buf_lock_t::~alt_buf_lock_t() {
-    guarantee(!was_destroyed_);
-    was_destroyed_ = true;
+buf_lock_t::~buf_lock_t() {
 #if ALT_DEBUG
     if (txn_ != NULL) {
-        debugf("%p: alt_buf_lock_t %p destroy %lu\n", cache(), this, block_id());
+        debugf("%p: buf_lock_t %p destroy %lu\n", cache(), this, block_id());
     }
 #endif
     guarantee(access_ref_count_ == 0);
@@ -548,31 +538,26 @@ alt_buf_lock_t::~alt_buf_lock_t() {
     }
 }
 
-alt_buf_lock_t::alt_buf_lock_t(alt_buf_lock_t &&movee)
+buf_lock_t::buf_lock_t(buf_lock_t &&movee)
     : txn_(movee.txn_),
       current_page_acq_(std::move(movee.current_page_acq_)),
       snapshot_node_(movee.snapshot_node_),
-      access_ref_count_(0),
-      was_destroyed_(false) {
-    guarantee(!movee.was_destroyed_);
+      access_ref_count_(0) {
     guarantee(movee.access_ref_count_ == 0);
     movee.txn_ = NULL;
     movee.current_page_acq_.reset();
     movee.snapshot_node_ = NULL;
 }
 
-alt_buf_lock_t &alt_buf_lock_t::operator=(alt_buf_lock_t &&movee) {
-    guarantee(!movee.was_destroyed_);
-    guarantee(!was_destroyed_);
+buf_lock_t &buf_lock_t::operator=(buf_lock_t &&movee) {
     guarantee(access_ref_count_ == 0);
-    alt_buf_lock_t tmp(std::move(movee));
+    buf_lock_t tmp(std::move(movee));
     swap(tmp);
     return *this;
 }
 
-void alt_buf_lock_t::swap(alt_buf_lock_t &other) {
-    guarantee(!was_destroyed_);
-    guarantee(!other.was_destroyed_);
+void buf_lock_t::swap(buf_lock_t &other) {
+    ASSERT_NO_CORO_WAITING;
     guarantee(access_ref_count_ == 0);
     guarantee(other.access_ref_count_ == 0);
     std::swap(txn_, other.txn_);
@@ -580,19 +565,16 @@ void alt_buf_lock_t::swap(alt_buf_lock_t &other) {
     std::swap(snapshot_node_, other.snapshot_node_);
 }
 
-void alt_buf_lock_t::reset_buf_lock() {
-    guarantee(!was_destroyed_);
-    alt_buf_lock_t tmp;
+void buf_lock_t::reset_buf_lock() {
+    ASSERT_FINITE_CORO_WAITING;
+    buf_lock_t tmp;
     swap(tmp);
 }
 
-// RSI: Rename this to snapshot_subdag.
-void alt_buf_lock_t::snapshot_subtree() {
+void buf_lock_t::snapshot_subdag() {
 #if ALT_DEBUG
-    debugf("%p: alt_buf_lock_t %p snapshot %lu\n", cache(), this, block_id());
+    debugf("%p: buf_lock_t %p snapshot %lu\n", cache(), this, block_id());
 #endif
-    guarantee(!was_destroyed_);
-    // RSI: Can this be ASSERT_NO_CORO_WAITING?
     ASSERT_FINITE_CORO_WAITING;
     guarantee(!empty());
     if (snapshot_node_ != NULL) {
@@ -621,7 +603,8 @@ void alt_buf_lock_t::snapshot_subtree() {
     current_page_acq_.reset();
 }
 
-current_page_acq_t *alt_buf_lock_t::current_page_acq() const {
+current_page_acq_t *buf_lock_t::current_page_acq() const {
+    ASSERT_NO_CORO_WAITING;
     guarantee(!empty());
     if (snapshot_node_ != NULL) {
         return snapshot_node_->current_page_acq_.get();
@@ -630,50 +613,56 @@ current_page_acq_t *alt_buf_lock_t::current_page_acq() const {
     }
 }
 
-void alt_buf_lock_t::detach_child(block_id_t child_id) {
+void buf_lock_t::detach_child(block_id_t child_id) {
+    ASSERT_FINITE_CORO_WAITING;
     guarantee(!empty());
     guarantee(access() == alt_access_t::write);
 
-    alt_buf_lock_t::create_child_snapshot_nodes(cache(),
-                                                current_page_acq()->block_version(),
-                                                block_id(),
-                                                child_id);
+    buf_lock_t::create_child_snapshot_nodes(cache(),
+                                            current_page_acq()->block_version(),
+                                            block_id(),
+                                            child_id);
 }
 
-repli_timestamp_t alt_buf_lock_t::get_recency() const {
+repli_timestamp_t buf_lock_t::get_recency() const {
+    ASSERT_NO_CORO_WAITING;
     guarantee(!empty());
     return current_page_acq()->recency();
 }
 
-page_t *alt_buf_lock_t::get_held_page_for_read() {
+page_t *buf_lock_t::get_held_page_for_read() {
     guarantee(!empty());
     current_page_acq_t *cpa = current_page_acq();
     guarantee(cpa != NULL);
     cpa->read_acq_signal()->wait();
+
+    ASSERT_FINITE_CORO_WAITING;
     guarantee(!empty());
     return cpa->current_page_for_read();
 }
 
-page_t *alt_buf_lock_t::get_held_page_for_write() {
+page_t *buf_lock_t::get_held_page_for_write() {
     guarantee(!empty());
     rassert(snapshot_node_ == NULL);
     current_page_acq_->write_acq_signal()->wait();
+
+    ASSERT_FINITE_CORO_WAITING;
     guarantee(!empty());
     return current_page_acq_->current_page_for_write();
 }
 
-alt_buf_read_t::alt_buf_read_t(alt_buf_lock_t *lock)
+buf_read_t::buf_read_t(buf_lock_t *lock)
     : lock_(lock) {
     guarantee(!lock_->empty());
     lock_->access_ref_count_++;
 }
 
-alt_buf_read_t::~alt_buf_read_t() {
+buf_read_t::~buf_read_t() {
     guarantee(!lock_->empty());
     lock_->access_ref_count_--;
 }
 
-const void *alt_buf_read_t::get_data_read(uint32_t *block_size_out) {
+const void *buf_read_t::get_data_read(uint32_t *block_size_out) {
     page_t *page = lock_->get_held_page_for_read();
     if (!page_acq_.has()) {
         page_acq_.init(page, &lock_->cache()->page_cache_);
@@ -683,18 +672,18 @@ const void *alt_buf_read_t::get_data_read(uint32_t *block_size_out) {
     return page_acq_.get_buf_read();
 }
 
-alt_buf_write_t::alt_buf_write_t(alt_buf_lock_t *lock)
+buf_write_t::buf_write_t(buf_lock_t *lock)
     : lock_(lock) {
     guarantee(!lock_->empty());
     lock_->access_ref_count_++;
 }
 
-alt_buf_write_t::~alt_buf_write_t() {
+buf_write_t::~buf_write_t() {
     guarantee(!lock_->empty());
     lock_->access_ref_count_--;
 }
 
-void *alt_buf_write_t::get_data_write(uint32_t block_size) {
+void *buf_write_t::get_data_write(uint32_t block_size) {
     // RSI: Use block_size somehow.
     (void)block_size;
     page_t *page = lock_->get_held_page_for_write();
@@ -705,7 +694,7 @@ void *alt_buf_write_t::get_data_write(uint32_t block_size) {
     return page_acq_.get_buf_write();
 }
 
-void *alt_buf_write_t::get_data_write() {
+void *buf_write_t::get_data_write() {
     return get_data_write(lock_->cache()->max_block_size().value());
 }
 

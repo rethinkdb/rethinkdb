@@ -65,7 +65,7 @@ void rdb_get(const store_key_t &store_key, btree_slice_t *slice,
         response->data.reset(new ql::datum_t(ql::datum_t::R_NULL));
     } else {
         response->data = get_data(kv_location.value.get(),
-                                  alt_buf_parent_t(&kv_location.buf));
+                                  buf_parent_t(&kv_location.buf));
     }
 }
 
@@ -109,7 +109,7 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location,
     const block_size_t block_size = kv_location->buf.cache()->get_block_size();
     {
         blob_t blob(block_size, new_value->value_ref(), blob::btree_maxreflen);
-        serialize_onto_blob(alt_buf_parent_t(&kv_location->buf), &blob, data);
+        serialize_onto_blob(buf_parent_t(&kv_location->buf), &blob, data);
     }
 
     if (mod_info_out) {
@@ -181,7 +181,7 @@ batched_replace_response_t rdb_replace_and_return_superblock(
             // Otherwise pass the entry with this key to the function.
             started_empty = false;
             old_val = get_data(kv_location.value.get(),
-                               alt_buf_parent_t(&kv_location.buf));
+                               buf_parent_t(&kv_location.buf));
             guarantee(old_val->get(primary_key, ql::NOTHROW).has());
         }
         guarantee(old_val.has());
@@ -379,7 +379,7 @@ void rdb_set(const store_key_t &key,
     /* update the modification report */
     if (kv_location.value.has()) {
         mod_info->deleted.first = get_data(kv_location.value.get(),
-                                           alt_buf_parent_t(&kv_location.buf));
+                                           buf_parent_t(&kv_location.buf));
     }
 
     mod_info->added.first = data;
@@ -410,7 +410,7 @@ public:
         cb_->on_deletion(key, recency, interruptor);
     }
 
-    void on_pair(alt_buf_parent_t leaf_node, repli_timestamp_t recency,
+    void on_pair(buf_parent_t leaf_node, repli_timestamp_t recency,
                  const btree_key_t *key, const void *val,
                  signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
         rassert(kr_.contains_key(key->contents, key->size));
@@ -437,7 +437,7 @@ public:
 void rdb_backfill(btree_slice_t *slice, const key_range_t& key_range,
                   repli_timestamp_t since_when, rdb_backfill_callback_t *callback,
                   superblock_t *superblock,
-                  alt_buf_lock_t *sindex_block,
+                  buf_lock_t *sindex_block,
                   parallel_traversal_progress_t *p, signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t) {
     agnostic_rdb_backfill_callback_t agnostic_cb(callback, key_range, slice);
@@ -459,7 +459,7 @@ void rdb_delete(const store_key_t &key, btree_slice_t *slice,
     /* Update the modification report. */
     if (exists) {
         mod_info->deleted.first = get_data(kv_location.value.get(),
-                                           alt_buf_parent_t(&kv_location.buf));
+                                           buf_parent_t(&kv_location.buf));
         kv_location_delete(&kv_location, key, timestamp, mod_info);
     }
     guarantee(!mod_info->deleted.second.empty() && mod_info->added.second.empty());
@@ -469,14 +469,14 @@ void rdb_delete(const store_key_t &key, btree_slice_t *slice,
 // RSI: Ensure that everything calling this function is using it correctly -- and
 // make this function take a txn, I think, because this should only be used to delete
 // a detached blob.
-void rdb_value_deleter_t::delete_value(alt_buf_parent_t parent, void *value) {
+void rdb_value_deleter_t::delete_value(buf_parent_t parent, void *value) {
     rdb_blob_wrapper_t blob(parent.cache()->get_block_size(),
                             static_cast<rdb_value_t *>(value)->value_ref(),
                             blob::btree_maxreflen);
     blob.clear(parent);
 }
 
-void rdb_value_non_deleter_t::delete_value(alt_buf_parent_t, void *) {
+void rdb_value_non_deleter_t::delete_value(buf_parent_t, void *) {
     //RSI should we be detaching blobs in here?
 }
 
@@ -537,7 +537,7 @@ void spawn_sindex_erase_ranges(
 
 void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
                      const key_range_t &key_range,
-                     alt_buf_lock_t *sindex_block,
+                     buf_lock_t *sindex_block,
                      superblock_t *superblock,
                      btree_store_t<rdb_protocol_t> *store,
                      signal_t *interruptor) {
@@ -563,7 +563,7 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
         auto_drainer_t sindex_erase_drainer;
         spawn_sindex_erase_ranges(&sindex_superblocks, key_range,
                 &sindex_erase_drainer, auto_drainer_t::lock_t(&sindex_erase_drainer),
-                true, /* release the superblock */ interruptor);
+                true /* release the superblock */, interruptor);
 
         /* Notice, when we exit this block we destruct the sindex_erase_drainer
          * which means we'll wait until all of the sindex_erase_ranges finish
@@ -1005,7 +1005,7 @@ RDB_IMPL_ME_SERIALIZABLE_1(rdb_erase_range_report_t, range_to_erase);
 
 rdb_modification_report_cb_t::rdb_modification_report_cb_t(
         btree_store_t<rdb_protocol_t> *store,
-        alt_buf_lock_t *sindex_block,
+        buf_lock_t *sindex_block,
         auto_drainer_t::lock_t lock)
     : lock_(lock), store_(store),
       sindex_block_(sindex_block) {
@@ -1144,7 +1144,7 @@ void rdb_update_single_sindex(
 
 void rdb_update_sindexes(const sindex_access_vector_t &sindexes,
                          const rdb_modification_report_t *modification,
-                         alt_txn_t *txn) {
+                         txn_t *txn) {
     {
         auto_drainer_t drainer;
 
@@ -1165,7 +1165,7 @@ void rdb_update_sindexes(const sindex_access_vector_t &sindexes,
         guarantee(ref_cpy.size() == static_cast<size_t>(blob::btree_maxreflen));
 
         rdb_value_deleter_t deleter;
-        deleter.delete_value(alt_buf_parent_t(txn), ref_cpy.data());
+        deleter.delete_value(buf_parent_t(txn), ref_cpy.data());
     }
 }
 
@@ -1192,14 +1192,14 @@ public:
           interrupt_myself_(interrupt_myself), interruptor_(interruptor)
     { }
 
-    void process_a_leaf(alt_buf_lock_t *leaf_node_buf,
+    void process_a_leaf(buf_lock_t *leaf_node_buf,
                         const btree_key_t *, const btree_key_t *,
                         signal_t *, int *) THROWS_ONLY(interrupted_exc_t) {
         write_token_pair_t token_pair;
         store_->new_write_token_pair(&token_pair);
 
-        // RSI: FML
-        scoped_ptr_t<alt_txn_t> wtxn;
+        // KSI: FML
+        scoped_ptr_t<txn_t> wtxn;
         btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindexes;
 
         try {
@@ -1209,9 +1209,8 @@ public:
             // okay -- we wipe it and rebuild it, if it has not been marked completely
             // constructed.
             store_->acquire_superblock_for_write(
-                    alt_access_t::write,
                     repli_timestamp_t::distant_past,
-                    2,  // RSI: This is not the right value.
+                    2,  // KSI: This is not the right value.
                     write_durability_t::SOFT,
                     &token_pair,
                     &wtxn,
@@ -1240,18 +1239,15 @@ public:
             // release it immediately.
             block_id_t sindex_block_id = superblock->get_sindex_block_id();
 
-            scoped_ptr_t<alt_buf_lock_t> sindex_block;
-
-            store_->acquire_sindex_block_for_write(
-                superblock->expose_buf(),
-                &sindex_block,
-                sindex_block_id);
+            buf_lock_t sindex_block
+                = store_->acquire_sindex_block_for_write(superblock->expose_buf(),
+                                                         sindex_block_id);
 
             superblock.reset();
 
             store_->acquire_sindex_superblocks_for_write(
                     sindexes_to_post_construct_,
-                    sindex_block.get(),
+                    &sindex_block,
                     &sindexes);
 
             if (sindexes.empty()) {
@@ -1262,7 +1258,7 @@ public:
             return;
         }
 
-        alt_buf_read_t leaf_read(leaf_node_buf);
+        buf_read_t leaf_read(leaf_node_buf);
         const leaf_node_t *leaf_node
             = static_cast<const leaf_node_t *>(leaf_read.get_data_read());
 
@@ -1280,7 +1276,7 @@ public:
             const block_size_t block_size = leaf_node_buf->cache()->get_block_size();
             mod_report.info.added
                 = std::make_pair(
-                    get_data(rdb_value, alt_buf_parent_t(leaf_node_buf)),
+                    get_data(rdb_value, buf_parent_t(leaf_node_buf)),
                     std::vector<char>(rdb_value->value_ref(),
                         rdb_value->value_ref() + rdb_value->inline_size(block_size)));
 
@@ -1289,9 +1285,9 @@ public:
         }
     }
 
-    void postprocess_internal_node(alt_buf_lock_t *) { }
+    void postprocess_internal_node(buf_lock_t *) { }
 
-    void filter_interesting_children(alt_buf_parent_t,
+    void filter_interesting_children(buf_parent_t,
                                      ranged_block_ids_t *ids_source,
                                      interesting_children_callback_t *cb) {
         for (int i = 0, e = ids_source->num_block_ids(); i < e; ++i) {
@@ -1353,7 +1349,7 @@ void post_construct_secondary_indexes(
     // usually already takes care of that).
     // The txn must be destructed before the cache_account.
     scoped_ptr_t<alt_cache_account_t> cache_account;
-    scoped_ptr_t<alt_txn_t> txn;
+    scoped_ptr_t<txn_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
 
     store->acquire_superblock_for_read(
@@ -1363,7 +1359,7 @@ void post_construct_secondary_indexes(
         interruptor,
         true /* USE_SNAPSHOT */);
 
-    // RSI: Is this high(?) priority why making an sindex slows stuff down a lot?
+    // KSI: Is this high(?) priority why making an sindex slows stuff down a lot?
     txn->cache()->create_cache_account(SINDEX_POST_CONSTRUCTION_CACHE_PRIORITY,
                                        &cache_account);
     txn->set_account(cache_account.get());

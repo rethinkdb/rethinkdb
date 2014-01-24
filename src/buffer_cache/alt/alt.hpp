@@ -6,7 +6,7 @@
 #include <utility>
 
 #include "buffer_cache/alt/page.hpp"
-#include "buffer_cache/general_types.hpp"
+#include "buffer_cache/types.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/semaphore.hpp"
 #include "containers/two_level_array.hpp"
@@ -15,7 +15,7 @@
 
 class serializer_t;
 
-class alt_buf_lock_t;
+class buf_lock_t;
 class alt_cache_config_t;
 class alt_cache_stats_t;
 class alt_snapshot_node_t;
@@ -33,15 +33,15 @@ private:
     DISABLE_COPYING(alt_memory_tracker_t);
 };
 
-class alt_cache_t : public home_thread_mixin_t {
+class cache_t : public home_thread_mixin_t {
 public:
-    explicit alt_cache_t(serializer_t *serializer,
-                         const alt_cache_config_t &dynamic_config,
-                         perfmon_collection_t *perfmon_collection);
-    ~alt_cache_t();
+    explicit cache_t(serializer_t *serializer,
+                     const alt_cache_config_t &dynamic_config,
+                     perfmon_collection_t *perfmon_collection);
+    ~cache_t();
 
     block_size_t max_block_size() const;
-    // RSI: Remove this.
+    // KSI: Remove this.
     block_size_t get_block_size() const { return max_block_size(); }
 
     // These todos come from the mirrored cache.  The real problem is that whole
@@ -52,13 +52,13 @@ public:
     void create_cache_account(int priority, scoped_ptr_t<alt_cache_account_t> *out);
 
 private:
-    friend class alt_txn_t;  // for drainer_->lock()
+    friend class txn_t;  // for drainer_->lock()
     friend class alt_inner_txn_t;  // for &page_cache_
-    friend class alt_buf_read_t;  // for &page_cache_
-    friend class alt_buf_write_t;  // for &page_cache_
+    friend class buf_read_t;  // for &page_cache_
+    friend class buf_write_t;  // for &page_cache_
 
-    friend class alt_buf_lock_t;  // for latest_snapshot_node and
-                                  // push_latest_snapshot_node
+    friend class buf_lock_t;  // for latest_snapshot_node and
+                              // push_latest_snapshot_node
 
     alt_snapshot_node_t *matching_snapshot_node_or_null(block_id_t block_id,
                                                         block_version_t block_version);
@@ -67,7 +67,7 @@ private:
 
     scoped_ptr_t<alt_cache_stats_t> stats_;
 
-    // tracker_ is used for throttling (which can cause the alt_txn_t constructor to
+    // tracker_ is used for throttling (which can cause the txn_t constructor to
     // block).  RSI: The throttling interface is bad (maybe) because it's worried
     // about transaction_t's passing one another(?) or maybe the callers are bad with
     // their use of chained mutexes.  Make sure that timestamps don't get mixed up in
@@ -79,7 +79,7 @@ private:
 
     scoped_ptr_t<auto_drainer_t> drainer_;
 
-    DISABLE_COPYING(alt_cache_t);
+    DISABLE_COPYING(cache_t);
 };
 
 class alt_inner_txn_t {
@@ -88,51 +88,54 @@ public:
     ~alt_inner_txn_t();
 
 private:
-    friend class alt_txn_t;
-    alt_inner_txn_t(alt_cache_t *cache,
+    friend class txn_t;
+    alt_inner_txn_t(cache_t *cache,
                     // Unused for read transactions, pass repli_timestamp_t::invalid.
                     repli_timestamp_t txn_recency,
                     alt_inner_txn_t *preceding_txn_or_null);
 
-    alt_cache_t *cache() { return cache_; }
+    cache_t *cache() { return cache_; }
 
     page_txn_t *page_txn() { return &page_txn_; }
 
-    alt_cache_t *cache_;
+    cache_t *cache_;
     page_txn_t page_txn_;
 
     DISABLE_COPYING(alt_inner_txn_t);
 };
 
-class alt_txn_t {
+class txn_t {
 public:
     // Constructor for read-only transactions.
-    // RSI: Generally speaking I don't think we use preceding_txn -- and should read
-    // transactions use preceding_txn at all?
-    explicit alt_txn_t(alt_cache_t *cache,
-                       alt_read_access_t read_access,
-                       alt_txn_t *preceding_txn = NULL);
+    // RSI: Generally speaking I don't think we use preceding_txn.
+    explicit txn_t(cache_t *cache,
+                   alt_read_access_t read_access,
+                   txn_t *preceding_txn = NULL);
 
 
-    // RSI: Remove default parameter for expected_change_count.
+    // KSI: Remove default parameter for expected_change_count.
     // RSI: Generally speaking I don't think we use preceding_txn and we should.
-    alt_txn_t(alt_cache_t *cache,
-              write_durability_t durability,
-              repli_timestamp_t txn_timestamp,
-              int64_t expected_change_count = 2,
-              alt_txn_t *preceding_txn = NULL);
+    txn_t(cache_t *cache,
+          write_durability_t durability,
+          repli_timestamp_t txn_timestamp,
+          int64_t expected_change_count = 2,
+          txn_t *preceding_txn = NULL);
 
-    ~alt_txn_t();
+    ~txn_t();
 
-    alt_cache_t *cache() { return inner_->cache(); }
+    cache_t *cache() { return inner_->cache(); }
     page_txn_t *page_txn() { return inner_->page_txn(); }
     alt_access_t access() const { return access_; }
 
     void set_account(alt_cache_account_t *cache_account);
 
 private:
+    void help_construct(cache_t *cache,
+                        repli_timestamp_t txn_timestamp,
+                        txn_t *preceding_txn);
+
     static void destroy_inner_txn(alt_inner_txn_t *inner,
-                                  alt_cache_t *cache,
+                                  cache_t *cache,
                                   int64_t saved_expected_change_count,
                                   auto_drainer_t::lock_t);
 
@@ -144,97 +147,70 @@ private:
                                                  // the tracker.
 
     scoped_ptr_t<alt_inner_txn_t> inner_;
-    DISABLE_COPYING(alt_txn_t);
+    DISABLE_COPYING(txn_t);
 };
 
-// The intrusive list of alt_snapshot_node_t contains all the snapshot nodes for a
-// given block id, in order by version.  (See
-// alt_cache_t::snapshot_nodes_by_block_id_.)
-class alt_snapshot_node_t : public intrusive_list_node_t<alt_snapshot_node_t> {
+class buf_parent_t;
+
+class buf_lock_t {
 public:
-    explicit alt_snapshot_node_t(scoped_ptr_t<current_page_acq_t> &&acq);
-    ~alt_snapshot_node_t();
+    buf_lock_t();
 
-private:
-    // RSI: Should this really use friends?  Does this type need to be visible in the
-    // header?
-    friend class alt_buf_lock_t;
-    friend class alt_cache_t;
+    // alt_buf_parent_t is a type that either points at a buf_lock_t (its parent) or
+    // merely at a txn_t (e.g. for acquiring the superblock, which has no parent).
+    // If acquiring the child for read, the constructor will wait for the parent to
+    // be acquired for read.  Similarly, if acquiring the child for write, the
+    // constructor will wait for the parent to be acquired for write.  Once the
+    // constructor returns, you are "in line" for the block, meaning you'll acquire
+    // it in the same order relative other agents as you did when acquiring the same
+    // parent.  (Of course, readers can intermingle.)
 
-    // This is never null (and is always a current_page_acq_t that has had
-    // declare_snapshotted() called).
-    scoped_ptr_t<current_page_acq_t> current_page_acq_;
+    // These constructors will _not_ yield the coroutine _if_ the parent is already
+    // {access}-acquired.
 
-    // RSP: std::map memory usage.
-    // A NULL pointer associated with a block id indicates that the block is deleted.
-    std::map<block_id_t, alt_snapshot_node_t *> children_;
+    // Acquires an existing block for read or write access.
+    buf_lock_t(buf_parent_t parent,
+               block_id_t block_id,
+               alt_access_t access);
 
-    // The number of alt_buf_lock_t's referring to this node, plus the number of
-    // alt_snapshot_node_t's referring to this node (via its children_ vector).
-    int64_t ref_count_;
+    // Creates a new block with a specified block id, one that doesn't have a parent.
+    buf_lock_t(txn_t *txn,
+               block_id_t block_id,
+               alt_create_t create);
 
+    // Creates a new block with a specified block id as the child of a parent (if it's
+    // not just a txn_t *).
+    buf_lock_t(buf_parent_t parent,
+               block_id_t block_id,
+               alt_create_t create);
 
-    DISABLE_COPYING(alt_snapshot_node_t);
-};
+    // Acquires an existing block given the parent.
+    buf_lock_t(buf_lock_t *parent,
+               block_id_t block_id,
+               alt_access_t access);
 
-class alt_buf_parent_t;
+    // Creates a block, a new child of the given parent.  It gets assigned a block id
+    // from one of the unused block id's.
+    buf_lock_t(buf_parent_t parent,
+               alt_create_t create);
 
-class alt_buf_lock_t {
-public:
-    alt_buf_lock_t();
+    // Creates a block, a new child of the given parent.  It gets assigned a block id
+    // from one of the unused block id's.
+    buf_lock_t(buf_lock_t *parent,
+               alt_create_t create);
 
-    // RSI: These constructors definitely duplicate one another.  Too bad one
-    // constructor can't call another (in GCC 4.4).  Maybe we could still dedup
-    // these, though, or get rid of some.  (Make alt_access_t include create, and
-    // separate it from page_access_t?)
+    ~buf_lock_t();
 
-    // RSI: Change these comments, they're not all nonblocking constructors.
+    buf_lock_t(buf_lock_t &&movee);
+    buf_lock_t &operator=(buf_lock_t &&movee);
 
-    // Nonblocking constructor.
-    alt_buf_lock_t(alt_buf_parent_t parent,
-                   block_id_t block_id,
-                   alt_access_t access);
-
-    // Nonblocking constructor, creates a new block with a specified block id.
-    alt_buf_lock_t(alt_txn_t *txn,
-                   block_id_t block_id,
-                   alt_create_t create);
-
-    // Nonblocking constructor, creates a new block with a specified id (used by the
-    // serializer file write stream).
-    alt_buf_lock_t(alt_buf_parent_t parent,
-                   block_id_t block_id,
-                   alt_create_t create);
-
-    // Nonblocking constructor, IF parent->{access}_acq_signal() has already been
-    // pulsed.  In either case, returns before the block is acquired, but after we're
-    // _in line_ for the block.
-    alt_buf_lock_t(alt_buf_lock_t *parent,
-                   block_id_t block_id,
-                   alt_access_t access);
-
-    // Nonblocking constructor that acquires a block with a new block id.  `access`
-    // must be `write`.
-    alt_buf_lock_t(alt_buf_parent_t parent,
-                   alt_create_t create);
-
-    // Nonblocking constructor, IF parent->{access}_acq_signal() has already been
-    // pulsed.  Allocates a block with a new block id.  `access` must be `write`.
-    alt_buf_lock_t(alt_buf_lock_t *parent,
-                   alt_create_t create);
-
-    ~alt_buf_lock_t();
-
-    alt_buf_lock_t(alt_buf_lock_t &&movee);
-    alt_buf_lock_t &operator=(alt_buf_lock_t &&movee);
-
-    void swap(alt_buf_lock_t &other);
+    void swap(buf_lock_t &other);
     void reset_buf_lock();
     bool empty() const {
         return txn_ == NULL;
     }
 
-    void snapshot_subtree();
+    void snapshot_subdag();
 
     void detach_child(block_id_t child_id);
 
@@ -242,10 +218,7 @@ public:
         guarantee(txn_ != NULL);
         return current_page_acq()->block_id();
     }
-    // RSI: Remove get_block_id().
-    block_id_t get_block_id() const { return block_id(); }
 
-    // RSI: Rename.
     repli_timestamp_t get_recency() const;
 
     alt_access_t access() const {
@@ -264,32 +237,36 @@ public:
 
     void mark_deleted();
 
-    alt_txn_t *txn() const { return txn_; }
-    alt_cache_t *cache() const { return txn_->cache(); }
+    txn_t *txn() const { return txn_; }
+    cache_t *cache() const { return txn_->cache(); }
 
 private:
-    static void wait_for_parent(alt_buf_parent_t parent, alt_access_t access);
+    void help_construct(buf_parent_t parent, block_id_t block_id, alt_access_t access);
+    void help_construct(buf_parent_t parent, alt_create_t create);
+    void help_construct(buf_parent_t parent, block_id_t block_id, alt_create_t create);
+
+    static void wait_for_parent(buf_parent_t parent, alt_access_t access);
     static alt_snapshot_node_t *
-    get_or_create_child_snapshot_node(alt_cache_t *cache,
+    get_or_create_child_snapshot_node(cache_t *cache,
                                       alt_snapshot_node_t *parent,
                                       block_id_t child_id);
-    static void create_empty_child_snapshot_nodes(alt_cache_t *cache,
+    static void create_empty_child_snapshot_nodes(cache_t *cache,
                                                   block_version_t parent_version,
                                                   block_id_t parent_id,
                                                   block_id_t child_id);
-    static void create_child_snapshot_nodes(alt_cache_t *cache,
+    static void create_child_snapshot_nodes(cache_t *cache,
                                             block_version_t parent_version,
                                             block_id_t parent_id,
                                             block_id_t child_id);
     current_page_acq_t *current_page_acq() const;
 
-    friend class alt_buf_read_t;  // for get_held_page_for_read, access_ref_count_.
-    friend class alt_buf_write_t;  // for get_held_page_for_write, access_ref_count_.
+    friend class buf_read_t;  // for get_held_page_for_read, access_ref_count_.
+    friend class buf_write_t;  // for get_held_page_for_write, access_ref_count_.
 
     page_t *get_held_page_for_read();
     page_t *get_held_page_for_write();
 
-    alt_txn_t *txn_;
+    txn_t *txn_;
 
     scoped_ptr_t<current_page_acq_t> current_page_acq_;
 
@@ -299,24 +276,21 @@ private:
     // this lock, for assertion/guarantee purposes.
     intptr_t access_ref_count_;
 
-    // RSI: We should get rid of this variable.
-    bool was_destroyed_;
-
-    DISABLE_COPYING(alt_buf_lock_t);
+    DISABLE_COPYING(buf_lock_t);
 };
 
 
-class alt_buf_parent_t {
+class buf_parent_t {
 public:
-    alt_buf_parent_t() : txn_(NULL), lock_or_null_(NULL) { }
+    buf_parent_t() : txn_(NULL), lock_or_null_(NULL) { }
 
-    explicit alt_buf_parent_t(alt_buf_lock_t *lock)
+    explicit buf_parent_t(buf_lock_t *lock)
         : txn_(lock->txn()), lock_or_null_(lock) {
         guarantee(lock != NULL);
         guarantee(!lock->empty());
     }
-    // RSI: Replace this constructor with a create_dangerously static method.
-    explicit alt_buf_parent_t(alt_txn_t *txn)
+
+    explicit buf_parent_t(txn_t *txn)
         : txn_(txn), lock_or_null_(NULL) {
         rassert(txn != NULL);
     }
@@ -325,54 +299,55 @@ public:
         return txn_ == NULL;
     }
 
-    alt_txn_t *txn() const {
+    txn_t *txn() const {
         guarantee(!empty());
         return txn_;
     }
-    alt_cache_t *cache() const {
+    cache_t *cache() const {
         guarantee(!empty());
         return txn_->cache();
     }
 
 private:
-    friend class alt_buf_lock_t;
-    alt_txn_t *txn_;
-    alt_buf_lock_t *lock_or_null_;
+    friend class buf_lock_t;
+    txn_t *txn_;
+    buf_lock_t *lock_or_null_;
 };
 
-class alt_buf_read_t {
+class buf_read_t {
 public:
-    explicit alt_buf_read_t(alt_buf_lock_t *lock);
-    ~alt_buf_read_t();
+    explicit buf_read_t(buf_lock_t *lock);
+    ~buf_read_t();
 
     const void *get_data_read(uint32_t *block_size_out);
-    // RSI: Remove.
     const void *get_data_read() {
-        uint32_t unused_block_size;
-        return get_data_read(&unused_block_size);
+        uint32_t block_size;
+        const void *data = get_data_read(&block_size);
+        guarantee(block_size == lock_->cache()->max_block_size().value());
+        return data;
     }
 
 private:
-    alt_buf_lock_t *lock_;
+    buf_lock_t *lock_;
     page_acq_t page_acq_;
 
-    DISABLE_COPYING(alt_buf_read_t);
+    DISABLE_COPYING(buf_read_t);
 };
 
-class alt_buf_write_t {
+class buf_write_t {
 public:
-    explicit alt_buf_write_t(alt_buf_lock_t *lock);
-    ~alt_buf_write_t();
+    explicit buf_write_t(buf_lock_t *lock);
+    ~buf_write_t();
 
     void *get_data_write(uint32_t block_size);
     // Equivalent to passing the max_block_size.
     void *get_data_write();
 
 private:
-    alt_buf_lock_t *lock_;
+    buf_lock_t *lock_;
     page_acq_t page_acq_;
 
-    DISABLE_COPYING(alt_buf_write_t);
+    DISABLE_COPYING(buf_write_t);
 };
 
 

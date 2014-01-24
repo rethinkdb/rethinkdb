@@ -1,6 +1,4 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#define __STDC_FORMAT_MACROS
-
 #include "btree/leaf_node.hpp"
 
 #include <inttypes.h>

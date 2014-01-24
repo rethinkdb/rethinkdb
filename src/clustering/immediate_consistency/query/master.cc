@@ -3,6 +3,12 @@
 
 #include "containers/archive/boost_types.hpp"
 
+/* If the master has received and not yet processed more than
+   `MAX_OUTSTANDING_MASTER_REQUESTS` requests, clients will be throttled. This limit
+   is enforced in a soft way by a combination of a multi_throttling_server_t on the
+   master and a number of multi_throttling_client_t instances on the client nodes. */
+const int MAX_OUTSTANDING_MASTER_REQUESTS = 2000;
+
 template <class protocol_t>
 master_t<protocol_t>::master_t(mailbox_manager_t *mm, ack_checker_t *ac,
                                typename protocol_t::region_t r, broadcaster_t<protocol_t> *b) THROWS_ONLY(interrupted_exc_t)
@@ -10,7 +16,7 @@ master_t<protocol_t>::master_t(mailbox_manager_t *mm, ack_checker_t *ac,
       ack_checker(ac),
       broadcaster(b),
       region(r),
-      multi_throttling_server(mm, this, broadcaster_t<protocol_t>::MAX_OUTSTANDING_WRITES) {
+      multi_throttling_server(mm, this, MAX_OUTSTANDING_MASTER_REQUESTS) {
     guarantee(ack_checker);
 }
 

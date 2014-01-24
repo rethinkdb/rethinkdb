@@ -12,7 +12,7 @@
 #include "rpc/serialize_macros.hpp"
 #include "serializer/types.hpp"
 
-class alt_buf_lock_t;
+class buf_lock_t;
 
 struct secondary_index_t {
     secondary_index_t()
@@ -58,32 +58,28 @@ struct secondary_index_t {
 /* Note if this function is called after secondary indexes have been added it
  * will leak blocks (and also make those secondary indexes unusable.) There's
  * no reason to ever do this. */
-void initialize_secondary_indexes(alt_buf_lock_t *superblock);
+void initialize_secondary_indexes(buf_lock_t *superblock);
 
-bool get_secondary_index(alt_buf_lock_t *sindex_block,
+bool get_secondary_index(buf_lock_t *sindex_block,
                          const std::string &id,
                          secondary_index_t *sindex_out);
 
-bool get_secondary_index(alt_buf_lock_t *sindex_block, uuid_u id,
+bool get_secondary_index(buf_lock_t *sindex_block, uuid_u id,
                          secondary_index_t *sindex_out);
 
-void get_secondary_indexes(alt_buf_lock_t *sindex_block,
+void get_secondary_indexes(buf_lock_t *sindex_block,
                            std::map<std::string, secondary_index_t> *sindexes_out);
 
 /* Overwrites existing values with the same id. */
-void set_secondary_index(alt_buf_lock_t *sindex_block,
+void set_secondary_index(buf_lock_t *sindex_block,
                          const std::string &id, const secondary_index_t &sindex);
 
 /* Must be used to overwrite an already existing sindex. */
-void set_secondary_index(alt_buf_lock_t *sindex_block, uuid_u id,
+void set_secondary_index(buf_lock_t *sindex_block, uuid_u id,
                          const secondary_index_t &sindex);
 
 // XXX note this just drops the entry. It doesn't cleanup the btree that it points
 // to. `drop_sindex` Does both and should be used publicly.
-bool delete_secondary_index(alt_buf_lock_t *sindex_block, const std::string &id);
-
-// XXX note this just drops the enties. It doesn't cleanup the btree that it points
-// to. `drop_all_sindexes` does both and should be used publicly.
-void delete_all_secondary_indexes(alt_buf_lock_t *sindex_block);
+bool delete_secondary_index(buf_lock_t *sindex_block, const std::string &id);
 
 #endif /* BTREE_SECONDARY_OPERATIONS_HPP_ */

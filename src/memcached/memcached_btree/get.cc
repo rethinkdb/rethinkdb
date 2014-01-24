@@ -26,10 +26,10 @@ get_result_t memcached_get(const store_key_t &store_key,
         return get_result_t();
     }
 
-    // RSI: We could make this more efficient -- by releasing the leaf node while we
+    // KSI: We could make this more efficient -- by releasing the leaf node while we
     // acquire blobs as children of this.
     counted_t<data_buffer_t> dp
-        = value_to_data_buffer(value, alt_buf_parent_t(&kv_location.buf));
+        = value_to_data_buffer(value, buf_parent_t(&kv_location.buf));
 
     return get_result_t(dp, value->mcflags(), 0);
 }

@@ -2,7 +2,7 @@
 #include "memcached/memcached_btree/append_prepend.hpp"
 
 #include "buffer_cache/alt/alt.hpp"
-#include "buffer_cache/alt/alt_blob.hpp"
+#include "buffer_cache/alt/blob.hpp"
 #include "memcached/memcached_btree/modify_oper.hpp"
 #include "containers/buffer_group.hpp"
 #include "repli_timestamp.hpp"
@@ -13,7 +13,7 @@ struct memcached_append_prepend_oper_t : public memcached_modify_oper_t {
         : data(_data), append(_append)
     { }
 
-    bool operate(alt_buf_parent_t leaf,
+    bool operate(buf_parent_t leaf,
                  scoped_malloc_t<memcached_value_t> *value) {
         if (!value->has()) {
             result = apr_not_found;

@@ -11,25 +11,24 @@
 // Run backfilling at a reduced priority
 #define BACKFILL_CACHE_PRIORITY 10
 
-void btree_slice_t::create(alt_cache_t *cache,
+void btree_slice_t::create(cache_t *cache,
                            const std::vector<char> &metainfo_key,
                            const std::vector<char> &metainfo_value) {
 
-    alt_txn_t txn(cache, write_durability_t::HARD, repli_timestamp_t::distant_past, 1);
+    txn_t txn(cache, write_durability_t::HARD, repli_timestamp_t::distant_past, 1);
 
-    create(SUPERBLOCK_ID, alt_buf_parent_t(&txn), metainfo_key, metainfo_value);
+    create(SUPERBLOCK_ID, buf_parent_t(&txn), metainfo_key, metainfo_value);
 }
 
 void btree_slice_t::create(block_id_t superblock_id,
-                           alt_buf_parent_t parent,
+                           buf_parent_t parent,
                            const std::vector<char> &metainfo_key,
                            const std::vector<char> &metainfo_value) {
-    // The superblock was already created by cache_t::create or by creating it and
-    // getting the block id.
-    // RSI: Make this be the thing that creates the block.
-    alt_buf_lock_t superblock(parent, superblock_id, alt_access_t::write);
+    // The superblock was already created.  KSI: Make this be the thing that creates
+    // the block.  It would be simpler.
+    buf_lock_t superblock(parent, superblock_id, alt_access_t::write);
 
-    alt_buf_write_t sb_write(&superblock);
+    buf_write_t sb_write(&superblock);
     auto sb = static_cast<btree_superblock_t *>(sb_write.get_data_write());
     bzero(sb, parent.cache()->get_block_size().value());
 
@@ -41,12 +40,12 @@ void btree_slice_t::create(block_id_t superblock_id,
 
     set_superblock_metainfo(&superblock, metainfo_key, metainfo_value);
 
-    alt_buf_lock_t sindex_block(&superblock, alt_create_t::create);
+    buf_lock_t sindex_block(&superblock, alt_create_t::create);
     initialize_secondary_indexes(&sindex_block);
-    sb->sindex_block = sindex_block.get_block_id();
+    sb->sindex_block = sindex_block.block_id();
 }
 
-btree_slice_t::btree_slice_t(alt_cache_t *c, perfmon_collection_t *parent,
+btree_slice_t::btree_slice_t(cache_t *c, perfmon_collection_t *parent,
                              const std::string &identifier,
                              block_id_t _superblock_id)
     : stats(parent, identifier),

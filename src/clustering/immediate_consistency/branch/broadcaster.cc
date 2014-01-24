@@ -18,10 +18,6 @@
 #include "rpc/semilattice/view/member.hpp"
 
 template <class protocol_t>
-const int broadcaster_t<protocol_t>::MAX_OUTSTANDING_WRITES =
-    listener_t<protocol_t>::MAX_OUTSTANDING_WRITES_FROM_BROADCASTER;
-
-template <class protocol_t>
 broadcaster_t<protocol_t>::write_callback_t::write_callback_t() : write(NULL) { }
 
 template <class protocol_t>
@@ -44,7 +40,6 @@ broadcaster_t<protocol_t>::broadcaster_t(mailbox_manager_t *mm,
       mailbox_manager(mm),
       branch_id(generate_uuid()),
       branch_history_manager(bhm),
-      enforce_max_outstanding_writes(MAX_OUTSTANDING_WRITES),
       registrar(mailbox_manager, this)
 
 {
@@ -136,13 +131,11 @@ template <class protocol_t>
 class broadcaster_t<protocol_t>::incomplete_write_t : public home_thread_mixin_debug_only_t {
 public:
     incomplete_write_t(broadcaster_t *p, const typename protocol_t::write_t &w, transition_timestamp_t ts, write_callback_t *cb) :
-        write(w), timestamp(ts), callback(cb), sem_acq(&p->enforce_max_outstanding_writes), parent(p), incomplete_count(0) { }
+        write(w), timestamp(ts), callback(cb), parent(p), incomplete_count(0) { }
 
     const typename protocol_t::write_t write;
     const transition_timestamp_t timestamp;
     write_callback_t *callback;
-
-    semaphore_assertion_t::acq_t sem_acq;
 
 private:
     friend class incomplete_write_ref_t;
@@ -565,7 +558,6 @@ void broadcaster_t<protocol_t>::end_write(boost::shared_ptr<incomplete_write_t> 
         guarantee(newest_complete_timestamp == removed_write->timestamp.timestamp_before());
         newest_complete_timestamp = removed_write->timestamp.timestamp_after();
     }
-    write->sem_acq.reset();
     if (write->callback) {
         guarantee(write->callback->write == write.get());
         write->callback->write = NULL;

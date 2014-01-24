@@ -8,9 +8,6 @@
 #include "serializer/merger.hpp"
 #include "utils.hpp"
 
-// RSI: Get rid of this.
-#define USE_MERGER_SERIALIZER 1
-
 /* This object serves mostly as a container for arguments to the
  * do_construct_existing_store function because we hit the boost::bind argument
  * limit. */
@@ -126,17 +123,14 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
             // TODO: Could we handle failure when loading the serializer?  Right
             // now, we don't.
 
-            // RSI: Figure out whether merger_serializer_t is really the culprit.
             {
                 scoped_ptr_t<serializer_t> ser
                     = make_scoped<standard_serializer_t>(
                         standard_serializer_t::dynamic_config_t(),
                         &file_opener,
                         serializers_perfmon_collection);
-#if USE_MERGER_SERIALIZER
                 ser = make_scoped<merger_serializer_t>(std::move(ser),
                                                        MERGER_SERIALIZER_MAX_ACTIVE_WRITES);
-#endif
                 serializer = std::move(ser);
             }
 
@@ -155,17 +149,14 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
         } else {
             standard_serializer_t::create(&file_opener,
                                           standard_serializer_t::static_config_t());
-            // RSI: Figure out whether merger_serializer_t is really the culprit.
             {
                 scoped_ptr_t<serializer_t> ser
                     = make_scoped<standard_serializer_t>(
                         standard_serializer_t::dynamic_config_t(),
                         &file_opener,
                         serializers_perfmon_collection);
-#if USE_MERGER_SERIALIZER
                 ser = make_scoped<merger_serializer_t>(std::move(ser),
                                                        MERGER_SERIALIZER_MAX_ACTIVE_WRITES);
-#endif
                 serializer = std::move(ser);
             }
 

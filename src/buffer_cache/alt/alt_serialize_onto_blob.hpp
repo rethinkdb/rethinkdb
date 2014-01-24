@@ -2,17 +2,15 @@
 #define BUFFER_CACHE_ALT_ALT_SERIALIZE_ONTO_BLOB_HPP_
 
 #include "buffer_cache/alt/alt.hpp"
-#include "buffer_cache/alt/alt_blob.hpp"
-#include "buffer_cache/serialize_onto_blob.hpp"  // RSI.  (for
-                                                 // deserialize_from_group)
+#include "buffer_cache/alt/blob.hpp"
 #include "containers/archive/archive.hpp"
 #include "containers/archive/buffer_group_stream.hpp"
 
-void write_onto_blob(alt_buf_parent_t parent, blob_t *blob,
+void write_onto_blob(buf_parent_t parent, blob_t *blob,
                      const write_message_t &wm);
 
 template <class T>
-void serialize_onto_blob(alt_buf_parent_t parent, blob_t *blob,
+void serialize_onto_blob(buf_parent_t parent, blob_t *blob,
                          const T &value) {
     // We still make an unnecessary copy: serializing to a write_message_t instead of
     // directly onto the stream.  (However, don't be so sure it would be more
@@ -25,7 +23,7 @@ void serialize_onto_blob(alt_buf_parent_t parent, blob_t *blob,
 }
 
 template <class T>
-void deserialize_from_blob(alt_buf_parent_t parent, blob_t *blob,
+void deserialize_from_blob(buf_parent_t parent, blob_t *blob,
                            T *value_out) {
     buffer_group_t group;
     blob_acq_t acq;

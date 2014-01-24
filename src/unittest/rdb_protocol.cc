@@ -19,8 +19,6 @@
 
 #include "memcached/protocol_json_adapter.hpp"
 
-#pragma GCC diagnostic ignored "-Wshadow"
-
 namespace unittest {
 namespace {
 

@@ -24,7 +24,7 @@ public:
         cb_->on_deletion(key, recency, interruptor);
     }
 
-    void on_pair(alt_buf_parent_t parent, repli_timestamp_t recency,
+    void on_pair(buf_parent_t parent, repli_timestamp_t recency,
                  const btree_key_t *key, const void *val,
                  signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
         rassert(kr_.contains_key(key->contents, key->size));
@@ -54,7 +54,7 @@ public:
 void memcached_backfill(btree_slice_t *slice, const key_range_t& key_range,
                         repli_timestamp_t since_when, backfill_callback_t *callback,
                         superblock_t *superblock,
-                        alt_buf_lock_t *sindex_block,
+                        buf_lock_t *sindex_block,
                         parallel_traversal_progress_t *p,
                         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     agnostic_memcached_backfill_callback_t agnostic_cb(callback, key_range);

@@ -64,7 +64,7 @@ size_t estimate_rget_result_pair_size(const key_with_data_buffer_t &pair) {
 
 class rget_depth_first_traversal_callback_t : public depth_first_traversal_callback_t {
 public:
-    rget_depth_first_traversal_callback_t(alt_buf_parent_t par,
+    rget_depth_first_traversal_callback_t(buf_parent_t par,
                                           int max, exptime_t et) :
         parent(par), maximum(max), effective_time(et), cumulative_size(0) { }
     bool handle_pair(scoped_key_value_t &&keyvalue) {
@@ -80,7 +80,7 @@ public:
         cumulative_size += estimate_rget_result_pair_size(result.pairs.back());
         return static_cast<int64_t>(result.pairs.size()) < maximum && cumulative_size < rget_max_chunk_size;
     }
-    alt_buf_parent_t parent;
+    buf_parent_t parent;
     int maximum;
     exptime_t effective_time;
     rget_result_t result;

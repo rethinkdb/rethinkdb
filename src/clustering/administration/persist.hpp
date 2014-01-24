@@ -4,15 +4,14 @@
 
 #include <string>
 
-#include "buffer_cache/alt/config.hpp"
 #include "buffer_cache/types.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "containers/scoped.hpp"
 #include "rpc/semilattice/view.hpp"
 #include "serializer/types.hpp"
 
-class alt_cache_t;
-class alt_txn_t;
+class cache_t;
+class txn_t;
 
 template <class> class branch_history_manager_t;
 class io_backender_t;
@@ -37,9 +36,8 @@ public:
     virtual void update_metadata(const metadata_t &metadata) = 0;
 
 protected:
-    void get_write_transaction(object_buffer_t<alt_txn_t> *txn_out);
-
-    void get_read_transaction(object_buffer_t<alt_txn_t> *txn_out);
+    void get_write_transaction(object_buffer_t<txn_t> *txn_out);
+    void get_read_transaction(object_buffer_t<txn_t> *txn_out);
 
     block_size_t get_cache_block_size() const;
 
@@ -49,8 +47,7 @@ private:
                                         perfmon_collection_t *perfmon_parent);
 
     scoped_ptr_t<standard_serializer_t> serializer;
-    scoped_ptr_t<alt_cache_t> cache;
-    alt_cache_config_t cache_dynamic_config;
+    scoped_ptr_t<cache_t> cache;
 };
 
 

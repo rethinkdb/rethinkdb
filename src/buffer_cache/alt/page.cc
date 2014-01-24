@@ -79,8 +79,6 @@ current_page_t *page_cache_t::page_for_new_block_id(block_id_t *block_id_out) {
 current_page_t *page_cache_t::page_for_new_chosen_block_id(block_id_t block_id) {
     assert_thread();
     // Tell the free list this block id is taken.
-    // RSI: Make sure that the free_list_ checks that the chosen block id is actually
-    // free for the taking.
     free_list_.acquire_chosen_block_id(block_id);
     return internal_page_for_new_chosen(block_id);
 }
@@ -96,19 +94,19 @@ current_page_t *page_cache_t::internal_page_for_new_chosen(block_id_t block_id) 
     scoped_malloc_t<ser_buffer_t> buf = serializer_->malloc();
 
 #if !defined(NDEBUG) || defined(VALGRIND)
-        // RSI: This should actually _not_ exist -- we are ignoring legitimate errors
-        // where we write uninitialized data to disk.
-        memset(buf.get()->cache_data, 0xCD, serializer_->get_block_size().value());
+    // KSI: This should actually _not_ exist -- we are ignoring legitimate errors
+    // where we write uninitialized data to disk.
+    memset(buf.get()->cache_data, 0xCD, serializer_->max_block_size().value());
 #endif
 
     set_recency_for_block_id(block_id, repli_timestamp_t::distant_past);
     if (current_pages_[block_id] == NULL) {
         current_pages_[block_id] =
-            new current_page_t(serializer_->get_block_size(),
+            new current_page_t(serializer_->max_block_size(),
                                std::move(buf),
                                this);
     } else {
-        current_pages_[block_id]->make_non_deleted(serializer_->get_block_size(),
+        current_pages_[block_id]->make_non_deleted(serializer_->max_block_size(),
                                                    std::move(buf),
                                                    this);
     }
@@ -118,7 +116,7 @@ current_page_t *page_cache_t::internal_page_for_new_chosen(block_id_t block_id) 
 
 block_size_t page_cache_t::max_block_size() const {
     assert_thread();
-    return serializer_->get_block_size();
+    return serializer_->max_block_size();
 }
 
 void page_cache_t::create_cache_account(int priority,
@@ -137,7 +135,7 @@ void page_cache_t::create_cache_account(int priority,
 
     file_account_t *io_account;
     {
-        // RSI: We shouldn't have to switch to the serializer home thread.
+        // KSI: We shouldn't have to switch to the serializer home thread.
         on_thread_t thread_switcher(serializer_->home_thread());
         io_account = serializer_->make_io_account(io_priority,
                                                   outstanding_requests_limit);
@@ -206,7 +204,7 @@ void current_page_acq_t::init(page_txn_t *txn,
 }
 
 void current_page_acq_t::init(page_txn_t *txn,
-                              UNUSED alt_create_t create) {
+                              alt_create_t) {
     txn->page_cache()->assert_thread();
     guarantee(page_cache_ == NULL);
     page_cache_ = txn->page_cache();
@@ -222,7 +220,7 @@ void current_page_acq_t::init(page_txn_t *txn,
 
 void current_page_acq_t::init(page_cache_t *page_cache,
                               block_id_t block_id,
-                              UNUSED alt_read_access_t read) {
+                              alt_read_access_t) {
     page_cache->assert_thread();
     guarantee(page_cache_ == NULL);
     page_cache_ = page_cache;
@@ -294,9 +292,7 @@ page_t *current_page_acq_t::current_page_for_read() {
 
 repli_timestamp_t current_page_acq_t::recency() const {
     assert_thread();
-    // RSI: Have this return recency_ (once we properly load the information from the
-    // serializer).
-    return repli_timestamp_t::distant_past;
+    return recency_;
 }
 
 page_t *current_page_acq_t::current_page_for_write() {
@@ -402,14 +398,15 @@ void current_page_t::add_acquirer(current_page_acq_t *acq) {
         acq->recency_ = prev_recency;
     } else {
         rassert(acq->the_txn_ != NULL);
-        // RSI: We pass invalid timestamps for some set_metainfo calls and such.
+        // KSI: We pass invalid timestamps for some set_metainfo calls and such.
         // Shouldn't we never pass invalid timestamps?  It would be simpler.
         if (acq->the_txn_->this_txn_recency_ == repli_timestamp_t::invalid) {
             acq->recency_ = prev_recency;
         } else {
-            // RSI: What if the_txn_->this_txn_recency_ is non-monotonic with respect to
-            // previous acqs?
-            acq->recency_ = acq->the_txn_->this_txn_recency_;
+            // RSI: We do this (for now) to play nice with the current stats block
+            // code.  But ideally there would never be an out-of-order recency.
+            acq->recency_ = superceding_recency(prev_recency,
+                                                acq->the_txn_->this_txn_recency_);
         }
     }
 
@@ -492,10 +489,10 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq) {
 #if !defined(NDEBUG) || defined(VALGRIND)
                     // RSI: This should actually _not_ exist -- we are ignoring legitimate errors
                     // where we write uninitialized data to disk.
-                    memset(buf.get()->cache_data, 0xCD, help.page_cache->serializer()->get_block_size().value());
+                    memset(buf.get()->cache_data, 0xCD, help.page_cache->serializer()->max_block_size().value());
 #endif
 
-                    page_.init(new page_t(help.page_cache->serializer()->get_block_size(),
+                    page_.init(new page_t(help.page_cache->serializer()->max_block_size(),
                                           std::move(buf),
                                           help.page_cache),
                                help.page_cache);

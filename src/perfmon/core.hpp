@@ -107,7 +107,8 @@ template <class T, class... Args>
 struct check_perfmon_multi_membership_args_t<T, Args...>
     : public std::conditional<std::is_convertible<T, perfmon_t *>::value,
                               flip_check_perfmon_multi_membership_args_t<Args...>,
-                              std::false_type>::type { };
+                              std::false_type>::type {
+};
 
 template <>
 struct flip_check_perfmon_multi_membership_args_t<> : public std::false_type { };
@@ -116,7 +117,8 @@ template <class T, class... Args>
 struct flip_check_perfmon_multi_membership_args_t<T, Args...>
     : public std::conditional<std::is_convertible<T, const char *>::value,
                               check_perfmon_multi_membership_args_t<Args...>,
-                              std::false_type>::type { };
+                              std::false_type>::type {
+};
 
 
 

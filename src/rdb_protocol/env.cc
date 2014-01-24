@@ -9,8 +9,6 @@
 #include "rdb_protocol/minidriver.hpp"
 #include "rdb_protocol/term_walker.hpp"
 
-#pragma GCC diagnostic ignored "-Wshadow"
-
 namespace ql {
 
 /* Checks that divisor is indeed a divisor of multiple. */

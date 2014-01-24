@@ -5,7 +5,7 @@
 #include "rdb_protocol/blob_wrapper.hpp"
 
 counted_t<const ql::datum_t> get_data(const rdb_value_t *value,
-                                      alt_buf_parent_t parent) {
+                                      buf_parent_t parent) {
     rdb_blob_wrapper_t blob(parent.cache()->get_block_size(),
                             const_cast<rdb_value_t *>(value)->value_ref(),
                             blob::btree_maxreflen);
@@ -27,7 +27,7 @@ const counted_t<const ql::datum_t> &lazy_json_t::get() const {
     if (!pointee->ptr.has()) {
         pointee->ptr = get_data(pointee->rdb_value, pointee->parent);
         pointee->rdb_value = NULL;
-        pointee->parent = alt_buf_parent_t();
+        pointee->parent = buf_parent_t();
     }
     return pointee->ptr;
 }

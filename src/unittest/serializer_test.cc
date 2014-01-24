@@ -30,7 +30,7 @@ void run_AddDeleteRepeatedly(bool perform_index_write) {
                               &get_global_perfmon_collection());
 
     scoped_malloc_t<ser_buffer_t> buf = ser.malloc();
-    memset(buf->cache_data, 0, ser.get_block_size().value());
+    memset(buf->cache_data, 0, ser.max_block_size().value());
 
     scoped_ptr_t<file_account_t> account(ser.make_io_account(1));
 
@@ -40,7 +40,7 @@ void run_AddDeleteRepeatedly(bool perform_index_write) {
     for (int i = 0; i < 2000; ++i) {
         const block_id_t block_id = i;
         std::vector<buf_write_info_t> infos;
-        infos.push_back(buf_write_info_t(buf.get(), ser.get_block_size(), block_id));
+        infos.push_back(buf_write_info_t(buf.get(), ser.max_block_size(), block_id));
 
         // Create the block
         struct : public iocallback_t, public cond_t {

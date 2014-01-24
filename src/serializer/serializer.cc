@@ -132,22 +132,6 @@ void do_writes(serializer_t *ser, const std::vector<serializer_write_t> &writes,
     ser->index_write(index_write_ops, io_account);
 }
 
-void serializer_data_ptr_t::free() {
-    rassert(ptr_.has());
-    ptr_.reset();
-}
-
-void serializer_data_ptr_t::init_malloc(serializer_t *ser) {
-    rassert(!ptr_.has());
-    ptr_ = ser->malloc();
-}
-
-void serializer_data_ptr_t::init_clone(serializer_t *ser, const serializer_data_ptr_t &other) {
-    rassert(other.ptr_.has());
-    rassert(!ptr_.has());
-    ptr_ = ser->clone(other.ptr_.get());
-}
-
 counted_t<standard_block_token_t> serializer_block_write(serializer_t *ser, ser_buffer_t *buf,
                                                          block_size_t block_size,
                                                          block_id_t block_id, file_account_t *io_account) {
@@ -164,7 +148,6 @@ counted_t<standard_block_token_t> serializer_block_write(serializer_t *ser, ser_
 
 }
 
-// RSI: Move this to a new file types.cc?
 void debug_print(printf_buffer_t *buf, const buf_write_info_t &info) {
     buf->appendf("bwi{buf=%p, size=%" PRIu32 ", id=%" PRIu64 "}",
                  info.buf, info.block_size.ser_value(), info.block_id);

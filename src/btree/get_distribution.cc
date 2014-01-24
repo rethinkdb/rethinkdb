@@ -14,9 +14,9 @@ public:
         : depth_limit(_depth_limit), key_count(0), keys(_keys)
     { }
 
-    void read_stat_block(alt_buf_lock_t *stat_block) {
+    void read_stat_block(buf_lock_t *stat_block) {
         if (stat_block != NULL) {
-            alt_buf_read_t read(stat_block);
+            buf_read_t read(stat_block);
             key_count = static_cast<const btree_statblock_t *>(read.get_data_read())->population;
         } else {
             key_count = 0;
@@ -24,12 +24,12 @@ public:
     }
 
     // This is free to call mark_deleted.
-    void process_a_leaf(alt_buf_lock_t *leaf_node_buf,
+    void process_a_leaf(buf_lock_t *leaf_node_buf,
                         const btree_key_t *,
                         const btree_key_t *,
                         signal_t * /*interruptor*/,
                         int * /*population_change_out*/) THROWS_ONLY(interrupted_exc_t) {
-        alt_buf_read_t read(leaf_node_buf);
+        buf_read_t read(leaf_node_buf);
         const leaf_node_t *node
             = static_cast<const leaf_node_t *>(read.get_data_read());
 
@@ -39,8 +39,8 @@ public:
         }
     }
 
-    void postprocess_internal_node(alt_buf_lock_t *internal_node_buf) {
-        alt_buf_read_t read(internal_node_buf);
+    void postprocess_internal_node(buf_lock_t *internal_node_buf) {
+        buf_read_t read(internal_node_buf);
         const internal_node_t *node
             = static_cast<const internal_node_t *>(read.get_data_read());
 
@@ -53,7 +53,7 @@ public:
         }
     }
 
-    void filter_interesting_children(alt_buf_parent_t,
+    void filter_interesting_children(buf_parent_t,
                                      ranged_block_ids_t *ids_source,
                                      interesting_children_callback_t *cb) {
         if (ids_source->get_level() < depth_limit) {

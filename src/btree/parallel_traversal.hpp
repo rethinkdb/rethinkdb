@@ -16,8 +16,8 @@
 #include "containers/scoped.hpp"
 
 enum class alt_access_t;
-class alt_buf_lock_t;
-class alt_buf_parent_t;
+class buf_lock_t;
+class buf_parent_t;
 struct btree_superblock_t;
 class traversal_state_t;
 class parent_releaser_t;
@@ -30,7 +30,7 @@ class superblock_t;
 // HEY: Make this an abstract class, have two separate implementation
 // classes for the "forced block id" case and the internal node case.
 // (Hint: I don't really care.)
-class ranged_block_ids_t {
+class ranged_block_ids_t : public single_threaded_countable_t<ranged_block_ids_t> {
 public:
     ranged_block_ids_t(block_size_t bs, const internal_node_t *node,
                        const btree_key_t *left_exclusive_or_null,
@@ -82,7 +82,7 @@ public:
             traversal_state_t *_state,
             parent_releaser_t *_releaser,
             int _level,
-            const boost::shared_ptr<ranged_block_ids_t>& _ids_source)
+            const counted_t<ranged_block_ids_t> &_ids_source)
         : state(_state), releaser(_releaser),
           level(_level), acquisition_countdown(1), ids_source(_ids_source) { }
 
@@ -94,7 +94,7 @@ private:
     parent_releaser_t *releaser;
     int level;
     int acquisition_countdown;
-    boost::shared_ptr<ranged_block_ids_t> ids_source;
+    counted_t<ranged_block_ids_t> ids_source;
 
     DISABLE_COPYING(interesting_children_callback_t);
 };
@@ -112,19 +112,19 @@ struct btree_traversal_helper_t {
     //still traversing the tree at the time this is called. Also notice that
     //this value may be null if the stat block has not been allocated yet and
     //this traversal is read only (which prohibits us from allocating it)
-    virtual void read_stat_block(alt_buf_lock_t *) { }
+    virtual void read_stat_block(buf_lock_t *) { }
 
     // This is free to call mark_deleted.
-    virtual void process_a_leaf(alt_buf_lock_t *leaf_node_buf,
+    virtual void process_a_leaf(buf_lock_t *leaf_node_buf,
                                 const btree_key_t *left_exclusive_or_null,
                                 const btree_key_t *right_inclusive_or_null,
                                 signal_t *interruptor,
                                 int *population_change_out) THROWS_ONLY(interrupted_exc_t) = 0;
 
-    virtual void postprocess_internal_node(alt_buf_lock_t *internal_node_buf) = 0;
+    virtual void postprocess_internal_node(buf_lock_t *internal_node_buf) = 0;
 
     virtual void filter_interesting_children(
-            alt_buf_parent_t parent,
+            buf_parent_t parent,
             ranged_block_ids_t *ids_source,
             interesting_children_callback_t *cb) = 0;
 

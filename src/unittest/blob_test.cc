@@ -1,6 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "buffer_cache/alt/alt.hpp"
-#include "buffer_cache/alt/alt_blob.hpp"
+#include "buffer_cache/alt/blob.hpp"
 #include "containers/buffer_group.hpp"
 #include "containers/scoped.hpp"
 #include "unittest/gtest.hpp"
@@ -25,7 +25,7 @@ public:
         : buf_(alloc_emptybuf(maxreflen), maxreflen), blob_(block_size_t::unsafe_make(4096),
                                                             buf_.data(), maxreflen) { }
 
-    void check_region(alt_txn_t *txn, int64_t offset, int64_t size) {
+    void check_region(txn_t *txn, int64_t offset, int64_t size) {
         SCOPED_TRACE("check_region");
         const int64_t expecteds_size = expected_.size();
         ASSERT_LE(0, offset);
@@ -37,7 +37,7 @@ public:
 
         buffer_group_t bg;
         blob_acq_t bacq;
-        blob_.expose_region(alt_buf_parent_t(txn), alt_access_t::read, offset, size,
+        blob_.expose_region(buf_parent_t(txn), alt_access_t::read, offset, size,
                             &bg, &bacq);
 
         ASSERT_EQ(size, static_cast<int64_t>(bg.get_size()));
@@ -55,7 +55,7 @@ public:
         ASSERT_EQ(e - p_orig, p - p_orig);
     }
 
-    void check_normalization(alt_txn_t *txn) {
+    void check_normalization(txn_t *txn) {
         size_t size = expected_.size();
         uint64_t rs = blob_.refsize(txn->cache()->get_block_size());
         size_t sizesize = buf_.size() <= 255 ? 1 : 2;
@@ -78,23 +78,23 @@ public:
         }
     }
 
-    void check(alt_txn_t *txn) {
+    void check(txn_t *txn) {
         check_region(txn, 0, expected_.size());
         check_normalization(txn);
     }
 
-    void append(alt_txn_t *txn, const std::string &x) {
+    void append(txn_t *txn, const std::string &x) {
         SCOPED_TRACE(strprintf("append (%zu) ", x.size()) + std::string(x.begin(), x.begin() + std::min<size_t>(x.size(), 50)));
         int64_t n = x.size();
 
-        blob_.append_region(alt_buf_parent_t(txn), n);
+        blob_.append_region(buf_parent_t(txn), n);
 
         ASSERT_EQ(static_cast<int64_t>(expected_.size() + n), blob_.valuesize());
 
         {
             buffer_group_t bg;
             blob_acq_t bacq;
-            blob_.expose_region(alt_buf_parent_t(txn), alt_access_t::write,
+            blob_.expose_region(buf_parent_t(txn), alt_access_t::write,
                                 expected_.size(), n, &bg, &bacq);
 
             ASSERT_EQ(static_cast<size_t>(n), bg.get_size());
@@ -110,18 +110,18 @@ public:
         check(txn);
     }
 
-    void prepend(alt_txn_t *txn, const std::string &x) {
+    void prepend(txn_t *txn, const std::string &x) {
         SCOPED_TRACE(strprintf("prepend (%zu) ", x.size()) + std::string(x.begin(), x.begin() + std::min<size_t>(x.size(), 50)));
         int64_t n = x.size();
 
-        blob_.prepend_region(alt_buf_parent_t(txn), n);
+        blob_.prepend_region(buf_parent_t(txn), n);
 
         ASSERT_EQ(static_cast<int64_t>(n + expected_.size()), blob_.valuesize());
 
         {
             buffer_group_t bg;
             blob_acq_t bacq;
-            blob_.expose_region(alt_buf_parent_t(txn), alt_access_t::write, 0, n,
+            blob_.expose_region(buf_parent_t(txn), alt_access_t::write, 0, n,
                                 &bg, &bacq);
 
             ASSERT_EQ(n, static_cast<int64_t>(bg.get_size()));
@@ -137,29 +137,29 @@ public:
         check(txn);
     }
 
-    void unprepend(alt_txn_t *txn, int64_t n) {
+    void unprepend(txn_t *txn, int64_t n) {
         SCOPED_TRACE("unprepend " + strprintf("%" PRIi64, n));
         ASSERT_LE(n, static_cast<int64_t>(expected_.size()));
 
-        blob_.unprepend_region(alt_buf_parent_t(txn), n);
+        blob_.unprepend_region(buf_parent_t(txn), n);
         expected_.erase(0, n);
 
         check(txn);
     }
 
-    void unappend(alt_txn_t *txn, int64_t n) {
+    void unappend(txn_t *txn, int64_t n) {
         SCOPED_TRACE("unappend " + strprintf("%" PRIi64, n));
         ASSERT_LE(n, static_cast<int64_t>(expected_.size()));
 
-        blob_.unappend_region(alt_buf_parent_t(txn), n);
+        blob_.unappend_region(buf_parent_t(txn), n);
         expected_.erase(expected_.size() - n);
 
         check(txn);
     }
 
-    void clear(alt_txn_t *txn) {
+    void clear(txn_t *txn) {
         SCOPED_TRACE("clear");
-        blob_.clear(alt_buf_parent_t(txn));
+        blob_.clear(buf_parent_t(txn));
         expected_.clear();
         check(txn);
     }
@@ -174,11 +174,11 @@ private:
     blob_t blob_;
 };
 
-void small_value_test(alt_cache_t *cache) {
+void small_value_test(cache_t *cache) {
     SCOPED_TRACE("small_value_test");
     UNUSED block_size_t block_size = cache->get_block_size();
 
-    alt_txn_t txn(cache, write_durability_t::SOFT, repli_timestamp_t::distant_past, 0);
+    txn_t txn(cache, write_durability_t::SOFT, repli_timestamp_t::distant_past, 0);
 
     blob_tracker_t tk(251);
 
@@ -207,12 +207,11 @@ void small_value_test(alt_cache_t *cache) {
     tk.prepend(&txn, "");
 }
 
-void small_value_boundary_test(alt_cache_t *cache) {
+void small_value_boundary_test(cache_t *cache) {
     SCOPED_TRACE("small_value_boundary_test");
     block_size_t block_size = cache->get_block_size();
 
-    alt_txn_t txn(cache, write_durability_t::SOFT,
-                  repli_timestamp_t::distant_past, 0);
+    txn_t txn(cache, write_durability_t::SOFT, repli_timestamp_t::distant_past, 0);
 
     blob_tracker_t tk(251);
 
@@ -260,13 +259,13 @@ void small_value_boundary_test(alt_cache_t *cache) {
     ASSERT_EQ(1u, tk.refsize(block_size));
 }
 
-void special_4080_prepend_4081_test(alt_cache_t *cache) {
+void special_4080_prepend_4081_test(cache_t *cache) {
     SCOPED_TRACE("special_4080_prepend_4081_test");
     block_size_t block_size = cache->get_block_size();
 
     ASSERT_EQ(static_cast<size_t>(size_after_magic), block_size.value() - sizeof(block_magic_t));
 
-    alt_txn_t txn(cache, write_durability_t::SOFT, repli_timestamp_t::distant_past, 0);
+    txn_t txn(cache, write_durability_t::SOFT, repli_timestamp_t::distant_past, 0);
 
     blob_tracker_t tk(251);
 
@@ -276,9 +275,9 @@ void special_4080_prepend_4081_test(alt_cache_t *cache) {
 }
 
 // Regression test - these magic numbers caused failures previously.
-void special_4161600_prepend_12484801_test(alt_cache_t *cache) {
+void special_4161600_prepend_12484801_test(cache_t *cache) {
     SCOPED_TRACE("special_4080_prepend_4081_test");
-    alt_txn_t txn(cache, write_durability_t::SOFT, repli_timestamp_t::distant_past, 0);
+    txn_t txn(cache, write_durability_t::SOFT, repli_timestamp_t::distant_past, 0);
 
     blob_tracker_t tk(251);
 
@@ -295,10 +294,10 @@ struct step_t {
     step_t(int64_t _size, bool _prepend) : size(_size), prepend(_prepend) { }
 };
 
-void general_journey_test(alt_cache_t *cache, const std::vector<step_t>& steps) {
+void general_journey_test(cache_t *cache, const std::vector<step_t>& steps) {
     UNUSED block_size_t block_size = cache->get_block_size();
 
-    alt_txn_t txn(cache, write_durability_t::SOFT, repli_timestamp_t::distant_past, 0);
+    txn_t txn(cache, write_durability_t::SOFT, repli_timestamp_t::distant_past, 0);
     blob_tracker_t tk(251);
 
     char v = 'A';
@@ -329,7 +328,7 @@ void general_journey_test(alt_cache_t *cache, const std::vector<step_t>& steps) 
     tk.unappend(&txn, size);
 }
 
-void combinations_test(alt_cache_t *cache) {
+void combinations_test(cache_t *cache) {
     SCOPED_TRACE("combinations_test");
 
     int64_t inline_sz = size_after_magic * ((250 - 1 - 8 - 8) / sizeof(block_id_t));
@@ -368,7 +367,7 @@ void combinations_test(alt_cache_t *cache) {
 }
 
 
-void run_tests(alt_cache_t *cache) {
+void run_tests(cache_t *cache) {
     // The tests above hard-code constants related to these numbers.
     EXPECT_EQ(251, blob::btree_maxreflen);
     EXPECT_EQ(4u, sizeof(block_magic_t));
@@ -394,9 +393,9 @@ void run_blob_test() {
             &file_opener,
             &get_global_perfmon_collection());
 
-    alt_cache_t cache(&log_serializer,
-                      alt_cache_config_t(),
-                      &get_global_perfmon_collection());
+    cache_t cache(&log_serializer,
+                  alt_cache_config_t(),
+                  &get_global_perfmon_collection());
 
     run_tests(&cache);
 }

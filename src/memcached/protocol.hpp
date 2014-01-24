@@ -201,7 +201,7 @@ public:
         void protocol_send_backfill(const region_map_t<memcached_protocol_t, state_timestamp_t> &start_point,
                                     chunk_fun_callback_t<memcached_protocol_t> *chunk_fun_cb,
                                     superblock_t *superblock,
-                                    alt_buf_lock_t *sindex_block,
+                                    buf_lock_t *sindex_block,
                                     btree_slice_t *btree,
                                     backfill_progress_t *progress,
                                     signal_t *interruptor)

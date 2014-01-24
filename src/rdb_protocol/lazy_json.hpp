@@ -3,7 +3,7 @@
 #define RDB_PROTOCOL_LAZY_JSON_HPP_
 
 #include "buffer_cache/alt/alt.hpp"
-#include "buffer_cache/alt/alt_blob.hpp"
+#include "buffer_cache/alt/blob.hpp"
 #include "rdb_protocol/datum.hpp"
 
 struct rdb_value_t {
@@ -28,10 +28,10 @@ public:
 };
 
 counted_t<const ql::datum_t> get_data(const rdb_value_t *value,
-                                      alt_buf_parent_t parent);
+                                      buf_parent_t parent);
 
 class lazy_json_pointee_t : public single_threaded_countable_t<lazy_json_pointee_t> {
-    lazy_json_pointee_t(const rdb_value_t *_rdb_value, alt_buf_parent_t _parent)
+    lazy_json_pointee_t(const rdb_value_t *_rdb_value, buf_parent_t _parent)
         : rdb_value(_rdb_value), parent(_parent) {
         guarantee(rdb_value != NULL);
     }
@@ -49,7 +49,7 @@ class lazy_json_pointee_t : public single_threaded_countable_t<lazy_json_pointee
     // A pointer to the rdb value buffer in the leaf node (or perhaps a copy), and
     // the transaction with which to load it.  Non-NULL only if ptr is empty.
     const rdb_value_t *rdb_value;
-    alt_buf_parent_t parent;
+    buf_parent_t parent;
 
     DISABLE_COPYING(lazy_json_pointee_t);
 };
@@ -59,7 +59,7 @@ public:
     explicit lazy_json_t(const counted_t<const ql::datum_t> &ptr)
         : pointee(new lazy_json_pointee_t(ptr)) { }
 
-    lazy_json_t(const rdb_value_t *rdb_value, alt_buf_parent_t parent)
+    lazy_json_t(const rdb_value_t *rdb_value, buf_parent_t parent)
         : pointee(new lazy_json_pointee_t(rdb_value, parent)) { }
 
     const counted_t<const ql::datum_t> &get() const;

@@ -1,9 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "memcached/memcached_btree/get_cas.hpp"
 
-#include "errors.hpp"
-#include <boost/bind.hpp>
-
 #include "arch/runtime/coroutines.hpp"
 #include "buffer_cache/alt/alt.hpp"
 #include "concurrency/promise.hpp"
@@ -21,7 +18,7 @@ struct memcached_get_cas_oper_t : public memcached_modify_oper_t, public home_th
     memcached_get_cas_oper_t(cas_t _proposed_cas, promise_t<get_result_t> *_res)
         : proposed_cas(_proposed_cas), res(_res) { }
 
-    bool operate(alt_buf_parent_t leaf,
+    bool operate(buf_parent_t leaf,
                  scoped_malloc_t<memcached_value_t> *value) {
         if (!value->has()) {
             // If not found, there's nothing to do.
@@ -72,11 +69,10 @@ get_result_t memcached_get_cas(const store_key_t &key, btree_slice_t *slice,
                                repli_timestamp_t timestamp,
                                superblock_t *superblock) {
     promise_t<get_result_t> res;
-    // RSI: std::bind.
-    coro_t::spawn_now_dangerously(boost::bind(co_memcached_get_cas, boost::ref(key),
-                                              proposed_cas, effective_time,
-                                              timestamp, slice, &res,
-                                              boost::ref(superblock)));
+    coro_t::spawn_now_dangerously(std::bind(co_memcached_get_cas, std::ref(key),
+                                            proposed_cas, effective_time,
+                                            timestamp, slice, &res,
+                                            std::ref(superblock)));
     return res.wait();
 }
 

@@ -3,7 +3,6 @@
 
 #include "errors.hpp"
 #include <boost/variant.hpp>
-#include <boost/bind.hpp>
 
 #include "btree/operations.hpp"
 #include "btree/parallel_traversal.hpp"
@@ -584,7 +583,7 @@ void call_memcached_backfill(
         int i, btree_slice_t *btree,
         const std::vector<std::pair<region_t, state_timestamp_t> > &regions,
         memcached_backfill_callback_t *callback, superblock_t *superblock,
-        alt_buf_lock_t *sindex_block,
+        buf_lock_t *sindex_block,
         memcached_protocol_t::backfill_progress_t *progress,
         signal_t *interruptor) {
     parallel_traversal_progress_t *p = new parallel_traversal_progress_t;
@@ -604,7 +603,7 @@ void call_memcached_backfill(
 void store_t::protocol_send_backfill(const region_map_t<memcached_protocol_t, state_timestamp_t> &start_point,
                                      chunk_fun_callback_t<memcached_protocol_t> *chunk_fun_cb,
                                      superblock_t *superblock,
-                                     alt_buf_lock_t *sindex_block,
+                                     buf_lock_t *sindex_block,
                                      btree_slice_t *btree,
                                      backfill_progress_t *progress,
                                      signal_t *interruptor)
@@ -618,11 +617,10 @@ void store_t::protocol_send_backfill(const region_map_t<memcached_protocol_t, st
         // because adjacent regions often have the same value. On the other hand
         // it's harmless, because caching is basically perfect.
         refcount_superblock_t refcount_wrapper(superblock, regions.size());
-        // RSI: Use std::bind.
-        pmap(regions.size(), boost::bind(&call_memcached_backfill, _1,
-                                         btree, regions, &callback,
-                                         &refcount_wrapper, sindex_block, progress,
-                                         interruptor));
+        pmap(regions.size(), std::bind(&call_memcached_backfill, ph::_1,
+                                       btree, regions, &callback,
+                                       &refcount_wrapper, sindex_block, progress,
+                                       interruptor));
 
         /* if interruptor was pulsed in `call_memcached_backfill()`, it returned
         normally anyway. So now we have to check manually. */
@@ -644,7 +642,7 @@ struct receive_backfill_visitor_t : public boost::static_visitor<> {
                          superblock);
     }
     void operator()(const backfill_chunk_t::delete_range_t& delete_range) const {
-        hash_range_key_tester_t tester(delete_range.range);
+        hash_range_key_tester_t tester(&delete_range.range);
         memcached_erase_range(btree, &tester, delete_range.range.inner,
                               superblock, interruptor);
     }
@@ -659,16 +657,15 @@ struct receive_backfill_visitor_t : public boost::static_visitor<> {
 
 private:
     struct hash_range_key_tester_t : public key_tester_t {
-        explicit hash_range_key_tester_t(const region_t &delete_range)
+        explicit hash_range_key_tester_t(const region_t *delete_range)
             : delete_range_(delete_range) { }
         bool key_should_be_erased(const btree_key_t *key) {
             uint64_t h = hash_region_hasher(key->contents, key->size);
-            return delete_range_.beg <= h && h < delete_range_.end
-                && delete_range_.inner.contains_key(key->contents, key->size);
+            return delete_range_->beg <= h && h < delete_range_->end
+                && delete_range_->inner.contains_key(key->contents, key->size);
         }
 
-        // RSI: fix this const reference bullshit.
-        const region_t &delete_range_;
+        const region_t *delete_range_;
 
     private:
         DISABLE_COPYING(hash_range_key_tester_t);

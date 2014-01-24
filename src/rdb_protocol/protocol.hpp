@@ -16,7 +16,6 @@
 #include <boost/optional.hpp>
 
 #include "btree/btree_store.hpp"
-#include "btree/depth_first_traversal.hpp"
 #include "btree/keys.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/cond_var.hpp"
@@ -171,7 +170,7 @@ typedef terminal_variant_t terminal_t;
 void bring_sindexes_up_to_date(
         const std::set<std::string> &sindexes_to_bring_up_to_date,
         btree_store_t<rdb_protocol_t> *store,
-        alt_buf_lock_t *sindex_block)
+        buf_lock_t *sindex_block)
     THROWS_NOTHING;
 
 struct rget_item_t {
@@ -834,7 +833,7 @@ struct rdb_protocol_t {
         void protocol_send_backfill(const region_map_t<rdb_protocol_t, state_timestamp_t> &start_point,
                                     chunk_fun_callback_t<rdb_protocol_t> *chunk_fun_cb,
                                     superblock_t *superblock,
-                                    alt_buf_lock_t *sindex_block,
+                                    buf_lock_t *sindex_block,
                                     btree_slice_t *btree,
                                     backfill_progress_t *progress,
                                     signal_t *interruptor)

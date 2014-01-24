@@ -12,7 +12,7 @@ public:
     perfmon_membership_t cache_membership;
 
     /*
-      insert perfmons here
+      RSI: insert perfmons here
     */
 
     perfmon_multi_membership_t cache_collection_membership;

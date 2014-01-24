@@ -19,8 +19,6 @@
 #include "unittest/dummy_metadata_controller.hpp"
 #include "unittest/unittest_utils.hpp"
 
-#pragma GCC diagnostic ignored "-Wshadow"
-
 namespace unittest {
 
 void run_with_broadcaster(

@@ -19,12 +19,12 @@ public:
           right_inclusive_or_null_(right_inclusive_or_null)
     { }
 
-    void process_a_leaf(alt_buf_lock_t *leaf_node_buf,
+    void process_a_leaf(buf_lock_t *leaf_node_buf,
                         const btree_key_t *l_excl,
                         const btree_key_t *r_incl,
                         signal_t *,
                         int *population_change_out) THROWS_ONLY(interrupted_exc_t) {
-        alt_buf_write_t write(leaf_node_buf);
+        buf_write_t write(leaf_node_buf);
         leaf_node_t *node = static_cast<leaf_node_t *>(write.get_data_write());
 
         std::vector<store_key_t> keys_to_delete;
@@ -49,7 +49,7 @@ public:
         for (size_t i = 0; i < keys_to_delete.size(); ++i) {
             bool found = leaf::lookup(sizer_, node, keys_to_delete[i].btree_key(), value.get());
             guarantee(found);
-            deleter_->delete_value(alt_buf_parent_t(leaf_node_buf), value.get());
+            deleter_->delete_value(buf_parent_t(leaf_node_buf), value.get());
             leaf::erase_presence(sizer_, node, keys_to_delete[i].btree_key(),
                                  key_modification_proof_t::real_proof());
         }
@@ -57,11 +57,11 @@ public:
         *population_change_out = -static_cast<int>(keys_to_delete.size());
     }
 
-    void postprocess_internal_node(UNUSED alt_buf_lock_t *internal_node_buf) {
+    void postprocess_internal_node(UNUSED buf_lock_t *internal_node_buf) {
         // We don't want to do anything here.
     }
 
-    void filter_interesting_children(alt_buf_parent_t,
+    void filter_interesting_children(buf_parent_t,
                                      ranged_block_ids_t *ids_source,
                                      interesting_children_callback_t *cb) {
         for (int i = 0, e = ids_source->num_block_ids(); i < e; ++i) {
@@ -124,6 +124,9 @@ void btree_erase_range_generic(value_sizer_t<void> *sizer, btree_slice_t *slice,
                              release_superblock);
 }
 
+// KSI: Wait, seriously?  Is it actually correct and proper for our
+// partially-completed btree erasure operation to be interrupted?  If the tree is
+// already detached, the worst that would happen is that we leak blocks, yes.
 void erase_all(value_sizer_t<void> *sizer, btree_slice_t *slice,
                value_deleter_t *deleter,
                superblock_t *superblock,
