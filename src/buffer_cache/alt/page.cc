@@ -1001,9 +1001,6 @@ page_txn_t::~page_txn_t() {
         announce_waiting_for_flush_if_we_should();
     }
 
-    // RSI: Do we want to wait for this here?  Or should the page_cache_t be the
-    // thing that waits and destroys this object?
-
     flush_complete_cond_.wait();
 }
 
@@ -1608,7 +1605,7 @@ uint64_t evicter_t::in_memory_size() const {
 
 void evicter_t::evict_if_necessary() {
     assert_thread();
-    // RSI: Implement eviction of unbacked evictables too.  When flushing, you
+    // KSI: Implement eviction of unbacked evictables too.  When flushing, you
     // could use the page_t::eviction_index_ field to identify pages that are
     // currently in the process of being evicted, to avoid reflushing a page
     // currently being written for the purpose of eviction.
