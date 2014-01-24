@@ -1,11 +1,19 @@
 #!/bin/bash
 
+# This script is used to build RethinkDB RPM on CentOS 6.4
+#
+# It requires:
+# yum --assumeyes install http://dl.fedoraproject.org/pub/epel/6/i386/epel-release-6-8.noarch.rpm
+# yum --assumeyes install git-core boost-static m4 gcc-c++ python-pip v8-devel nodejs npm ncurses-devel which make PyYAML subversion ncurses-static rubygems ruby-devel build-rpm rpm-build zlib-devel zlib-static
+# gem install fpm
+
 set -eu
 
 main () {
+    ARCH=`gcc -dumpmachine | cut -f 1 -d -`
     RPM_ROOT=build/packages/rpm
     VERSION=`./scripts/gen-version.sh | sed -e s/-/_/g`
-    RPM_PACKAGE=build/packages/rethinkdb-$VERSION.rpm
+    RPM_PACKAGE=build/packages/rethinkdb-$VERSION.$ARCH.rpm
     DESCRIPTION='RethinkDB is built to store JSON documents, and scale to multiple machines with very little effort. It has a pleasant query language that supports really useful queries like table joins and group by.'
     tmpfile BEFORE_INSTALL <<EOF
 getent group rethinkdb >/dev/null || groupadd -r rethinkdb
@@ -14,9 +22,16 @@ getent passwd rethinkdb >/dev/null || \
     --comment "RethinkDB Daemon" rethinkdb
 EOF
 
+    case $ARCH in
+        i686)
+            # patch the v8 build rule to allow building 32-bit rethinkdb on
+            # a 64-bit kernel with a 32-bit userland
+            sed 's/ native / ia32.release /' -i mk/support.mk
+    esac
+
     test -n "${NOCONFIGURE:-}" || ./configure --static all --fetch all --prefix=/usr --sysconfdir=/etc --localstatedir=/var
 
-    make install DESTDIR=$RPM_ROOT BUILD_PORTABLE=1
+    `make command-line` -j 8 install DESTDIR=$RPM_ROOT BUILD_PORTABLE=1 ALLOW_WARNINGS=1
 
     ... () { command="$command $(for x in "$@"; do printf "%q " "$x"; done)"; }
 
