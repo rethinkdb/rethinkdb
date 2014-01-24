@@ -93,21 +93,12 @@ bool rwi_lock_t::locked() {
 bool rwi_lock_t::try_lock(access_t access, bool from_queue) {
     bool res = false;
     switch (access) {
-        case rwi_read_sync:
         case rwi_read:
             res = try_lock_read(from_queue);
             break;
         case rwi_write:
             res = try_lock_write(from_queue);
             break;
-        case rwi_intent:
-            res = try_lock_intent(from_queue);
-            break;
-        case rwi_upgrade:
-            res = try_lock_upgrade(from_queue);
-            break;
-        case rwi_read_outdated_ok:
-            unreachable("Tried to acquire the rw-lock using read_outdated_ok");
         default:
             unreachable("Tried to acquire the rw-lock using unknown mode");
     }
@@ -142,8 +133,7 @@ bool rwi_lock_t::try_lock_read(bool from_queue) {
 bool rwi_lock_t::try_lock_write(bool from_queue) {
     if (!from_queue && queue.head() &&
        (queue.head()->op == rwi_write ||
-        queue.head()->op == rwi_read ||
-        queue.head()->op == rwi_intent))
+        queue.head()->op == rwi_read))
         return false;
 
     switch (state) {
@@ -166,8 +156,7 @@ bool rwi_lock_t::try_lock_write(bool from_queue) {
 
 bool rwi_lock_t::try_lock_intent(bool from_queue) {
     if (!from_queue && queue.head() &&
-       (queue.head()->op == rwi_write ||
-        queue.head()->op == rwi_intent))
+       (queue.head()->op == rwi_write))
         return false;
 
     switch (state) {
