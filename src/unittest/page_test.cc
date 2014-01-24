@@ -114,28 +114,37 @@ TEST(PageTest, TwoSequentialTxnSwitch) {
     run_in_thread_pool(run_TwoSequentialTxnSwitch, 4);
 }
 
-void run_OneReadAcq() {
-    mock_ser_t mock;
-    test_cache_t page_cache(mock.ser.get(), mock.tracker.get());
-    test_txn_t txn(&page_cache);
-    current_page_acq_t acq(&txn, 0, access_t::read);
-    // Do nothing with the acq.
-}
-
-TEST(PageTest, OneReadAcq) {
-    run_in_thread_pool(run_OneReadAcq, 4);
-}
-
 void run_OneWriteAcq() {
     mock_ser_t mock;
     test_cache_t page_cache(mock.ser.get(), mock.tracker.get());
     test_txn_t txn(&page_cache);
-    current_page_acq_t acq(&txn, 0, access_t::write);
+    current_page_acq_t acq(&txn, 0, access_t::write, true);
     // Do nothing with the acq.
 }
 
 TEST(PageTest, OneWriteAcq) {
     run_in_thread_pool(run_OneWriteAcq, 4);
+}
+
+
+void run_OneWriteAcqOneReadAcq() {
+    mock_ser_t mock;
+    test_cache_t page_cache(mock.ser.get(), mock.tracker.get());
+    {
+        test_txn_t txn(&page_cache);
+        current_page_acq_t acq(&txn, 0, access_t::write, true);
+        // Do nothing with the acq.
+    }
+
+    {
+        test_txn_t txn(&page_cache);
+        current_page_acq_t acq(&txn, 0, access_t::read);
+        // Do nothing with the acq.
+    }
+}
+
+TEST(PageTest, OneWriteAcqOneReadAcq) {
+    run_in_thread_pool(run_OneWriteAcqOneReadAcq, 4);
 }
 
 void run_OneWriteAcqWait() {
