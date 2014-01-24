@@ -156,11 +156,6 @@ class buf_lock_t {
 public:
     buf_lock_t();
 
-    // RSI: These constructors definitely duplicate one another.  Too bad one
-    // constructor can't call another (in GCC 4.4).  Maybe we could still dedup
-    // these, though, or get rid of some.  (Make alt_access_t include create, and
-    // separate it from page_access_t?)
-
     // alt_buf_parent_t is a type that either points at a buf_lock_t (its parent) or
     // merely at a txn_t (e.g. for acquiring the superblock, which has no parent).
     // If acquiring the child for read, the constructor will wait for the parent to
