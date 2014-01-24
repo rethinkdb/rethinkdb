@@ -6,20 +6,20 @@ rwlock_t::~rwlock_t() {
     guarantee(acqs_.empty());
 }
 
-void rwlock_t::add_acq(rwlock_acq_t *acq) {
+void rwlock_t::add_acq(rwlock_in_line_t *acq) {
     acqs_.push_back(acq);
     pulse_pulsables(acq);
 }
 
-void rwlock_t::remove_acq(rwlock_acq_t *acq) {
-    rwlock_acq_t *subsequent = acqs_.next(acq);
+void rwlock_t::remove_acq(rwlock_in_line_t *acq) {
+    rwlock_in_line_t *subsequent = acqs_.next(acq);
     acqs_.remove(acq);
     pulse_pulsables(subsequent);
 }
 
 // p is a node whose situation might have changed -- a node whose previous entry is
 // different.
-void rwlock_t::pulse_pulsables(rwlock_acq_t *p) {
+void rwlock_t::pulse_pulsables(rwlock_in_line_t *p) {
     // We might not have to do any pulsing at all.
     if (p == NULL) {
         return;
@@ -36,7 +36,7 @@ void rwlock_t::pulse_pulsables(rwlock_acq_t *p) {
         do {
             // p is not NULL, not pulsed for read.  Should it be pulsed?  Look at the
             // previous node.
-            rwlock_acq_t *prev = acqs_.prev(p);
+            rwlock_in_line_t *prev = acqs_.prev(p);
             // Should we pulse p for read?
             if (prev == NULL || prev->read_cond_.is_pulsed()) {
                 p->read_cond_.pulse();
@@ -58,12 +58,12 @@ void rwlock_t::pulse_pulsables(rwlock_acq_t *p) {
 }
 
 
-rwlock_acq_t::rwlock_acq_t(rwlock_t *lock, access_t access)
+rwlock_in_line_t::rwlock_in_line_t(rwlock_t *lock, access_t access)
     : lock_(lock), access_(access) {
     lock_->add_acq(this);
 }
 
-rwlock_acq_t::~rwlock_acq_t() {
+rwlock_in_line_t::~rwlock_in_line_t() {
     lock_->remove_acq(this);
 }
 
