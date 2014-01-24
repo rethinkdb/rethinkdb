@@ -239,9 +239,14 @@ bool maybe_gzip_response(const http_req_t &req, http_res_t *res) {
     // We only care about three potential encoding qvalues: 'gzip', 'identity', and '*'
     for (auto it = encodings.begin(); it != encodings.end(); ++it) {
         double val = 1.0;
+        char *endptr;
         if (it->second.length() != 0) {
-            val = strtod(it->second.c_str(), NULL);
-            if (errno == ERANGE) { return false; }
+            val = strtod(it->second.c_str(), &endptr);
+            if (endptr == it->second.c_str() ||
+                (get_errno() == ERANGE &&
+                 (val == HUGE_VALF || val == HUGE_VALL || val == 0))) {
+                return false;
+            }
         }
 
         if (it->first == "gzip") {
