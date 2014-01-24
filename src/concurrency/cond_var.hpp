@@ -15,8 +15,10 @@ public:
     cond_t() { }
     void pulse();
     void pulse_if_not_already_pulsed();
-private:
+
+    // Pulses, but you have to be on the cond_t's home thread to call this.
     void do_pulse();
+private:
 
     DISABLE_COPYING(cond_t);
 };

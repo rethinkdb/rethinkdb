@@ -87,6 +87,7 @@ protected:
     ~signal_t() { }
 
     void pulse() THROWS_NOTHING {
+        assert_thread();
         mutex_assertion_t::acq_t acq(&lock);
         rassert(!is_pulsed());
         pulsed = true;

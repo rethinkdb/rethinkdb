@@ -8,12 +8,15 @@
 #include "do_on_thread.hpp"
 
 void cond_t::pulse() {
+    // KSI: This is such shit.  This behavior is deprecated.
     do_on_thread(home_thread(), boost::bind(&cond_t::do_pulse, this));
 }
 
 void cond_t::pulse_if_not_already_pulsed() {
+    assert_thread();
+    // You can't call is_pulsed from the wrong thread.
     if (!is_pulsed()) {
-        pulse();
+        do_pulse();
     }
 }
 
