@@ -171,8 +171,8 @@ txn_t::txn_t(cache_t *cache,
              txn_t *preceding_txn)
     : access_(alt_access_t::read),
       durability_(valgrind_undefined(write_durability_t::INVALID)),
-      /* RSI: Iirc the mirrored cache used 1 for some reason. */
-      saved_expected_change_count_(0) {
+      // RSI: Fix the semaphore so that we don't have to use 1.
+      saved_expected_change_count_(1) {
     help_construct(cache, repli_timestamp_t::invalid, preceding_txn);
 }
 
@@ -183,7 +183,8 @@ txn_t::txn_t(cache_t *cache,
              txn_t *preceding_txn)
     : access_(alt_access_t::write),
       durability_(durability),
-      saved_expected_change_count_(expected_change_count) {
+      // RSI: Fix the semaphore so that we don't have to use 1.
+      saved_expected_change_count_(std::max<int64_t>(expected_change_count, 1)) {
     help_construct(cache, txn_timestamp, preceding_txn);
 }
 
