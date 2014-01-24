@@ -79,8 +79,6 @@ current_page_t *page_cache_t::page_for_new_block_id(block_id_t *block_id_out) {
 current_page_t *page_cache_t::page_for_new_chosen_block_id(block_id_t block_id) {
     assert_thread();
     // Tell the free list this block id is taken.
-    // RSI: Make sure that the free_list_ checks that the chosen block id is actually
-    // free for the taking.
     free_list_.acquire_chosen_block_id(block_id);
     return internal_page_for_new_chosen(block_id);
 }
@@ -96,9 +94,9 @@ current_page_t *page_cache_t::internal_page_for_new_chosen(block_id_t block_id) 
     scoped_malloc_t<ser_buffer_t> buf = serializer_->malloc();
 
 #if !defined(NDEBUG) || defined(VALGRIND)
-        // RSI: This should actually _not_ exist -- we are ignoring legitimate errors
-        // where we write uninitialized data to disk.
-        memset(buf.get()->cache_data, 0xCD, serializer_->max_block_size().value());
+    // KSI: This should actually _not_ exist -- we are ignoring legitimate errors
+    // where we write uninitialized data to disk.
+    memset(buf.get()->cache_data, 0xCD, serializer_->max_block_size().value());
 #endif
 
     set_recency_for_block_id(block_id, repli_timestamp_t::distant_past);
@@ -137,7 +135,7 @@ void page_cache_t::create_cache_account(int priority,
 
     file_account_t *io_account;
     {
-        // RSI: We shouldn't have to switch to the serializer home thread.
+        // KSI: We shouldn't have to switch to the serializer home thread.
         on_thread_t thread_switcher(serializer_->home_thread());
         io_account = serializer_->make_io_account(io_priority,
                                                   outstanding_requests_limit);
@@ -294,9 +292,7 @@ page_t *current_page_acq_t::current_page_for_read() {
 
 repli_timestamp_t current_page_acq_t::recency() const {
     assert_thread();
-    // RSI: Have this return recency_ (once we properly load the information from the
-    // serializer).
-    return repli_timestamp_t::distant_past;
+    return recency_;
 }
 
 page_t *current_page_acq_t::current_page_for_write() {
