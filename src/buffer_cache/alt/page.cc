@@ -14,10 +14,6 @@
 // acquire a block that is deleted (for write mode) which would then create the
 // block.  How about we remove this (serializer_filestream_t is fixed).
 
-// RSI: temporary debugging macro
-// #define pagef debugf
-#define pagef(...) do { } while (0)
-
 page_cache_t::page_cache_t(serializer_t *serializer,
                            const page_cache_config_t &config,
                            memory_tracker_t *tracker)
@@ -498,10 +494,6 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq) {
                                help.page_cache);
                     is_deleted_ = false;
                 }
-                pagef("block version increment on %" PRIi64 " from %" PRIu64
-                      " to %" PRIu64 "\n",
-                      acq->block_id(), block_version_.debug_value(),
-                      cur->block_version_);
                 block_version_ = cur->block_version_;
                 acq->page_cache()->set_recency_for_block_id(acq->block_id(),
                                                             cur->recency_);
@@ -1011,7 +1003,6 @@ page_txn_t::~page_txn_t() {
     // changes.
 
     if (!began_waiting_for_flush_) {
-        pagef("in ~page_txn_t, going to announce waiting for flush\n");
         announce_waiting_for_flush_if_we_should();
     }
 
@@ -1020,9 +1011,7 @@ page_txn_t::~page_txn_t() {
 
     // RSI: Do whatever else is necessary to implement this.
 
-    pagef("in ~page_txn_t, waiting for flush cond\n");
     flush_complete_cond_.wait();
-    pagef("in ~page_txn_t, flush cond complete\n");
 }
 
 void page_txn_t::set_account(alt_cache_account_t *cache_account) {
@@ -1250,8 +1239,6 @@ void page_cache_t::do_flush_txn_set(page_cache_t *page_cache,
                                     const std::set<page_txn_t *> &txns,
                                     fifo_enforcer_write_token_t index_write_token) {
     page_cache->assert_thread();
-    pagef("do_flush_txn_set (pc=%p, tset=%p) from %s\n", page_cache, &txns,
-          debug_strprint(txns).c_str());
 
     // RSI: We need some way to wait for the preceding txns to have their flushes
     // stay before our txn's.
@@ -1329,11 +1316,7 @@ void page_cache_t::do_flush_txn_set(page_cache_t *page_cache,
     }
 
     {
-        pagef("do_flush_txn_set about to thread switch (pc=%p, tset=%p)\n", page_cache, &txns);
-
         on_thread_t th(page_cache->serializer_->home_thread());
-
-        pagef("do_flush_txn_set switched threads (pc=%p, tset=%p)\n", page_cache, &txns);
 
         struct : public iocallback_t, public cond_t {
             void on_io_complete() {
@@ -1378,11 +1361,7 @@ void page_cache_t::do_flush_txn_set(page_cache_t *page_cache,
             }
         }
 
-        pagef("do_flush_txn_set blocks_releasable_cb.wait() (pc=%p, tset=%p)\n", page_cache, &txns);
-
         blocks_releasable_cb.wait();
-
-        pagef("do_flush_txn_set blocks_releasable_cb waited (pc=%p, tset=%p)\n", page_cache, &txns);
 
         // RSI: Pass in the exiter to index_write, so that
         // subsequent index_write operations don't have to wait for one another to
@@ -1397,15 +1376,8 @@ void page_cache_t::do_flush_txn_set(page_cache_t *page_cache,
             // exactly the order that they're specified in?
             page_cache->serializer_->index_write(write_ops,
                                                  page_cache->writes_io_account.get());
-            pagef("do_flush_txn_set index write returned (pc=%p, tset=%p)\n",
-                  page_cache, &txns);
-        } else {
-            pagef("do_flush_txn_set write_ops is empty (pc=%p, tset=%p)\n",
-                  page_cache, &txns);
         }
     }
-    pagef("xited scope after do_flush_txn_set index write returned (pc=%p, tset=%p)\n", page_cache, &txns);
-
 
     // Set the page_t's block token field to their new block tokens.  RSI: Can we
     // do this earlier?  Do we have to wait for blocks_releasable_cb?  It doesn't
@@ -1437,7 +1409,6 @@ void page_cache_t::do_flush_txn_set(page_cache_t *page_cache,
     // exists?? We had some comment about that?  Or it should use something else?
 
     page_cache_t::remove_txn_set_from_graph(page_cache, txns);
-    pagef("remove_txn_set_from_graph returned (pc=%p, tset=%p)\n", page_cache, &txns);
 }
 
 bool page_cache_t::exists_flushable_txn_set(page_txn_t *txn,
@@ -1482,7 +1453,6 @@ bool page_cache_t::exists_flushable_txn_set(page_txn_t *txn,
 
 void page_cache_t::im_waiting_for_flush(page_txn_t *txn) {
     assert_thread();
-    pagef("im_waiting_for_flush (txn=%p)\n", txn);
     rassert(txn->began_waiting_for_flush_);
     rassert(!txn->spawned_flush_);
     // rassert(!txn->began_index_write_);  // RSI: This variable doesn't exist.
@@ -1500,8 +1470,6 @@ void page_cache_t::im_waiting_for_flush(page_txn_t *txn) {
 
     std::set<page_txn_t *> flush_set;
     if (exists_flushable_txn_set(txn, &flush_set)) {
-        pagef("built flushable txn set from %s\n",
-              debug_strprint(flush_set).c_str());
         for (auto it = flush_set.begin(); it != flush_set.end(); ++it) {
             rassert(!(*it)->spawned_flush_);
             (*it)->spawned_flush_ = true;
