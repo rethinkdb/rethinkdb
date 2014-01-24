@@ -493,12 +493,7 @@ buf_lock_t::buf_lock_t(buf_lock_t *parent,
 #endif
 }
 
-buf_lock_t::buf_lock_t(buf_parent_t parent,
-                       alt_create_t)
-    : txn_(parent.txn()),
-      current_page_acq_(),
-      snapshot_node_(NULL),
-      access_ref_count_(0) {
+void buf_lock_t::help_construct(buf_parent_t parent, UNUSED alt_create_t create) {
     buf_lock_t::wait_for_parent(parent, alt_access_t::write);
 
     // Makes sure nothing funny can happen in current_page_acq_t constructor.
@@ -527,31 +522,22 @@ buf_lock_t::buf_lock_t(buf_parent_t parent,
     }
 }
 
+buf_lock_t::buf_lock_t(buf_parent_t parent,
+                       alt_create_t create)
+    : txn_(parent.txn()),
+      current_page_acq_(),
+      snapshot_node_(NULL),
+      access_ref_count_(0) {
+    help_construct(parent, create);
+}
+
 buf_lock_t::buf_lock_t(buf_lock_t *parent,
-                       alt_create_t)
+                       alt_create_t create)
     : txn_(parent->txn_),
       current_page_acq_(),
       snapshot_node_(NULL),
       access_ref_count_(0) {
-    buf_lock_t::wait_for_parent(buf_parent_t(parent), alt_access_t::write);
-
-    // Makes sure nothing funny can happen in current_page_acq_t constructor.
-    // Otherwise, we'd need to make choosing a block id a separate function, and call
-    // create_empty_child_snapshot_nodes before constructing the current_page_acq_t.
-    // RSI: Probably we should do that anyway.
-    ASSERT_FINITE_CORO_WAITING;
-
-    current_page_acq_.init(new current_page_acq_t(txn_->page_txn(),
-                                                  alt_create_t::create));
-
-    create_empty_child_snapshot_nodes(txn_->cache(),
-                                      parent->current_page_acq()->block_version(),
-                                      parent->block_id(),
-                                      current_page_acq_->block_id());
-
-#if ALT_DEBUG
-    debugf("%p: buf_lock_t %p create %lu\n", cache(), this, block_id());
-#endif
+    help_construct(buf_parent_t(parent), create);
 }
 
 buf_lock_t::~buf_lock_t() {

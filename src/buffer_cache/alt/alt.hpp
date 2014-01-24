@@ -113,7 +113,7 @@ public:
                    txn_t *preceding_txn = NULL);
 
 
-    // RSI: Remove default parameter for expected_change_count.
+    // KSI: Remove default parameter for expected_change_count.
     // RSI: Generally speaking I don't think we use preceding_txn and we should.
     txn_t(cache_t *cache,
           write_durability_t durability,
@@ -246,6 +246,8 @@ public:
     cache_t *cache() const { return txn_->cache(); }
 
 private:
+    void help_construct(buf_parent_t parent, alt_create_t create);
+
     static void wait_for_parent(buf_parent_t parent, alt_access_t access);
     static alt_snapshot_node_t *
     get_or_create_child_snapshot_node(cache_t *cache,
