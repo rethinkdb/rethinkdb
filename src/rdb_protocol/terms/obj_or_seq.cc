@@ -76,16 +76,16 @@ private:
 
             compile_env_t compile_env(env->scope.compute_visibility());
             counted_t<func_term_t> func_term = make_counted<func_term_t>(&compile_env, func);
-            counted_t<func_t> func = func_term->eval_to_func(env->scope);
+            counted_t<func_t> function = func_term->eval_to_func(env->scope);
 
             switch (poly_type) {
             case MAP:
-                return new_val(env->env, v0->as_seq(env->env)->map(func));
+                return new_val(env->env, v0->as_seq(env->env)->map(function));
             case FILTER:
                 return new_val(env->env,
-                               v0->as_seq(env->env)->filter(func, counted_t<func_t>()));
+                               v0->as_seq(env->env)->filter(function, counted_t<func_t>()));
             case SKIP_MAP:
-                return new_val(env->env, v0->as_seq(env->env)->concatmap(func));
+                return new_val(env->env, v0->as_seq(env->env)->concatmap(function));
             default: unreachable();
             }
         }

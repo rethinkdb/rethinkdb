@@ -264,9 +264,9 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
 
     {
         /* Delete the data. */
-        rdb_protocol_t::point_delete_t d(pk);
+        rdb_protocol_t::point_delete_t del(pk);
         rdb_protocol_t::write_t write(
-                d, DURABILITY_REQUIREMENT_DEFAULT, profile_bool_t::PROFILE);
+                del, DURABILITY_REQUIREMENT_DEFAULT, profile_bool_t::PROFILE);
         rdb_protocol_t::write_response_t response;
 
         cond_t interruptor;

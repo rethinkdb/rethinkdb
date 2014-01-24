@@ -633,8 +633,8 @@ public:
             if (auto e = boost::get<ql::exc_t>(&rr->result)) {
                 rg_response->result = *e;
                 return;
-            } else if (auto e = boost::get<ql::datum_exc_t>(&rr->result)) {
-                rg_response->result = *e;
+            } else if (auto e2 = boost::get<ql::datum_exc_t>(&rr->result)) {
+                rg_response->result = *e2;
                 return;
             }
         }
