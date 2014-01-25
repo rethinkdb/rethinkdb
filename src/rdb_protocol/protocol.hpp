@@ -278,6 +278,7 @@ struct rdb_protocol_t {
         RDB_DECLARE_ME_SERIALIZABLE;
     };
 
+    // RSI: fix res/result bullshit
     struct rget_read_response_t {
          // Present if there was no terminal
         typedef std::vector<rdb_protocol_details::rget_item_t> stream_t;
@@ -285,17 +286,19 @@ struct rdb_protocol_t {
         class empty_t { RDB_MAKE_ME_SERIALIZABLE_0() };
 
         typedef boost::variant<
+            size_t, // count
+            counted_t<const ql::datum_t>, // reduce
+            empty_t, //reduce
+            ql::wire_datum_map_t, // gmr
+            stream_t // no terminal
+            > res_t;
+        typedef std::map<counted_t<const ql::datum_t>, res_t> grouped_res_t;
+        typedef boost::variant<
             // Error.
             ql::exc_t,
             ql::datum_exc_t,
-
-            // Result of a terminal.
-            counted_t<const ql::datum_t>,
-            empty_t, // for `reduce`, sometimes
-            ql::wire_datum_map_t, // for `gmr`, always
-
-            // Streaming Result.
-            stream_t
+            res_t,
+            grouped_res_t
             > result_t;
 
         key_range_t key_range;

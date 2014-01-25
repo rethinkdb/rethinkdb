@@ -11,33 +11,33 @@
 #include "rdb_protocol/protocol.hpp"
 
 namespace ql {
+namespace shards {
 
-void terminal_exception(const datum_exc_t &exc,
-                        const rdb_protocol_details::terminal_variant_t &t,
-                        rdb_protocol_t::rget_read_response_t::result_t *out);
+// RSI: check no copying
+typedef std::vector<counted_t<const datum_t> > lst_t;
+typedef std::map<counted_t<const datum_t>, lst_t> groups_t;
+typedef boost::variant<lst_t, groups_t> lst_or_groups_t;
 
-void transform_exception(const datum_exc_t &exc,
-                         const rdb_protocol_details::transform_variant_t &t,
-                         rdb_protocol_t::rget_read_response_t::result_t *out);
+void transform(env_t *env, const transform_variant_t &t, lst_or_groups_t *target);
+void terminate(env_t *env, const terminal_variant_t &t,
+               lst_or_groups_t *data, rget_read_response_t::result_t *target);
 
-}  // namespace ql
+void append(const store_key_t &key,
+            counted_t<const datum_t> sindex_val, // may be NULL
+            sorting_t sorting,
+            batcher_t *batcher,
+            lst_or_groups_t *data,
+            rget_read_response_t::result_t *target);
 
-namespace query_language {
+rget_read_response_t::res_t terminal_start(const terminal_variant_t &t);
+rget_read_response_t::res_t stream_start();
 
-void transform_apply(ql::env_t *ql_env, counted_t<const ql::datum_t> json,
-                     const rdb_protocol_details::transform_variant_t *t,
-                     std::vector<counted_t<const ql::datum_t> > *out);
+exc_t terminal_exc(const datum_exc_t &e, const terminal_variant_t &t);
+exc_t transform_exc(const datum_exc_t &e, const transform_variant_t &t);
 
-// Sets the result type based on a terminal.
-void terminal_initialize(const rdb_protocol_details::terminal_variant_t *t,
-                         rdb_protocol_t::rget_read_response_t::result_t *out);
+bool terminal_uses_value(const terminal_variant_t &t);
 
-bool terminal_uses_value(const rdb_protocol_details::terminal_variant_t &t);
-
-void terminal_apply(ql::env_t *ql_env, lazy_json_t json,
-                    const rdb_protocol_details::terminal_variant_t *t,
-                    rdb_protocol_t::rget_read_response_t::result_t *out);
-
-}  // namespace query_language
+} // namespace shards
+} // namespace ql
 
 #endif  // RDB_PROTOCOL_TRANSFORM_VISITORS_HPP_

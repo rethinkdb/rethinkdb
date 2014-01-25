@@ -97,9 +97,10 @@ public:
             boost::optional<uint64_t> tag_num = boost::optional<uint64_t>()) const;
     /* An inverse to print_secondary. Returns the primary key. */
     static std::string extract_primary(const std::string &secondary_and_primary);
+    static store_key_t extract_primary(const store_key_t &secondary_key);
     static std::string extract_secondary(const std::string &secondary_and_primary);
-    static boost::optional<uint64_t> extract_tag(
-        const std::string &secondary_and_primary);
+    static boost::optional<uint64_t> extract_tag(const std::string &secondary_and_primary);
+    static boost::optional<uint64_t> extract_tag(const store_key_t &key);
     store_key_t truncated_secondary() const;
     void check_type(type_t desired, const char *msg = NULL) const;
     void type_error(const std::string &msg) const NORETURN;

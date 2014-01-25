@@ -510,6 +510,10 @@ std::string datum_t::extract_primary(const std::string &secondary) {
     return components.primary;
 }
 
+store_key_t datum_t::extract_primary(const store_key_t &secondary_key) {
+    return store_key_t(extract_primary(key_to_unescaped_str(secondary_key)));
+}
+
 std::string datum_t::extract_secondary(const std::string &secondary) {
     components_t components;
     parse_secondary(secondary, &components);
@@ -520,6 +524,10 @@ boost::optional<uint64_t> datum_t::extract_tag(const std::string &secondary) {
     components_t components;
     parse_secondary(secondary, &components);
     return components.tag_num;
+}
+
+boost::optional<uint64_t> datum_t::extract_tag(const store_key_t &key) {
+    return extract_tag(key_to_unescaped_str(key));
 }
 
 // This function returns a store_key_t suitable for searching by a

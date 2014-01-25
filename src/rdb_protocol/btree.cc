@@ -616,272 +616,485 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
     // auto_drainer_t is destructed here so this waits for other coros to finish.
 }
 
-// This is actually a kind of misleading name. This function estimates the size of a datum,
-// not a whole rget, though it is used for that purpose (by summing up these responses).
+// RSI: nuke this
+
+// This is actually a kind of misleading name. This function estimates the size
+// of a datum, not a whole rget, though it is used for that purpose (by summing
+// up these responses).
 size_t estimate_rget_response_size(const counted_t<const ql::datum_t> &datum) {
     return serialized_size(datum);
 }
 
-class rdb_rget_depth_first_traversal_callback_t
-    : public concurrent_traversal_callback_t {
+
+typedef rdb_protocol_details::transform_variant_t transform_variant_t;
+typedef rdb_protocol_details::terminal_t terminal_t;
+
+class sindex_data_t {
 public:
-    /* This constructor does a traversal on the primary btree, it's not to be
-     * used with sindexes. The constructor below is for use with sindexes. */
-    rdb_rget_depth_first_traversal_callback_t(
-        transaction_t *txn,
-        ql::env_t *_ql_env,
-        const ql::batchspec_t &batchspec,
-        const rdb_protocol_details::transform_t &_transform,
-        boost::optional<rdb_protocol_details::terminal_t> _terminal,
-        const key_range_t &range,
-        sorting_t _sorting,
-        rget_read_response_t *_response,
-        btree_slice_t *_slice)
-        : bad_init(false),
-          transaction(txn),
-          response(_response),
-          ql_env(_ql_env),
-          batcher(batchspec.to_batcher()),
-          transform(_transform),
-          terminal(_terminal),
-          sorting(_sorting),
-          slice(_slice)
-    {
-        init(range);
-    }
+    sindex_data_t(const key_range_t &_pkey_range, const datum_range_t &_range,
+                  ql::map_wire_func_t wire_func, sindex_multi_bool_t _multi)
+        : pkey_range(_pkey_range),range(_range),
+          func(wire_func.compile_wire_func()), multi(_multi) { }
+private:
+    friend class rget_cb_t;
+    const key_range_t pkey_range;
+    const datum_range_t range;
+    const counted_t<ql::func_t> func;
+    const sindex_multi_bool_t multi;
+};
 
-    /* This constructor is used if you're doing a secondary index get, it takes
-     * an extra key_range_t (_primary_key_range) which is used to filter out
-     * unwanted results. The reason you can get unwanted results is is
-     * oversharding. When we overshard multiple logical shards are stored in
-     * the same physical btree_store_t, this is transparent with all other
-     * operations but their sindex values get mixed together and you wind up
-     * with multiple copies of each. This constructor will filter out the
-     * duplicates. This was issue #606. */
-    rdb_rget_depth_first_traversal_callback_t(
-        transaction_t *txn,
-        ql::env_t *_ql_env,
-        const ql::batchspec_t &batchspec,
-        const rdb_protocol_details::transform_t &_transform,
-        boost::optional<rdb_protocol_details::terminal_t> _terminal,
-        const key_range_t &range,
-        const key_range_t &_primary_key_range,
-        sorting_t _sorting,
-        ql::map_wire_func_t _sindex_function,
-        sindex_multi_bool_t _sindex_multi,
-        datum_range_t _sindex_range,
-        rget_read_response_t *_response,
-        btree_slice_t *_slice)
-        : bad_init(false),
-          transaction(txn),
-          response(_response),
-          ql_env(_ql_env),
-          batcher(batchspec.to_batcher()),
-          transform(_transform),
-          terminal(_terminal),
-          sorting(_sorting),
-          primary_key_range(_primary_key_range),
-          sindex_range(_sindex_range),
-          sindex_multi(_sindex_multi),
-          slice(_slice)
-    {
-        sindex_function = _sindex_function.compile_wire_func();
-        init(range);
-    }
-
-    void init(const key_range_t &range) {
-        try {
-            if (!reversed(sorting)) {
-                response->last_considered_key = range.left;
-            } else {
-                if (!range.right.unbounded) {
-                    response->last_considered_key = range.right.key;
-                } else {
-                    response->last_considered_key = store_key_t::max();
-                }
-            }
-
-            if (terminal) {
-                query_language::terminal_initialize(&*terminal, &response->result);
-            }
-
-            disabler.init(new profile::disabler_t(ql_env->trace));
-            sampler.init(new profile::sampler_t("Range traversal doc evaluation.", ql_env->trace));
-        } catch (const ql::exc_t &e2) {
-            /* Evaluation threw so we're not going to be accepting any more requests. */
-            response->result = e2;
-            bad_init = true;
-        } catch (const ql::datum_exc_t &e2) {
-            /* Evaluation threw so we're not going to be accepting any more requests. */
-            terminal_exception(e2, *terminal, &response->result);
-            bad_init = true;
-        }
-    }
-
-    virtual bool handle_pair(scoped_key_value_t &&keyvalue,
-                     concurrent_traversal_fifo_enforcer_signal_t waiter)
-        THROWS_ONLY(interrupted_exc_t) {
-        sampler->new_sample();
-        store_key_t store_key(keyvalue.key());
-        if (bad_init) {
-            return false;
-        }
-        if (primary_key_range) {
-            std::string pk = ql::datum_t::extract_primary(
-                    key_to_unescaped_str(store_key));
-            if (!primary_key_range->contains_key(store_key_t(pk))) {
-                return true;
-            }
-        }
-
-        try {
-            lazy_json_t first_value(static_cast<const rdb_value_t *>(keyvalue.value()),
-                                    transaction);
-
-            // When doing "count" queries, we don't want to actually load the json
-            // value. Here we detect up-front whether we will need to load the value.
-            // If nothing uses the value, we load it here.  Otherwise we never load
-            // it.  The main problem with this code is that we still need a time to
-            // exclusively process each row, in between the call to
-            // waiter.wait_interruptible() and the end of this function.  If we fixed
-            // the design that makes us need to _process_ each row one at a time, we
-            // wouldn't have to guess up front whether the lazy_json_t actually needs
-            // to be loaded, and the code would be safer (and algorithmically more
-            // parallelized).
-
-            if (sindex_function.has() || !transform.empty() || !terminal
-                || query_language::terminal_uses_value(*terminal)) {
-                // Force the value to be loaded.
-                first_value.get();
-                // Increment reads here since the btree doesn't know if we actually do a read
-                slice->stats.pm_keys_read.record();
-            } else {
-                // We _must_ load the value before calling keyvalue.reset(), and
-                // before calling waiter.wait_interruptible().  So we call
-                // first_value.reset() to make any later call to .get() fail.
-                first_value.reset();
-            }
-
-            keyvalue.reset();
-
-            waiter.wait_interruptible();
-
-            if ((response->last_considered_key < store_key && !reversed(sorting)) ||
-                (response->last_considered_key > store_key && reversed(sorting))) {
-                response->last_considered_key = store_key;
-            }
-
-            std::vector<lazy_json_t> data;
-            data.push_back(first_value);
-
-            counted_t<const ql::datum_t> sindex_value;
-            if (sindex_function) {
-                sindex_value =
-                    sindex_function->call(ql_env, first_value.get())->as_datum();
-                guarantee(sindex_range);
-                guarantee(sindex_multi);
-
-                if (sindex_multi == sindex_multi_bool_t::MULTI &&
-                    sindex_value->get_type() == ql::datum_t::R_ARRAY) {
-                        boost::optional<uint64_t> tag =
-                            ql::datum_t::extract_tag(key_to_unescaped_str(store_key));
-                        guarantee(tag);
-                        guarantee(sindex_value->size() > *tag);
-                        sindex_value = sindex_value->get(*tag);
-                }
-                if (!sindex_range->contains(sindex_value)) {
-                    return true;
-                }
-            }
-
-            // Apply transforms to the data
-            {
-                rdb_protocol_details::transform_t::iterator it;
-                for (it = transform.begin(); it != transform.end(); ++it) {
-                    try {
-                        std::vector<counted_t<const ql::datum_t> > tmp;
-
-                        for (auto jt = data.begin(); jt != data.end(); ++jt) {
-                            query_language::transform_apply(
-                                ql_env, jt->get(), &*it, &tmp);
-                        }
-                        data.clear();
-                        for (auto jt = tmp.begin(); jt != tmp.end(); ++jt) {
-                            data.push_back(lazy_json_t(*jt));
-                        }
-                    } catch (const ql::datum_exc_t &e2) {
-                        /* Evaluation threw so we're not going to be accepting any
-                           more requests. */
-                        transform_exception(e2, *it, &response->result);
-                        return false;
-                    }
-                }
-            }
-
-            if (!terminal) {
-                typedef rget_read_response_t::stream_t stream_t;
-                stream_t *stream = boost::get<stream_t>(&response->result);
-                guarantee(stream);
-                for (auto it = data.begin(); it != data.end(); ++it) {
-                    counted_t<const ql::datum_t> datum = it->get();
-                    if (sorting != sorting_t::UNORDERED && sindex_value) {
-                        stream->push_back(rdb_protocol_details::rget_item_t(
-                                    store_key, sindex_value, datum));
-                    } else {
-                        stream->push_back(rdb_protocol_details::rget_item_t(
-                                              store_key, datum));
-                    }
-
-                    batcher.note_el(datum);
-                }
-                return !batcher.should_send_batch();
-            } else {
-                try {
-                    for (auto jt = data.begin(); jt != data.end(); ++jt) {
-                        query_language::terminal_apply(
-                            ql_env, *jt, &*terminal, &response->result);
-                    }
-                    return true;
-                } catch (const ql::datum_exc_t &e2) {
-                    /* Evaluation threw so we're not going to be accepting any
-                       more requests. */
-                    terminal_exception(e2, *terminal, &response->result);
-                    return false;
-                }
-            }
-        } catch (const ql::exc_t &e2) {
-            /* Evaluation threw so we're not going to be accepting any more requests. */
-            response->result = e2;
-            return false;
-        }
-
-    }
-
-    virtual profile::trace_t *get_trace() THROWS_NOTHING {
-        return ql_env->trace.get_or_null();
-    }
-
-
-    bool bad_init;
-    transaction_t *transaction;
-    rget_read_response_t *response;
-    ql::env_t *ql_env;
+class job_data_t {
+public:
+    job_data_t(ql::env_t *_env, const ql::batchspec_t &batchspec,
+               const std::list<transform_variant_t> &_transforms,
+               const boost::optional<terminal_t> &_terminal,
+               sorting_t _sorting)
+        : env(_env), batcher(batchspec.to_batcher()), transforms(_transforms),
+          terminal(_terminal), sorting(_sorting) { }
+    job_data_t(job_data_t &&other) = default;
+private:
+    friend class rget_cb_t;
+    ql::env_t *const env;
     ql::batcher_t batcher;
-    rdb_protocol_details::transform_t transform;
-    boost::optional<rdb_protocol_details::terminal_t> terminal;
-    sorting_t sorting;
+    const std::list<transform_variant_t> transforms;
+    const boost::optional<terminal_t> terminal;
+    const sorting_t sorting;
+};
 
-    /* Only present if we're doing a sindex read.*/
-    boost::optional<key_range_t> primary_key_range;
-    boost::optional<datum_range_t> sindex_range;
-    counted_t<ql::func_t> sindex_function;
-    boost::optional<sindex_multi_bool_t> sindex_multi;
+class io_data_t {
+public:
+    io_data_t(transaction_t *_transaction, rget_read_response_t *_response,
+              btree_slice_t *_slice)
+        : transaction(_transaction), response(_response), slice(_slice) { }
+private:
+    friend class rget_cb_t;
+    transaction_t *const transaction;
+    rget_read_response_t *const response;
+    btree_slice_t *const slice;
+};
 
+class rget_cb_t : public concurrent_traversal_callback_t {
+public:
+    rget_cb_t(io_data_t &&_io,
+              job_data_t &&_job,
+              boost::optional<sindex_data_t> &&_sindex,
+              const key_range_t &range);
+
+    virtual done_t handle_pair(scoped_key_value_t &&keyvalue,
+                               concurrent_traversal_fifo_enforcer_signal_t waiter)
+    THROWS_ONLY(interrupted_exc_t);
+private:
+    counted_t<const ql::datum_t>
+    load_val(const rdb_value_t *valptr, transaction_t *transaction);
+
+    const io_data_t io; // How do get data in/out.
+    job_data_t job; // What to do next (stateful).
+    const boost::optional<sindex_data_t> sindex; // Optional sindex information.
+
+    // State for internal bookkeeping.
+    bool bad_init;
     scoped_ptr_t<profile::disabler_t> disabler;
     scoped_ptr_t<profile::sampler_t> sampler;
-
-    btree_slice_t *slice;
 };
+
+rget_cb_t::rget_cb_t(io_data_t &&_io,
+                     job_data_t &&_job,
+                     boost::optional<sindex_data_t> &&_sindex,
+                     const key_range_t &range)
+    : io(std::move(_io)),
+      job(std::move(_job)),
+      sindex(std::move(_sindex)),
+      bad_init(false) {
+    io.response->last_considered_key = !reversed(job.sorting)
+        ? range.left
+        : (!range.right.unbounded ? range.right.key : store_key_t::max());
+
+    try {
+        io.response->result = job.terminal
+            ? ql::shards::terminal_start(*job.terminal)
+            : ql::shards::stream_start();
+    } catch (const ql::exc_t &e) {
+        io.response->result = e;
+        bad_init = true;
+    } catch (const ql::datum_exc_t &e) {
+        io.response->result = ql::shards::terminal_exc(e, *job.terminal);
+        bad_init = true;
+    }
+
+
+    disabler.init(new profile::disabler_t(job.env->trace));
+    sampler.init(new profile::sampler_t("Range traversal doc evaluation.",
+                                        job.env->trace));
+}
+
+counted_t<const ql::datum_t>
+rget_cb_t::load_val(const rdb_value_t *valptr, transaction_t *transaction) {
+    lazy_json_t val(valptr, transaction);
+    counted_t<const ql::datum_t> retval;
+    // When doing "count" queries, we don't want to actually load the json
+    // value. Here we detect up-front whether we will need to load the value.
+    // If something uses the value, we load it here.  Otherwise we never load
+    // it.  The main problem with this code is that we still need a time to
+    // exclusively process each row, in between the call to
+    // waiter.wait_interruptible() and the end of this function.  If we fixed
+    // the design that makes us need to _process_ each row one at a time, we
+    // wouldn't have to guess up front whether the lazy_json_t actually needs to
+    // be loaded, and the code would be safer (and algorithmically more
+    // parallelized).
+    if (sindex || !job.transforms.empty() || !job.terminal
+        || ql::shards::terminal_uses_value(*job.terminal)) {
+        // Force the value to be loaded.
+        retval = val.get();
+        // Increment reads here since the btree doesn't know if we actually do a read
+        io.slice->stats.pm_keys_read.record();
+    }
+    return retval;
+}
+
+// Handle a keyvalue pair.  Returns `true` if we should keep going or `false` if
+// we're done (e.g. we finished a batch or there was an error).
+done_t rget_cb_t::handle_pair(scoped_key_value_t &&keyvalue,
+                              concurrent_traversal_fifo_enforcer_signal_t waiter)
+THROWS_ONLY(interrupted_exc_t) {
+    sampler->new_sample();
+
+    if (bad_init) return done_t::YES;
+
+    // Load the key and value (may be empty if we're doing a count query).
+    store_key_t key(keyvalue.key());
+    if (sindex && sindex->pkey_range.contains_key(ql::datum_t::extract_primary(key))) {
+        return done_t::NO;
+    }
+    counted_t<const ql::datum_t> val = load_val(
+        static_cast<const rdb_value_t *>(keyvalue.value()), io.transaction);
+    keyvalue.reset();
+    waiter.wait_interruptible();
+
+    try {
+        // Update the last considered key.
+        if ((io.response->last_considered_key < key && !reversed(job.sorting)) ||
+            (io.response->last_considered_key > key && reversed(job.sorting))) {
+            io.response->last_considered_key = key;
+        }
+
+        // Check whether we're out of sindex range, and return `true` if we are.
+        counted_t<const ql::datum_t> sindex_val;
+        if (sindex) {
+            sindex_val = sindex->func->call(job.env, val)->as_datum();
+            if (sindex->multi == sindex_multi_bool_t::MULTI
+                && sindex_val->get_type() == ql::datum_t::R_ARRAY) {
+                boost::optional<uint64_t> tag = *ql::datum_t::extract_tag(key);
+                guarantee(tag);
+                sindex_val = sindex_val->get(*tag, ql::NOTHROW);
+                guarantee(sindex_val);
+            }
+            if (!sindex->range.contains(sindex_val)) {
+                return done_t::NO;
+            }
+        }
+
+        ql::shards::lst_t init_data;
+        init_data.push_back(val);
+        ql::shards::lst_or_groups_t data(std::move(init_data));
+
+        // Transform the data.
+        for (auto it = job.transforms.begin(); it != job.transforms.end(); ++it) {
+            try {
+                ql::shards::transform(job.env, *it, &data);
+            } catch (const ql::datum_exc_t &e) {
+                io.response->result = ql::shards::transform_exc(e, *it);
+                return done_t::YES;
+            }
+        }
+
+        if (job.terminal) {
+            // Terminate the transformed data.
+            try {
+                ql::shards::terminate(job.env, *job.terminal,
+                                      &data, &io.response->result);
+            } catch (const ql::datum_exc_t &e) {
+                io.response->result = ql::shards::terminal_exc(e, *job.terminal);
+                return done_t::YES;
+            }
+            return done_t::NO;
+        } else {
+            // Add the transformed data to the result.
+            ql::shards::append(key, sindex_val, job.sorting, &job.batcher,
+                               &data, &io.response->result);
+            if (job.batcher.should_send_batch()) {
+                io.response->truncated = true;
+                return done_t::YES;
+            } else {
+                return done_t::NO;
+            }
+        }
+    } catch (const ql::exc_t &e) {
+        io.response->result = e;
+        return done_t::YES;
+    }
+}
+
+// class rdb_rget_depth_first_traversal_callback_t
+//     : public concurrent_traversal_callback_t {
+// public:
+//     /* This constructor does a traversal on the primary btree, it's not to be
+//      * used with sindexes. The constructor below is for use with sindexes. */
+//     rdb_rget_depth_first_traversal_callback_t(
+//         transaction_t *txn,
+//         ql::env_t *_ql_env,
+//         const ql::batchspec_t &batchspec,
+//         const rdb_protocol_details::transform_t &_transform,
+//         boost::optional<rdb_protocol_details::terminal_t> _terminal,
+//         const key_range_t &range,
+//         sorting_t _sorting,
+//         rget_read_response_t *_response,
+//         btree_slice_t *_slice)
+//         : bad_init(false),
+//           transaction(txn),
+//           response(_response),
+//           ql_env(_ql_env),
+//           batcher(batchspec.to_batcher()),
+//           transform(_transform),
+//           terminal(_terminal),
+//           sorting(_sorting),
+//           slice(_slice)
+//     {
+//         init(range);
+//     }
+
+//     /* This constructor is used if you're doing a secondary index get, it takes
+//      * an extra key_range_t (_primary_key_range) which is used to filter out
+//      * unwanted results. The reason you can get unwanted results is is
+//      * oversharding. When we overshard multiple logical shards are stored in
+//      * the same physical btree_store_t, this is transparent with all other
+//      * operations but their sindex values get mixed together and you wind up
+//      * with multiple copies of each. This constructor will filter out the
+//      * duplicates. This was issue #606. */
+//     rdb_rget_depth_first_traversal_callback_t(
+//         transaction_t *txn,
+//         ql::env_t *_ql_env,
+//         const ql::batchspec_t &batchspec,
+//         const rdb_protocol_details::transform_t &_transform,
+//         boost::optional<rdb_protocol_details::terminal_t> _terminal,
+//         const key_range_t &range,
+//         const key_range_t &_primary_key_range,
+//         sorting_t _sorting,
+//         ql::map_wire_func_t _sindex_function,
+//         sindex_multi_bool_t _sindex_multi,
+//         datum_range_t _sindex_range,
+//         rget_read_response_t *_response,
+//         btree_slice_t *_slice)
+//         : bad_init(false),
+//           transaction(txn),
+//           response(_response),
+//           ql_env(_ql_env),
+//           batcher(batchspec.to_batcher()),
+//           transform(_transform),
+//           terminal(_terminal),
+//           sorting(_sorting),
+//           primary_key_range(_primary_key_range),
+//           sindex_range(_sindex_range),
+//           sindex_multi(_sindex_multi),
+//           slice(_slice)
+//     {
+//         sindex_function = _sindex_function.compile_wire_func();
+//         init(range);
+//     }
+
+//     void init(const key_range_t &range) {
+//         try {
+//             if (!reversed(sorting)) {
+//                 response->last_considered_key = range.left;
+//             } else {
+//                 if (!range.right.unbounded) {
+//                     response->last_considered_key = range.right.key;
+//                 } else {
+//                     response->last_considered_key = store_key_t::max();
+//                 }
+//             }
+
+//             if (terminal) {
+//                 query_language::terminal_initialize(&*terminal, &response->result);
+//             }
+
+//             disabler.init(new profile::disabler_t(ql_env->trace));
+//             sampler.init(new profile::sampler_t("Range traversal doc evaluation.",
+//                                                 ql_env->trace));
+//         } catch (const ql::exc_t &e2) {
+//             /* Evaluation threw so we're not going to be accepting any more requests. */
+//             response->result = e2;
+//             bad_init = true;
+//         } catch (const ql::datum_exc_t &e2) {
+//             /* Evaluation threw so we're not going to be accepting any more requests. */
+//             terminal_exception(e2, *terminal, &response->result);
+//             bad_init = true;
+//         }
+//     }
+
+//     virtual bool handle_pair(scoped_key_value_t &&keyvalue,
+//                              concurrent_traversal_fifo_enforcer_signal_t waiter)
+//         THROWS_ONLY(interrupted_exc_t) {
+//         sampler->new_sample();
+//         store_key_t store_key(keyvalue.key());
+//         if (bad_init) {
+//             return false;
+//         }
+//         if (primary_key_range) {
+//             std::string pk = ql::datum_t::extract_primary(
+//                     key_to_unescaped_str(store_key));
+//             if (!primary_key_range->contains_key(store_key_t(pk))) {
+//                 return true;
+//             }
+//         }
+
+//         try {
+//             lazy_json_t first_value(static_cast<const rdb_value_t *>(keyvalue.value()),
+//                                     transaction);
+
+//             // When doing "count" queries, we don't want to actually load the json
+//             // value. Here we detect up-front whether we will need to load the value.
+//             // If nothing uses the value, we load it here.  Otherwise we never load
+//             // it.  The main problem with this code is that we still need a time to
+//             // exclusively process each row, in between the call to
+//             // waiter.wait_interruptible() and the end of this function.  If we fixed
+//             // the design that makes us need to _process_ each row one at a time, we
+//             // wouldn't have to guess up front whether the lazy_json_t actually needs
+//             // to be loaded, and the code would be safer (and algorithmically more
+//             // parallelized).
+
+//             if (sindex_function.has() || !transform.empty() || !terminal
+//                 || query_language::terminal_uses_value(*terminal)) {
+//                 // Force the value to be loaded.
+//                 first_value.get();
+//                 // Increment reads here since the btree doesn't know if we actually do a read
+//                 slice->stats.pm_keys_read.record();
+//             } else {
+//                 // We _must_ load the value before calling keyvalue.reset(), and
+//                 // before calling waiter.wait_interruptible().  So we call
+//                 // first_value.reset() to make any later call to .get() fail.
+//                 first_value.reset();
+//             }
+
+//             keyvalue.reset();
+
+//             waiter.wait_interruptible();
+
+//             if ((response->last_considered_key < store_key && !reversed(sorting)) ||
+//                 (response->last_considered_key > store_key && reversed(sorting))) {
+//                 response->last_considered_key = store_key;
+//             }
+
+//             std::vector<lazy_json_t> data;
+//             data.push_back(first_value);
+
+//             counted_t<const ql::datum_t> sindex_value;
+//             if (sindex_function) {
+//                 sindex_value =
+//                     sindex_function->call(ql_env, first_value.get())->as_datum();
+//                 guarantee(sindex_range);
+//                 guarantee(sindex_multi);
+
+//                 if (sindex_multi == sindex_multi_bool_t::MULTI &&
+//                     sindex_value->get_type() == ql::datum_t::R_ARRAY) {
+//                         boost::optional<uint64_t> tag =
+//                             ql::datum_t::extract_tag(key_to_unescaped_str(store_key));
+//                         guarantee(tag);
+//                         guarantee(sindex_value->size() > *tag);
+//                         sindex_value = sindex_value->get(*tag);
+//                 }
+//                 if (!sindex_range->contains(sindex_value)) {
+//                     return true;
+//                 }
+//             }
+
+//             // Apply transforms to the data
+//             {
+//                 rdb_protocol_details::transform_t::iterator it;
+//                 for (it = transform.begin(); it != transform.end(); ++it) {
+//                     try {
+//                         std::vector<counted_t<const ql::datum_t> > tmp;
+
+//                         for (auto jt = data.begin(); jt != data.end(); ++jt) {
+//                             query_language::transform_apply(
+//                                 ql_env, jt->get(), &*it, &tmp);
+//                         }
+//                         data.clear();
+//                         for (auto jt = tmp.begin(); jt != tmp.end(); ++jt) {
+//                             data.push_back(lazy_json_t(*jt));
+//                         }
+//                     } catch (const ql::datum_exc_t &e2) {
+//                         /* Evaluation threw so we're not going to be accepting any
+//                            more requests. */
+//                         transform_exception(e2, *it, &response->result);
+//                         return false;
+//                     }
+//                 }
+//             }
+
+//             if (!terminal) {
+//                 typedef rget_read_response_t::stream_t stream_t;
+//                 stream_t *stream = boost::get<stream_t>(&response->result);
+//                 guarantee(stream);
+//                 for (auto it = data.begin(); it != data.end(); ++it) {
+//                     counted_t<const ql::datum_t> datum = it->get();
+//                     if (sorting != sorting_t::UNORDERED && sindex_value) {
+//                         stream->push_back(rdb_protocol_details::rget_item_t(
+//                                     store_key, sindex_value, datum));
+//                     } else {
+//                         stream->push_back(rdb_protocol_details::rget_item_t(
+//                                               store_key, datum));
+//                     }
+
+//                     batcher.note_el(datum);
+//                 }
+//                 return !batcher.should_send_batch();
+//             } else {
+//                 try {
+//                     for (auto jt = data.begin(); jt != data.end(); ++jt) {
+//                         query_language::terminal_apply(
+//                             ql_env, *jt, &*terminal, &response->result);
+//                     }
+//                     return true;
+//                 } catch (const ql::datum_exc_t &e2) {
+//                     /* Evaluation threw so we're not going to be accepting any
+//                        more requests. */
+//                     terminal_exception(e2, *terminal, &response->result);
+//                     return false;
+//                 }
+//             }
+//         } catch (const ql::exc_t &e2) {
+//             /* Evaluation threw so we're not going to be accepting any more requests. */
+//             response->result = e2;
+//             return false;
+//         }
+
+//     }
+
+//     virtual profile::trace_t *get_trace() THROWS_NOTHING {
+//         return ql_env->trace.get_or_null();
+//     }
+
+
+//     bool bad_init;
+//     transaction_t *transaction;
+//     rget_read_response_t *response;
+//     ql::env_t *ql_env;
+//     ql::batcher_t batcher;
+//     rdb_protocol_details::transform_t transform;
+//     boost::optional<rdb_protocol_details::terminal_t> terminal;
+//     sorting_t sorting;
+
+//     /* Only present if we're doing a sindex read.*/
+//     boost::optional<key_range_t> primary_key_range;
+//     boost::optional<datum_range_t> sindex_range;
+//     counted_t<ql::func_t> sindex_function;
+//     boost::optional<sindex_multi_bool_t> sindex_multi;
+
+//     scoped_ptr_t<profile::disabler_t> disabler;
+//     scoped_ptr_t<profile::sampler_t> sampler;
+
+//     btree_slice_t *slice;
+// };
 
 class result_finalizer_visitor_t : public boost::static_visitor<void> {
 public:
@@ -905,12 +1118,13 @@ void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
                     sorting_t sorting,
                     rget_read_response_t *response) {
     profile::starter_t starter("Do range scan on primary index.", ql_env->trace);
-    rdb_rget_depth_first_traversal_callback_t callback(
-        txn, ql_env, batchspec, transform, terminal, range, sorting, response, slice);
+    rget_cb_t callback(
+        io_data_t(txn, response, slice),
+        job_data_t(ql_env, batchspec, transform, terminal, sorting),
+        boost::optional<sindex_data_t>(),
+        range);
     btree_concurrent_traversal(slice, txn, superblock, range, &callback,
                                (!reversed(sorting) ? FORWARD : BACKWARD));
-
-    response->truncated = callback.batcher.should_send_batch();
 
     boost::apply_visitor(result_finalizer_visitor_t(), response->result);
 }
@@ -931,14 +1145,14 @@ void rdb_rget_secondary_slice(
     sindex_multi_bool_t sindex_multi,
     rget_read_response_t *response) {
     profile::starter_t starter("Do range scan on secondary index.", ql_env->trace);
-    rdb_rget_depth_first_traversal_callback_t callback(
-        txn, ql_env, batchspec, transform, terminal, sindex_region.inner, pk_range,
-        sorting, sindex_func, sindex_multi, sindex_range, response, slice);
+    rget_cb_t callback(
+        io_data_t(txn, response, slice),
+        job_data_t(ql_env, batchspec, transform, terminal, sorting),
+        sindex_data_t(pk_range, sindex_range, sindex_func, sindex_multi),
+        sindex_region.inner);
     btree_concurrent_traversal(
         slice, txn, superblock, sindex_region.inner, &callback,
         (!reversed(sorting) ? FORWARD : BACKWARD));
-
-    response->truncated = callback.batcher.should_send_batch();
 
     boost::apply_visitor(result_finalizer_visitor_t(), response->result);
 }

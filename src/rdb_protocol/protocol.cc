@@ -925,7 +925,7 @@ private:
         } catch (const ql::datum_exc_t &e) {
             /* Evaluation threw so we're not going to be accepting any
                more requests. */
-            terminal_exception(e, *rg.terminal, &rg_response->result);
+            rg_response->result = ql::shards::terminal_exc(e, *rg.terminal);
         } catch (const ql::exc_t &e) {
             rg_response->result = e;
         }
