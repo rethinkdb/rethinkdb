@@ -40,6 +40,8 @@ private:
     virtual bool is_deterministic() const { return false; }
 };
 
+// If you don't have to modify any of the data, use
+// `const_rethreading_metadata_accessor_t` instead which is more efficient.
 struct rethreading_metadata_accessor_t : public on_thread_t {
     explicit rethreading_metadata_accessor_t(scope_env_t *env)
     : on_thread_t(env->env->cluster_access.semilattice_metadata->home_thread()),
@@ -51,11 +53,26 @@ struct rethreading_metadata_accessor_t : public on_thread_t {
     { }
     cluster_semilattice_metadata_t metadata;
     cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t
-    ns_change;
+        ns_change;
     metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >
-    ns_searcher;
+        ns_searcher;
     metadata_searcher_t<database_semilattice_metadata_t> db_searcher;
     metadata_searcher_t<datacenter_semilattice_metadata_t> dc_searcher;
+};
+
+struct const_rethreading_metadata_accessor_t : public on_thread_t {
+    explicit const_rethreading_metadata_accessor_t(scope_env_t *env)
+    : on_thread_t(env->env->cluster_access.semilattice_metadata->home_thread()),
+      metadata(env->env->cluster_access.semilattice_metadata->get()),
+      ns_searcher(&metadata.rdb_namespaces.get()->namespaces),
+      db_searcher(&metadata.databases.databases),
+      dc_searcher(&metadata.datacenters.datacenters)
+    { }
+    cluster_semilattice_metadata_t metadata;
+    const_metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >
+        ns_searcher;
+    const_metadata_searcher_t<database_semilattice_metadata_t> db_searcher;
+    const_metadata_searcher_t<datacenter_semilattice_metadata_t> dc_searcher;
 };
 
 
@@ -94,7 +111,7 @@ private:
         name_string_t db_name = get_name(arg(env, 0), this, "Database");
         uuid_u uuid;
         {
-            rethreading_metadata_accessor_t meta(env);
+            const_rethreading_metadata_accessor_t meta(env);
             uuid = meta_get_uuid(&meta.db_searcher, db_name,
                                  strprintf("Database `%s` does not exist.",
                                            db_name.c_str()), this);
@@ -165,7 +182,7 @@ private:
         if (counted_t<val_t> v = optarg(env, "datacenter")) {
             name_string_t name = get_name(v, this, "Table");
             {
-                rethreading_metadata_accessor_t meta(env);
+                const_rethreading_metadata_accessor_t meta(env);
                 dc_id = meta_get_uuid(&meta.dc_searcher, name,
                                       strprintf("Datacenter `%s` does not exist.",
                                                 name.str().c_str()),
@@ -355,7 +372,7 @@ private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         std::vector<std::string> dbs;
         {
-            rethreading_metadata_accessor_t meta(env);
+            const_rethreading_metadata_accessor_t meta(env);
             for (auto it = meta.db_searcher.find_next(meta.db_searcher.begin());
                  it != meta.db_searcher.end();
                  it = meta.db_searcher.find_next(++it)) {
@@ -393,7 +410,7 @@ private:
         std::vector<std::string> tables;
         namespace_predicate_t pred(&db_id);
         {
-            rethreading_metadata_accessor_t meta(env);
+            const_rethreading_metadata_accessor_t meta(env);
             for (auto it = meta.ns_searcher.find_next(meta.ns_searcher.begin(), pred);
                  it != meta.ns_searcher.end();
                  it = meta.ns_searcher.find_next(++it, pred)) {
