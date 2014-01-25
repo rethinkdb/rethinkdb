@@ -162,7 +162,7 @@ current_page_acq_t::current_page_acq_t(page_txn_t *txn,
 
 current_page_acq_t::current_page_acq_t(page_cache_t *page_cache,
                                        block_id_t block_id,
-                                       alt_read_access_t read)
+                                       read_access_t read)
     : page_cache_(NULL), the_txn_(NULL) {
     init(page_cache, block_id, read);
 }
@@ -173,7 +173,7 @@ void current_page_acq_t::init(page_txn_t *txn,
                               bool create) {
     if (access == access_t::read) {
         rassert(create == false);
-        init(txn->page_cache(), block_id, alt_read_access_t::read);
+        init(txn->page_cache(), block_id, read_access_t::read);
     } else {
         txn->page_cache()->assert_thread();
         guarantee(page_cache_ == NULL);
@@ -211,7 +211,7 @@ void current_page_acq_t::init(page_txn_t *txn,
 
 void current_page_acq_t::init(page_cache_t *page_cache,
                               block_id_t block_id,
-                              alt_read_access_t) {
+                              read_access_t) {
     page_cache->assert_thread();
     guarantee(page_cache_ == NULL);
     page_cache_ = page_cache;

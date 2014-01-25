@@ -167,7 +167,7 @@ alt_cache_account_t::~alt_cache_account_t() {
 }
 
 txn_t::txn_t(cache_t *cache,
-             alt_read_access_t,
+             read_access_t,
              txn_t *preceding_txn)
     : access_(access_t::read),
       // RSI: Why does OvershardedSindexCreateDrop depend on this being SOFT or HARD?
@@ -267,7 +267,7 @@ buf_lock_t::get_or_create_child_snapshot_node(cache_t *cache,
         // if the version would change.
         auto acq = make_scoped<current_page_acq_t>(&cache->page_cache_,
                                                    child_id,
-                                                   alt_read_access_t::read);
+                                                   read_access_t::read);
         acq->declare_snapshotted();
         alt_snapshot_node_t *child = new alt_snapshot_node_t(std::move(acq));
         rassert(child->ref_count_ == 0);
@@ -305,7 +305,7 @@ void buf_lock_t::create_child_snapshot_nodes(cache_t *cache,
             // RSI: We could check snapshot_nodes_by_block_id_[child_id] here?
             // Dedup with get_or_create_child_snapshot_node, too.
             auto acq = make_scoped<current_page_acq_t>(&cache->page_cache_, child_id,
-                                                       alt_read_access_t::read);
+                                                       read_access_t::read);
             acq->declare_snapshotted();
             child = new alt_snapshot_node_t(std::move(acq));
             cache->add_snapshot_node(child_id, child);

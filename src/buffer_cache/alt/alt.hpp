@@ -109,7 +109,7 @@ public:
     // Constructor for read-only transactions.
     // RSI: Generally speaking I don't think we use preceding_txn.
     explicit txn_t(cache_t *cache,
-                   alt_read_access_t read_access,
+                   read_access_t read_access,
                    txn_t *preceding_txn = NULL);
 
 

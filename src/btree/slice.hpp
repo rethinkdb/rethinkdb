@@ -46,21 +46,9 @@ btree_key_value_store_t. */
 
 class btree_slice_t : public home_thread_mixin_debug_only_t {
 public:
-    // Initializes a cache for use with btrees (by creating the superblock in block
-    // SUPERBLOCK_ID), setting the initial value of the metainfo (with a single
-    // key/value pair).
-    static void create(cache_t *cache,
-                       const std::vector<char> &metainfo_key,
-                       const std::vector<char> &metainfo_value);
-
-    // Creates a btree_slice_t on a cache with data in it putting the
-    // superblock at the specified location
-    static void create(block_id_t superblock_id,
-                       buf_parent_t parent,
-                       const std::vector<char> &metainfo_key,
-                       const std::vector<char> &metainfo_value);
-
-    // Initializes a superblock with the given initial metainfo (key,value) pair.
+    // Initializes a superblock (presumably, a buf_lock_t constructed with
+    // alt_create_t::create) for use with btrees, setting the initial value of the
+    // metainfo (with a single key/value pair).
     static void init_superblock(buf_lock_t *superblock,
                                 const std::vector<char> &metainfo_key,
                                 const std::vector<char> &metainfo_value);

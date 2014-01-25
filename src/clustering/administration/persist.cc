@@ -147,7 +147,7 @@ void persistent_file_t<metadata_t>::get_write_transaction(object_buffer_t<txn_t>
 template <class metadata_t>
 void persistent_file_t<metadata_t>::get_read_transaction(object_buffer_t<txn_t> *txn_out) {
     txn_out->create(cache.get(),
-                    alt_read_access_t::read);
+                    read_access_t::read);
 }
 
 auth_persistent_file_t::auth_persistent_file_t(io_backender_t *io_backender,

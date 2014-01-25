@@ -27,7 +27,6 @@ class page_cache_t;
 class page_txn_t;
 
 
-enum class alt_read_access_t { read };
 enum class alt_create_t { create };
 
 
@@ -310,7 +309,7 @@ public:
                        alt_create_t create);
     current_page_acq_t(page_cache_t *cache,
                        block_id_t block_id,
-                       alt_read_access_t read);
+                       read_access_t read);
     ~current_page_acq_t();
 
     // Declares ourself snapshotted.  (You must be readonly to do this.)
@@ -343,7 +342,7 @@ private:
               alt_create_t create);
     void init(page_cache_t *page_cache,
               block_id_t block_id,
-              alt_read_access_t read);
+              read_access_t read);
     friend class page_txn_t;
     friend class current_page_t;
 

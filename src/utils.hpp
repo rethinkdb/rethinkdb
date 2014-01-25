@@ -26,6 +26,9 @@ namespace ph = std::placeholders;
 // always will be, `read` and `write`.
 enum class access_t { read, write };
 
+// For specifying read access.  (Use for readability.)
+enum class read_access_t { read };
+
 class Term;
 void pb_print(Term *t);
 

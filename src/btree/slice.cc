@@ -11,15 +11,6 @@
 // Run backfilling at a reduced priority
 #define BACKFILL_CACHE_PRIORITY 10
 
-void btree_slice_t::create(cache_t *cache,
-                           const std::vector<char> &metainfo_key,
-                           const std::vector<char> &metainfo_value) {
-
-    txn_t txn(cache, write_durability_t::HARD, repli_timestamp_t::distant_past, 1);
-
-    create(SUPERBLOCK_ID, buf_parent_t(&txn), metainfo_key, metainfo_value);
-}
-
 void btree_slice_t::init_superblock(buf_lock_t *superblock,
                                     const std::vector<char> &metainfo_key,
                                     const std::vector<char> &metainfo_value) {
@@ -39,17 +30,6 @@ void btree_slice_t::init_superblock(buf_lock_t *superblock,
     buf_lock_t sindex_block(superblock, alt_create_t::create);
     initialize_secondary_indexes(&sindex_block);
     sb->sindex_block = sindex_block.block_id();
-}
-
-void btree_slice_t::create(block_id_t superblock_id,
-                           buf_parent_t parent,
-                           const std::vector<char> &metainfo_key,
-                           const std::vector<char> &metainfo_value) {
-    // The superblock was already created.  KSI: Make this be the thing that creates
-    // the block.  It would be simpler.
-    buf_lock_t superblock(parent, superblock_id, access_t::write);
-
-    btree_slice_t::init_superblock(&superblock, metainfo_key, metainfo_value);
 }
 
 btree_slice_t::btree_slice_t(cache_t *c, perfmon_collection_t *parent,

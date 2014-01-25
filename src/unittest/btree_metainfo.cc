@@ -60,10 +60,10 @@ void run_metainfo_test() {
         txn_t txn(&cache, write_durability_t::HARD, repli_timestamp_t::invalid, 1);
         buf_lock_t superblock(&txn, SUPERBLOCK_ID, alt_create_t::create);
         buf_write_t sb_write(&superblock);
-        memset(sb_write.get_data_write(), 0, cache.max_block_size().value());
+        btree_slice_t::init_superblock(&superblock,
+                                       std::vector<char>(), std::vector<char>());
     }
 
-    btree_slice_t::create(&cache, std::vector<char>(), std::vector<char>());
     std::map<std::string, std::string> mirror;
     mirror[""] = "";
 
