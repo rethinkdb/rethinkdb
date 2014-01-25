@@ -286,13 +286,13 @@ int64_t blob_t::valuesize() const {
     return blob::value_size(ref_, maxreflen_);
 }
 
-void blob_t::detach_subtree(buf_lock_t *root) {
+void blob_t::detach_subtree(buf_parent_t root) {
     if (blob::is_small(ref_, maxreflen_)) {
         return;
     }
 
     int64_t blockid_count;
-    blob::big_ref_info(root->cache()->max_block_size(),
+    blob::big_ref_info(root.cache()->max_block_size(),
                        blob::big_offset(ref_, maxreflen_),
                        blob::big_size(ref_, maxreflen_),
                        maxreflen_,
@@ -301,7 +301,7 @@ void blob_t::detach_subtree(buf_lock_t *root) {
     const block_id_t *ids = blob::block_ids(ref_, maxreflen_);
 
     for (int64_t i = 0; i < blockid_count; ++i) {
-        root->detach_child(ids[i]);
+        root.detach_child(ids[i]);
     }
 }
 

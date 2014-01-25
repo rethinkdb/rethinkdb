@@ -295,6 +295,12 @@ public:
         rassert(txn != NULL);
     }
 
+    void detach_child(block_id_t child_id) {
+        if (lock_or_null_ != NULL) {
+            lock_or_null_->detach_child(child_id);
+        }
+    }
+
     bool empty() const {
         return txn_ == NULL;
     }

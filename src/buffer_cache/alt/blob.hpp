@@ -170,7 +170,7 @@ public:
 
     // Detaches the blob's subtree from the root node (see
     // buf_lock_t::detach_child).
-    void detach_subtree(buf_lock_t *root);
+    void detach_subtree(buf_parent_t root);
 
     // Acquires internal buffers and copies pointers to internal
     // buffers to the buffer_group_t, initializing acq_group_out so

@@ -20,8 +20,8 @@ void memcached_erase_range(btree_slice_t *slice, key_tester_t *tester,
     struct : public value_deleter_t {
         void delete_value(buf_parent_t leaf_node, void *value) {
             blob_t blob(leaf_node.cache()->get_block_size(),
-                             static_cast<memcached_value_t *>(value)->value_ref(),
-                             blob::btree_maxreflen);
+                        static_cast<memcached_value_t *>(value)->value_ref(),
+                        blob::btree_maxreflen);
             blob.clear(leaf_node);
         }
     } deleter;

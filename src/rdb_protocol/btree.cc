@@ -54,6 +54,22 @@ bool btree_value_fits(block_size_t bs, int data_length, const rdb_value_t *value
                                blob::btree_maxreflen);
 }
 
+// Remember that secondary indexes and the main btree both point to the same rdb
+// value -- you don't want to double-delete that value!
+void actually_delete_rdb_value(buf_parent_t parent, void *value) {
+    blob_t blob(parent.cache()->get_block_size(),
+                static_cast<rdb_value_t *>(value)->value_ref(),
+                blob::btree_maxreflen);
+    blob.clear(parent);
+}
+
+void detach_rdb_value(buf_parent_t parent, void *value) {
+    blob_t blob(parent.cache()->get_block_size(),
+                static_cast<rdb_value_t *>(value)->value_ref(),
+                blob::btree_maxreflen);
+    blob.detach_subtree(parent);
+}
+
 void rdb_get(const store_key_t &store_key, btree_slice_t *slice,
              superblock_t *superblock, point_read_response_t *response,
              profile::trace_t *trace) {
@@ -79,12 +95,8 @@ void kv_location_delete(keyvalue_location_t<rdb_value_t> *kv_location,
     // As noted above, we can be sure that buf is valid.
     const block_size_t block_size = kv_location->buf.cache()->get_block_size();
 
-    // Detach the blob subtree.
-    {
-        blob_t blob(block_size, kv_location->value->value_ref(),
-                    blob::btree_maxreflen);
-        blob.detach_subtree(&kv_location->buf);
-    }
+    // Detach!!
+    detach_rdb_value(buf_parent_t(&kv_location->buf), kv_location->value.get());
 
     if (mod_info_out != NULL) {
         guarantee(mod_info_out->deleted.second.empty());
@@ -122,11 +134,7 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location,
     }
 
     if (kv_location->value.has()) {
-        {
-            blob_t blob(block_size, kv_location->value->value_ref(),
-                        blob::btree_maxreflen);
-            blob.detach_subtree(&kv_location->buf);
-        }
+        detach_rdb_value(buf_parent_t(&kv_location->buf), kv_location->value.get());
         if (mod_info_out != NULL) {
             guarantee(mod_info_out->deleted.second.empty());
             mod_info_out->deleted.second.assign(
@@ -146,13 +154,10 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location,
 void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location,
                      const store_key_t &key,
                      const std::vector<char> &value_ref,
-                     repli_timestamp_t timestamp, std::string bs_arg) {
+                     repli_timestamp_t timestamp) {
     // Detach the old value.
     if (kv_location->value.has()) {
-        blob_t blob(kv_location->buf.cache()->get_block_size(),
-                    kv_location->value->value_ref(),
-                    blob::btree_maxreflen);
-        blob.detach_subtree(&kv_location->buf);
+        detach_rdb_value(buf_parent_t(&kv_location->buf), kv_location->value.get());
     }
 
     scoped_malloc_t<rdb_value_t> new_value(
@@ -160,6 +165,8 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location,
 
     // Update the leaf, if needed.
     kv_location->value = std::move(new_value);
+    // RSI: Any place we have tnhe null_key_modification_callback_t check for a need
+    // to detach.
     null_key_modification_callback_t<rdb_value_t> null_cb;
     apply_keyvalue_change(kv_location, key.btree_key(), timestamp,
                           expired_t::NO, &null_cb);
@@ -479,21 +486,12 @@ void rdb_delete(const store_key_t &key, btree_slice_t *slice,
     response->result = (exists ? point_delete_result_t::DELETED : point_delete_result_t::MISSING);
 }
 
-// Remember that secondary indexes and the main btree both point to the same rdb
-// value -- you don't want to double-delete that value!
-void actually_delete_rdb_value(buf_parent_t parent, void *value) {
-    blob_t blob(parent.cache()->get_block_size(),
-                static_cast<rdb_value_t *>(value)->value_ref(),
-                blob::btree_maxreflen);
-    blob.clear(parent);
-}
-
 void rdb_value_deleter_t::delete_value(buf_parent_t parent, void *value) {
     actually_delete_rdb_value(parent, value);
 }
 
-void rdb_value_non_deleter_t::delete_value(buf_parent_t, void *) {
-    //RSI should we be detaching blobs in here?
+void rdb_value_non_deleter_t::delete_value(buf_parent_t parent, void *value) {
+    detach_rdb_value(parent, value);
 }
 
 class sindex_key_range_tester_t : public key_tester_t {
