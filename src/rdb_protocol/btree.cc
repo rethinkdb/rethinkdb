@@ -146,11 +146,17 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location,
 void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location,
                      const store_key_t &key,
                      const std::vector<char> &value_ref,
-                     repli_timestamp_t timestamp) {
+                     repli_timestamp_t timestamp, std::string bs_arg) {
+    // Detach the old value.
+    if (kv_location->value.has()) {
+        blob_t blob(kv_location->buf.cache()->get_block_size(),
+                    kv_location->value->value_ref(),
+                    blob::btree_maxreflen);
+        blob.detach_subtree(&kv_location->buf);
+    }
+
     scoped_malloc_t<rdb_value_t> new_value(
             value_ref.data(), value_ref.data() + value_ref.size());
-
-    // RSI: Do we not have a blob to detach here?
 
     // Update the leaf, if needed.
     kv_location->value = std::move(new_value);
