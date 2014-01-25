@@ -127,7 +127,7 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location,
                         blob::btree_maxreflen);
             blob.detach_subtree(&kv_location->buf);
         }
-        if (mod_info_out) {
+        if (mod_info_out != NULL) {
             guarantee(mod_info_out->deleted.second.empty());
             mod_info_out->deleted.second.assign(
                     kv_location->value->value_ref(),
