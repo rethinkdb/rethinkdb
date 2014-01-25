@@ -85,7 +85,6 @@ btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
                                                             it->first));
         }
     }
-    // debugf("btree_store_t constructor xit\n");
 }
 
 template <class protocol_t>
@@ -109,10 +108,8 @@ void btree_store_t<protocol_t>::read(
     acquire_superblock_for_read(&token_pair->main_read_token, &txn, &superblock,
                                 interruptor,
                                 read.use_snapshot());
-    // debugf("%p read (%p) acq superblock\n", this, response);
 
     DEBUG_ONLY(check_metainfo(DEBUG_ONLY(metainfo_checker, ) superblock.get());)
-    // debugf("%p read (%p) checked metainfo\n", this, response);
 
     protocol_read(read, response, btree.get(), superblock.get(), interruptor);
 }
@@ -668,21 +665,17 @@ void btree_store_t<protocol_t>::acquire_post_constructed_sindex_superblocks_for_
     assert_thread();
     std::set<std::string> sindexes_to_acquire;
     std::map<std::string, secondary_index_t> sindexes;
-    // debugf("acquire_post... about to get_secondary_indexes\n");
     ::get_secondary_indexes(sindex_block, &sindexes);
 
-    // debugf("acquire_post... building map\n");
     for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
         if (it->second.post_construction_complete) {
             sindexes_to_acquire.insert(it->first);
         }
     }
 
-    // debugf("acquire_post... about to acquire_sindex_superblocks_for_write\n");
     acquire_sindex_superblocks_for_write(
             sindexes_to_acquire, sindex_block,
             sindex_sbs_out);
-    // debugf("acquire_post... done.\n");
 }
 
 template <class protocol_t>
