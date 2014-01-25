@@ -20,6 +20,27 @@ void btree_slice_t::create(cache_t *cache,
     create(SUPERBLOCK_ID, buf_parent_t(&txn), metainfo_key, metainfo_value);
 }
 
+void btree_slice_t::init_superblock(buf_lock_t *superblock,
+                                    const std::vector<char> &metainfo_key,
+                                    const std::vector<char> &metainfo_value) {
+    buf_write_t sb_write(superblock);
+    auto sb = static_cast<btree_superblock_t *>(sb_write.get_data_write());
+
+    // Properly zero the superblock, zeroing sb->metainfo_blob, in particular.
+    memset(sb, 0, superblock->cache()->get_block_size().value());
+
+    sb->magic = btree_superblock_t::expected_magic;
+    sb->root_block = NULL_BLOCK_ID;
+    sb->stat_block = NULL_BLOCK_ID;
+    sb->sindex_block = NULL_BLOCK_ID;
+
+    set_superblock_metainfo(superblock, metainfo_key, metainfo_value);
+
+    buf_lock_t sindex_block(superblock, alt_create_t::create);
+    initialize_secondary_indexes(&sindex_block);
+    sb->sindex_block = sindex_block.block_id();
+}
+
 void btree_slice_t::create(block_id_t superblock_id,
                            buf_parent_t parent,
                            const std::vector<char> &metainfo_key,
@@ -28,21 +49,7 @@ void btree_slice_t::create(block_id_t superblock_id,
     // the block.  It would be simpler.
     buf_lock_t superblock(parent, superblock_id, access_t::write);
 
-    buf_write_t sb_write(&superblock);
-    auto sb = static_cast<btree_superblock_t *>(sb_write.get_data_write());
-    bzero(sb, parent.cache()->get_block_size().value());
-
-    // sb->metainfo_blob has been properly zeroed.
-    sb->magic = btree_superblock_t::expected_magic;
-    sb->root_block = NULL_BLOCK_ID;
-    sb->stat_block = NULL_BLOCK_ID;
-    sb->sindex_block = NULL_BLOCK_ID;
-
-    set_superblock_metainfo(&superblock, metainfo_key, metainfo_value);
-
-    buf_lock_t sindex_block(&superblock, alt_create_t::create);
-    initialize_secondary_indexes(&sindex_block);
-    sb->sindex_block = sindex_block.block_id();
+    btree_slice_t::init_superblock(&superblock, metainfo_key, metainfo_value);
 }
 
 btree_slice_t::btree_slice_t(cache_t *c, perfmon_collection_t *parent,

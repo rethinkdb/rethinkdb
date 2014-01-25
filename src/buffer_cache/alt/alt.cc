@@ -675,7 +675,7 @@ const void *buf_read_t::get_data_read(uint32_t *block_size_out) {
 
 buf_write_t::buf_write_t(buf_lock_t *lock)
     : lock_(lock) {
-    guarantee(!lock_->empty());
+    guarantee(lock_->access() == access_t::write);
     lock_->access_ref_count_++;
 }
 

@@ -42,18 +42,6 @@ btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
     }
 
     if (create) {
-        {
-            // RSI: Here (and elsewhere) we emulate the old cache_t::create behavior.
-            // Shouldn't btree_slice_t::create handle this?  It basically does,
-            // actually.
-            txn_t superblock_creation(cache.get(), write_durability_t::HARD,
-                                          repli_timestamp_t::distant_past, 1);
-            buf_lock_t superblock(&superblock_creation, SUPERBLOCK_ID,
-                                  alt_create_t::create);
-            buf_write_t write(&superblock);
-            memset(write.get_data_write(), 0, cache->max_block_size().value());
-        }
-
         vector_stream_t key;
         write_message_t msg;
         typename protocol_t::region_t kr = protocol_t::region_t::universe();
@@ -61,7 +49,10 @@ btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
         int res = send_write_message(&key, &msg);
         guarantee(!res);
 
-        btree_slice_t::create(cache.get(), key.vector(), std::vector<char>());
+        txn_t txn(cache.get(), write_durability_t::HARD,
+                  repli_timestamp_t::distant_past, 1);
+        buf_lock_t superblock(&txn, SUPERBLOCK_ID, alt_create_t::create);
+        btree_slice_t::init_superblock(&superblock, key.vector(), std::vector<char>());
     }
 
     btree.init(new btree_slice_t(cache.get(), &perfmon_collection, "primary"));

@@ -9,10 +9,11 @@
 #include "containers/scoped.hpp"
 #include "perfmon/perfmon.hpp"
 
-class cache_t;
-class buf_parent_t;
 class alt_cache_account_t;
 class backfill_callback_t;
+class buf_lock_t;
+class buf_parent_t;
+class cache_t;
 class key_tester_t;
 
 
@@ -52,7 +53,6 @@ public:
                        const std::vector<char> &metainfo_key,
                        const std::vector<char> &metainfo_value);
 
-    // Blocks
     // Creates a btree_slice_t on a cache with data in it putting the
     // superblock at the specified location
     static void create(block_id_t superblock_id,
@@ -60,12 +60,15 @@ public:
                        const std::vector<char> &metainfo_key,
                        const std::vector<char> &metainfo_value);
 
-    // Blocks
+    // Initializes a superblock with the given initial metainfo (key,value) pair.
+    static void init_superblock(buf_lock_t *superblock,
+                                const std::vector<char> &metainfo_key,
+                                const std::vector<char> &metainfo_value);
+
     btree_slice_t(cache_t *cache, perfmon_collection_t *parent,
                   const std::string &identifier,
                   block_id_t superblock_id = SUPERBLOCK_ID);
 
-    // Blocks
     ~btree_slice_t();
 
     cache_t *cache() { return cache_; }
@@ -73,6 +76,7 @@ public:
 
     btree_stats_t stats;
 
+    // RSI: Who uses this?
     block_id_t get_superblock_id();
 
 private:
