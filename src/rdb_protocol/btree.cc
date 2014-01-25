@@ -76,24 +76,23 @@ void kv_location_delete(keyvalue_location_t<rdb_value_t> *kv_location,
     // Notice this also implies that buf is valid.
     guarantee(kv_location->value.has());
 
+    // As noted above, we can be sure that buf is valid.
+    const block_size_t block_size = kv_location->buf.cache()->get_block_size();
+
+    // Detach the blob subtree.
+    {
+        blob_t blob(block_size, kv_location->value->value_ref(),
+                    blob::btree_maxreflen);
+        blob.detach_subtree(&kv_location->buf);
+    }
 
     if (mod_info_out != NULL) {
         guarantee(mod_info_out->deleted.second.empty());
 
-        // As noted above, we can be sure that buf is valid.
-        block_size_t block_size = kv_location->buf.cache()->get_block_size();
-        {
-            // RSI: Why do we detach a value only when mod_info_out is not NULL?  I
-            // mistakenly had us detach a value whenever we say it's "deleted" -- but
-            // I guess we only say it's deleted when there's a mod_info_out -- we
-            // should probably put this outside the conditional.
-            blob_t blob(block_size, kv_location->value->value_ref(),
-                             blob::btree_maxreflen);
-            blob.detach_subtree(&kv_location->buf);
-        }
-        mod_info_out->deleted.second.assign(kv_location->value->value_ref(),
-            kv_location->value->value_ref() +
-                kv_location->value->inline_size(block_size));
+        mod_info_out->deleted.second.assign(
+                kv_location->value->value_ref(),
+                kv_location->value->value_ref()
+                + kv_location->value->inline_size(block_size));
     }
 
     kv_location->value.reset();
