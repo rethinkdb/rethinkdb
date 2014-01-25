@@ -620,10 +620,6 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
         left_key_supplied ? left_key_exclusive.btree_key() : NULL,
         right_key_supplied ? right_key_inclusive.btree_key() : NULL,
         superblock, interruptor);
-
-    // RSI: this comment about auto_drainer_t is false.
-
-    // auto_drainer_t is destructed here so this waits for other coros to finish.
 }
 
 // This is actually a kind of misleading name. This function estimates the size of a datum,
