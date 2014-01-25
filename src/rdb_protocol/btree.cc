@@ -121,20 +121,19 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location,
             new_value->value_ref() + new_value->inline_size(block_size));
     }
 
-    if (kv_location->value.has() && mod_info_out) {
-        guarantee(mod_info_out->deleted.second.empty());
+    if (kv_location->value.has()) {
         {
-            // RSI: Wait -- do we call detach_subtree in all the right places?  For
-            // example, why does our detaching a value depend on whether mod_info_out
-            // is NULL or not?
             blob_t blob(block_size, kv_location->value->value_ref(),
                         blob::btree_maxreflen);
             blob.detach_subtree(&kv_location->buf);
         }
-        mod_info_out->deleted.second.assign(
-            kv_location->value->value_ref(),
-            kv_location->value->value_ref()
-            + kv_location->value->inline_size(block_size));
+        if (mod_info_out) {
+            guarantee(mod_info_out->deleted.second.empty());
+            mod_info_out->deleted.second.assign(
+                    kv_location->value->value_ref(),
+                    kv_location->value->value_ref()
+                    + kv_location->value->inline_size(block_size));
+        }
     }
 
     // Actually update the leaf, if needed.
@@ -150,6 +149,8 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location,
                      repli_timestamp_t timestamp) {
     scoped_malloc_t<rdb_value_t> new_value(
             value_ref.data(), value_ref.data() + value_ref.size());
+
+    // RSI: Do we not have a blob to detach here?
 
     // Update the leaf, if needed.
     kv_location->value = std::move(new_value);
