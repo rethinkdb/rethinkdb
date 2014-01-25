@@ -1,9 +1,8 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "errors.hpp"
-#include <boost/make_shared.hpp>
+#include <boost/shared_ptr.hpp>
 
 #include "clustering/administration/metadata.hpp"
-#include "containers/iterators.hpp"
 #include "extproc/extproc_pool.hpp"
 #include "extproc/extproc_spawner.hpp"
 #include "memcached/protocol.hpp"

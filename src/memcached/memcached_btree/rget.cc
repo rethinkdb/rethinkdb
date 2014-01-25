@@ -3,7 +3,6 @@
 
 #include "btree/depth_first_traversal.hpp"
 #include "btree/operations.hpp"
-#include "containers/iterators.hpp"
 #include "memcached/memcached_btree/btree_data_provider.hpp"
 #include "memcached/memcached_btree/node.hpp"
 #include "memcached/memcached_btree/value.hpp"
