@@ -461,13 +461,11 @@ void btree_store_t<protocol_t>::set_sindexes(
             {
                 buf_lock_t sindex_superblock(sindex_block, alt_create_t::create);
                 sindex.superblock = sindex_superblock.block_id();
-                /* The buf lock is destroyed here which is important becase it allows
-                 * us to reacquire later when we make a btree_store. */
+                btree_slice_t::init_superblock(&sindex_superblock,
+                                               std::vector<char>(),
+                                               std::vector<char>());
             }
 
-            btree_slice_t::create(sindex.superblock,
-                                  buf_parent_t(sindex_block),
-                                  std::vector<char>(), std::vector<char>());
             std::string id = it->first;
             secondary_index_slices.insert(id, new btree_slice_t(cache.get(), &perfmon_collection, it->first));
 
