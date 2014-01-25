@@ -54,26 +54,20 @@ public:
                                 const std::vector<char> &metainfo_value);
 
     btree_slice_t(cache_t *cache, perfmon_collection_t *parent,
-                  const std::string &identifier,
-                  block_id_t superblock_id = SUPERBLOCK_ID);
+                  const std::string &identifier);
 
     ~btree_slice_t();
 
     cache_t *cache() { return cache_; }
-    alt_cache_account_t *get_backfill_account() { return backfill_account.get(); }
+    alt_cache_account_t *get_backfill_account() { return backfill_account_.get(); }
 
     btree_stats_t stats;
-
-    // RSI: Who uses this?
-    block_id_t get_superblock_id();
 
 private:
     cache_t *cache_;
 
-    block_id_t superblock_id_;
-
     // Cache account to be used when backfilling.
-    scoped_ptr_t<alt_cache_account_t> backfill_account;
+    scoped_ptr_t<alt_cache_account_t> backfill_account_;
 
     DISABLE_COPYING(btree_slice_t);
 };
