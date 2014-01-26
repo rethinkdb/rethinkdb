@@ -3,7 +3,7 @@
 #define CONTAINERS_ARCHIVE_BUFFER_GROUP_STREAM_HPP_
 
 #include "containers/archive/archive.hpp"
-#include "errors.hpp"
+#include "utils.hpp"
 
 class const_buffer_group_t;
 class buffer_group_t;
