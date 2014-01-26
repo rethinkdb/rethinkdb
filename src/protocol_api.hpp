@@ -18,7 +18,8 @@
 #include "containers/object_buffer.hpp"
 #include "rpc/serialize_macros.hpp"
 #include "timestamps.hpp"
-#include "utils.hpp"
+
+enum region_join_result_t { REGION_JOIN_OK, REGION_JOIN_BAD_JOIN, REGION_JOIN_BAD_REGION };
 
 class traversal_progress_combiner_t;
 

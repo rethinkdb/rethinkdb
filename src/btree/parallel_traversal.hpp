@@ -5,9 +5,6 @@
 #include <utility>
 #include <vector>
 
-#include "utils.hpp"
-#include <boost/shared_ptr.hpp>
-
 #include "backfill_progress.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/interruptor.hpp"
