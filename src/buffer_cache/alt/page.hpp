@@ -8,6 +8,7 @@
 
 #include "buffer_cache/alt/config.hpp"
 #include "buffer_cache/types.hpp"
+#include "concurrency/access.hpp"
 #include "concurrency/cond_var.hpp"
 #include "concurrency/fifo_enforcer.hpp"
 #include "containers/backindex_bag.hpp"

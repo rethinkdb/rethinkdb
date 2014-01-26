@@ -19,13 +19,6 @@ class printf_buffer_t;
 
 namespace ph = std::placeholders;
 
-// For specifying read or write access.  The only valid values of this type are, and
-// always will be, `read` and `write`.
-enum class access_t { read, write };
-
-// For specifying read access.  (Use for readability.)
-enum class read_access_t { read };
-
 class startup_shutdown_t {
 public:
     startup_shutdown_t();
