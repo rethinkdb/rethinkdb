@@ -3,6 +3,7 @@
 #include "buffer_cache/alt/blob.hpp"
 #include "containers/buffer_group.hpp"
 #include "containers/scoped.hpp"
+#include "math.hpp"
 #include "unittest/gtest.hpp"
 #include "unittest/mock_file.hpp"
 #include "unittest/unittest_utils.hpp"

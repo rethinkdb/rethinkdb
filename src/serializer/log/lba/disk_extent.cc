@@ -1,7 +1,8 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "serializer/log/lba/disk_extent.hpp"
 
 #include "arch/arch.hpp"
+#include "math.hpp"
 
 lba_disk_extent_t::lba_disk_extent_t(extent_manager_t *_em, file_t *file, file_account_t *io_account)
     : em(_em), data(new extent_t(em, file)), count(0) {

@@ -88,34 +88,6 @@ struct cache_line_padded_t {
 
 void *malloc_aligned(size_t size, size_t alignment);
 
-template <class T1, class T2>
-T1 ceil_aligned(T1 value, T2 alignment) {
-    return value + alignment - (((value + alignment - 1) % alignment) + 1);
-}
-
-template <class T1, class T2>
-T1 ceil_divide(T1 dividend, T2 alignment) {
-    return (dividend + alignment - 1) / alignment;
-}
-
-template <class T1, class T2>
-T1 floor_aligned(T1 value, T2 alignment) {
-    return value - (value % alignment);
-}
-
-template <class T1, class T2>
-T1 ceil_modulo(T1 value, T2 alignment) {
-    T1 x = (value + alignment - 1) % alignment;
-    return value + alignment - ((x < 0 ? x + alignment : x) + 1);
-}
-
-inline bool divides(int64_t x, int64_t y) {
-    return y % x == 0;
-}
-
-int gcd(int x, int y);
-
-int64_t round_up_to_power_of_two(int64_t x);
 
 timespec clock_monotonic();
 timespec clock_realtime();

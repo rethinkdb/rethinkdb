@@ -509,36 +509,6 @@ bool strtou64_strict(const std::string &str, int base, uint64_t *out_result) {
     }
 }
 
-int gcd(int x, int y) {
-    rassert(x >= 0);
-    rassert(y >= 0);
-
-    while (y != 0) {
-        int tmp = y;
-        y = x % y;
-        x = tmp;
-    }
-
-    return x;
-}
-
-int64_t round_up_to_power_of_two(int64_t x) {
-    rassert(x >= 0);
-
-    --x;
-
-    x |= x >> 1;
-    x |= x >> 2;
-    x |= x >> 4;
-    x |= x >> 8;
-    x |= x >> 16;
-    x |= x >> 32;
-
-    rassert(x < INT64_MAX);
-
-    return x + 1;
-}
-
 ticks_t secs_to_ticks(time_t secs) {
     return static_cast<ticks_t>(secs) * BILLION;
 }

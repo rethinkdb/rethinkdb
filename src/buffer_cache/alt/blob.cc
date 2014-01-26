@@ -9,6 +9,7 @@
 #include "concurrency/pmap.hpp"
 #include "containers/buffer_group.hpp"
 #include "containers/scoped.hpp"
+#include "math.hpp"
 #include "serializer/types.hpp"
 
 template <class T>
