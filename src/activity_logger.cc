@@ -2,6 +2,7 @@
 #include "activity_logger.hpp"
 
 #include "debug.hpp"
+#include "utils.hpp"
 
 log_event_t::log_event_t(const std::string &_msg, bool log_bt)
     : timestamp(current_microtime()), msg(_msg) {

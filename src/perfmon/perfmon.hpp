@@ -14,9 +14,10 @@
 #include <map>
 #include <memory>
 
+#include "concurrency/cache_line_padded.hpp"
 #include "perfmon/types.hpp"
 #include "perfmon/core.hpp"
-#include "utils.hpp"
+#include "time.hpp"
 
 // Some arch/runtime declarations.
 int get_num_threads();

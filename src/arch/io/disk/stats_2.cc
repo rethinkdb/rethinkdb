@@ -1,5 +1,7 @@
 #include "arch/io/disk/stats_2.hpp"
 
+#include <inttypes.h>
+
 #include "containers/printf_buffer.hpp"
 
 void debug_print(printf_buffer_t *buf,

@@ -31,10 +31,6 @@ struct const_charslice {
     const_charslice() : beg(NULL), end(NULL) { }
 };
 
-typedef uint64_t microtime_t;
-
-microtime_t current_microtime();
-
 /* General exception to be thrown when some process is interrupted. It's in
 `utils.hpp` because I can't think where else to put it */
 class interrupted_exc_t : public std::exception {
@@ -49,31 +45,7 @@ public:
  */
 #define NOINLINE __attribute__ ((noinline))
 
-/* Pad a value to the size of one or multiple cache lines to avoid false sharing.
- */
-#define COMPUTE_PADDING_SIZE(value, alignment) \
-    (alignment) - ((((value) + (alignment) - 1) % (alignment)) + 1)
-
-template<typename value_t>
-struct cache_line_padded_t {
-    cache_line_padded_t() { }
-    explicit cache_line_padded_t(value_t const &_value) : value(_value) { }
-    value_t value;
-    char padding[COMPUTE_PADDING_SIZE(sizeof(value_t), CACHE_LINE_SIZE)];
-};
-#undef COMPUTE_PADDING_SIZE
-
 void *malloc_aligned(size_t size, size_t alignment);
-
-
-timespec clock_monotonic();
-timespec clock_realtime();
-
-typedef uint64_t ticks_t;
-ticks_t secs_to_ticks(time_t secs);
-ticks_t get_ticks();
-time_t get_secs();
-double ticks_to_secs(ticks_t ticks);
 
 
 
@@ -266,16 +238,6 @@ void remove_directory_recursive(const char *path) THROWS_ONLY(remove_directory_e
 
 bool ptr_in_byte_range(const void *p, const void *range_start, size_t size_in_bytes);
 bool range_inside_of_byte_range(const void *p, size_t n_bytes, const void *range_start, size_t size_in_bytes);
-
-class debug_timer_t {
-public:
-    explicit debug_timer_t(std::string _name = "");
-    ~debug_timer_t();
-    microtime_t tick(const std::string &tag);
-private:
-    microtime_t start, last;
-    std::string name, out;
-};
 
 #define MSTR(x) stringify(x) // Stringify a macro
 #if defined __clang__

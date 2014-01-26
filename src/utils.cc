@@ -205,14 +205,6 @@ with_priority_t::~with_priority_t() {
     coro_t::self()->set_priority(previous_priority);
 }
 
-microtime_t current_microtime() {
-    // This could be done more efficiently, surely.
-    struct timeval t;
-    DEBUG_VAR int res = gettimeofday(&t, NULL);
-    rassert(0 == res);
-    return uint64_t(t.tv_sec) * MILLION + t.tv_usec;
-}
-
 void *malloc_aligned(size_t size, size_t alignment) {
     void *ptr = NULL;
     int res = posix_memalign(&ptr, alignment, size);
@@ -372,70 +364,6 @@ bool strtou64_strict(const std::string &str, int base, uint64_t *out_result) {
         return true;
     }
 }
-
-ticks_t secs_to_ticks(time_t secs) {
-    return static_cast<ticks_t>(secs) * BILLION;
-}
-
-#ifdef __MACH__
-TLS(mach_timebase_info_data_t, mach_time_info);
-#endif  // __MACH__
-
-timespec clock_monotonic() {
-#ifdef __MACH__
-    mach_timebase_info_data_t mach_time_info = TLS_get_mach_time_info();
-    if (mach_time_info.denom == 0) {
-        mach_timebase_info(&mach_time_info);
-        guarantee(mach_time_info.denom != 0);
-        TLS_set_mach_time_info(mach_time_info);
-    }
-    const uint64_t t = mach_absolute_time();
-    uint64_t nanosecs = t * mach_time_info.numer / mach_time_info.denom;
-    timespec ret;
-    ret.tv_sec = nanosecs / BILLION;
-    ret.tv_nsec = nanosecs % BILLION;
-    return ret;
-#else
-    timespec ret;
-    int res = clock_gettime(CLOCK_MONOTONIC, &ret);
-    guarantee_err(res == 0, "clock_gettime(CLOCK_MONOTIC, ...) failed");
-    return ret;
-#endif
-}
-
-timespec clock_realtime() {
-#ifdef __MACH__
-    struct timeval tv;
-    int res = gettimeofday(&tv, NULL);
-    guarantee_err(res == 0, "gettimeofday failed");
-
-    timespec ret;
-    ret.tv_sec = tv.tv_sec;
-    ret.tv_nsec = THOUSAND * tv.tv_usec;
-    return ret;
-#else
-    timespec ret;
-    int res = clock_gettime(CLOCK_REALTIME, &ret);
-    guarantee_err(res == 0, "clock_gettime(CLOCK_REALTIME) failed");
-    return ret;
-#endif
-}
-
-
-ticks_t get_ticks() {
-    timespec tv = clock_monotonic();
-    return secs_to_ticks(tv.tv_sec) + tv.tv_nsec;
-}
-
-time_t get_secs() {
-    timespec tv = clock_realtime();
-    return tv.tv_sec;
-}
-
-double ticks_to_secs(ticks_t ticks) {
-    return ticks / static_cast<double>(BILLION);
-}
-
 
 bool notf(bool x) {
     return !x;
@@ -610,26 +538,6 @@ bool range_inside_of_byte_range(const void *p, size_t n_bytes, const void *range
     const uint8_t *p8 = static_cast<const uint8_t *>(p);
     return ptr_in_byte_range(p, range_start, size_in_bytes) &&
         (n_bytes == 0 || ptr_in_byte_range(p8 + n_bytes - 1, range_start, size_in_bytes));
-}
-
-debug_timer_t::debug_timer_t(std::string _name)
-    : start(current_microtime()), last(start), name(_name), out("\n") {
-    tick("start");
-}
-debug_timer_t::~debug_timer_t() {
-    tick("end");
-#ifndef NDEBUG
-    debugf("%s", out.c_str());
-#else
-    fprintf(stderr, "%s", out.c_str());
-#endif // NDEBUG
-}
-microtime_t debug_timer_t::tick(const std::string &tag) {
-    microtime_t prev = last;
-    last = current_microtime();
-    out += strprintf("TIMER %s: %15s (%" PRIu64 " %12" PRIu64 " %12" PRIu64 ")\n",
-                     name.c_str(), tag.c_str(), last, last - start, last - prev);
-    return last - start;
 }
 
 // GCC and CLANG are smart enough to optimize out strlen(""), so this works.

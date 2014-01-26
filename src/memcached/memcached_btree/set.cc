@@ -7,6 +7,7 @@
 #include "containers/data_buffer.hpp"
 #include "math.hpp"
 #include "memcached/memcached_btree/modify_oper.hpp"
+#include "time.hpp"
 
 struct memcached_set_oper_t : public memcached_modify_oper_t {
     memcached_set_oper_t(const counted_t<data_buffer_t>& _data,

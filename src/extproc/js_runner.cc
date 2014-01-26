@@ -4,6 +4,7 @@
 #include <map>
 
 #include "extproc/js_job.hpp"
+#include "time.hpp"
 
 const size_t js_runner_t::CACHE_SIZE = 100;
 

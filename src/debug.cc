@@ -2,6 +2,7 @@
 
 #include "arch/runtime/runtime.hpp"
 #include "rdb_protocol/ql2.pb.h"
+#include "time.hpp"
 #include "utils.hpp"
 
 void debug_print_quoted_string(printf_buffer_t *buf, const uint8_t *s, size_t n) {

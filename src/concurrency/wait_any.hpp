@@ -1,8 +1,6 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef CONCURRENCY_WAIT_ANY_HPP_
 #define CONCURRENCY_WAIT_ANY_HPP_
-
-#include <vector>
 
 #include "concurrency/signal.hpp"
 #include "containers/intrusive_list.hpp"

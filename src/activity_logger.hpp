@@ -13,7 +13,7 @@
 #include "backtrace.hpp"
 #include "containers/scoped.hpp"
 #include "threading.hpp"
-#include "utils.hpp"
+#include "time.hpp"
 
 
 class log_event_t {
