@@ -11,8 +11,9 @@
 #include <boost/ptr_container/ptr_vector.hpp>
 
 #include "backtrace.hpp"
-#include "utils.hpp"
 #include "containers/scoped.hpp"
+#include "threading.hpp"
+#include "utils.hpp"
 
 
 class log_event_t {

@@ -1,10 +1,11 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef CONTAINERS_ARCHIVE_TCP_CONN_STREAM_HPP_
 #define CONTAINERS_ARCHIVE_TCP_CONN_STREAM_HPP_
 
-#include "containers/archive/archive.hpp"
 #include "arch/address.hpp"
 #include "arch/types.hpp"
+#include "containers/archive/archive.hpp"
+#include "threading.hpp"
 
 class signal_t;
 

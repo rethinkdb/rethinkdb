@@ -1,10 +1,10 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef CONCURRENCY_MUTEX_ASSERTION_HPP_
 #define CONCURRENCY_MUTEX_ASSERTION_HPP_
 
 #include <utility>
 
-#include "utils.hpp"
+#include "threading.hpp"
 
 /* `mutex_assertion_t` is like a mutex, except that it raises an assertion if
 there is contention. */
