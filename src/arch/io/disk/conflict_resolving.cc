@@ -4,6 +4,7 @@
 #include <deque>
 #include <map>
 
+#include "containers/printf_buffer.hpp"
 #include "perfmon/perfmon.hpp"
 
 void debug_print(printf_buffer_t *buf,

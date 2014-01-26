@@ -1,5 +1,7 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "btree/keys.hpp"
+
+#include "debug.hpp"
 
 bool unescaped_str_to_key(const char *str, int len, store_key_t *buf) {
     if (len <= MAX_KEY_SIZE) {

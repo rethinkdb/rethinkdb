@@ -1,8 +1,10 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
+#include "clustering/administration/metadata.hpp"
+
 #include "clustering/administration/database_metadata.hpp"
 #include "clustering/administration/datacenter_metadata.hpp"
 #include "clustering/administration/machine_metadata.hpp"
-#include "clustering/administration/metadata.hpp"
+#include "debug.hpp"
 
 RDB_IMPL_ME_SERIALIZABLE_2(ack_expectation_t, expectation_, hard_durability_);
 

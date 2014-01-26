@@ -1,5 +1,7 @@
 #include "arch/io/disk/accounting.hpp"
 
+#include "containers/printf_buffer.hpp"
+
 /* Each account on the `accounting_diskmgr_t` has its own
    `unlimited_fifo_queue_t` associated with it. Operations for that account
    queue up on that queue while they wait for the `accounting_queue_t` on the

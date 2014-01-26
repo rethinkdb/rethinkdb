@@ -4,6 +4,7 @@
 
 #include "containers/archive/archive.hpp"
 #include "rpc/serialize_macros.hpp"
+#include "utils.hpp"
 
 template<class T>
 class counted_t;

@@ -7,18 +7,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#ifdef VALGRIND
-#include <valgrind/memcheck.h>
-#endif  // VALGRIND
-
 #include <functional>
 #include <stdexcept>
 #include <string>
 #include <vector>
 
-#include "containers/printf_buffer.hpp"
 #include "errors.hpp"
 #include "config/args.hpp"
+
+class printf_buffer_t;
 
 namespace ph = std::placeholders;
 
@@ -28,9 +25,6 @@ enum class access_t { read, write };
 
 // For specifying read access.  (Use for readability.)
 enum class read_access_t { read };
-
-class Term;
-void pb_print(Term *t);
 
 // A thread number as used by the thread pool.
 class threadnum_t {
@@ -99,64 +93,6 @@ time_t get_secs();
 double ticks_to_secs(ticks_t ticks);
 
 
-#ifndef NDEBUG
-#define trace_call(fn, args...) do {                                          \
-        debugf("%s:%u: %s: entered\n", __FILE__, __LINE__, stringify(fn));  \
-        fn(args);                                                           \
-        debugf("%s:%u: %s: returned\n", __FILE__, __LINE__, stringify(fn)); \
-    } while (0)
-#define TRACEPOINT debugf("%s:%u reached\n", __FILE__, __LINE__)
-#else
-#define trace_call(fn, args...) fn(args)
-// TRACEPOINT is not defined in release, so that TRACEPOINTS do not linger in the code unnecessarily
-#endif
-
-// HEY: Maybe debugf and log_call and TRACEPOINT should be placed in
-// debugf.hpp (and debugf.cc).
-/* Debugging printing API (prints current thread in addition to message) */
-void debug_print_quoted_string(printf_buffer_t *buf, const uint8_t *s, size_t n);
-void debugf_prefix_buf(printf_buffer_t *buf);
-void debugf_dump_buf(printf_buffer_t *buf);
-
-// Primitive debug_print declarations.
-void debug_print(printf_buffer_t *buf, uint64_t x);
-void debug_print(printf_buffer_t *buf, const std::string& s);
-
-template <class T>
-void debug_print(printf_buffer_t *buf, T *ptr) {
-    buf->appendf("%p", ptr);
-}
-
-#ifndef NDEBUG
-void debugf(const char *msg, ...) __attribute__((format (printf, 1, 2)));
-template <class T>
-void debugf_print(const char *msg, const T &obj) {
-    printf_buffer_t buf;
-    debugf_prefix_buf(&buf);
-    buf.appendf("%s: ", msg);
-    debug_print(&buf, obj);
-    buf.appendf("\n");
-    debugf_dump_buf(&buf);
-}
-#else
-#define debugf(...) ((void)0)
-#define debugf_print(...) ((void)0)
-#endif  // NDEBUG
-
-template <class T>
-std::string debug_strprint(const T &obj) {
-    printf_buffer_t buf;
-    debug_print(&buf, obj);
-    return std::string(buf.data(), buf.size());
-}
-
-class debugf_in_dtor_t {
-public:
-    explicit debugf_in_dtor_t(const char *msg, ...) __attribute__((format (printf, 2, 3)));
-    ~debugf_in_dtor_t();
-private:
-    std::string message;
-};
 
 
 class rng_t {
@@ -342,14 +278,6 @@ std::string errno_string(int errsv);
 
 int get_num_db_threads();
 
-template <class T>
-T valgrind_undefined(T value) {
-#ifdef VALGRIND
-    UNUSED auto x = VALGRIND_MAKE_MEM_UNDEFINED(&value, sizeof(value));
-#endif
-    return value;
-}
-
 
 // Contains the name of the directory in which all data is stored.
 class base_path_t {
@@ -403,16 +331,18 @@ void recreate_temporary_directory(const base_path_t& base_path);
 // This will be thrown by remove_directory_recursive if a file cannot be removed
 class remove_directory_exc_t : public std::exception {
 public:
-    remove_directory_exc_t(const std::string &path, int err) :
-        info(strprintf("Fatal error: failed to delete file '%s': %s.",
-                       path.c_str(), strerror(err)))
-    { }
+    remove_directory_exc_t(const std::string &path, int errsv) {
+        char buf[512];
+        info = strprintf("Fatal error: failed to delete file '%s': %s.",
+                         path.c_str(),
+                         errno_string_maybe_using_buffer(errsv, buf, sizeof(buf)));
+    }
     ~remove_directory_exc_t() throw () { }
     const char *what() const throw () {
         return info.c_str();
     }
 private:
-    const std::string info;
+    std::string info;
 };
 
 void remove_directory_recursive(const char *path) THROWS_ONLY(remove_directory_exc_t);

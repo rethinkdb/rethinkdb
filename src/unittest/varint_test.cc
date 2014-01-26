@@ -4,6 +4,7 @@
 #include "containers/archive/string_stream.hpp"
 #include "containers/archive/varint.hpp"
 #include "unittest/gtest.hpp"
+#include "utils.hpp"
 
 namespace unittest {
 

@@ -8,6 +8,7 @@
 #include "concurrency/signal.hpp"
 #include "concurrency/wait_any.hpp"
 #include "containers/printf_buffer.hpp"
+#include "debug.hpp"
 #include "mock/serializer_filestream.hpp"
 
 namespace mock {

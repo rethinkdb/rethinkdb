@@ -4,6 +4,7 @@
 #include <ctype.h>
 
 #include "containers/archive/stl_types.hpp"
+#include "debug.hpp"
 
 const char *const name_string_t::valid_char_msg = "Use A-Za-z0-9_ only";
 

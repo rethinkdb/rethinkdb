@@ -1,11 +1,14 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef CONTAINERS_ARCHIVE_ARCHIVE_HPP_
 #define CONTAINERS_ARCHIVE_ARCHIVE_HPP_
 
 #include <stdint.h>
 
+#include <type_traits>
+
+#include "containers/printf_buffer.hpp"
 #include "containers/intrusive_list.hpp"
-#include "utils.hpp"
+#include "valgrind.hpp"
 
 class uuid_u;
 

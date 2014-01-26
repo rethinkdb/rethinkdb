@@ -85,7 +85,6 @@ private:
     static void check_ppid_for_death(int) {
         pid_t ppid = getppid();
         if (spawner_pid != -1 && spawner_pid != ppid) {
-            debugf("check_ppid_for_death found death\n");
             ::_exit(EXIT_FAILURE);
         }
     }

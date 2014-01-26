@@ -11,6 +11,7 @@
 #include "containers/counted.hpp"
 #include "containers/scoped.hpp"
 #include "errors.hpp"
+#include "valgrind.hpp"
 
 // A relatively "lightweight" header file (we wish), in a sense.
 
