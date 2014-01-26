@@ -12,11 +12,7 @@
 #include <vector>
 
 #include "errors.hpp"
-#include <boost/enable_shared_from_this.hpp>
-#include <boost/function.hpp>
-#include <boost/scoped_ptr.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/variant/get.hpp>
+#include <boost/optional.hpp>
 
 #include "clustering/administration/namespace_interface_repository.hpp"
 #include "rdb_protocol/protocol.hpp"
