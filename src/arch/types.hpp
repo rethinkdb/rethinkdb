@@ -6,7 +6,7 @@
 
 #include <string>
 
-#include "utils.hpp"
+#include "errors.hpp"
 
 template <class> class scoped_array_t;
 struct iovec;
@@ -19,23 +19,16 @@ struct iovec;
 // The linux_tcp_listener_t constructor can throw this exception
 class address_in_use_exc_t : public std::exception {
 public:
-    address_in_use_exc_t(const char* hostname, int port) throw () {
-        if (port == 0) {
-            info = strprintf("Could not establish sockets on all selected local addresses using the same port");
-        } else {
-            info = strprintf("The address at %s:%d is reserved or already in use", hostname, port);
-        }
-    }
-
-    explicit address_in_use_exc_t(const std::string &msg) throw () {
-        info.assign(msg);
-    }
+    address_in_use_exc_t(const char* hostname, int port) throw ();
+    explicit address_in_use_exc_t(const std::string &msg) throw ()
+        : info(msg) { }
 
     ~address_in_use_exc_t() throw () { }
 
     const char *what() const throw () {
         return info.c_str();
     }
+
 private:
     std::string info;
 };
@@ -59,10 +52,7 @@ public:
     virtual void on_io_complete() = 0;
 
     //TODO Remove this default implementation and actually handle io errors.
-    virtual void on_io_failure(int errsv, int64_t offset, int64_t count) {
-        crash("I/O operation failed.  (%s) (offset = %" PRIi64 ", count = %" PRIi64 ")",
-              errno_string(errsv).c_str(), offset, count);
-    }
+    virtual void on_io_failure(int errsv, int64_t offset, int64_t count);
 };
 
 class linux_thread_pool_t;
