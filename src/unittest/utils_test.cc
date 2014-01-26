@@ -3,6 +3,7 @@
 
 #include "arch/address.hpp"
 #include "arch/runtime/runtime.hpp"
+#include "btree/keys.hpp"
 #include "unittest/unittest_utils.hpp"
 #include "unittest/gtest.hpp"
 #include "utils.hpp"
@@ -80,7 +81,7 @@ TEST(UtilsTest, Time) {
     tzset();
 }
 
-TEST(UtilsTest, SizedStrcmp) {
+TEST(BtreeUtilsTest, SizedStrcmp) {
     uint8_t test1[] = "foobarbazn\nqux";
     uint8_t test2[] = "foobarbazn\nquxr";
     uint8_t test3[] = "hello world";

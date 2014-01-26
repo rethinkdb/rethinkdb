@@ -2,6 +2,7 @@
 #define BTREE_CONCURRENT_TRAVERSAL_HPP_
 
 #include "btree/depth_first_traversal.hpp"
+#include "concurrency/interruptor.hpp"
 
 class concurrent_traversal_adapter_t;
 

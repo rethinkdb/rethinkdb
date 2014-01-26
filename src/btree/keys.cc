@@ -2,6 +2,17 @@
 #include "btree/keys.hpp"
 
 #include "debug.hpp"
+#include "utils.hpp"
+
+// fast-ish non-null terminated string comparison
+int sized_strcmp(const uint8_t *str1, int len1, const uint8_t *str2, int len2) {
+    int min_len = std::min(len1, len2);
+    int res = memcmp(str1, str2, min_len);
+    if (res == 0) {
+        res = len1 - len2;
+    }
+    return res;
+}
 
 bool unescaped_str_to_key(const char *str, int len, store_key_t *buf) {
     if (len <= MAX_KEY_SIZE) {

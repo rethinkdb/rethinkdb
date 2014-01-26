@@ -5,7 +5,6 @@
 #include "concurrency/signal.hpp"
 #include "containers/intrusive_list.hpp"
 #include "containers/object_buffer.hpp"
-#include "utils.hpp"
 
 /* Monitors multiple signals; becomes pulsed if any individual signal becomes
 pulsed. */
@@ -23,6 +22,7 @@ public:
     ~wait_any_t();
 
     void add(const signal_t *s);
+
 private:
     class wait_any_subscription_t : public signal_t::subscription_t, public intrusive_list_node_t<wait_any_subscription_t> {
     public:
@@ -45,9 +45,5 @@ private:
 
     DISABLE_COPYING(wait_any_t);
 };
-
-/* Waits for the first signal to become pulsed. If the second signal becomes
-pulsed, stops waiting and throws `interrupted_exc_t`. */
-void wait_interruptible(const signal_t *signal, const signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
 #endif /* CONCURRENCY_WAIT_ANY_HPP_ */

@@ -7,7 +7,7 @@
 
 #include "buffer_cache/types.hpp"
 #include "containers/uuid.hpp"
-#include "utils.hpp"
+#include "concurrency/interruptor.hpp"
 
 class buf_parent_t;
 class buf_lock_t;

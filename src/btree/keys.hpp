@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef BTREE_KEYS_HPP_
 #define BTREE_KEYS_HPP_
 
@@ -11,12 +11,14 @@
 #include "config/args.hpp"
 #include "containers/archive/archive.hpp"
 #include "rpc/serialize_macros.hpp"
-#include "utils.hpp"
 
 #if defined(__GNUC__) && (100 * __GNUC__ + __GNUC_MINOR__ >= 406)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Warray-bounds"
 #endif
+
+// Fast string compare
+int sized_strcmp(const uint8_t *str1, int len1, const uint8_t *str2, int len2);
 
 // Note: Changing this struct changes the format of the data stored on disk.
 // If you change this struct, previous stored data will be misinterpreted.

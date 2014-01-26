@@ -1,6 +1,8 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef ARCH_TYPES_HPP_
 #define ARCH_TYPES_HPP_
+
+#include <inttypes.h>
 
 #include <string>
 

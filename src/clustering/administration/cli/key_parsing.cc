@@ -4,6 +4,8 @@
 #include "errors.hpp"
 #include <boost/algorithm/string.hpp>   /* for `boost::iequals()` */
 
+#include "utils.hpp"
+
 bool cli_str_to_key(const std::string &str, store_key_t *out) {
     if (boost::iequals(str, "-inf")) {
         *out = store_key_t::min();

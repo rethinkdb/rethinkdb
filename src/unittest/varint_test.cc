@@ -1,5 +1,5 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#include <stdint.h>
+#include <inttypes.h>
 
 #include "containers/archive/string_stream.hpp"
 #include "containers/archive/varint.hpp"

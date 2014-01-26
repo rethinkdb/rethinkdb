@@ -11,12 +11,14 @@
 #include "buffer_cache/types.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/fifo_enforcer.hpp"
+#include "concurrency/interruptor.hpp"
 #include "concurrency/signal.hpp"
 #include "containers/binary_blob.hpp"
 #include "containers/scoped.hpp"
 #include "containers/object_buffer.hpp"
 #include "rpc/serialize_macros.hpp"
 #include "timestamps.hpp"
+#include "utils.hpp"
 
 class traversal_progress_combiner_t;
 

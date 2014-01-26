@@ -1,3 +1,5 @@
+#include <inttypes.h>
+
 #include <limits>
 
 #include "errors.hpp"
@@ -5,6 +7,7 @@
 
 #include "containers/archive/stl_types.hpp"
 #include "logger.hpp"
+#include "math.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/profile.hpp"
 
@@ -71,7 +74,7 @@ counted_t<const ql::datum_t> construct_datum(
         event_log_t::iterator *begin,
         event_log_t::iterator end);
 
-class construct_datum_visitor_t : public boost::static_visitor<> {
+class construct_datum_visitor_t : public boost::static_visitor<void> {
 public:
     construct_datum_visitor_t(
         event_log_t::iterator *begin, event_log_t::iterator end,
@@ -125,7 +128,7 @@ counted_t<const ql::datum_t> construct_datum(
     return make_counted<const ql::datum_t>(std::move(res));
 }
 
-class print_event_log_visitor_t : public boost::static_visitor<> {
+class print_event_log_visitor_t : public boost::static_visitor<void> {
 public:
     void operator()(const start_t &start) const {
         logINF("Start: %s.\n", start.description_.c_str());

@@ -10,6 +10,7 @@
 
 #include "backfill_progress.hpp"
 #include "buffer_cache/types.hpp"
+#include "concurrency/interruptor.hpp"
 #include "concurrency/signal.hpp"
 #include "containers/scoped.hpp"
 

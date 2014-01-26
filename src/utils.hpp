@@ -2,15 +2,12 @@
 #ifndef UTILS_HPP_
 #define UTILS_HPP_
 
-#include <inttypes.h>
-#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 #include <functional>
 #include <stdexcept>
 #include <string>
-#include <vector>
 
 #include "errors.hpp"
 #include "config/args.hpp"
@@ -29,15 +26,6 @@ struct const_charslice {
     const char *beg, *end;
     const_charslice(const char *_beg, const char *_end) : beg(_beg), end(_end) { }
     const_charslice() : beg(NULL), end(NULL) { }
-};
-
-/* General exception to be thrown when some process is interrupted. It's in
-`utils.hpp` because I can't think where else to put it */
-class interrupted_exc_t : public std::exception {
-public:
-    const char *what() const throw () {
-        return "interrupted";
-    }
 };
 
 /* Forbid the following function definition to be inlined
@@ -98,9 +86,6 @@ struct timespec parse_time(const std::string &str) THROWS_ONLY(std::runtime_erro
 /* Printing binary data to stderr in a nice format */
 void print_hd(const void *buf, size_t offset, size_t length);
 
-// Fast string compare
-
-int sized_strcmp(const uint8_t *str1, int len1, const uint8_t *str2, int len2);
 
 
 
@@ -259,38 +244,5 @@ bool range_inside_of_byte_range(const void *p, size_t n_bytes, const void *range
 #define DBLPRI "%.20g"
 
 #define ANY_PORT 0
-
-/** RVALUE_THIS
- *
- * This macro is used to annotate methods that treat *this as an
- * rvalue reference. On compilers that support it, it expands to &&
- * and all uses of the method on non-rvlaue *this are reported as
- * errors.
- *
- * The supported compilers are clang >= 2.9 and gcc >= 4.8.1
- *
- **/
-#if defined(__clang__)
-#if __has_extension(cxx_rvalue_references)
-#define RVALUE_THIS &&
-#else
-#define RVALUE_THIS
-#endif
-#elif __GNUC__ > 4 || (__GNUC__ == 4 && \
-    (__GNUC_MINOR__ > 8 || (__GNUC_MINOR__ == 8 && \
-                            __GNUC_PATCHLEVEL__ > 1)))
-#define RVALUE_THIS &&
-#else
-#define RVALUE_THIS
-#endif
-
-template <class T>
-double safe_to_double(T val) {
-    double res = static_cast<double>(val);
-    if (val != static_cast<T>(res)) {
-        return NAN;
-    }
-    return res;
-}
 
 #endif // UTILS_HPP_

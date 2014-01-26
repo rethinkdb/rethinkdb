@@ -10,6 +10,7 @@
 
 #include "arch/fd_send_recv.hpp"
 #include "arch/runtime/event_queue.hpp" // format_poll_event
+#include "concurrency/interruptor.hpp"
 #include "concurrency/wait_any.hpp"     // wait_any_t
 #include "errors.hpp"
 #include "logger.hpp"  // logERR
