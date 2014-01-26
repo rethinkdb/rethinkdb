@@ -8,6 +8,8 @@
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/queue/passive_producer.hpp"
 
+class perfmon_counter_t;
+
 namespace unittest {
 void run_queue_equivalence_test();
 }

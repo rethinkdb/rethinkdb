@@ -19,6 +19,7 @@ class buf_lock_t;
 class alt_cache_config_t;
 class alt_cache_stats_t;
 class alt_snapshot_node_t;
+class perfmon_collection_t;
 
 class alt_memory_tracker_t : public memory_tracker_t {
 public:

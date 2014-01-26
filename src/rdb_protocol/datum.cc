@@ -11,7 +11,7 @@
 #include "errors.hpp"
 #include <boost/detail/endian.hpp>
 
-#include "containers/archive/string_stream.hpp"
+#include "containers/archive/stl_types.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/pseudo_time.hpp"

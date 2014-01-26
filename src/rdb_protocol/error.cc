@@ -2,6 +2,7 @@
 #include "rdb_protocol/error.hpp"
 
 #include "backtrace.hpp"
+#include "containers/archive/stl_types.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/term_walker.hpp"
 #include "rdb_protocol/val.hpp"
