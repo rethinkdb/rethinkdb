@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include <map>
 
 #include "btree/leaf_node.hpp"
@@ -6,6 +6,7 @@
 #include "containers/scoped.hpp"
 #include "repli_timestamp.hpp"
 #include "unittest/gtest.hpp"
+#include "utils.hpp"
 
 
 struct short_value_t;
