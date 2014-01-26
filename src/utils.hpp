@@ -341,14 +341,6 @@ char int_to_hex(int i);
 std::string blocking_read_file(const char *path);
 bool blocking_read_file(const char *path, std::string *contents_out);
 
-struct path_t {
-    std::vector<std::string> nodes;
-    bool is_absolute;
-};
-
-path_t parse_as_path(const std::string &);
-std::string render_as_path(const path_t &);
-
 enum region_join_result_t { REGION_JOIN_OK, REGION_JOIN_BAD_JOIN, REGION_JOIN_BAD_REGION };
 
 template <class T>

@@ -15,6 +15,7 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/resource.h>
+#include <unistd.h>
 
 #ifdef __MACH__
 #include <mach/mach_time.h>
@@ -25,9 +26,6 @@
 #endif
 
 #include <google/protobuf/stubs/common.h>
-
-#include "errors.hpp"
-#include <boost/tokenizer.hpp>
 
 #include "arch/io/disk.hpp"
 #include "arch/runtime/coroutines.hpp"
@@ -698,36 +696,6 @@ std::string blocking_read_file(const char *path) {
     return ret;
 }
 
-
-static const char * unix_path_separator = "/";
-
-path_t parse_as_path(const std::string &path) {
-    path_t res;
-    res.is_absolute = (path[0] == unix_path_separator[0]);
-
-    typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
-
-    boost::char_separator<char> sep(unix_path_separator);
-    tokenizer tokens(path, sep);
-
-    res.nodes.assign(tokens.begin(), tokens.end());
-
-    return res;
-}
-
-std::string render_as_path(const path_t &path) {
-    std::string res;
-    for (std::vector<std::string>::const_iterator it =  path.nodes.begin();
-                                                  it != path.nodes.end();
-                                                  ++it) {
-        if (it != path.nodes.begin() || path.is_absolute) {
-            res += unix_path_separator;
-        }
-        res += *it;
-    }
-
-    return res;
-}
 
 std::string sanitize_for_logger(const std::string &s) {
     std::string sanitized = s;
