@@ -2,7 +2,7 @@
 #ifndef RDB_PROTOCOL_BATCHING_HPP_
 #define RDB_PROTOCOL_BATCHING_HPP_
 
-#include "utils.hpp"
+#include "containers/archive/archive.hpp"
 #include "rpc/serialize_macros.hpp"
 
 template<class T>

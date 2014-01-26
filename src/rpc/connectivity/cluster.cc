@@ -17,6 +17,7 @@
 #include "containers/uuid.hpp"
 #include "logger.hpp"
 #include "utils.hpp"
+#include "rpc/connectivity/heartbeat.hpp"
 
 const std::string connectivity_cluster_t::cluster_proto_header("RethinkDB cluster\n");
 const std::string connectivity_cluster_t::cluster_version(RETHINKDB_CODE_VERSION);

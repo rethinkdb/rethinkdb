@@ -12,7 +12,6 @@
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/signal.hpp"
-#include "containers/archive/stl_types.hpp"
 #include "containers/binary_blob.hpp"
 #include "containers/scoped.hpp"
 #include "containers/object_buffer.hpp"

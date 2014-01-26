@@ -2,8 +2,12 @@
 #ifndef CONTAINERS_BINARY_BLOB_HPP_
 #define CONTAINERS_BINARY_BLOB_HPP_
 
+#include <stdint.h>
+#include <stdlib.h>
+
 #include <vector>
 
+#include "containers/archive/archive.hpp"
 #include "rpc/serialize_macros.hpp"
 
 class printf_buffer_t;

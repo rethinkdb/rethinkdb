@@ -130,4 +130,10 @@ void pb_rcheckable_t::propagate(Term *t) const {
     propagate_backtrace(t, bt_src.get());
 }
 
+RDB_IMPL_ME_SERIALIZABLE_1(backtrace_t, frames);
+RDB_IMPL_ME_SERIALIZABLE_3(backtrace_t::frame_t, type, pos, opt);
+RDB_IMPL_ME_SERIALIZABLE_3(exc_t, type_, backtrace_, exc_msg_);
+RDB_IMPL_ME_SERIALIZABLE_2(datum_exc_t, type_, exc_msg);
+
+
 } // namespace ql

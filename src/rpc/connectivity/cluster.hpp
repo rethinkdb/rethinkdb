@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef RPC_CONNECTIVITY_CLUSTER_HPP_
 #define RPC_CONNECTIVITY_CLUSTER_HPP_
 
@@ -17,7 +17,6 @@
 #include "perfmon/perfmon.hpp"
 #include "rpc/connectivity/connectivity.hpp"
 #include "rpc/connectivity/messages.hpp"
-#include "rpc/connectivity/heartbeat.hpp"
 #include "containers/uuid.hpp"
 
 namespace boost {
@@ -25,6 +24,8 @@ template <class> class optional;
 template <class> class scoped_ptr;
 template <class> class function;
 }
+
+class heartbeat_manager_t;
 
 class peer_address_set_t {
 public:
