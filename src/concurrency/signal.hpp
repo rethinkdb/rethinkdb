@@ -1,9 +1,9 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef CONCURRENCY_SIGNAL_HPP_
 #define CONCURRENCY_SIGNAL_HPP_
 
 #include "concurrency/pubsub.hpp"
-#include "utils.hpp"
+#include "errors.hpp"
 
 /* A `signal_t` is a boolean variable, combined with a way to be notified if
 that boolean variable becomes true. Typically you will construct a concrete

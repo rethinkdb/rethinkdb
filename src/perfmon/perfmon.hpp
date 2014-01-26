@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 /* Please avoid #include'ing this file from other headers unless you absolutely
  * need to. Please #include "perfmon/types.hpp" instead. This helps avoid
  * potential circular dependency problems, since perfmons are used all over the

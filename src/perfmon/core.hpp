@@ -12,7 +12,6 @@
 #include "concurrency/rwlock.hpp"
 #include "containers/intrusive_list.hpp"
 #include "containers/scoped.hpp"
-#include "utils.hpp"
 
 class perfmon_collection_t;
 class perfmon_result_t;
