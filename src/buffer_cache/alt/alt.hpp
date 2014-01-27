@@ -73,7 +73,7 @@ private:
     // their use of chained mutexes.  Make sure that timestamps don't get mixed up in
     // their ordering, once they begin to play a role.
     alt_memory_tracker_t tracker_;
-    page_cache_t page_cache_;
+    alt::page_cache_t page_cache_;
 
     two_level_nevershrink_array_t<intrusive_list_t<alt_snapshot_node_t> > snapshot_nodes_by_block_id_;
 
@@ -96,10 +96,10 @@ private:
 
     cache_t *cache() { return cache_; }
 
-    page_txn_t *page_txn() { return &page_txn_; }
+    alt::page_txn_t *page_txn() { return &page_txn_; }
 
     cache_t *cache_;
-    page_txn_t page_txn_;
+    alt::page_txn_t page_txn_;
 
     DISABLE_COPYING(alt_inner_txn_t);
 };
@@ -124,7 +124,7 @@ public:
     ~txn_t();
 
     cache_t *cache() { return inner_->cache(); }
-    page_txn_t *page_txn() { return inner_->page_txn(); }
+    alt::page_txn_t *page_txn() { return inner_->page_txn(); }
     access_t access() const { return access_; }
 
     void set_account(alt_cache_account_t *cache_account);
@@ -258,17 +258,17 @@ private:
                                             block_version_t parent_version,
                                             block_id_t parent_id,
                                             block_id_t child_id);
-    current_page_acq_t *current_page_acq() const;
+    alt::current_page_acq_t *current_page_acq() const;
 
     friend class buf_read_t;  // for get_held_page_for_read, access_ref_count_.
     friend class buf_write_t;  // for get_held_page_for_write, access_ref_count_.
 
-    page_t *get_held_page_for_read();
-    page_t *get_held_page_for_write();
+    alt::page_t *get_held_page_for_read();
+    alt::page_t *get_held_page_for_write();
 
     txn_t *txn_;
 
-    scoped_ptr_t<current_page_acq_t> current_page_acq_;
+    scoped_ptr_t<alt::current_page_acq_t> current_page_acq_;
 
     alt_snapshot_node_t *snapshot_node_;
 
@@ -335,7 +335,7 @@ public:
 
 private:
     buf_lock_t *lock_;
-    page_acq_t page_acq_;
+    alt::page_acq_t page_acq_;
 
     DISABLE_COPYING(buf_read_t);
 };
@@ -351,7 +351,7 @@ public:
 
 private:
     buf_lock_t *lock_;
-    page_acq_t page_acq_;
+    alt::page_acq_t page_acq_;
 
     DISABLE_COPYING(buf_write_t);
 };

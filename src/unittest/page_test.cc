@@ -8,6 +8,12 @@
 #include "unittest/mock_file.hpp"
 #include "unittest/unittest_utils.hpp"
 
+using alt::current_page_acq_t;
+using alt::page_acq_t;
+using alt::page_cache_t;
+using alt::page_t;
+using alt::page_txn_t;
+
 namespace unittest {
 
 struct mock_ser_t {

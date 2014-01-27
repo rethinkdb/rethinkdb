@@ -10,6 +10,12 @@
 // RSI: Get rid of this.
 #define ALT_DEBUG 0
 
+using alt::current_page_acq_t;
+using alt::page_acq_t;
+using alt::page_cache_t;
+using alt::page_t;
+using alt::page_txn_t;
+
 // There are very few ASSERT_NO_CORO_WAITING calls (instead we have
 // ASSERT_FINITE_CORO_WAITING) because most of the time we're at the mercy of the
 // page cache, which often may need to load or evict blocks, which may involve a

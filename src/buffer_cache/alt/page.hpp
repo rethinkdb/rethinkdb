@@ -20,17 +20,75 @@
 class auto_drainer_t;
 class file_account_t;
 
-// RSI: Maybe use home_thread_mixin_debug_only_t.
-
+namespace alt {
 class current_page_acq_t;
 class page_acq_t;
 class page_cache_t;
 class page_txn_t;
+}  // namespace alt
 
+// RSI: Maybe use home_thread_mixin_debug_only_t.
 
 enum class alt_create_t { create };
 
-// RSI: Put the alt namespace back around page stuff.
+class memory_tracker_t {
+public:
+    virtual ~memory_tracker_t() { }
+    virtual void inform_memory_change(uint64_t in_memory_size,
+                                      uint64_t memory_limit) = 0;
+};
+
+class alt_cache_account_t {
+public:
+    ~alt_cache_account_t();
+private:
+    friend class alt::page_cache_t;
+    alt_cache_account_t(threadnum_t thread, file_account_t *io_account);
+    // KSI: I hate having this thread_ variable, and it looks like the file_account_t
+    // already worries about going to the right thread anyway.
+    threadnum_t thread_;
+    file_account_t *io_account_;
+    DISABLE_COPYING(alt_cache_account_t);
+};
+
+class block_version_t {
+public:
+    block_version_t() : value_(0) { }
+
+    block_version_t subsequent() const {
+        block_version_t ret;
+        ret.value_ = value_ + 1;
+        return ret;
+    }
+
+    bool operator<(block_version_t other) const {
+        return value_ < other.value_;
+    }
+
+    bool operator<=(block_version_t other) const {
+        return value_ <= other.value_;
+    }
+
+    bool operator>=(block_version_t other) const {
+        return value_ >= other.value_;
+    }
+
+    bool operator==(block_version_t other) const {
+        return value_ == other.value_;
+    }
+
+    bool operator!=(block_version_t other) const {
+        return !operator==(other);
+    }
+
+    uint64_t debug_value() const { return value_; }
+
+private:
+    uint64_t value_;
+};
+
+
+namespace alt {
 
 // A page_t represents a page (a byte buffer of a specific size), having a definite
 // value known at the construction of the page_t (and possibly later modified
@@ -191,42 +249,6 @@ private:
 // Has information necessary for the current_page_t to do certain things -- it's
 // known by the current_page_acq_t.
 struct current_page_help_t;
-
-class block_version_t {
-public:
-    block_version_t() : value_(0) { }
-
-    block_version_t subsequent() const {
-        block_version_t ret;
-        ret.value_ = value_ + 1;
-        return ret;
-    }
-
-    bool operator<(block_version_t other) const {
-        return value_ < other.value_;
-    }
-
-    bool operator<=(block_version_t other) const {
-        return value_ <= other.value_;
-    }
-
-    bool operator>=(block_version_t other) const {
-        return value_ >= other.value_;
-    }
-
-    bool operator==(block_version_t other) const {
-        return value_ == other.value_;
-    }
-
-    bool operator!=(block_version_t other) const {
-        return !operator==(other);
-    }
-
-    uint64_t debug_value() const { return value_; }
-
-private:
-    uint64_t value_;
-};
 
 class current_page_t {
 public:
@@ -444,13 +466,6 @@ private:
     DISABLE_COPYING(eviction_bag_t);
 };
 
-class memory_tracker_t {
-public:
-    virtual ~memory_tracker_t() { }
-    virtual void inform_memory_change(uint64_t in_memory_size,
-                                      uint64_t memory_limit) = 0;
-};
-
 class evicter_t : public home_thread_mixin_t {
 public:
     void add_not_yet_loaded(page_t *page);
@@ -483,18 +498,6 @@ private:
     eviction_bag_t evicted_;
 
     DISABLE_COPYING(evicter_t);
-};
-
-class alt_cache_account_t {
-public:
-    ~alt_cache_account_t();
-private:
-    friend class page_cache_t;
-    alt_cache_account_t(threadnum_t thread, file_account_t *io_account);
-    // RSI: I have having this thread_ variable, and it looks like the file_account_t already worries about going to the right thread anyway.
-    threadnum_t thread_;
-    file_account_t *io_account_;
-    DISABLE_COPYING(alt_cache_account_t);
 };
 
 class page_cache_t : public home_thread_mixin_t {
@@ -772,6 +775,7 @@ private:
     DISABLE_COPYING(page_txn_t);
 };
 
+}  // namespace alt
 
 
 #endif  // BUFFER_CACHE_ALT_PAGE_HPP_

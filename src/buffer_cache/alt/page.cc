@@ -8,6 +8,8 @@
 #include "serializer/serializer.hpp"
 #include "stl_utils.hpp"
 
+namespace alt {
+
 page_cache_t::page_cache_t(serializer_t *serializer,
                            const page_cache_config_t &config,
                            memory_tracker_t *tracker)
@@ -1624,3 +1626,4 @@ void evicter_t::inform_tracker() const {
                                    memory_limit_);
 }
 
+}  // namespace alt
