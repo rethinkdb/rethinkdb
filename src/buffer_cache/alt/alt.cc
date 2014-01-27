@@ -158,9 +158,13 @@ alt_inner_txn_t::alt_inner_txn_t(cache_t *cache,
                                  repli_timestamp_t txn_recency,
                                  alt_inner_txn_t *preceding_txn)
     : cache_(cache),
-      page_txn_(&cache->page_cache_,
-                txn_recency,
-                preceding_txn == NULL ? NULL : &preceding_txn->page_txn_) { }
+      page_txn_(new page_txn_t(&cache->page_cache_,
+                               txn_recency,
+                               // Notably, preceding_txn->page_txn_.get() could be
+                               // NULL, if preceding_txn is already in the process of
+                               // being flushed.  (In which case that's fine.)
+                               preceding_txn == NULL ? NULL
+                               : preceding_txn->page_txn_.get())) { }
 
 alt_inner_txn_t::~alt_inner_txn_t() { }
 

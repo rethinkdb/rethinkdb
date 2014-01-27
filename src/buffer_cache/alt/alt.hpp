@@ -96,10 +96,11 @@ private:
 
     cache_t *cache() { return cache_; }
 
-    alt::page_txn_t *page_txn() { return &page_txn_; }
+    alt::page_txn_t *page_txn() { return page_txn_.get(); }
 
     cache_t *cache_;
-    alt::page_txn_t page_txn_;
+    // KSI: Get rid of alt_inner_txn_t now that page_txn_ is in a scoped_ptr_t.
+    scoped_ptr_t<alt::page_txn_t> page_txn_;
 
     DISABLE_COPYING(alt_inner_txn_t);
 };
