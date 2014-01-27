@@ -61,6 +61,25 @@ module 'DataExplorerView', ->
             'click .close_queries_link': 'toggle_history'
             'click .toggle_options_link': 'toggle_options'
             'mousedown .nano_border_bottom': 'start_resize_history'
+            # Let people click on the description and select text
+            'mousedown .suggestion_description': 'mouse_down_description'
+            'click .suggestion_description': 'stop_propagation'
+            'mouseup .suggestion_description': 'mouse_up_description'
+            'mousedown .suggestion_full_container': 'mouse_down_description'
+            'click .suggestion_full_container': 'stop_propagation'
+            'mousedown .CodeMirror': 'mouse_down_description'
+            'click .CodeMirror': 'stop_propagation'
+
+        mouse_down_description: (event) =>
+            @keep_suggestions_on_blur = true
+            @stop_propagation event
+
+        stop_propagation: (event) =>
+            event.stopPropagation()
+
+        mouse_up_description: (event) =>
+            @keep_suggestions_on_blur = false
+            @stop_propagation event
 
         start_resize_history: (event) =>
             @history_view.start_resize event
@@ -467,7 +486,9 @@ module 'DataExplorerView', ->
             # One callback to rule them all
             $(window).mousemove @handle_mousemove
             $(window).mouseup @handle_mouseup
+            $(window).mousedown @handle_mousedown
             @id_execution = 0
+            @keep_suggestions_on_blur = false
 
             @render()
 
@@ -478,6 +499,12 @@ module 'DataExplorerView', ->
         handle_mouseup: (event) =>
             @results_view.handle_mouseup event
             @history_view.handle_mouseup event
+
+        handle_mousedown: (event) =>
+            # $(window) caught a mousedown event, so it wasn't caught by $('.suggestion_description')
+            # Let's hide the suggestion/description
+            @keep_suggestions_on_blur = false
+            @hide_suggestion_and_description()
 
         render: =>
             @$el.html @template()
@@ -558,7 +585,9 @@ module 'DataExplorerView', ->
 
         on_blur: =>
             @state.focus_on_codemirror = false
-            @hide_suggestion_and_description()
+            # We hide the description only if the user isn't selecting text from a description.
+            if @keep_suggestions_on_blur is false
+                @hide_suggestion_and_description()
 
         # We have to keep track of a lot of things because web-kit browsers handle the events keydown, keyup, blur etc... in a strange way.
         current_suggestions: []
@@ -2184,11 +2213,11 @@ module 'DataExplorerView', ->
             # Give back focus to code mirror
             @hide_suggestion()
 
+            # Put back in the stack
             setTimeout =>
                 @handle_keypress() # That's going to describe the function the user just selected
                 @codemirror.focus() # Useful if the user used the mouse to select a suggestion
-            , 0 # # Useful if the user used the mouse to select a suggestion
-
+            , 0 # Useful if the user used the mouse to select a suggestion
 
         # Highlight a suggestion in case of a mouseover
         mouseover_suggestion: (event) =>
