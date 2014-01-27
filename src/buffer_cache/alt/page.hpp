@@ -30,6 +30,7 @@ class page_txn_t;
 
 enum class alt_create_t { create };
 
+// RSI: Put the alt namespace back around page stuff.
 
 // A page_t represents a page (a byte buffer of a specific size), having a definite
 // value known at the construction of the page_t (and possibly later modified
@@ -601,6 +602,60 @@ private:
     DISABLE_COPYING(page_cache_t);
 };
 
+class dirtied_page_t {
+public:
+    dirtied_page_t()
+        : block_id(NULL_BLOCK_ID),
+          tstamp(repli_timestamp_t::invalid) { }
+    dirtied_page_t(block_version_t _block_version,
+                   block_id_t _block_id, page_ptr_t &&_ptr,
+                   repli_timestamp_t _tstamp)
+        : block_version(_block_version),
+          block_id(_block_id),
+          ptr(std::move(_ptr)),
+          tstamp(_tstamp) { }
+    dirtied_page_t(dirtied_page_t &&movee)
+        : block_version(movee.block_version),
+          block_id(movee.block_id),
+          ptr(std::move(movee.ptr)),
+          tstamp(movee.tstamp) { }
+    dirtied_page_t &operator=(dirtied_page_t &&movee) {
+        block_version = movee.block_version;
+        block_id = movee.block_id;
+        ptr = std::move(movee.ptr);
+        tstamp = movee.tstamp;
+        return *this;
+    }
+    // Our block version of the dirty page.
+    block_version_t block_version;
+    // The block id of the dirty page.
+    block_id_t block_id;
+    // The pointer to the snapshotted dirty page value.  (If empty, the page was
+    // deleted.)
+    page_ptr_t ptr;
+    // The timestamp of the modification.
+    repli_timestamp_t tstamp;
+};
+
+class touched_page_t {
+public:
+    touched_page_t()
+        : block_id(NULL_BLOCK_ID),
+          tstamp(repli_timestamp_t::invalid) { }
+    touched_page_t(block_version_t _block_version,
+                   block_id_t _block_id,
+                   repli_timestamp_t _tstamp)
+        : block_version(_block_version),
+          block_id(_block_id),
+          tstamp(_tstamp) { }
+
+    block_version_t block_version;
+    block_id_t block_id;
+    repli_timestamp_t tstamp;
+};
+
+// RSI: Remove or update this comment.
+
 // page_txn_t's exist for the purpose of writing to disk.  The rules are as follows:
 //
 //  - When a page_txn_t gets "committed" (written to disk), all blocks modified with
@@ -688,60 +743,8 @@ private:
     // RSP: Performance?  remove_acquirer takes linear time.
     std::vector<current_page_acq_t *> live_acqs_;
 
-    class dirtied_page_t {
-    public:
-        dirtied_page_t()
-            : block_id(NULL_BLOCK_ID),
-              tstamp(repli_timestamp_t::invalid) { }
-        dirtied_page_t(block_version_t _block_version,
-                       block_id_t _block_id, page_ptr_t &&_ptr,
-                       repli_timestamp_t _tstamp)
-            : block_version(_block_version),
-              block_id(_block_id),
-              ptr(std::move(_ptr)),
-              tstamp(_tstamp) { }
-        dirtied_page_t(dirtied_page_t &&movee)
-            : block_version(movee.block_version),
-              block_id(movee.block_id),
-              ptr(std::move(movee.ptr)),
-              tstamp(movee.tstamp) { }
-        dirtied_page_t &operator=(dirtied_page_t &&movee) {
-            block_version = movee.block_version;
-            block_id = movee.block_id;
-            ptr = std::move(movee.ptr);
-            tstamp = movee.tstamp;
-            return *this;
-        }
-        // Our block version of the dirty page.
-        block_version_t block_version;
-        // The block id of the dirty page.
-        block_id_t block_id;
-        // The pointer to the snapshotted dirty page value.  (If empty, the page was
-        // deleted.)
-        page_ptr_t ptr;
-        // The timestamp of the modification.
-        repli_timestamp_t tstamp;
-    };
-
     // Saved pages (by block id).
     segmented_vector_t<dirtied_page_t, 8> snapshotted_dirtied_pages_;
-
-    class touched_page_t {
-    public:
-        touched_page_t()
-            : block_id(NULL_BLOCK_ID),
-              tstamp(repli_timestamp_t::invalid) { }
-        touched_page_t(block_version_t _block_version,
-                       block_id_t _block_id,
-                       repli_timestamp_t _tstamp)
-            : block_version(_block_version),
-              block_id(_block_id),
-              tstamp(_tstamp) { }
-
-        block_version_t block_version;
-        block_id_t block_id;
-        repli_timestamp_t tstamp;
-    };
 
     // Touched pages (by block id).
     segmented_vector_t<touched_page_t, 8> touched_pages_;

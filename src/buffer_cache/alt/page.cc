@@ -1114,7 +1114,7 @@ page_cache_t::compute_changes(const std::set<page_txn_t *> &txns) {
     for (auto it = txns.begin(); it != txns.end(); ++it) {
         page_txn_t *txn = *it;
         for (size_t i = 0, e = txn->snapshotted_dirtied_pages_.size(); i < e; ++i) {
-            const page_txn_t::dirtied_page_t &d = txn->snapshotted_dirtied_pages_[i];
+            const dirtied_page_t &d = txn->snapshotted_dirtied_pages_[i];
 
             block_change_t change(d.block_version, true,
                                   d.ptr.has() ? d.ptr.get_page_for_read() : NULL,
@@ -1139,7 +1139,7 @@ page_cache_t::compute_changes(const std::set<page_txn_t *> &txns) {
         }
 
         for (size_t i = 0, e = txn->touched_pages_.size(); i < e; ++i) {
-            const page_txn_t::touched_page_t &t = txn->touched_pages_[i];
+            const touched_page_t &t = txn->touched_pages_[i];
 
             auto res = changes.insert(std::make_pair(t.block_id,
                                                      block_change_t(t.block_version,
@@ -1466,6 +1466,7 @@ void page_cache_t::im_waiting_for_flush(page_txn_t *txn) {
 
         fifo_enforcer_write_token_t token = index_write_source.enter_write();
 
+        // RSI: We might be spawning too many coroutines, one for each flush.
         coro_t::spawn_later_ordered(std::bind(&page_cache_t::do_flush_txn_set,
                                               this,
                                               flush_set,
