@@ -606,7 +606,6 @@ int64_t val_t::as_int() {
         rfail(e.get_type(), "%s", e.what());
     }
 }
-// TODO!
 const std::string val_t::as_str() {
     try {
         counted_t<const datum_t> d = as_datum();

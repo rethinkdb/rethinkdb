@@ -186,6 +186,16 @@ void datum_t::check_str_validity(const wire_string_t *str) {
                      str->c_str(), null_offset));
 }
 
+void datum_t::check_str_validity(const std::string &str) {
+    size_t null_offset = str.find('\0');
+    rcheck(null_offset == std::string::npos,
+           base_exc_t::GENERIC,
+           // We truncate because lots of other places can call `c_str` on the
+           // error message.
+           strprintf("String `%.20s` (truncated) contains NULL byte at offset %zu.",
+                     str.c_str(), null_offset));
+}
+
 datum_t::datum_t(cJSON *json) {
     init_json(json);
 }
@@ -293,7 +303,6 @@ void datum_t::num_to_str_key(std::string *str_out) const {
 void datum_t::str_to_str_key(std::string *str_out) const {
     r_sanity_check(type == R_STR);
     str_out->append("S");
-    // TODO!
     str_out->append(static_cast<std::string>(*as_str()));
 }
 
@@ -792,8 +801,7 @@ void datum_t::add(counted_t<const datum_t> val) {
 MUST_USE bool datum_t::add(const std::string &key, counted_t<const datum_t> val,
                            clobber_bool_t clobber_bool) {
     check_type(R_OBJECT);
-    // TODO!
-    //check_str_validity(key);
+    check_str_validity(key);
     r_sanity_check(val.has());
     bool key_in_obj = r_object->count(key) > 0;
     if (!key_in_obj || (clobber_bool == CLOBBER)) (*r_object)[key] = val;
@@ -973,8 +981,7 @@ void datum_t::init_from_pb(const Datum *d) {
         for (int i = 0; i < d->r_object_size(); ++i) {
             const Datum_AssocPair *ap = &d->r_object(i);
             const std::string &key = ap->key();
-            // TODO!
-            //check_str_validity(key);
+            check_str_validity(key);
             rcheck(r_object->count(key) == 0,
                    base_exc_t::GENERIC,
                    strprintf("Duplicate key %s in object.", key.c_str()));
@@ -1027,8 +1034,7 @@ void datum_t::write_to_protobuf(Datum *d, use_json_t use_json) const {
         } break;
         case R_STR: {
             d->set_type(Datum::R_STR);
-            // TODO!?
-            d->set_r_str(std::string(std::string(r_str->data(), r_str->length())));
+            d->set_r_str(r_str->data(), r_str->length());
         } break;
         case R_ARRAY: {
             d->set_type(Datum::R_ARRAY);

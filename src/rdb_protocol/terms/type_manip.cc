@@ -182,15 +182,14 @@ private:
 
                 // STR -> NUM
                 if (start_type == R_STR_TYPE && end_type == R_NUM_TYPE) {
-                    // TODO!
-                    const std::string s = static_cast<std::string>(*d->as_str());
+                    const wire_string_t *s = d->as_str();
                     double dbl;
                     char end; // Used to ensure that there's no trailing garbage.
-                    if (sscanf(s.c_str(), "%lf%c", &dbl, &end) == 1) {
+                    if (sscanf(s->c_str(), "%lf%c", &dbl, &end) == 1) {
                         return new_val(make_counted<const datum_t>(dbl));
                     } else {
                         rfail(base_exc_t::GENERIC, "Could not coerce `%s` to NUMBER.",
-                              s.c_str());
+                              s->c_str());
                     }
                 }
             }

@@ -111,7 +111,6 @@ counted_t<const datum_t> project(counted_t<const datum_t> datum,
         return res.to_counted();
     } else {
         datum_ptr_t res(datum_t::R_OBJECT);
-        // TODO!
         if (pathspec.as_str() != NULL) {
             const std::string str = static_cast<std::string>(*pathspec.as_str());
             if (counted_t<const datum_t> val = datum->get(str, NOTHROW)) {

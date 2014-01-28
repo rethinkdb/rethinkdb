@@ -18,6 +18,7 @@ struct wire_string_t {
         rassert(sizeof(_size) <= sizeof(uint64_t));
         size_t memory_size = sizeof(uint64_t) + _size*sizeof(char) + sizeof(char);
         void *raw_result = ::malloc(memory_size);
+        // TODO! Check return value
         wire_string_t *result = reinterpret_cast<wire_string_t *>(raw_result);
         result->size_ = static_cast<uint64_t>(_size);
         // Append a 0 character to allow for an efficient `c_str()`
@@ -49,6 +50,7 @@ struct wire_string_t {
     }
 
     size_t memory_size() const {
+        // TODO! Make this more robust. Probably use offset(data_)
         return sizeof(uint64_t) + size_*sizeof(char) + sizeof(char);
     }
 
@@ -82,8 +84,15 @@ struct wire_string_t {
         return std::string(data_, size_);
     }
 
+    wire_string_t *operator+(const wire_string_t &other) const {
+        wire_string_t *result = create(size_ + other.size_);
+        memcpy(result->data_, data_, size_);
+        memcpy(&result->data_[size_], other.data_, other.size_);
+        return result;
+    }
+
 private:
-    uint64_t size_;
+    uint64_t size_; // TODO! Make this a size_t
     char data_[0];
 
     DISABLE_COPYING(wire_string_t);
