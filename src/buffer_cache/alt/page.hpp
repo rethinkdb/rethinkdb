@@ -727,7 +727,7 @@ private:
 
     repli_timestamp_t this_txn_recency_;
 
-    // RSI: This is ugh-ish and the design is borrowed from the mirrored cache.
+    // KSI: This is ugh-ish and the design is borrowed from the mirrored cache.
     alt_cache_account_t *cache_account_;
 
     // The transactions that must be committed before or at the same time as this
