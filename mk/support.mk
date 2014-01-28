@@ -185,7 +185,7 @@ $(V8_SRC_DIR):
 	$P MAKE v8 dependencies
 	$(EXTERN_MAKE) -C $(V8_SRC_DIR) dependencies $(SUPPORT_LOG_REDIRECT)
 
-$(V8_INT_LIB): $(V8_INT_DIR)
+$(V8_INT_LIB): | $(V8_INT_DIR)
 	$P MAKE v8
 	$(EXTERN_MAKE) -C $(V8_INT_DIR) native CXXFLAGS="$$CXXFLAGS -Wno-error" $(SUPPORT_LOG_REDIRECT)
 	$P AR $@
