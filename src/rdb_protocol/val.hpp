@@ -189,7 +189,8 @@ public:
         return t;
     }
     int64_t as_int();
-    const std::string &as_str();
+    // TODO!
+    const std::string as_str();
 
     std::string print() const;
     std::string trunc_print() const;

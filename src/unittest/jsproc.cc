@@ -95,7 +95,7 @@ void run_literal_string_test() {
     run_datum_test("\"string data\"", &result);
     ASSERT_TRUE(result.has());
     ASSERT_TRUE(result->get_type() == ql::datum_t::R_STR);
-    ASSERT_EQ(result->as_str(), std::string("string data"));
+    ASSERT_EQ(*result->as_str(), "string data");
 }
 
 TEST(JSProc, LiteralString) {

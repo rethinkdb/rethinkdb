@@ -38,13 +38,19 @@ datum_t::datum_t(double _num) : type(R_NUM), r_num(_num) {
            strprintf("Non-finite number: " DBLPRI, r_num));
 }
 
+// TODO! Remove this one
 datum_t::datum_t(std::string &&_str)
-    : type(R_STR), r_str(new std::string(std::move(_str))) {
-    check_str_validity(*r_str);
+    : type(R_STR), r_str(wire_string_t::create_and_init(_str.size(), _str.data())) {
+    check_str_validity(r_str);
+}
+
+datum_t::datum_t(wire_string_t *str)
+    : type(R_STR), r_str(str) {
+    check_str_validity(r_str);
 }
 
 datum_t::datum_t(const char *cstr)
-    : type(R_STR), r_str(new std::string(cstr)) { }
+    : type(R_STR), r_str(wire_string_t::create_and_init(::strlen(cstr), cstr)) { }
 
 datum_t::datum_t(std::vector<counted_t<const datum_t> > &&_array)
     : type(R_ARRAY),
@@ -86,7 +92,7 @@ datum_t::~datum_t() {
     case R_NUM: break;
     case R_STR: {
         r_sanity_check(r_str != NULL);
-        delete r_str;
+        wire_string_t::destroy(r_str);
     } break;
     case R_ARRAY: {
         r_sanity_check(r_array != NULL);
@@ -101,9 +107,9 @@ datum_t::~datum_t() {
     }
 }
 
-void datum_t::init_str() {
+void datum_t::init_str(size_t size, const char *data) {
     type = R_STR;
-    r_str = new std::string();
+    r_str = wire_string_t::create_and_init(size, data);
 }
 
 void datum_t::init_array() {
@@ -138,9 +144,8 @@ void datum_t::init_json(cJSON *json) {
                strprintf("Non-finite value `%lf` in JSON.", r_num));
     } break;
     case cJSON_String: {
-        init_str();
-        *r_str = json->valuestring;
-        check_str_validity(*r_str);
+        init_str(strlen(json->valuestring), json->valuestring);
+        check_str_validity(r_str);
     } break;
     case cJSON_Array: {
         init_array();
@@ -163,14 +168,22 @@ void datum_t::init_json(cJSON *json) {
     }
 }
 
-void datum_t::check_str_validity(const std::string &str) {
-    size_t null_offset = str.find('\0');
-    rcheck(null_offset == std::string::npos,
+void datum_t::check_str_validity(const wire_string_t *str) {
+    bool contains_invalid = false;
+    size_t null_offset = 0;
+    for (size_t i = 0; i < str->length(); ++i) {
+        if (str->data()[i] == '\0') {
+            contains_invalid = true;
+            null_offset = i;
+            break;
+        }
+    }
+    rcheck(!contains_invalid,
            base_exc_t::GENERIC,
            // We truncate because lots of other places can call `c_str` on the
            // error message.
            strprintf("String `%.20s` (truncated) contains NULL byte at offset %zu.",
-                     str.c_str(), null_offset));
+                     str->c_str(), null_offset));
 }
 
 datum_t::datum_t(cJSON *json) {
@@ -201,7 +214,7 @@ std::string datum_t::get_reql_type() const {
                      maybe_reql_type->second->trunc_print().c_str(),
                      maybe_reql_type->second->get_type_name().c_str(),
                      trunc_print().c_str()));
-    return maybe_reql_type->second->as_str();
+    return static_cast<std::string>(*maybe_reql_type->second->as_str());
 }
 
 std::string raw_type_name(datum_t::type_t type) {
@@ -280,7 +293,8 @@ void datum_t::num_to_str_key(std::string *str_out) const {
 void datum_t::str_to_str_key(std::string *str_out) const {
     r_sanity_check(type == R_STR);
     str_out->append("S");
-    str_out->append(as_str());
+    // TODO!
+    str_out->append(static_cast<std::string>(*as_str()));
 }
 
 void datum_t::bool_to_str_key(std::string *str_out) const {
@@ -622,9 +636,9 @@ int64_t datum_t::as_int() const {
     return checked_convert_to_int(&target, as_num());
 }
 
-const std::string &datum_t::as_str() const {
+const wire_string_t *datum_t::as_str() const {
     check_type(R_STR);
-    return *r_str;
+    return r_str;
 }
 
 const std::vector<counted_t<const datum_t> > &datum_t::as_array() const {
@@ -722,7 +736,7 @@ cJSON *datum_t::as_json_raw() const {
     case R_NULL: return cJSON_CreateNull();
     case R_BOOL: return cJSON_CreateBool(as_bool());
     case R_NUM: return cJSON_CreateNumber(as_num());
-    case R_STR: return cJSON_CreateString(as_str().c_str());
+    case R_STR: return cJSON_CreateString(as_str()->c_str());
     case R_ARRAY: {
         scoped_cJSON_t arr(cJSON_CreateArray());
         for (size_t i = 0; i < as_array().size(); ++i) {
@@ -778,7 +792,8 @@ void datum_t::add(counted_t<const datum_t> val) {
 MUST_USE bool datum_t::add(const std::string &key, counted_t<const datum_t> val,
                            clobber_bool_t clobber_bool) {
     check_type(R_OBJECT);
-    check_str_validity(key);
+    // TODO!
+    //check_str_validity(key);
     r_sanity_check(val.has());
     bool key_in_obj = r_object->count(key) > 0;
     if (!key_in_obj || (clobber_bool == CLOBBER)) (*r_object)[key] = val;
@@ -853,7 +868,7 @@ int datum_t::cmp(const datum_t &rhs) const {
     case R_NULL: return 0;
     case R_BOOL: return derived_cmp(as_bool(), rhs.as_bool());
     case R_NUM: return derived_cmp(as_num(), rhs.as_num());
-    case R_STR: return as_str().compare(rhs.as_str());
+    case R_STR: return as_str()->compare(*(rhs.as_str()));
     case R_ARRAY: {
         const std::vector<counted_t<const datum_t> >
             &arr = as_array(),
@@ -940,9 +955,8 @@ void datum_t::init_from_pb(const Datum *d) {
                strprintf("Illegal non-finite number `" DBLPRI "`.", r_num));
     } break;
     case Datum::R_STR: {
-        init_str();
-        *r_str = d->r_str();
-        check_str_validity(*r_str);
+        init_str(d->r_str().length(), d->r_str().data());
+        check_str_validity(r_str);
     } break;
     case Datum::R_JSON: {
         scoped_cJSON_t cjson(cJSON_Parse(d->r_str().c_str()));
@@ -959,7 +973,8 @@ void datum_t::init_from_pb(const Datum *d) {
         for (int i = 0; i < d->r_object_size(); ++i) {
             const Datum_AssocPair *ap = &d->r_object(i);
             const std::string &key = ap->key();
-            check_str_validity(key);
+            // TODO!
+            //check_str_validity(key);
             rcheck(r_object->count(key) == 0,
                    base_exc_t::GENERIC,
                    strprintf("Duplicate key %s in object.", key.c_str()));
@@ -1012,7 +1027,8 @@ void datum_t::write_to_protobuf(Datum *d, use_json_t use_json) const {
         } break;
         case R_STR: {
             d->set_type(Datum::R_STR);
-            d->set_r_str(*r_str);
+            // TODO!?
+            d->set_r_str(std::string(std::string(r_str->data(), r_str->length())));
         } break;
         case R_ARRAY: {
             d->set_type(Datum::R_ARRAY);
@@ -1134,7 +1150,7 @@ write_message_t &operator<<(write_message_t &wm, const counted_t<const datum_t> 
     } break;
     case datum_t::R_STR: {
         wm << datum_serialized_type_t::R_STR;
-        const std::string &value = datum->as_str();
+        const wire_string_t *value = datum->as_str();
         wm << value;
     } break;
     case datum_t::UNINITIALIZED:  // fall through
@@ -1228,13 +1244,13 @@ archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum) 
         }
     } break;
     case datum_serialized_type_t::R_STR: {
-        std::string value;
+        wire_string_t *value;
         res = deserialize(s, &value);
         if (res) {
             return res;
         }
         try {
-            datum->reset(new datum_t(std::move(value)));
+            datum->reset(new datum_t(value));
         } catch (const base_exc_t &) {
             return ARCHIVE_RANGE_ERROR;
         }

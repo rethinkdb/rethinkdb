@@ -491,7 +491,7 @@ v8::Handle<v8::Value> js_from_datum(const counted_t<const ql::datum_t> &datum) {
     case ql::datum_t::type_t::R_NUM:
         return v8::Number::New(datum->as_num());
     case ql::datum_t::type_t::R_STR:
-        return v8::String::New(datum->as_str().c_str());
+        return v8::String::New(datum->as_str()->c_str());
     case ql::datum_t::type_t::R_ARRAY: {
         v8::Handle<v8::Array> array = v8::Array::New();
         const std::vector<counted_t<const ql::datum_t> > &source_array = datum->as_array();

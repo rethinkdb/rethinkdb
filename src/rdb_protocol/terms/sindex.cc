@@ -23,7 +23,7 @@ public:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         counted_t<table_t> table = arg(env, 0)->as_table();
         counted_t<const datum_t> name_datum = arg(env, 1)->as_datum();
-        std::string name = name_datum->as_str();
+        std::string name = static_cast<std::string>(*name_datum->as_str());
         rcheck(name != table->get_pkey(),
                base_exc_t::GENERIC,
                strprintf("Index name conflict: `%s` is the name of the primary key.",
@@ -72,7 +72,7 @@ public:
 
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         counted_t<table_t> table = arg(env, 0)->as_table();
-        std::string name = arg(env, 1)->as_datum()->as_str();
+        std::string name = static_cast<std::string>(*arg(env, 1)->as_datum()->as_str());
         bool success = table->sindex_drop(env->env, name);
         if (success) {
             datum_ptr_t res(datum_t::R_OBJECT);

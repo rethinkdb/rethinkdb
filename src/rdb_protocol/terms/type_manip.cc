@@ -182,7 +182,8 @@ private:
 
                 // STR -> NUM
                 if (start_type == R_STR_TYPE && end_type == R_NUM_TYPE) {
-                    const std::string &s = d->as_str();
+                    // TODO!
+                    const std::string s = static_cast<std::string>(*d->as_str());
                     double dbl;
                     char end; // Used to ensure that there's no trailing garbage.
                     if (sscanf(s.c_str(), "%lf%c", &dbl, &end) == 1) {
@@ -231,7 +232,7 @@ private:
                 {
                     profile::sampler_t sampler("Coercing to object.", env->env->trace);
                     while (auto pair = ds->next(env->env, batchspec)) {
-                        std::string key = pair->get(0)->as_str();
+                        std::string key = static_cast<std::string>(*pair->get(0)->as_str());
                         counted_t<const datum_t> keyval = pair->get(1);
                         bool b = obj.add(key, keyval);
                         rcheck(!b, base_exc_t::GENERIC,
