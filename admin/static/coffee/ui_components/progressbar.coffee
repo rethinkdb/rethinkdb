@@ -29,7 +29,7 @@ module 'UIComponents', ->
         #       * new_value: the new desired maximum value as a result of the operation
         #       * got_response: flag indicating that the goals have been set
         #         and we're ready to start processing
-        render: (current_value, max_value, additional_info) =>
+        render: (current_value, max_value, additional_info, cb) =>
             if current_value isnt max_value and @timeout?
                 # We are in a finished state, but current_value != max_value,
                 # so the server sent us an update and we start processing again
@@ -93,6 +93,8 @@ module 'UIComponents', ->
                         @stage = 'none'
                         @render current_value, max_value, {}
                         @timeout = null
+                        if cb?
+                            cb()
                     , 2000
             
             @.$el.html @template data

@@ -510,10 +510,10 @@ module 'NamespaceView', ->
 
         render_progress_bar: =>
             if @progress_bar?
-
                 @progress_bar.render @blocks_processed, @blocks_total,
                     got_response: true
                     check: true
+                    , => @render()
             else
                 @progress_bar = new UIComponents.OperationProgressBar @progress_template
                 @$('.progress_li').html @progress_bar.render(0, Infinity, {new_value: true, check: true}).$el

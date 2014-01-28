@@ -91,8 +91,10 @@
 </script>
 
 <script id="namespace_view-secondary_index-template" type="text/x-handlebars-template">
-    <div class="square_li">{{#if is_empty}}<em>[empty string]</em>{{else}}{{name}}{{/if}} — {{#if ready}}ready{{else}}building{{/if}} — <a href="#" data-name="{{name}}" class="delete_link">delete</a></div>
-    <div class="progress_li"></div>
+    <div class="square_li"><span class="name">{{#if is_empty}}<em>[empty string]</em>{{else}}{{name}}{{/if}}</span> — <a href="#" data-name="{{name}}" class="delete_link">delete</a></div>
+    <div class="progress_li">
+        {{#if ready}}Ready to use{{else}}building{{/if}} 
+    </div>
     <div class="alert_li">
         <div class="alert alert_confirm_delete">
             <div class="content">
