@@ -178,8 +178,8 @@
                 <p>The goals specified for table <a class="change-route" href="#tables/{{namespace_id}}">{{namespace_name}}</a> cannot be satisfied.</p>
 
                 {{#if primary_empty}}
-                <p>The primary datacenter of the table <a class="change-route" href="#tables/{{namespace_id}}">{{namespace_name}}</a> does not have any server in it.
-                Please <a class="change-route" href="#tables/{{namespace_id}}">choose</a> another primary datacenter or <a class="change-route" href="#servers">add a server</a> in it.</p>
+                <p>The primary datacenter of the table <a class="change-route" href="#tables/{{namespace_id}}">{{namespace_name}}</a> does not contain any servers.
+                Please <a class="change-route" href="#tables/{{namespace_id}}">choose</a> another primary datacenter or <a class="change-route" href="#servers">add a server</a> to it.</p>
                 {{/if}}
 
                 {{#if can_solve_issue}}
