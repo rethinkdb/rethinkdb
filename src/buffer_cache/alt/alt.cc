@@ -166,7 +166,13 @@ alt_inner_txn_t::alt_inner_txn_t(cache_t *cache,
                                preceding_txn == NULL ? NULL
                                : preceding_txn->page_txn_.get())) { }
 
-alt_inner_txn_t::~alt_inner_txn_t() { }
+alt_inner_txn_t::~alt_inner_txn_t() {
+    // RSI: Obviously we should no longer spawn this destructor in a coroutine for
+    // soft durability.
+    cond_t done_cond;
+    cache_->page_cache_.flush_and_destroy_txn(std::move(page_txn_), &done_cond);
+    done_cond.wait();
+}
 
 alt_cache_account_t::alt_cache_account_t(threadnum_t thread, file_account_t *io_account)
     : thread_(thread), io_account_(io_account) { }

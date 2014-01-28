@@ -502,10 +502,18 @@ private:
 
 class page_cache_t : public home_thread_mixin_t {
 public:
-    explicit page_cache_t(serializer_t *serializer,
-                          const page_cache_config_t &config,
-                          memory_tracker_t *tracker);
+    page_cache_t(serializer_t *serializer,
+                 const page_cache_config_t &config,
+                 memory_tracker_t *tracker);
     ~page_cache_t();
+
+    // Takes a txn to be flushed, and a cond_t to be pulsed once the txn is flushed
+    // (or NULL).  If `on_flush_complete_or_null` is not NULL, it will eventually be
+    // pulsed.
+    // KSI: Refactor the signal_t/pubsub system to use two-way pointers.
+    void flush_and_destroy_txn(scoped_ptr_t<page_txn_t> txn,
+                               cond_t *on_flush_complete_or_null);
+
     current_page_t *page_for_block_id(block_id_t block_id);
     current_page_t *page_for_new_block_id(block_id_t *block_id_out);
     current_page_t *page_for_new_chosen_block_id(block_id_t block_id);
