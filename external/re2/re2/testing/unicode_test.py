@@ -1,4 +1,4 @@
-#!/usr/bin/python2.4
+#!/usr/bin/env python
 #
 # Copyright 2008 The RE2 Authors.  All Rights Reserved.
 # Use of this source code is governed by a BSD-style
