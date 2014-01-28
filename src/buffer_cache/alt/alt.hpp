@@ -77,6 +77,7 @@ private:
 
     two_level_nevershrink_array_t<intrusive_list_t<alt_snapshot_node_t> > snapshot_nodes_by_block_id_;
 
+    // RSI: Is there a reason this is in a scoped_ptr?
     scoped_ptr_t<auto_drainer_t> drainer_;
 
     DISABLE_COPYING(cache_t);
@@ -131,14 +132,17 @@ public:
     void set_account(alt_cache_account_t *cache_account);
 
 private:
+    static void inform_tracker(cache_t *cache,
+                               int64_t saved_expected_change_count);
+
+    static void pulse_and_inform_tracker(cache_t *cache,
+                                         int64_t saved_expected_change_count,
+                                         cond_t *pulsee);
+
+
     void help_construct(cache_t *cache,
                         repli_timestamp_t txn_timestamp,
                         txn_t *preceding_txn);
-
-    static void destroy_inner_txn(alt_inner_txn_t *inner,
-                                  cache_t *cache,
-                                  int64_t saved_expected_change_count,
-                                  auto_drainer_t::lock_t);
 
     const access_t access_;
 

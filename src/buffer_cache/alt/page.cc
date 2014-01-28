@@ -45,20 +45,19 @@ page_cache_t::~page_cache_t() {
 
 void do_flush_and_destroy_txn(auto_drainer_t::lock_t,
                               page_txn_t *txn,
-                              cond_t *on_flush_complete_or_null) {
+                              std::function<void()> on_flush_complete) {
     delete txn;
-    if (on_flush_complete_or_null != NULL) {
-        on_flush_complete_or_null->pulse();
-    }
+    on_flush_complete();
 }
 
-void page_cache_t::flush_and_destroy_txn(scoped_ptr_t<page_txn_t> txn,
-                                         cond_t *on_flush_complete_or_null) {
+void page_cache_t::flush_and_destroy_txn(auto_drainer_t::lock_t lock,
+                                         scoped_ptr_t<page_txn_t> txn,
+                                         std::function<void()> on_flush_complete) {
     // RSI: Obviously, have a better implementation than this.
     coro_t::spawn_later_ordered(std::bind(do_flush_and_destroy_txn,
-                                          drainer_->lock(),
+                                          lock,
                                           txn.release(),
-                                          on_flush_complete_or_null));
+                                          on_flush_complete));
 }
 
 

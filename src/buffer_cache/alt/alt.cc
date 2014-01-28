@@ -166,13 +166,7 @@ alt_inner_txn_t::alt_inner_txn_t(cache_t *cache,
                                preceding_txn == NULL ? NULL
                                : preceding_txn->page_txn_.get())) { }
 
-alt_inner_txn_t::~alt_inner_txn_t() {
-    // RSI: Obviously we should no longer spawn this destructor in a coroutine for
-    // soft durability.
-    cond_t done_cond;
-    cache_->page_cache_.flush_and_destroy_txn(std::move(page_txn_), &done_cond);
-    done_cond.wait();
-}
+alt_inner_txn_t::~alt_inner_txn_t() { }
 
 alt_cache_account_t::alt_cache_account_t(threadnum_t thread, file_account_t *io_account)
     : thread_(thread), io_account_(io_account) { }
@@ -216,26 +210,41 @@ void txn_t::help_construct(cache_t *cache,
                                     NULL : preceding_txn->inner_.get()));
 }
 
-void txn_t::destroy_inner_txn(alt_inner_txn_t *inner, cache_t *cache,
-                              int64_t saved_expected_change_count,
-                              auto_drainer_t::lock_t) {
-    delete inner;
+void txn_t::inform_tracker(cache_t *cache,
+                           int64_t saved_expected_change_count) {
     cache->tracker_.end_txn(saved_expected_change_count);
+}
+
+void txn_t::pulse_and_inform_tracker(cache_t *cache,
+                                     int64_t saved_expected_change_count,
+                                     cond_t *pulsee) {
+    inform_tracker(cache, saved_expected_change_count);
+    pulsee->pulse();
 }
 
 txn_t::~txn_t() {
     cache_t *cache = inner_->cache();
     cache->assert_thread();
-    alt_inner_txn_t *inner = inner_.release();
+
+    // Get the inner_txn's page_txn_t (at which point we don't need the inner any
+    // more).
+    scoped_ptr_t<page_txn_t> page_txn = std::move(inner_->page_txn_);
+    inner_.reset();
+
     if (durability_ == write_durability_t::SOFT) {
-        coro_t::spawn_sometime(std::bind(&txn_t::destroy_inner_txn,
-                                         inner,
-                                         cache,
-                                         saved_expected_change_count_,
-                                         cache->drainer_->lock()));
+        cache->page_cache_.flush_and_destroy_txn(cache->drainer_->lock(),
+                                                 std::move(page_txn),
+                                                 std::bind(&txn_t::inform_tracker,
+                                                           cache,
+                                                           saved_expected_change_count_));
     } else {
-        txn_t::destroy_inner_txn(inner, cache, saved_expected_change_count_,
-                                 cache->drainer_->lock());
+        cond_t cond;
+        cache->page_cache_.flush_and_destroy_txn(
+                cache->drainer_->lock(),
+                std::move(page_txn),
+                std::bind(&txn_t::pulse_and_inform_tracker,
+                          cache, saved_expected_change_count_, &cond));
+        cond.wait();
     }
 }
 

@@ -9,6 +9,7 @@
 #include "buffer_cache/alt/config.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/access.hpp"
+#include "concurrency/auto_drainer.hpp"
 #include "concurrency/cond_var.hpp"
 #include "concurrency/fifo_enforcer.hpp"
 #include "containers/backindex_bag.hpp"
@@ -508,11 +509,10 @@ public:
     ~page_cache_t();
 
     // Takes a txn to be flushed, and a cond_t to be pulsed once the txn is flushed
-    // (or NULL).  If `on_flush_complete_or_null` is not NULL, it will eventually be
-    // pulsed.
-    // KSI: Refactor the signal_t/pubsub system to use two-way pointers.
-    void flush_and_destroy_txn(scoped_ptr_t<page_txn_t> txn,
-                               cond_t *on_flush_complete_or_null);
+    // (or NULL).  Calls on_flush_complete() when done.
+    void flush_and_destroy_txn(auto_drainer_t::lock_t lock,
+                               scoped_ptr_t<page_txn_t> txn,
+                               std::function<void()> on_flush_complete);
 
     current_page_t *page_for_block_id(block_id_t block_id);
     current_page_t *page_for_new_block_id(block_id_t *block_id_out);
@@ -608,6 +608,7 @@ private:
 
     evicter_t evicter_;
 
+    // RSI: Is there a reason this is in a scoped ptr?
     scoped_ptr_t<auto_drainer_t> drainer_;
 
     DISABLE_COPYING(page_cache_t);
