@@ -892,8 +892,7 @@ void connectivity_cluster_t::send_message(peer_id_t dest, send_message_write_cal
         buf.appendf(" to ");
         debug_print(&buf, dest);
         buf.appendf("\n");
-        fprintf(stderr, "%s", buf.c_str());
-        print_hd(buffer.str().data(), 0, buffer.str().size());
+        print_hd(buffer.vector().data(), 0, buffer.vector().size());
     }
 #endif
 
@@ -929,8 +928,9 @@ void connectivity_cluster_t::send_message(peer_id_t dest, send_message_write_cal
         // We're sending a message to ourself
         guarantee(dest == me);
         // We could be on any thread here! Oh no!
-        // TODO! Sort out this const_cast business. Here and in the sindex case.
-        vector_read_stream_t read_stream(const_cast<std::vector<char> *>(&buffer.vector()));
+        std::vector<char> buffer_data;
+        buffer.swap(&buffer_data);
+        vector_read_stream_t read_stream(std::move(buffer_data));
         current_run->message_handler->on_message(me, &read_stream);
     } else {
         guarantee(dest != me);

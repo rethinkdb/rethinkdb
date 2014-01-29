@@ -6,6 +6,7 @@
 #include <string>
 
 #include "containers/archive/archive.hpp"
+#include "containers/archive/vector_stream.hpp"
 #include "rpc/connectivity/cluster.hpp"
 #include "rpc/semilattice/joins/macros.hpp"
 
@@ -145,8 +146,7 @@ private:
 
     void mailbox_read_coroutine(peer_id_t source_peer, threadnum_t dest_thread,
                                 raw_mailbox_t::id_t dest_mailbox_id,
-                                std::vector<char> *stream_data_ptr,
-                                int64_t stream_data_offset);
+                                vector_read_stream_t *stream_ptr);
 };
 
 #endif /* RPC_MAILBOX_MAILBOX_HPP_ */

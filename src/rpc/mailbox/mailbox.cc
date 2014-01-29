@@ -133,18 +133,24 @@ void mailbox_manager_t::on_message(peer_id_t source_peer, read_stream_t *stream)
 
     // Read the data from the read stream, so it can be deallocated before we continue
     // in a coroutine
-    scoped_ptr_t<std::vector<char> > stream_data;
-    // Special case for `vector_read_stream_t`s. This is what we get from the
-    // `connectivity_cluster_t` if the message is delivered locally.
+    std::vector<char> stream_data;
+    int64_t stream_data_offset = 0;
+    // Special case for `vector_read_stream_t`s to avoid copying.
+    // `connectivity_cluster_t` gives us a `vector_read_stream_t` if the message is
+    // delivered locally.
     vector_read_stream_t *vector_stream = dynamic_cast<vector_read_stream_t *>(stream);
-    int64_t data_offset = 0;
     if (vector_stream != NULL) {
         // Avoid copying the data
-        stream_data.init(new std::vector<char>());
-        vector_stream->swap(stream_data.get(), &data_offset);
+        vector_stream->swap(&stream_data, &stream_data_offset);
+        if(stream_data.size() - stream_data_offset != data_length) {
+            // Either we go a vector_read_stream_t that contained more data
+            // than just ours (which shouldn't happen), or we got a wrong data_length
+            // from the network.
+            throw fake_archive_exc_t();
+        }
     } else {
-        stream_data.init(new std::vector<char>(data_length));
-        int64_t bytes_read = force_read(stream, stream_data->data(), data_length);
+        stream_data.resize(data_length);
+        int64_t bytes_read = force_read(stream, stream_data.data(), data_length);
         if (bytes_read != static_cast<int64_t>(data_length)) {
             throw fake_archive_exc_t();
         }
@@ -155,29 +161,28 @@ void mailbox_manager_t::on_message(peer_id_t source_peer, read_stream_t *stream)
         dest_thread = get_thread_id().threadnum;
     }
 
+    // Construct a new stream to use
+    scoped_ptr_t<vector_read_stream_t> new_stream(
+            new vector_read_stream_t(std::move(stream_data), stream_data_offset));
+
     coro_t::spawn_sometime(boost::bind(&mailbox_manager_t::mailbox_read_coroutine,
                                        this, source_peer, threadnum_t(dest_thread),
-                                       dest_mailbox_id, stream_data.release(),
-                                       data_offset));
+                                       dest_mailbox_id, new_stream.release()));
 }
 
 void mailbox_manager_t::mailbox_read_coroutine(peer_id_t source_peer,
                                                threadnum_t dest_thread,
                                                raw_mailbox_t::id_t dest_mailbox_id,
-                                               std::vector<char> *stream_data_ptr,
-                                               int64_t stream_data_offset) {
+                                               vector_read_stream_t *stream_ptr) {
 
-    scoped_ptr_t<std::vector<char> > stream_data(stream_data_ptr);
+    scoped_ptr_t<vector_read_stream_t> stream(stream_ptr);
 
     try {
         on_thread_t rethreader(dest_thread);
 
-        // Construct a new stream to use
-        vector_read_stream_t new_stream(stream_data.get(), stream_data_offset);
-
         raw_mailbox_t *mbox = mailbox_tables.get()->find_mailbox(dest_mailbox_id);
         if (mbox != NULL) {
-            mbox->callback->read(&new_stream);
+            mbox->callback->read(stream.get());
         }
     } catch (const fake_archive_exc_t &e) {
         logWRN("Received an invalid cluster message from a peer. Disconnecting.");

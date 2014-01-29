@@ -1344,7 +1344,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             //  between sindex_start_value and sindex_end_value.
             ql::map_wire_func_t sindex_mapping;
             sindex_multi_bool_t multi_bool = sindex_multi_bool_t::MULTI;
-            vector_read_stream_t read_stream(&sindex_mapping_data);
+            inplace_vector_read_stream_t read_stream(&sindex_mapping_data);
             archive_result_t success = deserialize(&read_stream, &sindex_mapping);
             guarantee_deserialization(success, "sindex description");
             success = deserialize(&read_stream, &multi_bool);

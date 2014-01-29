@@ -15,6 +15,8 @@ public:
 
     const std::vector<char> &vector() { return vec_; }
 
+    void swap(std::vector<char> *other);
+
 private:
     std::vector<char> vec_;
 
@@ -23,20 +25,36 @@ private:
 
 class vector_read_stream_t : public read_stream_t {
 public:
-    explicit vector_read_stream_t(std::vector<char> *vector, int64_t offset = 0);
+    explicit vector_read_stream_t(std::vector<char> &&vector, int64_t offset = 0);
     virtual ~vector_read_stream_t();
 
     virtual MUST_USE int64_t read(void *p, int64_t n);
 
-    void swap(std::vector<char> *other_source, int64_t *other_pos);
+    void swap(std::vector<char> *other_vec, int64_t *other_pos);
 
 private:
     int64_t pos_;
-    std::vector<char> *vec_;
+    std::vector<char> vec_;
 
     DISABLE_COPYING(vector_read_stream_t);
 };
 
+// Like vector_read_stream_t, but takes a const vector pointer and doesn't
+// assume ownership of the data.
+class inplace_vector_read_stream_t : public read_stream_t {
+public:
+    explicit inplace_vector_read_stream_t(const std::vector<char> *vector,
+            int64_t offset = 0);
+    virtual ~inplace_vector_read_stream_t();
+
+    virtual MUST_USE int64_t read(void *p, int64_t n);
+
+private:
+    int64_t pos_;
+    const std::vector<char> *vec_;
+
+    DISABLE_COPYING(inplace_vector_read_stream_t);
+};
 
 
 #endif  // CONTAINERS_ARCHIVE_VECTOR_STREAM_HPP_
