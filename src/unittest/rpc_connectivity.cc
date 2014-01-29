@@ -59,7 +59,7 @@ public:
     }
 
 private:
-    void on_message(peer_id_t peer, string_read_stream_t *stream) {
+    void on_message(peer_id_t peer, read_stream_t *stream) {
         int i;
         int res = deserialize(stream, &i);
         if (res) { throw fake_archive_exc_t(); }
@@ -506,7 +506,7 @@ public:
         } writer;
         service->send_message(peer, &writer);
     }
-    void on_message(peer_id_t, string_read_stream_t *stream) {
+    void on_message(peer_id_t, read_stream_t *stream) {
         char spectrum[CHAR_MAX - CHAR_MIN + 1];
         int64_t res = force_read(stream, spectrum, CHAR_MAX - CHAR_MIN + 1);
         if (res != CHAR_MAX - CHAR_MIN + 1) { throw fake_archive_exc_t(); }

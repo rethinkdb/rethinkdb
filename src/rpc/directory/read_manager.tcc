@@ -34,7 +34,7 @@ void directory_read_manager_t<metadata_t>::on_connect(peer_id_t peer) THROWS_NOT
 }
 
 template<class metadata_t>
-void directory_read_manager_t<metadata_t>::on_message(peer_id_t source_peer, string_read_stream_t *s) THROWS_NOTHING {
+void directory_read_manager_t<metadata_t>::on_message(peer_id_t source_peer, read_stream_t *s) THROWS_NOTHING {
     with_priority_t p(CORO_PRIORITY_DIRECTORY_CHANGES);
 
     uint8_t code = 0;

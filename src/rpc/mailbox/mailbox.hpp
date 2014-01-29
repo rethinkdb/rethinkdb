@@ -18,7 +18,7 @@ to handle messages it receives. To send messages to the mailbox, call the
 class mailbox_write_callback_t {
 public:
     virtual ~mailbox_write_callback_t() { }
-    virtual void write(write_stream_t *stream) = 0;
+    virtual void write(write_message_t *msg) = 0;
 };
 
 class mailbox_read_callback_t {
@@ -141,11 +141,11 @@ private:
                                       raw_mailbox_t::id_t dest_mailbox_id,
                                       mailbox_write_callback_t *callback);
 
-    void on_message(peer_id_t, string_read_stream_t *stream);
+    void on_message(peer_id_t, read_stream_t *stream);
 
     void mailbox_read_coroutine(threadnum_t dest_thread,
                                 raw_mailbox_t::id_t dest_mailbox_id,
-                                string_read_stream_t *stream);
+                                std::vector<char> *stream_data_ptr);
 };
 
 #endif /* RPC_MAILBOX_MAILBOX_HPP_ */

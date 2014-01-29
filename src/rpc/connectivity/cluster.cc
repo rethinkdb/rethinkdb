@@ -805,15 +805,7 @@ void connectivity_cluster_t::run_t::handle(
         shutting down, or us shutting down. */
         try {
             while (true) {
-                /* For now, we use `std::string` for messages on the wire: it's
-                just a length and a byte vector. This is obviously slow and we
-                should change it when we care about performance. */
-                std::string message;
-                if (deserialize_and_check(conn, &message, peername))
-                    break;
-
-                string_read_stream_t stream(std::move(message), 0);
-                message_handler->on_message(other_id, &stream); // might raise fake_archive_exc_t
+                message_handler->on_message(other_id, conn); // might raise fake_archive_exc_t
                 coro_t::yield();
             }
         } catch (const fake_archive_exc_t &) {
@@ -823,6 +815,7 @@ void connectivity_cluster_t::run_t::handle(
             called. */
         }
 
+        // TODO! Print error and kill_connection().
         guarantee(!conn->is_read_open(), "the connection is still open for "
             "read, which means we had a problem other than the TCP "
             "connection closing or dying");
@@ -901,7 +894,7 @@ void connectivity_cluster_t::send_message(peer_id_t dest, send_message_write_cal
         debug_print(&buf, dest);
         buf.appendf("\n");
         fprintf(stderr, "%s", buf.c_str());
-        print_hd(buffer.str()->data(), 0, buffer.str()->size());
+        print_hd(buffer.str().data(), 0, buffer.str().size());
     }
 #endif
 
@@ -948,10 +941,8 @@ void connectivity_cluster_t::send_message(peer_id_t dest, send_message_write_cal
         mutex_t::acq_t acq(&conn_structure->send_mutex);
 
         {
-            write_message_t msg;
-            msg << buffer.str();
-            int res = send_write_message(conn_structure->conn, &msg);
-            if (res) {
+            int64_t res = conn_structure->conn->write(buffer.str().data(), buffer.str().size());
+            if (res == -1) {
                 /* Close the other half of the connection to make sure that
                    `connectivity_cluster_t::run_t::handle()` notices that something is
                    up */
@@ -959,6 +950,7 @@ void connectivity_cluster_t::send_message(peer_id_t dest, send_message_write_cal
                     conn_structure->conn->shutdown_read();
                 }
             }
+            guarantee(res == static_cast<int64_t>(buffer.str().size()));
         }
     }
 
