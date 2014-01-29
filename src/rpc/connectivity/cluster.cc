@@ -810,8 +810,8 @@ void connectivity_cluster_t::run_t::handle(
             int messages_handled_since_yield = 0;
             while (true) {
                 message_handler->on_message(other_id, conn); // might raise fake_archive_exc_t
+
                 ++messages_handled_since_yield;
-                // TODO! Test if this actually has an impact.
                 if (messages_handled_since_yield >= MESSAGE_HANDLER_MAX_BATCH_SIZE) {
                     coro_t::yield();
                     messages_handled_since_yield = 0;
