@@ -12,21 +12,41 @@
 <script id="declare_machine_dead-modal-template" type="text/x-handlebars-template">
     <div class="alert alert-error error_answer"></div>
 
-    <strong class="title_center">Warning</strong>
-    <p>If you permanently remove this server, all its data will be lost.<br/>
-    Even if you restart the RethinkDB process you will not be able to recover the data on this server..</p>
-
     <div class="alert alert-error displayed_alert">
-        All the data on the server will be <strong>definitively</strong> lost.
+        <strong>Warning:</strong> Removing this server will destroy its
+        data, proceed with caution.
     </div>
 
+    <p><strong>This server is currently unreachable</strong></p>
+
+    <p>
+        To restore service availability, this server either needs to rejoin
+        the cluster or be permanently removed.
+    </p>
+
+    <p><strong>What does removing a server do?</strong></p>
+
+    <p>The server will be dropped from the cluster, service availability
+        will resume, and its data will be destroyed to maintain cluster
+        integrity.
+    </p>
+
+    <hr>
 
     <div class="input">
-        <p>Are you sure you want to permanently remove <strong>{{machine_name}}</strong>? <br/>
-        Please write "permanently remove" to confirm this action.</p>
-        <input class="xlarge large_input verification" name="name" size="30" type="text" placeholder='Write "permanently remove" to confirm' />
+        <h3>
+            Are you sure you want to permanently remove <strong>{{machine_name}}</strong>?
+        </h3>
 
-        <div class="alert alert-error error_verification">Please write "permanently remove" to confirm.</div>
+        <p>
+            <input class="xlarge large_input verification" name="name"
+            placeholder="Type 'permanently remove' to confirm" size="30" type=
+            "text">
+        </p>
+
+        <div class="alert alert-error error_verification">
+            Please type "permanently remove" to confirm.
+        </div>
     </div>
 
 </script>
