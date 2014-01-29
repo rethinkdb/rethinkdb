@@ -288,15 +288,12 @@ struct rdb_protocol_t {
         typedef boost::variant<
             size_t, // count
             counted_t<const ql::datum_t>, // reduce
-            empty_t, //reduce
             ql::wire_datum_map_t, // gmr
             stream_t // no terminal
             > res_t;
         typedef std::map<counted_t<const ql::datum_t>, res_t> grouped_res_t;
         typedef boost::variant<
-            // Error.
             ql::exc_t,
-            ql::datum_exc_t,
             res_t,
             grouped_res_t
             > result_t;

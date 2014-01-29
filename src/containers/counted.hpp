@@ -122,7 +122,9 @@ public:
     }
 
     bool operator <(const counted_t<T> &other) const {
-        return *p_ < *other.p_;
+        return (p_ == NULL)
+            ? (other.p_ != NULL ? true : false)
+            : (other.p_ != NULL ? (*p_ < *other.p_) : false);
     }
 
 private:
