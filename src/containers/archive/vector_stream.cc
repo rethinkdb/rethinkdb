@@ -18,6 +18,9 @@ void vector_stream_t::swap(std::vector<char> *other) {
     other->swap(vec_);
 }
 
+void vector_stream_t::reserve(size_t reserve_size) {
+    vec_.reserve(reserve_size);
+}
 
 vector_read_stream_t::vector_read_stream_t(std::vector<char> &&vector, int64_t offset)
     : pos_(offset), vec_(std::move(vector)) {

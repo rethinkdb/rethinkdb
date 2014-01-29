@@ -17,6 +17,8 @@ public:
 
     void swap(std::vector<char> *other);
 
+    void reserve(size_t reserve_size);
+
 private:
     std::vector<char> vec_;
 

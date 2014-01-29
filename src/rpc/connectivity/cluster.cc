@@ -19,6 +19,9 @@
 #include "logger.hpp"
 #include "utils.hpp"
 
+// Number of messages after which the message handling loop yields
+#define MESSAGE_HANDLER_MAX_BATCH_SIZE           8
+
 const std::string connectivity_cluster_t::cluster_proto_header("RethinkDB cluster\n");
 const std::string connectivity_cluster_t::cluster_version(RETHINKDB_CODE_VERSION);
 
@@ -804,9 +807,15 @@ void connectivity_cluster_t::run_t::handle(
         it's closed, which may be due to network events, or the other end
         shutting down, or us shutting down. */
         try {
+            int messages_handled_since_yield = 0;
             while (true) {
                 message_handler->on_message(other_id, conn); // might raise fake_archive_exc_t
-                coro_t::yield();
+                ++messages_handled_since_yield;
+                // TODO! Test if this actually has an impact.
+                if (messages_handled_since_yield >= MESSAGE_HANDLER_MAX_BATCH_SIZE) {
+                    coro_t::yield();
+                    messages_handled_since_yield = 0;
+                }
             }
         } catch (const fake_archive_exc_t &) {
             /* The exception broke us out of the loop, and that's what we
@@ -879,6 +888,8 @@ void connectivity_cluster_t::send_message(peer_id_t dest, send_message_write_cal
     // TODO: If we don't do it this way, we (or the caller) will need
     // to worry about having the writer run on the connection thread.
     vector_stream_t buffer;
+    // Reserve some space to reduce overhead (especially for small messages)
+    buffer.reserve(1024);
     {
         ASSERT_FINITE_CORO_WAITING;
         callback->write(&buffer);

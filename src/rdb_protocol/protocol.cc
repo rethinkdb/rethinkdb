@@ -1609,6 +1609,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         wm << c.multi;
 
         vector_stream_t stream;
+        stream.reserve(wm.size());
         int write_res = send_write_message(&stream, &wm);
         guarantee(write_res == 0);
 
