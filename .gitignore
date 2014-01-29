@@ -45,3 +45,6 @@ scripts/cluster_directory_*
 packaging/ami/build-ami-files/static-web
 external/*
 !external/gtest*
+test/performance/comparisons/
+test/performance/results/
+test/performance/run/
