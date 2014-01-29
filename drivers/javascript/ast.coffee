@@ -791,7 +791,13 @@ class Func extends RDBOp
         if hasImplicit(args[1]) is true
             [args[1]]
         else
-            ['function(', (Var::compose(arg) for arg in args[0][1...-1]), ') { return ', args[1], '; }']
+            varStr = ""
+            for arg, i in args[0][1] # ['0', ', ', '1']
+                if i%2 is 0
+                    varStr += Var::compose(arg)
+                else
+                    varStr += arg
+            ['function(', varStr, ') { return ', args[1], '; }']
 
 class Asc extends RDBOp
     tt: "ASC"
