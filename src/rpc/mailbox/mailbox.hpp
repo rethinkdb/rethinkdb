@@ -145,7 +145,8 @@ private:
 
     void mailbox_read_coroutine(peer_id_t source_peer, threadnum_t dest_thread,
                                 raw_mailbox_t::id_t dest_mailbox_id,
-                                std::vector<char> *stream_data_ptr);
+                                std::vector<char> *stream_data_ptr,
+                                int64_t stream_data_offset);
 };
 
 #endif /* RPC_MAILBOX_MAILBOX_HPP_ */

@@ -133,10 +133,21 @@ void mailbox_manager_t::on_message(peer_id_t source_peer, read_stream_t *stream)
 
     // Read the data from the read stream, so it can be deallocated before we continue
     // in a coroutine
-    scoped_ptr_t<std::vector<char> > stream_data(new std::vector<char>(data_length));
-    int64_t bytes_read = force_read(stream, stream_data->data(), data_length);
-    if (bytes_read != static_cast<int64_t>(data_length)) {
-        throw fake_archive_exc_t();
+    scoped_ptr_t<std::vector<char> > stream_data;
+    // Special case for `vector_read_stream_t`s. This is what we get from the
+    // `connectivity_cluster_t` if the message is delivered locally.
+    vector_read_stream_t *vector_stream = dynamic_cast<vector_read_stream_t *>(stream);
+    int64_t data_offset = 0;
+    if (vector_stream != NULL) {
+        // Avoid copying the data
+        stream_data.init(new std::vector<char>());
+        vector_stream->swap(stream_data.get(), &data_offset);
+    } else {
+        stream_data.init(new std::vector<char>(data_length));
+        int64_t bytes_read = force_read(stream, stream_data->data(), data_length);
+        if (bytes_read != static_cast<int64_t>(data_length)) {
+            throw fake_archive_exc_t();
+        }
     }
 
     if (dest_thread == raw_mailbox_t::address_t::ANY_THREAD) {
@@ -146,13 +157,15 @@ void mailbox_manager_t::on_message(peer_id_t source_peer, read_stream_t *stream)
 
     coro_t::spawn_sometime(boost::bind(&mailbox_manager_t::mailbox_read_coroutine,
                                        this, source_peer, threadnum_t(dest_thread),
-                                       dest_mailbox_id, stream_data.release()));
+                                       dest_mailbox_id, stream_data.release(),
+                                       data_offset));
 }
 
 void mailbox_manager_t::mailbox_read_coroutine(peer_id_t source_peer,
                                                threadnum_t dest_thread,
                                                raw_mailbox_t::id_t dest_mailbox_id,
-                                               std::vector<char> *stream_data_ptr) {
+                                               std::vector<char> *stream_data_ptr,
+                                               int64_t stream_data_offset) {
 
     scoped_ptr_t<std::vector<char> > stream_data(stream_data_ptr);
 
@@ -160,7 +173,7 @@ void mailbox_manager_t::mailbox_read_coroutine(peer_id_t source_peer,
         on_thread_t rethreader(dest_thread);
 
         // Construct a new stream to use
-        vector_read_stream_t new_stream(stream_data.get());
+        vector_read_stream_t new_stream(stream_data.get(), stream_data_offset);
 
         raw_mailbox_t *mbox = mailbox_tables.get()->find_mailbox(dest_mailbox_id);
         if (mbox != NULL) {

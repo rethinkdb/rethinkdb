@@ -13,7 +13,7 @@
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/pmap.hpp"
 #include "concurrency/semaphore.hpp"
-#include "containers/archive/string_stream.hpp"
+#include "containers/archive/vector_stream.hpp"
 #include "containers/object_buffer.hpp"
 #include "containers/uuid.hpp"
 #include "logger.hpp"
@@ -874,11 +874,11 @@ void connectivity_cluster_t::send_message(peer_id_t dest, send_message_write_cal
 
     guarantee(!dest.is_nil());
 
-    /* We currently write the message to a string_stream_t, then
+    /* We currently write the message to a vector_stream_t, then
        serialize that as a string. It's horribly inefficient, of course. */
     // TODO: If we don't do it this way, we (or the caller) will need
     // to worry about having the writer run on the connection thread.
-    string_stream_t buffer;
+    vector_stream_t buffer;
     {
         ASSERT_FINITE_CORO_WAITING;
         callback->write(&buffer);
@@ -923,13 +923,14 @@ void connectivity_cluster_t::send_message(peer_id_t dest, send_message_write_cal
         conn_structure_lock = it->second.second;
     }
 
-    size_t bytes_sent = buffer.str().size();
+    size_t bytes_sent = buffer.vector().size();
 
     if (conn_structure->conn == NULL) {
         // We're sending a message to ourself
         guarantee(dest == me);
         // We could be on any thread here! Oh no!
-        string_read_stream_t read_stream(std::move(buffer.str()), 0);
+        // TODO! Sort out this const_cast business. Here and in the sindex case.
+        vector_read_stream_t read_stream(const_cast<std::vector<char> *>(&buffer.vector()));
         current_run->message_handler->on_message(me, &read_stream);
     } else {
         guarantee(dest != me);
@@ -940,7 +941,8 @@ void connectivity_cluster_t::send_message(peer_id_t dest, send_message_write_cal
         mutex_t::acq_t acq(&conn_structure->send_mutex);
 
         {
-            int64_t res = conn_structure->conn->write(buffer.str().data(), buffer.str().size());
+            int64_t res = conn_structure->conn->write(buffer.vector().data(),
+                                                      buffer.vector().size());
             if (res == -1) {
                 /* Close the other half of the connection to make sure that
                    `connectivity_cluster_t::run_t::handle()` notices that something is
@@ -949,7 +951,7 @@ void connectivity_cluster_t::send_message(peer_id_t dest, send_message_write_cal
                     conn_structure->conn->shutdown_read();
                 }
             }
-            guarantee(res == static_cast<int64_t>(buffer.str().size()));
+            guarantee(res == static_cast<int64_t>(buffer.vector().size()));
         }
     }
 

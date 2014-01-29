@@ -23,14 +23,16 @@ private:
 
 class vector_read_stream_t : public read_stream_t {
 public:
-    explicit vector_read_stream_t(const std::vector<char> *vector);
+    explicit vector_read_stream_t(std::vector<char> *vector, int64_t offset = 0);
     virtual ~vector_read_stream_t();
 
     virtual MUST_USE int64_t read(void *p, int64_t n);
 
+    void swap(std::vector<char> *other_source, int64_t *other_pos);
+
 private:
     int64_t pos_;
-    const std::vector<char> *vec_;
+    std::vector<char> *vec_;
 
     DISABLE_COPYING(vector_read_stream_t);
 };
