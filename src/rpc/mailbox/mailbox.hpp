@@ -141,9 +141,9 @@ private:
                                       raw_mailbox_t::id_t dest_mailbox_id,
                                       mailbox_write_callback_t *callback);
 
-    void on_message(peer_id_t, read_stream_t *stream);
+    void on_message(peer_id_t source_peer, read_stream_t *stream);
 
-    void mailbox_read_coroutine(threadnum_t dest_thread,
+    void mailbox_read_coroutine(peer_id_t source_peer, threadnum_t dest_thread,
                                 raw_mailbox_t::id_t dest_mailbox_id,
                                 std::vector<char> *stream_data_ptr);
 };

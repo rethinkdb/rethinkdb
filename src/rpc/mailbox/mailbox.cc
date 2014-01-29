@@ -115,28 +115,29 @@ raw_mailbox_t *mailbox_manager_t::mailbox_table_t::find_mailbox(raw_mailbox_t::i
     }
 }
 
-void mailbox_manager_t::on_message(UNUSED peer_id_t source_peer, read_stream_t *stream) {
+void mailbox_manager_t::on_message(peer_id_t source_peer, read_stream_t *stream) {
     int32_t dest_thread;
     uint64_t data_length = 0;
     raw_mailbox_t::id_t dest_mailbox_id;
     {
         archive_result_t res = deserialize(stream, &data_length);
-        if (res || data_length > std::numeric_limits<size_t>::max()) {
+        if (res != 0 || data_length > std::numeric_limits<size_t>::max()) {
             throw fake_archive_exc_t();
         }
 
         res = deserialize(stream, &dest_thread);
-        if (res) { throw fake_archive_exc_t(); }
+        if (res != 0) { throw fake_archive_exc_t(); }
         res = deserialize(stream, &dest_mailbox_id);
-        if (res) { throw fake_archive_exc_t(); }
+        if (res != 0) { throw fake_archive_exc_t(); }
     }
 
     // Read the data from the read stream, so it can be deallocated before we continue
     // in a coroutine
     scoped_ptr_t<std::vector<char> > stream_data(new std::vector<char>(data_length));
     int64_t bytes_read = force_read(stream, stream_data->data(), data_length);
-    // TODO! check and handle bytes_read properly
-    guarantee(bytes_read == static_cast<int64_t>(data_length));
+    if (bytes_read != static_cast<int64_t>(data_length)) {
+        throw fake_archive_exc_t();
+    }
 
     if (dest_thread == raw_mailbox_t::address_t::ANY_THREAD) {
         // TODO: this will just run the callback on the current thread, maybe do some load balancing, instead
@@ -144,26 +145,31 @@ void mailbox_manager_t::on_message(UNUSED peer_id_t source_peer, read_stream_t *
     }
 
     coro_t::spawn_sometime(boost::bind(&mailbox_manager_t::mailbox_read_coroutine,
-                                       this, threadnum_t(dest_thread), dest_mailbox_id,
-                                       stream_data.release()));
+                                       this, source_peer, threadnum_t(dest_thread),
+                                       dest_mailbox_id, stream_data.release()));
 }
 
-void mailbox_manager_t::mailbox_read_coroutine(threadnum_t dest_thread,
+void mailbox_manager_t::mailbox_read_coroutine(peer_id_t source_peer,
+                                               threadnum_t dest_thread,
                                                raw_mailbox_t::id_t dest_mailbox_id,
                                                std::vector<char> *stream_data_ptr) {
 
     scoped_ptr_t<std::vector<char> > stream_data(stream_data_ptr);
 
-    on_thread_t rethreader(dest_thread);
+    try {
+        on_thread_t rethreader(dest_thread);
 
-    // Construct a new stream to use
-    vector_read_stream_t new_stream(stream_data.get());
+        // Construct a new stream to use
+        vector_read_stream_t new_stream(stream_data.get());
 
-    raw_mailbox_t *mbox = mailbox_tables.get()->find_mailbox(dest_mailbox_id);
-    if (mbox != NULL) {
-        mbox->callback->read(&new_stream);
+        raw_mailbox_t *mbox = mailbox_tables.get()->find_mailbox(dest_mailbox_id);
+        if (mbox != NULL) {
+            mbox->callback->read(&new_stream);
+        }
+    } catch (const fake_archive_exc_t &e) {
+        logWRN("Received an invalid cluster message from a peer. Disconnecting.");
+        message_service->kill_connection(source_peer);
     }
-    // TODO! Catch and call kill_connection on the connectivity service.
 }
 
 raw_mailbox_t::id_t mailbox_manager_t::generate_mailbox_id() {

@@ -815,10 +815,9 @@ void connectivity_cluster_t::run_t::handle(
             called. */
         }
 
-        // TODO! Print error and kill_connection().
-        guarantee(!conn->is_read_open(), "the connection is still open for "
-            "read, which means we had a problem other than the TCP "
-            "connection closing or dying");
+        if(conn->is_read_open()) {
+            logWRN("Received invalid data on a cluster connection. Disconnecting.");
+        }
 
         /* The `conn_structure` destructor removes us from the connection map
         and notifies any disconnect listeners. */
