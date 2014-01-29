@@ -58,9 +58,6 @@ BUILD_DIR ?=
 # Destination directory when installing. Defaults to /
 DESTDIR ?=
 
-# Set to 1 to allow downloading the toolchain internally into support/
-FETCH_INTERNAL_TOOLS?=0
-
 # Time every command
 TIMINGS ?= 0
 

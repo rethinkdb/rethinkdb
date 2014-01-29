@@ -1,0 +1,49 @@
+{
+  "name": "packed-handlebars",
+  "version": "1.0.12",
+  "dependencies": {
+    "handlebars": {
+      "version": "1.0.12",
+      "from": "handlebars@1.0.12",
+      "resolved": "https://registry.npmjs.org/handlebars/-/handlebars-1.0.12.tgz",
+      "dependencies": {
+        "optimist": {
+          "version": "0.3.7",
+          "from": "optimist@~0.3",
+          "resolved": "https://registry.npmjs.org/optimist/-/optimist-0.3.7.tgz",
+          "dependencies": {
+            "wordwrap": {
+              "version": "0.0.2",
+              "from": "wordwrap@~0.0.2",
+              "resolved": "https://registry.npmjs.org/wordwrap/-/wordwrap-0.0.2.tgz"
+            }
+          }
+        },
+        "uglify-js": {
+          "version": "2.3.6",
+          "from": "uglify-js@~2.3",
+          "resolved": "https://registry.npmjs.org/uglify-js/-/uglify-js-2.3.6.tgz",
+          "dependencies": {
+            "async": {
+              "version": "0.2.9",
+              "from": "async@~0.2.6",
+              "resolved": "https://registry.npmjs.org/async/-/async-0.2.9.tgz"
+            },
+            "source-map": {
+              "version": "0.1.31",
+              "from": "source-map@~0.1.7",
+              "resolved": "https://registry.npmjs.org/source-map/-/source-map-0.1.31.tgz",
+              "dependencies": {
+                "amdefine": {
+                  "version": "0.1.0",
+                  "from": "amdefine@>=0.0.4",
+                  "resolved": "https://registry.npmjs.org/amdefine/-/amdefine-0.1.0.tgz"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
