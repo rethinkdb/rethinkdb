@@ -73,10 +73,10 @@ void pool_diskmgr_t::action_t::run() {
                 } else {
                     res = pwritev(fd, vecs + i, len, partial_offset);
                 }
-            } while (res == -1 && errno == EINTR);
+            } while (res == -1 && get_errno() == EINTR);
 
             if (res == -1) {
-                io_result = -errno;
+                io_result = -get_errno();
                 return;
             }
 
@@ -98,10 +98,10 @@ void pool_diskmgr_t::action_t::run() {
             } else {
                 res = pwrite(fd, vecs[0].iov_base, vecs[0].iov_len, offset);
             }
-        } while (res == -1 && errno == EINTR);
+        } while (res == -1 && get_errno() == EINTR);
 
         if (res == -1) {
-            io_result = -errno;
+            io_result = -get_errno();
             return;
         }
 

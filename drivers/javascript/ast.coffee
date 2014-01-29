@@ -32,6 +32,17 @@ funcWrap = (val) ->
 
     return val
 
+hasImplicit = (args) ->
+    # args is an array of (strings and arrays)
+    # We recurse to look for `r.row` which is an implicit var
+    if Array.isArray(args)
+        for arg in args
+            if hasImplicit(arg) is true
+                return true
+    else if args is 'r.row'
+        return true
+    return false
+
 # AST classes
 
 class TermBase
@@ -46,8 +57,8 @@ class TermBase
         # Parse out run options from connOrOptions object
         if connOrOptions? and connOrOptions.constructor is Object
             for own key of connOrOptions
-                unless key in ['connection', 'useOutdated', 'noreply', 'timeFormat']
-                    throw new err.RqlDriverError "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool>, noreply: <bool>, timeFormat: <string>}."
+                unless key in ['connection', 'useOutdated', 'noreply', 'timeFormat', 'profile', 'durability']
+                    throw new err.RqlDriverError "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, profile: <bool>, durability: <string>}."
             conn = connOrOptions.connection
             opts = connOrOptions
         else
@@ -57,7 +68,7 @@ class TermBase
         # This only checks that the argument is of the right type, connection
         # closed errors will be handled elsewhere
         unless conn? and conn._start?
-            throw new err.RqlDriverError "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool>, noreply: <bool>, timeFormat: <string>}."
+            throw new err.RqlDriverError "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, profile: <bool>, durability: <string>}."
 
         # We only require a callback if noreply isn't set
         if not opts.noreply and typeof(cb) isnt 'function'
@@ -119,9 +130,9 @@ class RDBVal extends TermBase
     pluck: (fields...) -> new Pluck {}, @, fields...
     without: (fields...) -> new Without {}, @, fields...
 
-    merge: ar (other) -> new Merge {}, @, other
+    merge: varar(1, null, (fields...) -> new Merge {}, @, fields.map(funcWrap)...)
     between: aropt (left, right, opts) -> new Between opts, @, left, right
-    reduce: varar(1, 2, (func, base) -> new Reduce {base:base}, @, funcWrap(func))
+    reduce: varar(1, 2, (func) -> new Reduce {}, @, funcWrap(func))
     map: ar (func) -> new Map {}, @, funcWrap(func)
     filter: aropt (predicate, opts) -> new Filter opts, @, funcWrap(predicate)
     concatMap: ar (func) -> new ConcatMap {}, @, funcWrap(func)
@@ -130,11 +141,13 @@ class RDBVal extends TermBase
     union: varar(1, null, (others...) -> new Union {}, @, others...)
     nth: ar (index) -> new Nth {}, @, index
     match: ar (pattern) -> new Match {}, @, pattern
+    upcase: ar () -> new Upcase {}, @
+    downcase: ar () -> new Downcase {}, @
     isEmpty: ar () -> new IsEmpty {}, @
-    groupedMapReduce: varar(3, 4, (group, map, reduce, base) -> new GroupedMapReduce {base:base}, @, funcWrap(group), funcWrap(map), funcWrap(reduce))
+    groupedMapReduce: varar(3, 4, (group, map, reduce) -> new GroupedMapReduce {}, @, funcWrap(group), funcWrap(map), funcWrap(reduce))
     innerJoin: ar (other, predicate) -> new InnerJoin {}, @, other, predicate
     outerJoin: ar (other, predicate) -> new OuterJoin {}, @, other, predicate
-    eqJoin: aropt (left_attr, right, opts) -> new EqJoin opts, @, left_attr, right
+    eqJoin: aropt (left_attr, right, opts) -> new EqJoin opts, @, funcWrap(left_attr), right
     zip: ar () -> new Zip {}, @
     coerceTo: ar (type) -> new CoerceTo {}, @, type
     typeOf: ar () -> new TypeOf {}, @
@@ -166,9 +179,8 @@ class RDBVal extends TermBase
         # Look for opts dict
         perhapsOptDict = attrsAndOpts[attrsAndOpts.length - 1]
         if perhapsOptDict and
-                ((perhapsOptDict instanceof Object) and
-                not (perhapsOptDict instanceof TermBase) and
-                not (perhapsOptDict instanceof Function))
+                (Object::toString.call(perhapsOptDict) is '[object Object]') and
+                not (perhapsOptDict instanceof TermBase)
             opts = perhapsOptDict
             attrs = attrsAndOpts[0...(attrsAndOpts.length - 1)]
 
@@ -201,7 +213,7 @@ class RDBVal extends TermBase
         # Look for opts dict
         perhapsOptDict = keysAndOpts[keysAndOpts.length - 1]
         if perhapsOptDict and
-                ((perhapsOptDict instanceof Object) and not (perhapsOptDict instanceof TermBase))
+                ((Object::toString.call(perhapsOptDict) is '[object Object]') and not (perhapsOptDict instanceof TermBase))
             opts = perhapsOptDict
             keys = keysAndOpts[0...(keysAndOpts.length - 1)]
 
@@ -212,14 +224,23 @@ class RDBVal extends TermBase
     # This behavior can be manually overridden with either direct JSON serialization
     # or ReQL datum serialization by first wrapping the argument with `r.expr` or `r.json`.
     insert: aropt (doc, opts) -> new Insert opts, @, rethinkdb.exprJSON(doc)
-    indexCreate: varar(1, 2, (name, defun) ->
-        if defun?
-            new IndexCreate {}, @, name, funcWrap(defun)
+    indexCreate: varar(1, 3, (name, defun_or_opts, opts) ->
+        if opts?
+            new IndexCreate opts, @, name, funcWrap(defun_or_opts)
+        else if defun_or_opts?
+            if (Object::toString.call(defun_or_opts) is '[object Object]') and not (defun_or_opts instanceof Function) and not (defun_or_opts instanceof TermBase)
+                new IndexCreate defun_or_opts, @, name
+            else
+                new IndexCreate {}, @, name, funcWrap(defun_or_opts)
         else
             new IndexCreate {}, @, name
         )
     indexDrop: ar (name) -> new IndexDrop {}, @, name
     indexList: ar () -> new IndexList {}, @
+    indexStatus: varar(0, null, (others...) -> new IndexStatus {}, @, others...)
+    indexWait: varar(0, null, (others...) -> new IndexWait {}, @, others...)
+
+    sync: ar () -> new Sync {}, @
 
     toISO8601: ar () -> new ToISO8601 {}, @
     toEpochTime: ar () -> new ToEpochTime {}, @
@@ -499,7 +520,7 @@ class Skip extends RDBOp
 
 class Limit extends RDBOp
     tt: "LIMIT"
-    st: 'limit'
+    mt: 'limit'
 
 class GetField extends RDBOp
     tt: "GET_FIELD"
@@ -542,6 +563,10 @@ class WithFields extends RDBOp
 class Keys extends RDBOp
     tt: "KEYS"
     mt: 'keys'
+
+class Object_ extends RDBOp
+    tt: "OBJECT"
+    mt: 'object'
 
 class Pluck extends RDBOp
     tt: "PLUCK"
@@ -602,6 +627,14 @@ class Nth extends RDBOp
 class Match extends RDBOp
     tt: "MATCH"
     mt: 'match'
+
+class Upcase extends RDBOp
+    tt: "UPCASE"
+    mt: 'upcase'
+
+class Downcase extends RDBOp
+    tt: "DOWNCASE"
+    mt: 'downcase'
 
 class IsEmpty extends RDBOp
     tt: "IS_EMPTY"
@@ -703,6 +736,18 @@ class IndexList extends RDBOp
     tt: "INDEX_LIST"
     mt: 'indexList'
 
+class IndexStatus extends RDBOp
+    tt: "INDEX_STATUS"
+    mt: 'indexStatus'
+
+class IndexWait extends RDBOp
+    tt: "INDEX_WAIT"
+    mt: 'indexWait'
+
+class Sync extends RDBOp
+    tt: "SYNC"
+    mt: 'sync'
+
 class FunCall extends RDBOp
     tt: "FUNCALL"
     st: 'do' # This is only used by the `undefined` argument checker
@@ -751,13 +796,16 @@ class Func extends RDBOp
 
         body = func(args...)
         if body is undefined
-            throw new err.RqlDriverError "Annonymous function returned `undefined`. Did you forget a `return`?"
+            throw new err.RqlDriverError "Anonymous function returned `undefined`. Did you forget a `return`?"
 
         argsArr = new MakeArray({}, argNums...)
         return super(optargs, argsArr, body)
 
     compose: (args) ->
-        ['function(', (Var::compose(arg) for arg in args[0][1...-1]), ') { return ', args[1], '; }']
+        if hasImplicit(args[1]) is true
+            [args[1]]
+        else
+            ['function(', (Var::compose(arg) for arg in args[0][1...-1]), ') { return ', args[1], '; }']
 
 class Asc extends RDBOp
     tt: "ASC"
@@ -997,6 +1045,8 @@ rethinkdb.september = new (class extends RDBOp then tt: 'SEPTEMBER')()
 rethinkdb.october = new (class extends RDBOp then tt: 'OCTOBER')()
 rethinkdb.november = new (class extends RDBOp then tt: 'NOVEMBER')()
 rethinkdb.december = new (class extends RDBOp then tt: 'DECEMBER')()
+
+rethinkdb.object = varar 0, null, (args...) -> new Object_ {}, args...
 
 # Export all names defined on rethinkdb
 module.exports = rethinkdb

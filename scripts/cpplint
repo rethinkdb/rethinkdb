@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 #
 # Copyright (c) 2009 Google Inc. All rights reserved.
 #
@@ -231,7 +231,7 @@ _DEFAULT_FILTERS = ['-build/include_alpha']
 
 # Headers that we consider STL headers.
 _STL_HEADERS = frozenset([
-    'algobase.h', 'algorithm', 'alloc.h', 'bitset', 'deque', 'exception',
+    'algobase.h', 'algorithm', 'alloc.h', 'array', 'bitset', 'deque', 'exception',
     'function.h', 'functional', 'hash_map', 'hash_map.h', 'hash_set',
     'hash_set.h', 'initializer_list', 'iterator', 'list', 'list.h', 'map', 'memory', 'new',
     'pair.h', 'pthread_alloc', 'queue', 'set', 'set.h', 'sstream', 'stack',
@@ -251,7 +251,8 @@ _CPP_HEADERS = frozenset([
     'iomanip.h', 'ios', 'iosfwd', 'iostream', 'iostream.h', 'istream',
     'istream.h', 'iterator.h', 'limits', 'map.h', 'multimap.h', 'multiset.h',
     'numeric', 'ostream', 'ostream.h', 'parsestream.h', 'pfstream.h',
-    'PlotFile.h', 'procbuf.h', 'pthread_alloc.h', 'rope', 'rope.h',
+    'PlotFile.h', 'procbuf.h', 'pthread_alloc.h', 're2/re2.h', 'rope',
+    'rope.h',
     'ropeimpl.h', 'SFile.h', 'slist', 'slist.h', 'stack.h', 'stdexcept',
     'stdiostream.h', 'streambuf.h', 'stream.h', 'strfile.h', 'string',
     'strstream', 'strstream.h', 'tempbuf.h', 'tree.h', 'typeinfo', 'valarray',
@@ -2916,6 +2917,7 @@ def CheckCStyleCast(filename, linenum, line, raw_line, cast_type, pattern,
 
 
 _HEADERS_CONTAINING_TEMPLATES = (
+    ('<array>', ('array',)),
     ('<deque>', ('deque',)),
     ('<functional>', ('unary_function', 'binary_function',
                       'plus', 'minus', 'multiplies', 'divides', 'modulus',
@@ -2943,7 +2945,7 @@ _HEADERS_CONTAINING_TEMPLATES = (
     ('<set>', ('set', 'multiset',)),
     ('<stack>', ('stack',)),
     ('<string>', ('char_traits', 'basic_string',)),
-    ('<utility>', ('pair',)),
+    ('<utility>', ('pair','swap')),
     ('<vector>', ('vector',)),
 
     # gcc extensions.
@@ -2963,7 +2965,7 @@ for _template in ('copy', 'max', 'min', 'min_element', 'sort', 'swap',
   _re_pattern_algorithm_header.append(
       (re.compile(r'[^>.]\b' + _template + r'(<.*?>)?\([^\)]'),
        _template,
-       '<algorithm>'))
+       '<algorithm>' if _template != 'swap' else '<utility>'))
 
 _re_pattern_templates = []
 for _header, _templates in _HEADERS_CONTAINING_TEMPLATES:

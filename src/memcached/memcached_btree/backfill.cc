@@ -1,6 +1,7 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "memcached/memcached_btree/backfill.hpp"
 
+#include "btree/backfill.hpp"
 #include "btree/parallel_traversal.hpp"
 #include "btree/slice.hpp"
 #include "buffer_cache/buffer_cache.hpp"

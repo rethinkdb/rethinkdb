@@ -9,22 +9,16 @@
 template <class> class scoped_ptr_t;
 
 struct progress_completion_fraction_t {
+    progress_completion_fraction_t() : estimate_of_released_nodes(-1), estimate_of_total_nodes(-1) { }
+
     progress_completion_fraction_t(int _released, int _total) : estimate_of_released_nodes(_released), estimate_of_total_nodes(_total) {
         rassert(0 <= estimate_of_released_nodes && estimate_of_released_nodes <= estimate_of_total_nodes);
     }
 
-    static progress_completion_fraction_t make_invalid() {
-        return progress_completion_fraction_t();
-    }
-
-    int estimate_of_released_nodes;
-    int estimate_of_total_nodes;
+    int64_t estimate_of_released_nodes;
+    int64_t estimate_of_total_nodes;
 
     bool invalid() const { return estimate_of_total_nodes == -1; }
-
-private:
-    // Used only by the static make_invalid() function.
-    progress_completion_fraction_t() : estimate_of_released_nodes(-1), estimate_of_total_nodes(-1) { }
 };
 
 // TODO: Rename this to traversal_progress_t after it has been pushed
@@ -32,7 +26,8 @@ private:
 class traversal_progress_t : public home_thread_mixin_t {
 public:
     traversal_progress_t() { }
-    explicit traversal_progress_t(int specified_home_thread) : home_thread_mixin_t(specified_home_thread) { }
+    explicit traversal_progress_t(threadnum_t specified_home_thread)
+        : home_thread_mixin_t(specified_home_thread) { }
 
     virtual progress_completion_fraction_t guess_completion() const = 0;
 
@@ -44,7 +39,8 @@ private:
 
 class traversal_progress_combiner_t : public traversal_progress_t {
 public:
-    explicit traversal_progress_combiner_t(int specified_home_thread) : traversal_progress_t(specified_home_thread), is_destructing(false) { }
+    explicit traversal_progress_combiner_t(threadnum_t specified_home_thread)
+        : traversal_progress_t(specified_home_thread), is_destructing(false) { }
     traversal_progress_combiner_t() : is_destructing(false) { }
     ~traversal_progress_combiner_t();
 
@@ -67,7 +63,4 @@ private:
 
     DISABLE_COPYING(traversal_progress_combiner_t);
 };
-
-
-
 #endif  // BACKFILL_PROGRESS_HPP_

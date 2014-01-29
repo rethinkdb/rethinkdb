@@ -2,7 +2,6 @@
 #include <string.h>
 #include <algorithm>
 
-#include "rdb_protocol/exceptions.hpp"
 #include "rdb_protocol/rdb_protocol_json.hpp"
 #include "utils.hpp"
 

@@ -65,7 +65,7 @@ tests:
     # trying to change pkey of a document
     - py: tbl.get(1).replace({'id':2,'a':1})
       ot:
-        cd: ({'first_error':'Primary key `id` cannot be changed ({\n\t"id":\t1\n} -> {\n\t"a":\t1,\n\t"id":\t2\n})','deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':1,'skipped':0.0,'inserted':0.0})
+        cd: ({'first_error':'Primary key `id` cannot be changed (`{\n\t"id":\t1\n}` -> `{\n\t"a":\t1,\n\t"id":\t2\n}`).','deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':1,'skipped':0.0,'inserted':0.0})
 
 
     # not passing a pkey in the first place
@@ -111,6 +111,13 @@ tests:
       js: tbl.replace(function(row) { return null; })
       rb: tbl.replace{ |row| nil }
       ot: ({'deleted':99,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':0.0})
+
+    - cd: r.table('test1').get('sdfjk').replace({'id':'sdfjk'})['inserted']
+      js: r.table('test1').get('sdfjk').replace({'id':'sdfjk'})('inserted')
+      ot: 1
+    - cd: r.table('test1').get('sdfjki').replace({'id':'sdfjk'})['errors']
+      js: r.table('test1').get('sdfjki').replace({'id':'sdfjk'})('errors')
+      ot: 1
 
     # clean up
     - cd: r.db('test').table_drop('test1')

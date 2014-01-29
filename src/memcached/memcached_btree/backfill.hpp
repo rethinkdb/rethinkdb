@@ -1,14 +1,16 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef MEMCACHED_MEMCACHED_BTREE_BACKFILL_HPP_
 #define MEMCACHED_MEMCACHED_BTREE_BACKFILL_HPP_
 
-#include "btree/backfill.hpp"
 #include "btree/keys.hpp"
 #include "containers/data_buffer.hpp"
 #include "repli_timestamp.hpp"
 #include "memcached/queries.hpp"
 
+class btree_slice_t;
+class parallel_traversal_progress_t;
 class printf_buffer_t;
+class superblock_t;
 
 struct backfill_atom_t {
     store_key_t key;

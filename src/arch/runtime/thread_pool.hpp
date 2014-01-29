@@ -17,6 +17,7 @@
 #include "arch/timer.hpp"
 
 class linux_thread_t;
+class os_signal_cond_t;
 
 /* coro_runtime_t is borrowed from coroutines.hpp.  Please only
 construct one coro_runtime_t per thread. Coroutines can only be used
@@ -44,7 +45,7 @@ public:
     // same thread that initial_message was delivered to, and interrupt_message will be set to
     // NULL. If you want to receive notification of further SIGINTs or SIGTERMs, you must call
     // set_interrupt_message() again. Returns the previous value of interrupt_message.
-    static MUST_USE linux_thread_message_t *set_interrupt_message(linux_thread_message_t *interrupt_message);
+    static MUST_USE os_signal_cond_t *set_interrupt_message(os_signal_cond_t *interrupt_message);
 
     // Blocks while threads are working. Only returns after shutdown() is called. initial_message
     // is a thread message that will be delivered to thread zero after all of the event queues
@@ -66,10 +67,10 @@ private:
 #endif
 
     static void *start_thread(void*);
-    static void interrupt_handler(int);
+    static void interrupt_handler(int signo, siginfo_t *siginfo, void *);
     static void sigsegv_handler(int, siginfo_t *, void *) NORETURN;
     spinlock_t interrupt_message_lock;
-    linux_thread_message_t *interrupt_message;
+    os_signal_cond_t *interrupt_message;
 
     // Used to signal the main thread for shutdown
     volatile bool do_shutdown;
@@ -90,6 +91,18 @@ public:
 
     int n_threads;
     bool do_set_affinity;
+
+    // Non-inlinable getters and setters for the thread local variables.
+    // See thread_local.hpp for an explanation of why these must not be
+    // inlined.
+    static linux_thread_pool_t *get_thread_pool();
+    static void set_thread_pool(linux_thread_pool_t *val);
+    static int get_thread_id();
+    static void set_thread_id(int val);
+    static linux_thread_t *get_thread();
+    static void set_thread(linux_thread_t *val);
+
+private:
     // The thread_pool that started the thread we are currently in
     static __thread linux_thread_pool_t *thread_pool;
     // The ID of the thread we are currently in
@@ -97,7 +110,6 @@ public:
     // The event queue for the thread we are currently in (same as &thread_pool->threads[thread_id])
     static __thread linux_thread_t *thread;
 
-private:
     DISABLE_COPYING(linux_thread_pool_t);
 };
 
@@ -123,14 +135,14 @@ struct generic_job_t :
 template <class Callable>
 void linux_thread_pool_t::run_in_blocker_pool(const Callable &fn)
 {
-    if (thread_pool != NULL) {
+    if (get_thread_pool() != NULL) {
         generic_job_t<Callable> job;
         job.fn = &fn;
         job.suspended = coro_t::self();
 
-        rassert(thread_pool->generic_blocker_pool != NULL,
+        rassert(get_thread_pool()->generic_blocker_pool != NULL,
                 "thread_pool_t::run_in_blocker_pool called while generic_thread_pool uninitialized");
-        thread_pool->generic_blocker_pool->do_job(&job);
+        get_thread_pool()->generic_blocker_pool->do_job(&job);
 
         // Give up execution, to be resumed when the done callback is made
         coro_t::wait();

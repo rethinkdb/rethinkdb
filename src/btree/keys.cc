@@ -133,6 +133,20 @@ void debug_print(printf_buffer_t *buf, const key_range_t &kr) {
     buf->appendf(")");
 }
 
+std::string key_range_to_string(const key_range_t &kr) {
+    std::string res;
+    res += "[";
+    res += key_to_debug_str(kr.left);
+    res += ", ";
+    if (kr.right.unbounded) {
+        res += "+inf";
+    } else {
+        res += key_to_debug_str(kr.right.key);
+    }
+    res += ")";
+    return res;
+}
+
 void debug_print(printf_buffer_t *buf, const store_key_t *k) {
     if (k) {
         debug_print(buf, *k);

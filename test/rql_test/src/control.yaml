@@ -48,11 +48,11 @@ tests:
 
     - js: r.do(1, function(x) {})
       cd: []
-      ot: err("RqlDriverError", 'Annonymous function returned `undefined`. Did you forget a `return`?', [1])
+      ot: err("RqlDriverError", 'Anonymous function returned `undefined`. Did you forget a `return`?', [1])
 
     - js: r.do(1, function(x) { return undefined; })
       cd: []
-      ot: err("RqlDriverError", 'Annonymous function returned `undefined`. Did you forget a `return`?', [1])
+      ot: err("RqlDriverError", 'Anonymous function returned `undefined`. Did you forget a `return`?', [1])
 
     - cd: r.do()
       py: [] # Case handled by native python error
@@ -227,7 +227,7 @@ tests:
     - js: r([1, 2, 3]).forEach(function (row) { return [tbl.insert({ id:row }), tbl.insert({ id:row.mul(10) })] })
       py: r.expr([1,2,3]).for_each(lambda row:[tbl.insert({ 'id':row }), tbl.insert({ 'id':row*10 })])
       rb: r.expr([1,2,3]).for_each{ |row| [tbl.insert({ :id => row}), tbl.insert({ :id => row*10})] }
-      ot: ({'first_error':'Duplicate primary key.','deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':3,'skipped':0.0,'inserted':3})
+      ot: ({'first_error':"Duplicate primary key `id`:\n{\n\t\"foo\":\t3,\n\t\"id\":\t1\n}\n{\n\t\"id\":\t1\n}",'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':3,'skipped':0.0,'inserted':3})
 
     - cd: tbl.count()
       ot: 6
@@ -266,7 +266,7 @@ tests:
       # This is only relevant in JS -- what happens when we return undefined
     - js: "r([1, 2, 3]).forEach(function (row) {})"
       cd: []
-      ot: err("RqlDriverError", 'Annonymous function returned `undefined`. Did you forget a `return`?', [1])
+      ot: err("RqlDriverError", 'Anonymous function returned `undefined`. Did you forget a `return`?', [1])
 
     # Make sure write queries can't be nested into stream ops
     - cd: r.expr(1).do(tbl.insert({'foo':r.row}))

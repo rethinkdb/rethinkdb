@@ -24,9 +24,7 @@ struct log_serializer_stats_t {
     /* used in serializer/log/data_block_manager.cc */
     perfmon_counter_t pm_serializer_data_extents;
     perfmon_counter_t pm_serializer_data_extents_allocated;
-    perfmon_counter_t pm_serializer_data_extents_reclaimed;
     perfmon_counter_t pm_serializer_data_extents_gced;
-    perfmon_counter_t pm_serializer_data_blocks_written;
     perfmon_counter_t pm_serializer_old_garbage_block_bytes;
     perfmon_counter_t pm_serializer_old_total_block_bytes;
 

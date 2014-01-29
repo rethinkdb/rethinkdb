@@ -1,5 +1,6 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include <string>
+#include <vector>
 
 #include "errors.hpp"
 #include <boost/algorithm/string/predicate.hpp>
@@ -13,7 +14,7 @@
 template <class metadata_t>
 semilattice_http_app_t<metadata_t>::semilattice_http_app_t(
         metadata_change_handler_t<metadata_t> *_metadata_change_handler,
-        const clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > > &_directory_metadata,
+        const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > > &_directory_metadata,
         uuid_u _us) :
     directory_metadata(_directory_metadata),
     us(_us),
@@ -79,6 +80,23 @@ http_res_t semilattice_http_app_t<metadata_t>::handle(const http_req_t &req) {
                     return http_res_t(HTTP_BAD_REQUEST);
                 }
 
+                // Determine for which namespaces we should prioritize distribution
+                // Default: none
+                boost::optional<namespace_id_t> prioritize_distr_for_ns;
+                const boost::optional<std::string> prefer_distribution_param =
+                    req.find_query_param("prefer_distribution_for");
+                if (prefer_distribution_param) {
+                    try {
+                        const namespace_id_t ns_id =
+                            str_to_uuid(prefer_distribution_param.get());
+                        prioritize_distr_for_ns.reset(ns_id);
+                    } catch (...) {
+                        logINF("Invalid value for prefer_distribution_for argument: %s",
+                           prefer_distribution_param.get().c_str());
+                        return http_res_t(HTTP_BAD_REQUEST);
+                    }
+                }
+
                 json_adapter_head->apply(change.get());
 
                 {
@@ -92,7 +110,7 @@ http_res_t semilattice_http_app_t<metadata_t>::handle(const http_req_t &req) {
                     logINF("Applying data %s", absolute_change.PrintUnformatted().c_str());
                 }
 
-                metadata_change_callback(&metadata, !!req.find_query_param("prefer_distribution"));
+                metadata_change_callback(&metadata, prioritize_distr_for_ns);
                 metadata_change_handler->update(metadata);
 
                 scoped_cJSON_t json_repr(json_adapter_head->render());
@@ -105,7 +123,8 @@ http_res_t semilattice_http_app_t<metadata_t>::handle(const http_req_t &req) {
 
                 logINF("Deleting %s", req.resource.as_string().c_str());
 
-                metadata_change_callback(&metadata, false);
+                metadata_change_callback(&metadata,
+                                         boost::optional<namespace_id_t>());
                 metadata_change_handler->update(metadata);
 
                 scoped_cJSON_t json_repr(json_adapter_head->render());
@@ -141,7 +160,8 @@ http_res_t semilattice_http_app_t<metadata_t>::handle(const http_req_t &req) {
                 json_adapter_head->reset();
                 json_adapter_head->apply(change.get());
 
-                metadata_change_callback(&metadata, false);
+                metadata_change_callback(&metadata,
+                                         boost::optional<namespace_id_t>());
                 metadata_change_handler->update(metadata);
 
                 scoped_cJSON_t json_repr(json_adapter_head->render());
@@ -166,9 +186,12 @@ http_res_t semilattice_http_app_t<metadata_t>::handle(const http_req_t &req) {
     } catch (const cannot_satisfy_goals_exc_t &e) {
         logINF("The server was given a set of goals for which it couldn't find a valid blueprint. %s", e.what());
         return http_error_res(e.what(), HTTP_INTERNAL_SERVER_ERROR);
-    } catch (const gone_exc_t & e) {
+    } catch (const gone_exc_t &e) {
         logINF("HTTP request throw a gone_exc_t with what = %s", e.what());
         return http_error_res(e.what(), HTTP_GONE);
+    } catch (const multiple_choices_exc_t &e) {
+        logINF("HTTP request failed to change semilattice data. %s", e.what());
+        return http_error_res(e.what(), HTTP_METHOD_NOT_ALLOWED);
     }
     unreachable();
 }
@@ -190,7 +213,7 @@ bool semilattice_http_app_t<metadata_t>::verify_content_type(const http_req_t &r
 
 cluster_semilattice_http_app_t::cluster_semilattice_http_app_t(
         metadata_change_handler_t<cluster_semilattice_metadata_t> *_metadata_change_handler,
-        const clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > > &_directory_metadata,
+        const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > > &_directory_metadata,
         uuid_u _us) :
     semilattice_http_app_t<cluster_semilattice_metadata_t>(_metadata_change_handler, _directory_metadata, _us) {
     // Do nothing
@@ -201,15 +224,19 @@ cluster_semilattice_http_app_t::~cluster_semilattice_http_app_t() {
 }
 
 void cluster_semilattice_http_app_t::metadata_change_callback(cluster_semilattice_metadata_t *new_metadata,
-                                                              bool prefer_distribution) {
+        const boost::optional<namespace_id_t> &prioritize_distr_for_ns) {
+
     try {
-        fill_in_blueprints(new_metadata, directory_metadata->get(), us, prefer_distribution);
+        fill_in_blueprints(new_metadata,
+                           directory_metadata->get().get_inner(),
+                           us,
+                           prioritize_distr_for_ns);
     } catch (const missing_machine_exc_t &e) { }
 }
 
 auth_semilattice_http_app_t::auth_semilattice_http_app_t(
         metadata_change_handler_t<auth_semilattice_metadata_t> *_metadata_change_handler,
-        const clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > > &_directory_metadata,
+        const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > > &_directory_metadata,
         uuid_u _us) :
     semilattice_http_app_t<auth_semilattice_metadata_t>(_metadata_change_handler, _directory_metadata, _us) {
     // Do nothing
@@ -220,7 +247,8 @@ auth_semilattice_http_app_t::~auth_semilattice_http_app_t() {
 }
 
 void auth_semilattice_http_app_t::metadata_change_callback(auth_semilattice_metadata_t *,
-                                                           bool) {
+        const boost::optional<namespace_id_t> &) {
+
     // Do nothing
 }
 

@@ -5,12 +5,15 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <list>
 
 #include "serializer/serializer.hpp"
 #include "serializer/log/config.hpp"
 #include "utils.hpp"
 #include "concurrency/mutex.hpp"
 #include "concurrency/mutex_assertion.hpp"
+#include "concurrency/signal.hpp"
+#include "concurrency/cond_var.hpp"
 
 #include "serializer/log/metablock_manager.hpp"
 #include "serializer/log/extent_manager.hpp"
@@ -107,8 +110,7 @@ class log_serializer_t :
 #else
     public home_thread_mixin_t,
 #endif  // SEMANTIC_SERIALIZER_CHECK
-    private data_block_manager::shutdown_callback_t,
-    private lba_list_t::shutdown_callback_t
+    private data_block_manager::shutdown_callback_t
 {
     friend struct ls_start_existing_fsm_t;
     friend class data_block_manager_t;
@@ -138,6 +140,9 @@ public:
     scoped_malloc_t<ser_buffer_t> malloc();
     scoped_malloc_t<ser_buffer_t> clone(const ser_buffer_t *);
 
+#ifndef SEMANTIC_SERIALIZER_CHECK
+    using serializer_t::make_io_account;
+#endif
     file_account_t *make_io_account(int priority, int outstanding_requests_limit);
 
     void register_read_ahead_cb(serializer_read_ahead_callback_t *cb);
@@ -148,9 +153,9 @@ public:
     bool get_delete_bit(block_id_t id);
     counted_t<ls_block_token_pointee_t> index_read(block_id_t block_id);
 
-    void block_read(const counted_t<ls_block_token_pointee_t>& token, ser_buffer_t *buf, file_account_t *io_account);
+    void block_read(const counted_t<ls_block_token_pointee_t> &token, ser_buffer_t *buf, file_account_t *io_account);
 
-    void index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_account);
+    void index_write(const std::vector<index_write_op_t> &write_ops, file_account_t *io_account);
 
     std::vector<counted_t<ls_block_token_pointee_t> > block_writes(const std::vector<buf_write_info_t> &write_infos,
                                                                    file_account_t *io_account, iocallback_t *cb);
@@ -174,25 +179,22 @@ private:
             repli_timestamp_t recency_timestamp);
     bool should_perform_read_ahead();
 
-    struct index_write_context_t {
-        index_write_context_t() : next_metablock_write(NULL) { }
-        extent_transaction_t extent_txn;
-        cond_t *next_metablock_write;
-
-    private:
-        DISABLE_COPYING(index_write_context_t);
-    };
     /* Starts a new transaction, updates perfmons etc. */
-    void index_write_prepare(index_write_context_t *context, file_account_t *io_account);
+    void index_write_prepare(extent_transaction_t *txn);
     /* Finishes a write transaction */
-    void index_write_finish(index_write_context_t *context, file_account_t *io_account);
+    void index_write_finish(extent_transaction_t *txn, file_account_t *io_account);
 
     /* This mess is because the serializer is still mostly FSM-based */
     bool shutdown(cond_t *cb);
     bool next_shutdown_step();
 
     virtual void on_datablock_manager_shutdown();
-    virtual void on_lba_shutdown();
+
+    /* Prepare a new metablock, then wait until safe_to_write_cond is pulsed.
+    Finally write the new metablock to disk. Returns once the write is complete.
+    This function writes the metablock in the state that it has when called, i.e.
+    it does not block between calling and preparing the new metablock. */
+    void write_metablock(const signal_t &safe_to_write_cond, file_account_t *io_account);
 
     typedef log_serializer_metablock_t metablock_t;
     void prepare_metablock(metablock_t *mb_buffer);
@@ -221,8 +223,7 @@ private:
         shutdown_begin,
         shutdown_waiting_on_serializer,
         shutdown_waiting_on_datablock_manager,
-        shutdown_waiting_on_block_tokens,
-        shutdown_waiting_on_lba
+        shutdown_waiting_on_block_tokens
     } shutdown_state;
     bool shutdown_in_one_shot;
 
@@ -242,10 +243,9 @@ private:
     data_block_manager_t *data_block_manager;
 
     /* The running index writes organize themselves into a list so that they can be sure to
-    write their metablocks in the correct order. last_write points to the most recent
-    transaction that started but did not finish; new index writes use it to find the
-    end of the list so they can append themselves to it. */
-    index_write_context_t *last_write;
+    write their metablocks in the correct order. The first element in the list
+    is the oldest transaction that started but did not finish. */
+    std::list<cond_t *> metablock_waiter_queue;
 
     int active_write_count;
 

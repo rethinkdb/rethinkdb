@@ -120,7 +120,7 @@ tests:
       ot: ([{'b':{'c':1}}, {'b':{'c':2}}, {'b':{'c':3}}, {'b':{'c':1}}, {'b':{'c':2}}, {'b':{'c':3}}])
 
     - cd: wftst.with_fields(1)
-      ot: err("RqlRuntimeError", "Invalid path argument of `1` to has_fields.", [])
+      ot: err("RqlRuntimeError", "Invalid path argument `1`.", [])
     - cd: r.expr(1).with_fields()
       ot: err("RqlRuntimeError", "Cannot perform has_fields on a non-object non-sequence `1`.", [])
 
@@ -150,9 +150,9 @@ tests:
       rb: arr.reduce{ |a, b| a + b }
       ot: 6
 
-    - py: arr.reduce(lambda a, b:a + b, base=0)
-      js: arr.reduce(function(a,b) { return a.add(b); }, 0)
-      rb: arr.reduce(0){ |a, b| a + b }
+    - py: arr.reduce(lambda a, b:a + b)
+      js: arr.reduce(function(a,b) { return a.add(b); })
+      rb: arr.reduce(){ |a, b| a + b }
       ot: 6
 
     - py: "arr.union(arr).reduce(lambda a, b: a + b)"
@@ -160,9 +160,9 @@ tests:
       rb: arr.union(arr).reduce{ |a, b| a + b }
       ot: 12
 
-    - py: arr.union(arr).reduce(lambda a, b:a + b, base=0)
-      js: arr.union(arr).reduce(function(a,b) { return a.add(b); }, 0)
-      rb: arr.union(arr).reduce(0){ |a, b| a + b }
+    - py: arr.union(arr).reduce(lambda a, b:a + b)
+      js: arr.union(arr).reduce(function(a,b) { return a.add(b); })
+      rb: arr.union(arr).reduce(){ |a, b| a + b }
       ot: 12
 
     ## Filter

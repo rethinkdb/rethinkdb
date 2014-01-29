@@ -17,12 +17,12 @@
 std::vector<int64_t> initial_metablock_offsets(int64_t extent_size) {
     std::vector<int64_t> offsets;
 
-    const int64_t metablocks_per_extent = std::min<int64_t>(extent_size / DEVICE_BLOCK_SIZE, MB_BLOCKS_PER_EXTENT);
+    const int64_t metablocks_per_extent = std::min<int64_t>(extent_size / METABLOCK_SIZE, MB_BLOCKS_PER_EXTENT);
 
     // The very first DEVICE_BLOCK_SIZE of the file is used for the
     // static header, so we start j at 1.
     for (int64_t j = 1; j < metablocks_per_extent; ++j) {
-        int64_t offset = j * DEVICE_BLOCK_SIZE;
+        int64_t offset = j * METABLOCK_SIZE;
 
         offsets.push_back(offset);
     }
@@ -67,10 +67,10 @@ void metablock_manager_t<metablock_t>::metablock_manager_t::head_t::pop() {
 
 template<class metablock_t>
 metablock_manager_t<metablock_t>::metablock_manager_t(extent_manager_t *em)
-    : head(this), mb_buffer(static_cast<crc_metablock_t *>(malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE))),
+    : head(this), mb_buffer(static_cast<crc_metablock_t *>(malloc_aligned(METABLOCK_SIZE, DEVICE_BLOCK_SIZE))),
       extent_manager(em), metablock_offsets(initial_metablock_offsets(extent_manager->extent_size)),
       state(state_unstarted), dbfile(NULL) {
-    rassert(sizeof(crc_metablock_t) <= DEVICE_BLOCK_SIZE);
+    rassert(sizeof(crc_metablock_t) <= METABLOCK_SIZE);
     rassert(mb_buffer);
     mb_buffer_in_use = false;
 
@@ -95,12 +95,12 @@ void metablock_manager_t<metablock_t>::create(file_t *dbfile, int64_t extent_siz
 
     std::vector<int64_t> metablock_offsets = initial_metablock_offsets(extent_size);
 
-    dbfile->set_size_at_least(metablock_offsets[metablock_offsets.size() - 1] + DEVICE_BLOCK_SIZE);
+    dbfile->set_size_at_least(metablock_offsets[metablock_offsets.size() - 1] + METABLOCK_SIZE);
 
     /* Allocate a buffer for doing our writes */
-    scoped_malloc_t<crc_metablock_t> buffer(malloc_aligned(DEVICE_BLOCK_SIZE,
+    scoped_malloc_t<crc_metablock_t> buffer(malloc_aligned(METABLOCK_SIZE,
                                                            DEVICE_BLOCK_SIZE));
-    bzero(buffer.get(), DEVICE_BLOCK_SIZE);
+    bzero(buffer.get(), METABLOCK_SIZE);
 
     /* Wipe the metablock slots so we don't mistake something left by a previous database for a
     valid metablock. */
@@ -115,14 +115,14 @@ void metablock_manager_t<metablock_t>::create(file_t *dbfile, int64_t extent_siz
     for (unsigned i = 0; i < metablock_offsets.size(); i++) {
         // We don't datasync here -- we can datasync when we write the first real
         // metablock.
-        dbfile->write_async(metablock_offsets[i], DEVICE_BLOCK_SIZE, buffer.get(),
+        dbfile->write_async(metablock_offsets[i], METABLOCK_SIZE, buffer.get(),
                             DEFAULT_DISK_ACCOUNT, &callback, file_t::NO_DATASYNCS);
     }
     callback.wait();
 
     /* Write the first metablock */
     buffer->prepare(initial, MB_START_VERSION);
-    co_write(dbfile, metablock_offsets[0], DEVICE_BLOCK_SIZE, buffer.get(),
+    co_write(dbfile, metablock_offsets[0], METABLOCK_SIZE, buffer.get(),
              DEFAULT_DISK_ACCOUNT, file_t::WRAP_IN_DATASYNCS);
 }
 
@@ -137,21 +137,21 @@ void metablock_manager_t<metablock_t>::co_start_existing(file_t *file, bool *mb_
 
     startup_values.version = MB_BAD_VERSION;
 
-    dbfile->set_size_at_least(metablock_offsets[metablock_offsets.size() - 1] + DEVICE_BLOCK_SIZE);
+    dbfile->set_size_at_least(metablock_offsets[metablock_offsets.size() - 1] + METABLOCK_SIZE);
 
     // Reading metablocks by issuing one I/O request at a time is
     // slow. Read all of them in one batch, and check them later.
     state = state_reading;
     struct load_buffer_manager_t {
         explicit load_buffer_manager_t(size_t nmetablocks) {
-            buffer = reinterpret_cast<crc_metablock_t*>(malloc_aligned(DEVICE_BLOCK_SIZE * nmetablocks,
+            buffer = reinterpret_cast<crc_metablock_t*>(malloc_aligned(METABLOCK_SIZE * nmetablocks,
                                                                        DEVICE_BLOCK_SIZE));
         }
         ~load_buffer_manager_t() {
             free(buffer);
         }
         crc_metablock_t *get_metablock(unsigned i) {
-            return reinterpret_cast<crc_metablock_t *>(reinterpret_cast<char *>(buffer) + DEVICE_BLOCK_SIZE * i);
+            return reinterpret_cast<crc_metablock_t *>(reinterpret_cast<char *>(buffer) + METABLOCK_SIZE * i);
         }
 
     private:
@@ -166,7 +166,7 @@ void metablock_manager_t<metablock_t>::co_start_existing(file_t *file, bool *mb_
     } callback;
     callback.refcount = metablock_offsets.size();
     for (unsigned i = 0; i < metablock_offsets.size(); i++) {
-        dbfile->read_async(metablock_offsets[i], DEVICE_BLOCK_SIZE, lbm.get_metablock(i),
+        dbfile->read_async(metablock_offsets[i], METABLOCK_SIZE, lbm.get_metablock(i),
                            DEFAULT_DISK_ACCOUNT, &callback);
     }
     callback.wait();
@@ -214,7 +214,7 @@ void metablock_manager_t<metablock_t>::co_start_existing(file_t *file, bool *mb_
         startup_values.version = MB_BAD_VERSION; /* version is now useless */
         head.pop();
         *mb_found = true;
-        memcpy(mb_buffer, last_good_mb, DEVICE_BLOCK_SIZE);
+        memcpy(mb_buffer, last_good_mb, METABLOCK_SIZE);
         memcpy(mb_out, &(mb_buffer->metablock), sizeof(metablock_t));
     }
     mb_buffer_in_use = false;
@@ -230,7 +230,7 @@ void metablock_manager_t<metablock_t>::start_existing_callback(file_t *file, boo
 
 template<class metablock_t>
 bool metablock_manager_t<metablock_t>::start_existing(file_t *file, bool *mb_found, metablock_t *mb_out, metablock_read_callback_t *cb) {
-    coro_t::spawn(boost::bind(&metablock_manager_t<metablock_t>::start_existing_callback, this, file, mb_found, mb_out, cb));
+    coro_t::spawn_later_ordered(boost::bind(&metablock_manager_t<metablock_t>::start_existing_callback, this, file, mb_found, mb_out, cb));
     return false;
 }
 template<class metablock_t>
@@ -246,7 +246,7 @@ void metablock_manager_t<metablock_t>::co_write_metablock(metablock_t *mb, file_
     mb_buffer_in_use = true;
 
     state = state_writing;
-    co_write(dbfile, head.offset(), DEVICE_BLOCK_SIZE, mb_buffer, io_account,
+    co_write(dbfile, head.offset(), METABLOCK_SIZE, mb_buffer, io_account,
              file_t::WRAP_IN_DATASYNCS);
 
     ++head;
@@ -263,7 +263,7 @@ void metablock_manager_t<metablock_t>::write_metablock_callback(metablock_t *mb,
 
 template<class metablock_t>
 bool metablock_manager_t<metablock_t>::write_metablock(metablock_t *mb, file_account_t *io_account, metablock_write_callback_t *cb) {
-    coro_t::spawn(boost::bind(&metablock_manager_t<metablock_t>::write_metablock_callback, this, mb, io_account, cb));
+    coro_t::spawn_later_ordered(boost::bind(&metablock_manager_t<metablock_t>::write_metablock_callback, this, mb, io_account, cb));
     return false;
 }
 

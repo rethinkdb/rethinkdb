@@ -25,11 +25,62 @@
 #include "logger.hpp"
 #include "perfmon/perfmon.hpp"
 
-/* Network connection object */
+int connect_ipv4_internal(fd_t socket, int local_port, const in_addr &addr, int port) {
+    struct sockaddr_in sa;
+    socklen_t sa_len(sizeof(sa));
+    memset(&sa, 0, sa_len);
+    sa.sin_family = AF_INET;
 
-linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &host, int port, signal_t *interruptor, int local_port) THROWS_ONLY(connect_failed_exc_t, interrupted_exc_t) :
+    if (local_port != 0) {
+        sa.sin_port = htons(local_port);
+        sa.sin_addr.s_addr = INADDR_ANY;
+        if (bind(socket, reinterpret_cast<sockaddr *>(&sa), sa_len) != 0)
+            logWRN("Failed to bind to local port %d: %s", local_port, errno_string(get_errno()).c_str());
+    }
+
+    sa.sin_port = htons(port);
+    sa.sin_addr = addr;
+
+    int res;
+    do {
+        res = connect(socket, reinterpret_cast<sockaddr *>(&sa), sa_len);
+    } while (res == -1 && get_errno() == EINTR);
+
+    return res;
+}
+
+int connect_ipv6_internal(fd_t socket, int local_port, const in6_addr &addr, int port, uint32_t scope_id) {
+    struct sockaddr_in6 sa;
+    socklen_t sa_len(sizeof(sa));
+    memset(&sa, 0, sa_len);
+    sa.sin6_family = AF_INET6;
+
+    if (local_port != 0) {
+        sa.sin6_port = htons(local_port);
+        sa.sin6_addr = in6addr_any;
+        if (bind(socket, reinterpret_cast<sockaddr *>(&sa), sa_len) != 0)
+            logWRN("Failed to bind to local port %d: %s", local_port, errno_string(get_errno()).c_str());
+    }
+
+    sa.sin6_port = htons(port);
+    sa.sin6_addr = addr;
+    sa.sin6_scope_id = scope_id;
+
+    int res;
+    do {
+        res = connect(socket, reinterpret_cast<sockaddr *>(&sa), sa_len);
+    } while (res == -1 && get_errno() == EINTR);
+
+    return res;
+}
+
+// Network connection object
+linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &peer,
+                                   int port,
+                                   signal_t *interruptor,
+                                   int local_port) THROWS_ONLY(connect_failed_exc_t, interrupted_exc_t) :
         write_perfmon(NULL),
-        sock(socket(AF_INET, SOCK_STREAM, 0)),
+        sock(socket(peer.get_address_family(), SOCK_STREAM, 0)),
         event_watcher(new linux_event_watcher_t(sock.get(), this)),
         read_in_progress(false), write_in_progress(false),
         write_handler(this),
@@ -37,35 +88,25 @@ linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &host, int port, signal_t 
         write_coro_pool(1, &write_queue, &write_handler),
         current_write_buffer(get_write_buffer()),
         drainer(new auto_drainer_t) {
+    guarantee_err(fcntl(sock.get(), F_SETFL, O_NONBLOCK) == 0, "Could not make socket non-blocking");
 
-    struct sockaddr_in addr;
     if (local_port != 0) {
         // Set the socket to reusable so we don't block out other sockets from this port
         int reuse = 1;
         if (setsockopt(sock.get(), SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) != 0)
-            logWRN("Failed to set socket reuse to true: %s", errno_string(errno).c_str());
-        addr.sin_family = AF_INET;
-        addr.sin_port = htons(local_port);
-        addr.sin_addr.s_addr = INADDR_ANY;
-        bzero(addr.sin_zero, sizeof(addr.sin_zero));
-        if (bind(sock.get(), reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr)) != 0)
-            logWRN("Failed to bind to local port %d: %s", local_port, errno_string(errno).c_str());
+            logWRN("Failed to set socket reuse to true: %s", errno_string(get_errno()).c_str());
     }
 
-    addr.sin_family = AF_INET;
-    addr.sin_port = htons(port);
-    addr.sin_addr = host.get_addr();
-    bzero(addr.sin_zero, sizeof(addr.sin_zero));
-
-    guarantee_err(fcntl(sock.get(), F_SETFL, O_NONBLOCK) == 0, "Could not make socket non-blocking");
-
     int res;
-    do {
-        res  = connect(sock.get(), reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr));
-    } while (res == -1 && errno == EINTR);
+    if (peer.is_ipv4()) {
+        res = connect_ipv4_internal(sock.get(), local_port, peer.get_ipv4_addr(), port);
+    } else {
+        res = connect_ipv6_internal(sock.get(), local_port, peer.get_ipv6_addr(), port,
+                                    peer.get_ipv6_scope_id());
+    }
 
     if (res != 0) {
-        if (errno == EINPROGRESS) {
+        if (get_errno() == EINPROGRESS) {
             linux_event_watcher_t::watch_t watch(event_watcher.get(), poll_event_out);
             wait_interruptible(&watch, interruptor);
             int error;
@@ -78,7 +119,7 @@ linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &host, int port, signal_t 
                 throw linux_tcp_conn_t::connect_failed_exc_t(error);
             }
         } else {
-            throw linux_tcp_conn_t::connect_failed_exc_t(errno);
+            throw linux_tcp_conn_t::connect_failed_exc_t(get_errno());
         }
     }
 }
@@ -141,7 +182,7 @@ size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) THROWS_ONLY(tc
     while (true) {
         ssize_t res = ::read(sock.get(), buffer, size);
 
-        if (res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+        if (res == -1 && (get_errno() == EAGAIN || get_errno() == EWOULDBLOCK)) {
             /* There's no data available right now, so we must wait for a notification from the
             epoll queue, or for an order to shut down. */
 
@@ -157,7 +198,7 @@ size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) THROWS_ONLY(tc
 
             /* Go around the loop and try to read again */
 
-        } else if (res == 0 || (res == -1 && (errno == ECONNRESET || errno == ENOTCONN))) {
+        } else if (res == 0 || (res == -1 && (get_errno() == ECONNRESET || get_errno() == ENOTCONN))) {
             /* We were closed. This is the first notification that the kernel has given us, so we
             must call on_shutdown_read(). */
             on_shutdown_read();
@@ -166,7 +207,7 @@ size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) THROWS_ONLY(tc
         } else if (res == -1) {
             /* Unknown error. This is not expected, but it will probably happen sometime so we
             shouldn't crash. */
-            logERR("Could not read from socket: %s", errno_string(errno).c_str());
+            logERR("Could not read from socket: %s", errno_string(get_errno()).c_str());
             on_shutdown_read();
             throw tcp_conn_read_closed_exc_t();
 
@@ -249,8 +290,8 @@ void linux_tcp_conn_t::pop(size_t len, signal_t *closer) THROWS_ONLY(tcp_conn_re
 void linux_tcp_conn_t::shutdown_read() {
     assert_thread();
     int res = ::shutdown(sock.get(), SHUT_RD);
-    if (res != 0 && errno != ENOTCONN) {
-        logERR("Could not shutdown socket for reading: %s", errno_string(errno).c_str());
+    if (res != 0 && get_errno() != ENOTCONN) {
+        logERR("Could not shutdown socket for reading: %s", errno_string(get_errno()).c_str());
     }
     on_shutdown_read();
 }
@@ -323,7 +364,7 @@ void linux_tcp_conn_t::perform_write(const void *buf, size_t size) {
     while (size > 0) {
         ssize_t res = ::write(sock.get(), buf, size);
 
-        if (res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+        if (res == -1 && (get_errno() == EAGAIN || get_errno() == EWOULDBLOCK)) {
             /* Wait for a notification from the event queue, or for an order to
             shut down */
             linux_event_watcher_t::watch_t watch(event_watcher.get(), poll_event_out);
@@ -338,8 +379,8 @@ void linux_tcp_conn_t::perform_write(const void *buf, size_t size) {
 
             /* Go around the loop and try to write again */
 
-        } else if (res == -1 && (errno == EPIPE || errno == ENOTCONN || errno == EHOSTUNREACH ||
-                                 errno == ENETDOWN || errno == EHOSTDOWN || errno == ECONNRESET)) {
+        } else if (res == -1 && (get_errno() == EPIPE || get_errno() == ENOTCONN || get_errno() == EHOSTUNREACH ||
+                                 get_errno() == ENETDOWN || get_errno() == EHOSTDOWN || get_errno() == ECONNRESET)) {
             /* These errors are expected to happen at some point in practice */
             on_shutdown_write();
             break;
@@ -347,7 +388,7 @@ void linux_tcp_conn_t::perform_write(const void *buf, size_t size) {
         } else if (res == -1) {
             /* In theory this should never happen, but it probably will. So we write a log message
                and then shut down normally. */
-            logERR("Could not write to socket: %s", errno_string(errno).c_str());
+            logERR("Could not write to socket: %s", errno_string(get_errno()).c_str());
             on_shutdown_write();
             break;
 
@@ -462,8 +503,8 @@ void linux_tcp_conn_t::shutdown_write() {
     assert_thread();
 
     int res = ::shutdown(sock.get(), SHUT_WR);
-    if (res != 0 && errno != ENOTCONN) {
-        logERR("Could not shutdown socket for writing: %s", errno_string(errno).c_str());
+    if (res != 0 && get_errno() != ENOTCONN) {
+        logERR("Could not shutdown socket for writing: %s", errno_string(get_errno()).c_str());
     }
 
     on_shutdown_write();
@@ -493,7 +534,7 @@ linux_tcp_conn_t::~linux_tcp_conn_t() THROWS_NOTHING {
     if (is_write_open()) shutdown_write();
 }
 
-void linux_tcp_conn_t::rethread(int new_thread) {
+void linux_tcp_conn_t::rethread(threadnum_t new_thread) {
     if (home_thread() == get_thread_id() && new_thread == INVALID_THREAD) {
         rassert(!read_in_progress);
         rassert(!write_in_progress);
@@ -506,9 +547,10 @@ void linux_tcp_conn_t::rethread(int new_thread) {
 
     } else {
         crash("linux_tcp_conn_t can be rethread()ed from no thread to the current thread or "
-            "from the current thread to no thread, but no other combination is legal. The "
-            "current thread is %d; the old thread is %d; the new thread is %d.\n",
-            get_thread_id(), home_thread(), new_thread);
+              "from the current thread to no thread, but no other combination is legal. The "
+              "current thread is %" PRIi32 "; the old thread is %" PRIi32 "; the new thread "
+              "is %" PRIi32 ".\n",
+              get_thread_id().threadnum, home_thread().threadnum, new_thread.threadnum);
     }
 
     real_home_thread = new_thread;
@@ -519,18 +561,24 @@ void linux_tcp_conn_t::rethread(int new_thread) {
 }
 
 int linux_tcp_conn_t::getsockname(ip_address_t *ip) {
-    struct sockaddr_in addr;
-    socklen_t len = sizeof(addr);
-    int res = ::getsockname(sock.get(), reinterpret_cast<struct sockaddr*>(&addr), &len);
-    if (!res) ip->set_addr(addr.sin_addr);
+    const socklen_t buflength = INET6_ADDRSTRLEN;
+    char buf[buflength + 1] = { 0 };
+    socklen_t mutable_buflength = buflength;
+    int res = ::getsockname(sock.get(), reinterpret_cast<sockaddr *>(&buf[0]), &mutable_buflength);
+    if (res == 0) {
+        *ip = ip_address_t(reinterpret_cast<sockaddr *>(&buf[0]));
+    }
     return res;
 }
 
 int linux_tcp_conn_t::getpeername(ip_address_t *ip) {
-    struct sockaddr_in addr;
-    socklen_t len = sizeof(addr);
-    int res = ::getpeername(sock.get(), reinterpret_cast<struct sockaddr*>(&addr), &len);
-    if (!res) ip->set_addr(addr.sin_addr);
+    const socklen_t buflength = INET6_ADDRSTRLEN;
+    char buf[buflength + 1] = { 0 };
+    socklen_t mutable_buflength = buflength;
+    int res = ::getpeername(sock.get(), reinterpret_cast<sockaddr *>(&buf[0]), &mutable_buflength);
+    if (res == 0) {
+        *ip = ip_address_t(reinterpret_cast<sockaddr *>(&buf[0]));
+    }
     return res;
 }
 
@@ -551,8 +599,6 @@ void linux_tcp_conn_t::on_event(int /* events */) {
     event_watcher->stop_watching_for_errors();
 }
 
-
-
 linux_tcp_conn_descriptor_t::linux_tcp_conn_descriptor_t(fd_t fd) : fd_(fd) {
     rassert(fd != -1);
 }
@@ -571,10 +617,7 @@ void linux_tcp_conn_descriptor_t::make_overcomplicated(linux_tcp_conn_t **tcp_co
     fd_ = -1;
 }
 
-
-
 /* Network listener object */
-
 linux_nonthrowing_tcp_listener_t::linux_nonthrowing_tcp_listener_t(
         const std::set<ip_address_t> &bind_addresses, int _port,
         const boost::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t>&)> &cb) :
@@ -589,9 +632,7 @@ linux_nonthrowing_tcp_listener_t::linux_nonthrowing_tcp_listener_t(
 {
     // If no addresses were supplied, default to 'any'
     if (local_addresses.empty()) {
-        sockaddr_in sin;
-        sin.sin_addr.s_addr = INADDR_ANY;
-        local_addresses.insert(ip_address_t(&sin));
+        local_addresses.insert(ip_address_t::any(AF_INET6));
     }
 }
 
@@ -613,7 +654,7 @@ bool linux_nonthrowing_tcp_listener_t::begin_listening() {
 
     // Start the accept loop
     accept_loop_drainer.init(new auto_drainer_t);
-    coro_t::spawn_sometime(boost::bind(
+    coro_t::spawn_sometime(std::bind(
         &linux_nonthrowing_tcp_listener_t::accept_loop, this, auto_drainer_t::lock_t(accept_loop_drainer.get())));
 
     return true;
@@ -628,12 +669,15 @@ int linux_nonthrowing_tcp_listener_t::get_port() const {
 }
 
 void linux_nonthrowing_tcp_listener_t::init_sockets() {
-    for (size_t i = 0; i < socks.size(); ++i) {
+    rassert(local_addresses.size() == socks.size());
+
+    size_t i = 0;
+    for (auto addr = local_addresses.begin(); addr != local_addresses.end(); ++addr, ++i) {
         if (event_watchers[i].has()) {
             event_watchers[i].reset();
         }
 
-        socks[i].reset(socket(AF_INET, SOCK_STREAM, 0));
+        socks[i].reset(socket(addr->get_address_family(), SOCK_STREAM, 0));
         event_watchers[i].init(new linux_event_watcher_t(socks[i].get(), this));
 
         int sock_fd = socks[i].get();
@@ -677,43 +721,77 @@ bool linux_nonthrowing_tcp_listener_t::bind_sockets() {
     return bound;
 }
 
+bool bind_ipv4_interface(fd_t sock, int *port_out, const struct in_addr &addr) {
+    sockaddr_in serv_addr;
+    socklen_t sa_len(sizeof(serv_addr));
+    memset(&serv_addr, 0, sa_len);
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_port = htons(*port_out);
+    serv_addr.sin_addr = addr;
+
+    int res = bind(sock, reinterpret_cast<sockaddr *>(&serv_addr), sa_len);
+
+    if (res != 0) {
+        if (get_errno() == EADDRINUSE || get_errno() == EACCES) {
+            return false;
+        } else {
+            crash("Could not bind socket at localhost:%i - %s\n", *port_out, errno_string(get_errno()).c_str());
+        }
+    }
+
+    // If we were told to let the kernel assign the port, figure out what was assigned
+    if (*port_out == ANY_PORT) {
+        res = ::getsockname(sock, reinterpret_cast<sockaddr *>(&serv_addr), &sa_len);
+        guarantee_err(res != -1, "Could not determine socket local port number");
+        *port_out = ntohs(serv_addr.sin_port);
+    }
+
+    return true;
+}
+
+bool bind_ipv6_interface(fd_t sock, int *port_out, const ip_address_t &addr) {
+    sockaddr_in6 serv_addr;
+    socklen_t sa_len(sizeof(serv_addr));
+    memset(&serv_addr, 0, sa_len);
+    serv_addr.sin6_family = AF_INET6;
+    serv_addr.sin6_port = htons(*port_out);
+    serv_addr.sin6_addr = addr.get_ipv6_addr();
+    serv_addr.sin6_scope_id = addr.get_ipv6_scope_id();
+
+    int res = bind(sock, reinterpret_cast<sockaddr *>(&serv_addr), sa_len);
+
+    if (res != 0) {
+        if (get_errno() == EADDRINUSE || get_errno() == EACCES) {
+            return false;
+        } else {
+            crash("Could not bind socket at localhost:%i - %s\n", *port_out, errno_string(get_errno()).c_str());
+        }
+    }
+
+    // If we were told to let the kernel assign the port, figure out what was assigned
+    if (*port_out == ANY_PORT) {
+        res = ::getsockname(sock, reinterpret_cast<sockaddr *>(&serv_addr), &sa_len);
+        guarantee_err(res != -1, "Could not determine socket local port number");
+        *port_out = ntohs(serv_addr.sin6_port);
+    }
+
+    return true;
+}
+
 bool linux_nonthrowing_tcp_listener_t::bind_sockets_internal(int *port_out) {
     init_sockets();
     bool result = true;
 
-    sockaddr_in serv_addr;
-    memset(&serv_addr, 0, sizeof(serv_addr));
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = htons(port);
-
     rassert(local_addresses.size() == static_cast<size_t>(socks.size()));
     ssize_t i = 0;
     for (std::set<ip_address_t>::iterator addr = local_addresses.begin();
-         addr != local_addresses.end(); ++i, ++addr) {
-        serv_addr.sin_addr = addr->get_addr();
-
-        int res = bind(socks[i].get(), reinterpret_cast<sockaddr *>(&serv_addr), sizeof(serv_addr));
-
-        if (res != 0) {
-            if (errno == EADDRINUSE || errno == EACCES) {
-                result = false;
-                break;
-            } else {
-                crash("Could not bind socket at localhost:%i - %s\n", port, errno_string(errno).c_str());
-            }
-        }
-
-        // If we were told to let the kernel assign the port, figure out what was assigned
-        if (*port_out == ANY_PORT) {
-            rassert(i == 0); // This should only happen on the first loop
-            struct sockaddr_in sa;
-            socklen_t sa_len(sizeof(sa));
-            int res2 = getsockname(socks[i].get(), (struct sockaddr*)&sa, &sa_len);
-            guarantee_err(res2 != -1, "Could not determine socket local port number");
-            *port_out = ntohs(sa.sin_port);
-
-            // Apply to the structure we're binding with, so all sockets have the same local port
-            serv_addr.sin_port = sa.sin_port;
+         addr != local_addresses.end() && result; ++i, ++addr) {
+        if (addr->is_ipv4()) {
+            result = bind_ipv4_interface(socks[i].get(), port_out, addr->get_ipv4_addr());
+        } else if (addr->is_ipv6()) {
+            result = bind_ipv6_interface(socks[i].get(), port_out, *addr);
+        } else {
+            crash("unknown address type when binding socket");
         }
     }
 
@@ -759,7 +837,7 @@ void linux_nonthrowing_tcp_listener_t::accept_loop(auto_drainer_t::lock_t lock) 
         fd_t new_sock = accept(active_fd, NULL, NULL);
 
         if (new_sock != INVALID_FD) {
-            coro_t::spawn_now_dangerously(boost::bind(&linux_nonthrowing_tcp_listener_t::handle, this, new_sock));
+            coro_t::spawn_now_dangerously(std::bind(&linux_nonthrowing_tcp_listener_t::handle, this, new_sock));
 
             /* If we backed off before, un-backoff now that the problem seems to be
             resolved. */
@@ -769,17 +847,17 @@ void linux_nonthrowing_tcp_listener_t::accept_loop(auto_drainer_t::lock_t lock) 
             is working. */
             log_next_error = true;
 
-        } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
+        } else if (get_errno() == EAGAIN || get_errno() == EWOULDBLOCK) {
             active_fd = wait_for_any_socket(lock);
 
-        } else if (errno == EINTR) {
+        } else if (get_errno() == EINTR) {
             /* Harmless error; just try again. */
 
         } else {
             /* Unexpected error. Log it unless it's a repeat error. */
             if (log_next_error) {
                 logERR("accept() failed: %s.",
-                    errno_string(errno).c_str());
+                    errno_string(get_errno()).c_str());
                 log_next_error = false;
             }
 
@@ -862,7 +940,7 @@ int linux_repeated_nonthrowing_tcp_listener_t::get_port() const {
 void linux_repeated_nonthrowing_tcp_listener_t::begin_repeated_listening_attempts() {
     auto_drainer_t::lock_t lock(&drainer);
     coro_t::spawn_sometime(
-        boost::bind(&linux_repeated_nonthrowing_tcp_listener_t::retry_loop, this, lock));
+        std::bind(&linux_repeated_nonthrowing_tcp_listener_t::retry_loop, this, lock));
 }
 
 void linux_repeated_nonthrowing_tcp_listener_t::retry_loop(auto_drainer_t::lock_t lock) {

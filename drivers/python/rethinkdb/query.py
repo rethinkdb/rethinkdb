@@ -103,6 +103,12 @@ def mod(a, b):
 def not_(a):
     return Not(a)
 
+def and_(*args):
+    return All(*args)
+
+def or_(*args):
+    return Any(*args)
+
 def all(*args):
     return All(*args)
 
@@ -162,3 +168,6 @@ def literal(val=()):
         return Literal(val)
     else:
         return Literal()
+
+def object(*args):
+    return Object(*args)

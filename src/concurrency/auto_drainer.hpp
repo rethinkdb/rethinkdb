@@ -45,7 +45,7 @@ public:
         guarantee(draining.is_pulsed());
     }
 
-    void rethread(int new_thread) {
+    void rethread(threadnum_t new_thread) {
         rassert(refcount == 0);
         real_home_thread = new_thread;
         draining.rethread(new_thread);
@@ -67,7 +67,7 @@ private:
     public:
         toy_tcp_server_t(int port) :
             listener(port,
-                boost::bind(&toy_tcp_server_t::serve,
+                std::bind(&toy_tcp_server_t::serve,
                     this,
                     auto_drainer_t::lock_t(&drainer),
                     _1
@@ -89,7 +89,7 @@ private:
         tcp_listener_t listener;
     };
 
-When a TCP connection comes in, the functor created by `boost::bind()` is
+When a TCP connection comes in, the functor created by `std::bind()` is
 called, and it makes a copy of the `auto_drainer_t::lock_t` and passes it to
 `serve()`. When the `toy_tcp_server_t` is destroyed, first the `tcp_listener_t`
 destructor is run (so no new connections are accepted) and then the

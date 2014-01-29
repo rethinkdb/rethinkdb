@@ -1,9 +1,10 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_BROADCASTER_HPP_
 #define CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_BROADCASTER_HPP_
 
 #include <list>
 #include <map>
+#include <vector>
 
 #include "utils.hpp"
 #include <boost/shared_ptr.hpp>
@@ -19,7 +20,7 @@ class ack_checker_t;
 template <class> class listener_t;
 template <class> class semilattice_readwrite_view_t;
 template <class> class multistore_ptr_t;
-struct mailbox_manager_t;
+class mailbox_manager_t;
 
 /* Each shard has a `broadcaster_t` on its primary machine. Each machine sends
 queries via `cluster_namespace_interface_t` over the network to the `master_t`
@@ -38,15 +39,11 @@ private:
     class incomplete_write_t;
 
 public:
-    /* If the number of calls to `spawn_write()` minus the number of writes that
-    have completed is equal to `MAX_OUTSTANDING_WRITES`, it's illegal to call
-    `spawn_write()` again. */
-    static const int MAX_OUTSTANDING_WRITES;
-
     class write_callback_t {
     public:
         write_callback_t();
-        virtual void on_response(peer_id_t peer, const typename protocol_t::write_response_t &response) = 0;
+        virtual void on_response(peer_id_t peer,
+            const typename protocol_t::write_response_t &response) = 0;
         virtual void on_done() = 0;
 
     protected:
@@ -67,7 +64,13 @@ public:
             order_source_t *order_source,
             signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
-    void read(const typename protocol_t::read_t &r, typename protocol_t::read_response_t *response, fifo_enforcer_sink_t::exit_read_t *lock, order_token_t tok, signal_t *interruptor) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t);
+    void read(
+        const typename protocol_t::read_t &r,
+        typename protocol_t::read_response_t *response,
+        fifo_enforcer_sink_t::exit_read_t *lock,
+        order_token_t tok,
+        signal_t *interruptor)
+        THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t);
 
     /* Unlike `read()`, `spawn_write()` returns as soon as the write has begun
     and replies asynchronously via a callback. It may block, so it takes an
@@ -99,11 +102,38 @@ private:
     `dispatchee_mutex` and pass in `proof` of the mutex acquisition. (A
     dispatchee is "readable" if a `replier_t` exists for it on the remote
     machine.) */
-    void pick_a_readable_dispatchee(dispatchee_t **dispatchee_out, mutex_assertion_t::acq_t *proof, auto_drainer_t::lock_t *lock_out) THROWS_ONLY(cannot_perform_query_exc_t);
+    void pick_a_readable_dispatchee(
+        dispatchee_t **dispatchee_out, mutex_assertion_t::acq_t *proof,
+        auto_drainer_t::lock_t *lock_out) THROWS_ONLY(cannot_perform_query_exc_t);
+    void get_all_readable_dispatchees(
+        std::vector<dispatchee_t *> *dispatchees_out, mutex_assertion_t::acq_t *proof,
+        std::vector<auto_drainer_t::lock_t> *locks_out)
+        THROWS_ONLY(cannot_perform_query_exc_t);
 
-    void background_write(dispatchee_t *mirror, auto_drainer_t::lock_t mirror_lock, incomplete_write_ref_t write_ref, order_token_t order_token, fifo_enforcer_write_token_t token) THROWS_NOTHING;
-    void background_writeread(dispatchee_t *mirror, auto_drainer_t::lock_t mirror_lock, incomplete_write_ref_t write_ref, order_token_t order_token, fifo_enforcer_write_token_t token, write_durability_t durability) THROWS_NOTHING;
+    void background_write(
+        dispatchee_t *mirror, auto_drainer_t::lock_t mirror_lock,
+        incomplete_write_ref_t write_ref, order_token_t order_token,
+        fifo_enforcer_write_token_t token) THROWS_NOTHING;
+    void background_writeread(
+        dispatchee_t *mirror, auto_drainer_t::lock_t mirror_lock,
+        incomplete_write_ref_t write_ref, order_token_t order_token,
+        fifo_enforcer_write_token_t token, write_durability_t durability) THROWS_NOTHING;
     void end_write(boost::shared_ptr<incomplete_write_t> write) THROWS_NOTHING;
+
+    void single_read(
+        const typename protocol_t::read_t &r,
+        typename protocol_t::read_response_t *response,
+        fifo_enforcer_sink_t::exit_read_t *lock, order_token_t tok,
+        signal_t *interruptor)
+        THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t);
+
+    void all_read(
+        const typename protocol_t::read_t &r,
+        typename protocol_t::read_response_t *response,
+        fifo_enforcer_sink_t::exit_read_t *lock, order_token_t tok,
+        signal_t *interruptor)
+        THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t);
+
 
     /* This function sanity-checks `incomplete_writes`, `current_timestamp`,
     and `newest_complete_timestamp`. It mostly exists as a form of executable
@@ -141,12 +171,12 @@ private:
     std::list<boost::shared_ptr<incomplete_write_t> > incomplete_writes;
     state_timestamp_t current_timestamp, newest_complete_timestamp;
     order_checkpoint_t order_checkpoint;
-    semaphore_assertion_t enforce_max_outstanding_writes;
 
     std::map<dispatchee_t *, auto_drainer_t::lock_t> dispatchees;
     intrusive_list_t<dispatchee_t> readable_dispatchees;
 
-    registrar_t<listener_business_card_t<protocol_t>, broadcaster_t *, dispatchee_t> registrar;
+    registrar_t<listener_business_card_t<protocol_t>, broadcaster_t *, dispatchee_t>
+        registrar;
 
     DISABLE_COPYING(broadcaster_t);
 };

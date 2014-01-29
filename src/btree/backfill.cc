@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "btree/backfill.hpp"
 
 #include <algorithm>
@@ -6,11 +6,12 @@
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
-#include "arch/runtime/runtime.hpp"
+#include "arch/runtime/coroutines.hpp"
 #include "btree/node.hpp"
 #include "btree/internal_node.hpp"
 #include "btree/leaf_node.hpp"
 #include "btree/parallel_traversal.hpp"
+#include "btree/secondary_operations.hpp"
 #include "btree/slice.hpp"
 #include "buffer_cache/buffer_cache.hpp"
 #include "protocol_api.hpp"
@@ -73,7 +74,7 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
         cond_t *done_cond;
 
         void got_subtree_recencies() {
-            coro_t::spawn(boost::bind(&annoying_t::do_got_subtree_recencies, this));
+            coro_t::spawn_sometime(boost::bind(&annoying_t::do_got_subtree_recencies, this));
         }
 
         void do_got_subtree_recencies() {

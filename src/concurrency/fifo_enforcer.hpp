@@ -6,7 +6,6 @@
 #include <utility>
 
 #include "concurrency/mutex_assertion.hpp"
-#include "concurrency/queue/passive_producer.hpp"
 #include "concurrency/signal.hpp"
 #include "containers/intrusive_priority_queue.hpp"
 #include "perfmon/perfmon.hpp"

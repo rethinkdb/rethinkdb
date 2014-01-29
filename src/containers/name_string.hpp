@@ -24,7 +24,7 @@ public:
     bool empty() const { return str_.empty(); }
     const char *c_str() const { return str_.c_str(); }
 
-    RDB_MAKE_ME_SERIALIZABLE_1(str_);
+    RDB_DECLARE_ME_SERIALIZABLE;
 
     static const char *const valid_char_msg;
 

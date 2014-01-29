@@ -27,6 +27,9 @@ public:
     void add_role(const peer_id_t &id, const typename protocol_t::region_t &region, blueprint_role_t role);
 
     role_map_t peers_roles;
+
+    bool operator==(const blueprint_t &o) const { return peers_roles == o.peers_roles; }
+    bool operator!=(const blueprint_t &o) const { return !(*this == o); }
 };
 
 template <class protocol_t>

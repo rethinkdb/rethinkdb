@@ -7,6 +7,7 @@
 #include <ftw.h>
 #include <fcntl.h>
 #include <limits.h>
+#include <locale.h>
 #include <signal.h>
 #include <stdarg.h>
 #include <inttypes.h>
@@ -31,6 +32,7 @@
 #include "errors.hpp"
 #include <boost/tokenizer.hpp>
 
+#include "arch/io/disk.hpp"
 #include "arch/runtime/coroutines.hpp"
 #include "arch/runtime/runtime.hpp"
 #include "config/args.hpp"
@@ -39,24 +41,30 @@
 #include "containers/printf_buffer.hpp"
 #include "logger.hpp"
 #include "rdb_protocol/ql2.pb.h"
-#include "rdb_protocol/ql2_extensions.pb.h"
 #include "thread_local.hpp"
 
 void run_generic_global_startup_behavior() {
     install_generic_crash_handler();
 
+    // Set the locale to C, because some ReQL terms may produce different
+    // results in different locales, and we need to avoid data divergence when
+    // two servers in the same cluster have different locales.
+    setlocale(LC_ALL, "C");
+
     rlimit file_limit;
     int res = getrlimit(RLIMIT_NOFILE, &file_limit);
     guarantee_err(res == 0, "getrlimit with RLIMIT_NOFILE failed");
 
-    // We need to set the file descriptor limit maximum to a higher value.  On OS X, rlim_max is
-    // RLIM_INFINITY and, with RLIMIT_NOFILE, it's illegal to set rlim_cur to RLIM_INFINITY.  On
-    // Linux, maybe the same thing is illegal, but rlim_max is set to a finite value (65K - 1)
-    // anyway.  OS X has OPEN_MAX defined to limit the highest possible file descriptor value, and
-    // that's what'll end up being the new rlim_cur value.  (The man page on OS X suggested it.)  I
-    // don't know if Linux has a similar thing, or other platforms, so we just go with rlim_max, and
-    // if we ever see a warning, we'll fix it.  Users can always deal with the problem on their end
-    // for a while using ulimit or whatever.)
+    // We need to set the file descriptor limit maximum to a higher value.  On
+    // OS X, rlim_max is RLIM_INFINITY and, with RLIMIT_NOFILE, it's illegal to
+    // set rlim_cur to RLIM_INFINITY.  On Linux, maybe the same thing is
+    // illegal, but rlim_max is set to a finite value (65K - 1) anyway.  OS X
+    // has OPEN_MAX defined to limit the highest possible file descriptor value,
+    // and that's what'll end up being the new rlim_cur value.  (The man page on
+    // OS X suggested it.)  I don't know if Linux has a similar thing, or other
+    // platforms, so we just go with rlim_max, and if we ever see a warning,
+    // we'll fix it.  Users can always deal with the problem on their end for a
+    // while using ulimit or whatever.)
 
 #ifdef __MACH__
     file_limit.rlim_cur = std::min<rlim_t>(OPEN_MAX, file_limit.rlim_max);
@@ -67,7 +75,7 @@ void run_generic_global_startup_behavior() {
 
     if (res != 0) {
         logWRN("The call to set the open file descriptor limit failed (errno = %d - %s)\n",
-            errno, errno_string(errno).c_str());
+            get_errno(), errno_string(get_errno()).c_str());
     }
 
 }
@@ -201,7 +209,7 @@ void home_thread_mixin_debug_only_t::assert_thread() const {
 }
 #endif
 
-home_thread_mixin_debug_only_t::home_thread_mixin_debug_only_t(DEBUG_VAR int specified_home_thread)
+home_thread_mixin_debug_only_t::home_thread_mixin_debug_only_t(DEBUG_VAR threadnum_t specified_home_thread)
 #ifndef NDEBUG
     : real_home_thread(specified_home_thread)
 #endif
@@ -219,7 +227,7 @@ void home_thread_mixin_t::assert_thread() const {
 }
 #endif
 
-home_thread_mixin_t::home_thread_mixin_t(int specified_home_thread)
+home_thread_mixin_t::home_thread_mixin_t(threadnum_t specified_home_thread)
     : real_home_thread(specified_home_thread) {
     assert_good_thread_id(specified_home_thread);
 }
@@ -227,11 +235,21 @@ home_thread_mixin_t::home_thread_mixin_t()
     : real_home_thread(get_thread_id()) { }
 
 
-on_thread_t::on_thread_t(int thread) {
+on_thread_t::on_thread_t(threadnum_t thread) {
     coro_t::move_to_thread(thread);
 }
 on_thread_t::~on_thread_t() {
     coro_t::move_to_thread(home_thread());
+}
+
+with_priority_t::with_priority_t(int priority) {
+    rassert(coro_t::self() != NULL);
+    previous_priority = coro_t::self()->get_priority();
+    coro_t::self()->set_priority(priority);
+}
+with_priority_t::~with_priority_t() {
+    rassert(coro_t::self() != NULL);
+    coro_t::self()->set_priority(previous_priority);
 }
 
 microtime_t current_microtime() {
@@ -299,7 +317,7 @@ void debugf_prefix_buf(printf_buffer_t *buf) {
 
     format_time(t, buf);
 
-    buf->appendf(" Thread %d: ", get_thread_id());
+    buf->appendf(" Thread %" PRIi32 ": ", get_thread_id().threadnum);
 }
 
 void debugf_dump_buf(printf_buffer_t *buf) {
@@ -440,7 +458,7 @@ bool begins_with_minus(const char *string) {
 int64_t strtoi64_strict(const char *string, const char **end, int base) {
     CT_ASSERT(sizeof(long long) == sizeof(int64_t));  // NOLINT(runtime/int)
     long long result = strtoll(string, const_cast<char **>(end), base);  // NOLINT(runtime/int)
-    if ((result == LLONG_MAX || result == LLONG_MIN) && errno == ERANGE) {
+    if ((result == LLONG_MAX || result == LLONG_MIN) && get_errno() == ERANGE) {
         *end = string;
         return 0;
     }
@@ -454,7 +472,7 @@ uint64_t strtou64_strict(const char *string, const char **end, int base) {
     }
     CT_ASSERT(sizeof(unsigned long long) == sizeof(uint64_t));  // NOLINT(runtime/int)
     unsigned long long result = strtoull(string, const_cast<char **>(end), base);  // NOLINT(runtime/int)
-    if (result == ULLONG_MAX && errno == ERANGE) {
+    if (result == ULLONG_MAX && get_errno() == ERANGE) {
         *end = string;
         return 0;
     }
@@ -520,14 +538,16 @@ ticks_t secs_to_ticks(time_t secs) {
 }
 
 #ifdef __MACH__
-__thread mach_timebase_info_data_t mach_time_info;
+TLS(mach_timebase_info_data_t, mach_time_info);
 #endif  // __MACH__
 
 timespec clock_monotonic() {
 #ifdef __MACH__
+    mach_timebase_info_data_t mach_time_info = TLS_get_mach_time_info();
     if (mach_time_info.denom == 0) {
         mach_timebase_info(&mach_time_info);
         guarantee(mach_time_info.denom != 0);
+        TLS_set_mach_time_info(mach_time_info);
     }
     const uint64_t t = mach_absolute_time();
     uint64_t nanosecs = t * mach_time_info.numer / mach_time_info.denom;
@@ -633,7 +653,7 @@ bool blocking_read_file(const char *path, std::string *contents_out) {
         int res;
         do {
             res = open(path, O_RDONLY);
-        } while (res == -1 && errno == EINTR);
+        } while (res == -1 && get_errno() == EINTR);
 
         if (res == -1) {
             return false;
@@ -648,7 +668,7 @@ bool blocking_read_file(const char *path, std::string *contents_out) {
         ssize_t res;
         do {
             res = read(fd.get(), buf, sizeof(buf));
-        } while (res == -1 && errno == EINTR);
+        } while (res == -1 && get_errno() == EINTR);
 
         if (res == -1) {
             return false;
@@ -731,7 +751,7 @@ int get_num_db_threads() {
 int remove_directory_helper(const char *path, UNUSED const struct stat *ptr, UNUSED const int flag, UNUSED FTW *ftw) {
     int res = ::remove(path);
     if (res != 0) {
-        throw remove_directory_exc_t(path, errno);
+        throw remove_directory_exc_t(path, get_errno());
     }
     return 0;
 }
@@ -742,7 +762,7 @@ void remove_directory_recursive(const char *path) THROWS_ONLY(remove_directory_e
     // and closing directories extra times if it needs to go deeper than that).
     const int max_openfd = 128;
     int res = nftw(path, remove_directory_helper, max_openfd, FTW_PHYS | FTW_MOUNT | FTW_DEPTH);
-    guarantee_err(res == 0 || errno == ENOENT, "Trouble while traversing and destroying temporary directory %s.", path);
+    guarantee_err(res == 0 || get_errno() == ENOENT, "Trouble while traversing and destroying temporary directory %s.", path);
 }
 
 base_path_t::base_path_t(const std::string &path) : path_(path) { }
@@ -771,8 +791,12 @@ void recreate_temporary_directory(const base_path_t& base_path) {
     int res;
     do {
         res = mkdir(path.c_str(), 0755);
-    } while (res == -1 && errno == EINTR);
+    } while (res == -1 && get_errno() == EINTR);
     guarantee_err(res == 0, "mkdir of temporary directory %s failed", path.c_str());
+
+    // Call fsync() on the parent directory to guarantee that the newly
+    // created directory's directory entry is persisted to disk.
+    guarantee_fsync_parent_directory(path.c_str());
 }
 
 bool ptr_in_byte_range(const void *p, const void *range_start, size_t size_in_bytes) {
@@ -787,6 +811,30 @@ bool range_inside_of_byte_range(const void *p, size_t n_bytes, const void *range
         (n_bytes == 0 || ptr_in_byte_range(p8 + n_bytes - 1, range_start, size_in_bytes));
 }
 
+void pb_print(DEBUG_VAR Term *t) {
+    debugf("%s\n", t->DebugString().c_str());
+}
+
+debug_timer_t::debug_timer_t(std::string _name)
+    : start(current_microtime()), last(start), name(_name), out("\n") {
+    tick("start");
+}
+debug_timer_t::~debug_timer_t() {
+    tick("end");
+#ifndef NDEBUG
+    debugf("%s", out.c_str());
+#else
+    fprintf(stderr, "%s", out.c_str());
+#endif // NDEBUG
+}
+microtime_t debug_timer_t::tick(const std::string &tag) {
+    microtime_t prev = last;
+    last = current_microtime();
+    out += strprintf("TIMER %s: %15s (%" PRIu64 " %12" PRIu64 " %12" PRIu64 ")\n",
+                     name.c_str(), tag.c_str(), last, last - start, last - prev);
+    return last - start;
+}
+
 // GCC and CLANG are smart enough to optimize out strlen(""), so this works.
 // This is the simplist thing I could find that gave warning in all of these
 // cases:
@@ -796,6 +844,3 @@ bool range_inside_of_byte_range(const void *p, size_t n_bytes, const void *range
 // (the correct case is something like RETHINKDB_VERSION="1.2")
 UNUSED static const char _assert_RETHINKDB_VERSION_nonempty = 1/(!!strlen(RETHINKDB_VERSION));
 
-void pb_print(DEBUG_VAR Term *t) {
-    debugf("%s\n", t->DebugString().c_str());
-}

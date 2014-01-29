@@ -5,6 +5,7 @@
 #include "clustering/reactor/directory_echo.hpp"
 
 #include <map>
+#include <functional>
 
 template<class internal_t>
 directory_echo_writer_t<internal_t>::our_value_change_t::our_value_change_t(directory_echo_writer_t *p) :
@@ -67,12 +68,12 @@ void directory_echo_writer_t<internal_t>::on_ack(peer_id_t peer, directory_echo_
 template<class internal_t>
 directory_echo_mirror_t<internal_t>::directory_echo_mirror_t(
         mailbox_manager_t *mm,
-        const clone_ptr_t<watchable_t<std::map<peer_id_t, directory_echo_wrapper_t<internal_t> > > > &p) :
+        const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, directory_echo_wrapper_t<internal_t> > > > &p) :
     mailbox_manager(mm), peers(p),
-    subview(std::map<peer_id_t, internal_t>()),
+    subview(change_tracking_map_t<peer_id_t, internal_t>()),
     sub(boost::bind(&directory_echo_mirror_t::on_change, this)) {
 
-    typename watchable_t<std::map<peer_id_t, directory_echo_wrapper_t<internal_t> > >::freeze_t freeze(peers);
+    typename watchable_t<change_tracking_map_t<peer_id_t, directory_echo_wrapper_t<internal_t> > >::freeze_t freeze(peers);
     sub.reset(peers, &freeze);
     on_change();
 }
@@ -83,43 +84,65 @@ void directory_echo_mirror_t<internal_t>::on_change() {
 
     bool anything_changed = false;
 
-    std::map<peer_id_t, directory_echo_wrapper_t<internal_t> > snapshot = peers->get();
-    for (typename std::map<peer_id_t, directory_echo_wrapper_t<internal_t> >::iterator it = snapshot.begin(); it != snapshot.end(); it++) {
-        int version = it->second.version;
-        std::map<peer_id_t, directory_echo_version_t>::iterator jt = last_seen.find(it->first);
-        if (jt == last_seen.end() || jt->second < version) {
-            last_seen[it->first] = version;
-            /* Because `spawn_sometime()` won't run its function until after
-            `on_change()` has returned, we will call `subview.set_value()`
-            before the acks are sent. That guarantees that whatever is watching
-            our subview will see the change before we tell the other peer that
-            we saw the change. */
-            coro_t::spawn_sometime(boost::bind(
-                &directory_echo_mirror_t<internal_t>::ack_version, this,
-                it->second.ack_mailbox, version,
-                auto_drainer_t::lock_t(&drainer)));
-            subview_value[it->first] = it->second.internal;
-            anything_changed = true;
+    struct op_closure_t {
+        static void apply(
+                std::map<peer_id_t, directory_echo_version_t> *_last_seen,
+                change_tracking_map_t<peer_id_t, internal_t> *_subview_value,
+                auto_drainer_t *_drainer,
+                bool *_anything_changed,
+                directory_echo_mirror_t<internal_t> *parent,
+                const change_tracking_map_t<peer_id_t, directory_echo_wrapper_t<internal_t> > *snapshot) {
+            for (auto it = snapshot->get_inner().begin(); it != snapshot->get_inner().end(); it++) {
+                int version = it->second.version;
+                auto jt = _last_seen->find(it->first);
+                if (jt == _last_seen->end() || jt->second < version) {
+                    (*_last_seen)[it->first] = version;
+                    /* Because `spawn_sometime()` won't run its function until after
+                    `on_change()` has returned, we will call `subview.set_value()`
+                    before the acks are sent. That guarantees that whatever is watching
+                    our subview will see the change before we tell the other peer that
+                    we saw the change. */
+                    coro_t::spawn_sometime(boost::bind(
+                        &directory_echo_mirror_t<internal_t>::ack_version, parent,
+                        it->second.ack_mailbox, version,
+                        auto_drainer_t::lock_t(_drainer)));
+                    if (!*_anything_changed) {
+                        _subview_value->begin_version();
+                        *_anything_changed = true;
+                    }
+                    _subview_value->set_value(it->first, it->second.internal);
+                }
+            }
+            /* Erase `_last_seen` table entries for now-disconnected peers. This serves
+            two purposes:
+            1. It saves space if many peers connect and disconnect (this is not very
+                important, but nice theoretically)
+            2. It means that if they re-connect, we will re-transmit the ack. This is
+                important because maybe they didn't get the ack the first time due to
+                the connection going down.
+            */
+            for (auto it = _last_seen->begin(); it != _last_seen->end();) {
+                if (snapshot->get_inner().find(it->first) == snapshot->get_inner().end()) {
+                    if (!*_anything_changed) {
+                        _subview_value->begin_version();
+                        *_anything_changed = true;
+                    }
+                    _subview_value->delete_value(it->first);
+                    _last_seen->erase(it++);
+                } else {
+                    ++it;
+                }
+            }
         }
-    }
-    /* Erase `last_seen` table entries for now-disconnected peers. This serves
-    two purposes:
-    1. It saves space if many peers connect and disconnect (this is not very
-        important, but nice theoretically)
-    2. It means that if they re-connect, we will re-transmit the ack. This is
-        important because maybe they didn't get the ack the first time due to
-        the connection going down.
-    */
-    for (typename std::map<peer_id_t, directory_echo_version_t>::iterator it = last_seen.begin();
-            it != last_seen.end();) {
-        if (snapshot.find(it->first) == snapshot.end()) {
-            subview_value.erase(it->first);
-            anything_changed = true;
-            last_seen.erase(it++);
-        } else {
-            ++it;
-        }
-    }
+    };
+
+    peers->apply_read(std::bind(&op_closure_t::apply,
+                                &last_seen,
+                                &subview_value,
+                                &drainer,
+                                &anything_changed,
+                                this,
+                                std::placeholders::_1));
 
     /* If nothing actually changed, don't bother sending out a spurious update
     to our sub-listeners. */

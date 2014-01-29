@@ -7,7 +7,10 @@ SOURCE_DIR := $(TOP)/src
 BUILD_ROOT_DIR := $(TOP)/build
 PACKAGING_DIR := $(TOP)/packaging
 PACKAGES_DIR := $(BUILD_ROOT_DIR)/packages
-JS_BUILD_DIR=$(TOP)/build/drivers/javascript
+JS_BUILD_DIR := $(TOP)/build/drivers/javascript
+SUPPORT_SRC_DIR := $(TOP)/external
+SUPPORT_BUILD_DIR := $(BUILD_ROOT_DIR)/external
+SUPPORT_LOG_DIR := $(SUPPORT_BUILD_DIR)
 
 # If the BUILD_DIR is not set, generate a name that depends on the different settings
 ifeq ($(BUILD_DIR),)
@@ -47,6 +50,14 @@ ifeq ($(BUILD_DIR),)
     BUILD_DIR += valgrind
   endif
 
+  ifeq (1,$(THREADED_COROUTINES))
+    BUILD_DIR += threaded
+  endif
+
+  ifeq (1,$(CORO_PROFILING))
+    BUILD_DIR += coro-prof
+  endif
+
   ifeq (1,$(NO_TCMALLOC))
     BUILD_DIR += notcmalloc
   endif
@@ -58,11 +69,6 @@ GDB_FUNCTIONS_NAME := rethinkdb-gdb.py
 
 PACKAGE_NAME := $(VANILLA_PACKAGE_NAME)
 SERVER_UNIT_TEST_NAME := $(SERVER_EXEC_NAME)-unittest
-
-BACKUP_SCRIPTS_DIR := $(SCRIPTS_DIR)/backup
-BACKUP_SCRIPTS_NAMES := rethinkdb-export rethinkdb-import rethinkdb-dump rethinkdb-restore
-BACKUP_SCRIPTS_REAL := $(foreach _,$(BACKUP_SCRIPTS_NAMES),$(BUILD_DIR)/$_.py)
-BACKUP_SCRIPTS_PROXY := $(foreach _,$(BACKUP_SCRIPTS_NAMES),$(BUILD_DIR)/$_)
 
 EXTERNAL_DIR := $(TOP)/external
 EXTERNAL_DIR_ABS := $(abspath $(EXTERNAL_DIR))

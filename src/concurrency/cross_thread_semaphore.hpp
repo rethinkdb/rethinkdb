@@ -1,9 +1,6 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef CONCURRENCY_CROSS_THREAD_SEMAPHORE_HPP_
 #define CONCURRENCY_CROSS_THREAD_SEMAPHORE_HPP_
-
-#include "errors.hpp"
-#include <boost/bind.hpp>
 
 #include "containers/scoped.hpp"
 #include "containers/intrusive_list.hpp"
@@ -41,7 +38,7 @@ public:
         }
 
         value_t *get_value() { return value; }
-    
+
     private:
         cross_thread_semaphore_t *parent;
         value_t *value;
@@ -59,7 +56,7 @@ private:
             }
 
             bool is_abandoned() const { return promise_out == NULL; }
-            int get_thread() const { return thread_id; }
+            threadnum_t get_thread() const { return thread_id; }
             void abandon() { promise_out = NULL; }
 
             void fulfill_promise(value_t *value) {
@@ -69,7 +66,7 @@ private:
             }
 
     private:
-        int thread_id;
+        threadnum_t thread_id;
         promise_t<value_t *> *promise_out;
         DISABLE_COPYING(request_node_t);
     };
@@ -173,8 +170,8 @@ void cross_thread_semaphore_t<value_t>::unlock(value_t *value) {
         }
 
         if (request != NULL) {
-            coro_t::spawn_sometime(boost::bind(&cross_thread_semaphore_t<value_t>::pass_value_coroutine,
-                                               this, request, value));
+            coro_t::spawn_sometime(std::bind(&cross_thread_semaphore_t<value_t>::pass_value_coroutine,
+                                             this, request, value));
             return;
         }
     }

@@ -27,7 +27,7 @@ module RethinkDB
       :get_all => -1, :eq_join => -1,
       :javascript => -1, :filter => {:with_block => 0, :without => 1},
       :slice => -1, :during => -1, :orderby => -1,
-      :iso8601 => -1
+      :iso8601 => -1, :index_create => -1
     }
     @@rewrites = {
       :< => :lt, :<= => :le, :> => :gt, :>= => :ge,
@@ -53,13 +53,18 @@ module RethinkDB
               "This is almost always a precedence error.\n" +
               "Note that `a < b | b < c` <==> `a < (b | b) < c`.\n" +
               "If you really want this behavior, use `.or` or `.and` instead."
-            raise ArgumentError, err
+            raise RqlDriverError, err
           end
         }
       end
 
+      old_m = m
       m = @@rewrites[m] || m
-      termtype = Term::TermType.const_get(m.to_s.upcase)
+      begin
+        termtype = Term::TermType.const_get(m.to_s.upcase)
+      rescue NameError => e
+        unbound_if(true, old_m)
+      end
       unbound_if(!termtype, m)
 
       if (opt_offset = @@optarg_offsets[m])
@@ -94,9 +99,10 @@ module RethinkDB
     end
     def groupby(*a, &b); group_by(*a, &b); end
 
-    def connect(*args)
+    def connect(*args, &b)
       unbound_if @body
-      Connection.new(*args)
+      c = Connection.new(*args)
+      b ? begin b.call(c) ensure c.close end : c
     end
 
     def avg(attr)
@@ -109,21 +115,6 @@ module RethinkDB
     end
     def count(*a, &b)
       !@body && a == [] ? {:COUNT => true} : super(*a, &b)
-    end
-
-    def reduce(*a, &b)
-      args = a.dup
-      base_offset_front = (@body ? 0 : 1)
-      base_offset_back = args.size - (b ? 1 : 2)
-      if base_offset_front == base_offset_back
-        args << {:base => args.delete_at(base_offset_front)}
-      end
-      super(*args, &b)
-    end
-
-    def grouped_map_reduce(*a, &b)
-      a << {:base => a.delete_at(-2)} if a.size >= 2 && a[-2].class != Proc
-      super(*a, &b)
     end
 
     def -@; RQL.new.sub(0, self); end

@@ -1,17 +1,20 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "containers/disk_backed_queue.hpp"
 
 #include "arch/io/disk.hpp"
 #include "buffer_cache/blob.hpp"
 #include "buffer_cache/buffer_cache.hpp"
+#include "buffer_cache/serialize_onto_blob.hpp"
 #include "serializer/config.hpp"
 
 internal_disk_backed_queue_t::internal_disk_backed_queue_t(io_backender_t *io_backender,
                                                            const serializer_filepath_t &filename,
                                                            perfmon_collection_t *stats_parent)
-    : queue_size(0), head_block_id(NULL_BLOCK_ID), tail_block_id(NULL_BLOCK_ID),
-      perfmon_membership(stats_parent, &perfmon_collection, filename.permanent_path().c_str())
-{
+    : perfmon_membership(stats_parent, &perfmon_collection,
+                         filename.permanent_path().c_str()),
+      queue_size(0),
+      head_block_id(NULL_BLOCK_ID),
+      tail_block_id(NULL_BLOCK_ID) {
     filepath_file_opener_t file_opener(filename, io_backender);
     standard_serializer_t::create(&file_opener,
                                   standard_serializer_t::static_config_t());
@@ -54,17 +57,12 @@ void internal_disk_backed_queue_t::push(const write_message_t &wm) {
     scoped_ptr_t<buf_lock_t> _head(new buf_lock_t(&txn, head_block_id, rwi_write));
     queue_block_t *head = reinterpret_cast<queue_block_t *>(_head->get_data_write());
 
-    vector_stream_t stream;
-    int res = send_write_message(&stream, &wm);
-    guarantee(res == 0);
-
     char buffer[MAX_REF_SIZE];
-    bzero(buffer, MAX_REF_SIZE);
+    memset(buffer, 0, MAX_REF_SIZE);
 
     blob_t blob(txn.get_cache()->get_block_size(), buffer, MAX_REF_SIZE);
-    blob.append_region(&txn, stream.vector().size());
-    std::string sered_data(stream.vector().begin(), stream.vector().end());
-    blob.write_from_string(sered_data, &txn, 0);
+
+    write_onto_blob(&txn, &blob, wm);
 
     if (static_cast<size_t>((head->data + head->data_size) - reinterpret_cast<char *>(head)) + blob.refsize(cache->get_block_size()) > cache->get_block_size().value()) {
         // The data won't fit in our current head block, so it's time to make a new one.
@@ -81,7 +79,7 @@ void internal_disk_backed_queue_t::push(const write_message_t &wm) {
     queue_size++;
 }
 
-void internal_disk_backed_queue_t::pop(std::vector<char> *buf_out) {
+void internal_disk_backed_queue_t::pop(buffer_group_viewer_t *viewer) {
     guarantee(size() != 0);
     mutex_t::acq_t mutex_acq(&mutex);
 
@@ -108,10 +106,7 @@ void internal_disk_backed_queue_t::pop(std::vector<char> *buf_out) {
         buffer_group_t blob_group;
         blob.expose_all(&txn, rwi_read, &blob_group, &acq_group);
 
-        data_vec.resize(blob_group.get_size());
-        buffer_group_t data_vec_group;
-        data_vec_group.add_buffer(data_vec.size(), data_vec.data());
-        buffer_group_copy_data(&data_vec_group, const_view(&blob_group));
+        viewer->view_buffer_group(const_view(&blob_group));
     }
 
     /* Record how far along in the blob we are. */
@@ -126,10 +121,6 @@ void internal_disk_backed_queue_t::pop(std::vector<char> *buf_out) {
         _tail.reset();
         remove_block_from_tail(&txn);
     }
-
-    /* Deserialize the value and return it. */
-
-    buf_out->swap(data_vec);
 }
 
 bool internal_disk_backed_queue_t::empty() {

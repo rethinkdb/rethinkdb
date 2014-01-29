@@ -8,17 +8,38 @@
 #include <sys/time.h>
 
 #include "arch/barrier.hpp"
+#include "arch/os_signal.hpp"
 #include "arch/io/timer_provider.hpp"
 #include "arch/runtime/event_queue.hpp"
 #include "arch/runtime/runtime.hpp"
 #include "errors.hpp"
 #include "logger.hpp"
+#include "utils.hpp"
 
 const int SEGV_STACK_SIZE = SIGSTKSZ;
 
 __thread linux_thread_pool_t *linux_thread_pool_t::thread_pool;
 __thread int linux_thread_pool_t::thread_id;
 __thread linux_thread_t *linux_thread_pool_t::thread;
+
+NOINLINE linux_thread_pool_t *linux_thread_pool_t::get_thread_pool() {
+    return thread_pool;
+}
+NOINLINE void linux_thread_pool_t::set_thread_pool(linux_thread_pool_t *val) {
+    thread_pool = val;
+}
+NOINLINE int linux_thread_pool_t::get_thread_id() {
+    return thread_id;
+}
+NOINLINE void linux_thread_pool_t::set_thread_id(int val) {
+    thread_id = val;
+}
+NOINLINE linux_thread_t *linux_thread_pool_t::get_thread() {
+    return thread;
+}
+NOINLINE void linux_thread_pool_t::set_thread(linux_thread_t *val) {
+    thread = val;
+}
 
 linux_thread_pool_t::linux_thread_pool_t(int worker_threads, bool _do_set_affinity) :
 #ifndef NDEBUG
@@ -41,13 +62,13 @@ linux_thread_pool_t::linux_thread_pool_t(int worker_threads, bool _do_set_affini
     guarantee_xerr(res == 0, res, "Could not create shutdown cond mutex");
 }
 
-linux_thread_message_t *linux_thread_pool_t::set_interrupt_message(linux_thread_message_t *m) {
-    linux_thread_message_t *o;
+os_signal_cond_t *linux_thread_pool_t::set_interrupt_message(os_signal_cond_t *m) {
+    os_signal_cond_t *o;
     {
-        spinlock_acq_t acq(&thread_pool->interrupt_message_lock);
+        spinlock_acq_t acq(&get_thread_pool()->interrupt_message_lock);
 
-        o = thread_pool->interrupt_message;
-        thread_pool->interrupt_message = m;
+        o = get_thread_pool()->interrupt_message;
+        get_thread_pool()->interrupt_message = m;
     }
 
     return o;
@@ -78,15 +99,15 @@ void *linux_thread_pool_t::start_thread(void *arg) {
     thread_data_t *tdata = reinterpret_cast<thread_data_t *>(arg);
 
     // Set thread-local variables
-    linux_thread_pool_t::thread_pool = tdata->thread_pool;
-    linux_thread_pool_t::thread_id = tdata->current_thread;
+    set_thread_pool(tdata->thread_pool);
+    set_thread_id(tdata->current_thread);
 
     // Use a separate block so that it's very clear how long the thread lives for
     // It's not really necessary, but I like it.
     {
         linux_thread_t local_thread(tdata->thread_pool, tdata->current_thread);
         tdata->thread_pool->threads[tdata->current_thread] = &local_thread;
-        linux_thread_pool_t::thread = &local_thread;
+        set_thread(&local_thread);
         blocker_pool_t *generic_blocker_pool = NULL; // Will only be instantiated by one thread
 
         /* Install a handler for segmentation faults that just prints a backtrace. If we're
@@ -148,7 +169,7 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         }
 
         tdata->thread_pool->threads[tdata->current_thread] = NULL;
-        linux_thread_pool_t::thread = NULL;
+        set_thread(NULL);
     }
 
     delete tdata;
@@ -193,7 +214,7 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
     }
 
     // Mark the main thread (for use in assertions etc.)
-    linux_thread_pool_t::thread_id = -1;
+    set_thread_id(-1);
 
     // Set up interrupt handlers
 
@@ -205,9 +226,9 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
     // be a good thing to do before distributing the RethinkDB IO layer, but it's
     // not really important.
 
-    linux_thread_pool_t::thread_pool = this;   // So signal handlers can find us
+    set_thread_pool(this);   // So signal handlers can find us
     {
-        struct sigaction sa = make_sa_handler(0, &linux_thread_pool_t::interrupt_handler);
+        struct sigaction sa = make_sa_sigaction(SA_SIGINFO, &linux_thread_pool_t::interrupt_handler);
 
         int res = sigaction(SIGTERM, &sa, NULL);
         guarantee_err(res == 0, "Could not install TERM handler");
@@ -240,7 +261,7 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
         res = sigaction(SIGINT, &sa, NULL);
         guarantee_err(res == 0, "Could not remove INT handler");
     }
-    linux_thread_pool_t::thread_pool = NULL;
+    set_thread_pool(NULL);
 
 #ifndef NDEBUG
     // Save each thread's coroutine counters before shutting down
@@ -292,22 +313,24 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
 // there would be no issues with potential race conditions because the signal
 // would just be pulled out in the main poll/epoll loop. But as long as this works,
 // there's no real reason to change it.
-void linux_thread_pool_t::interrupt_handler(int) {
+void linux_thread_pool_t::interrupt_handler(int signo, siginfo_t *siginfo, void *) {
     /* The interrupt handler should run on the main thread, the same thread that
     run() was called on. */
-    rassert(linux_thread_pool_t::thread_id == -1, "The interrupt handler was called on the wrong thread.");
+    rassert(get_thread_id() == -1, "The interrupt handler was called on the wrong thread.");
 
-    linux_thread_pool_t *self = linux_thread_pool_t::thread_pool;
+    linux_thread_pool_t *self = get_thread_pool();
 
     /* Set the interrupt message to NULL at the same time as we get it so that
     we don't send the same message twice. This is necessary because it's illegal
     to send the same thread message twice until it has been received the first time
     (because of the intrusive list), and we could hypothetically get two SIGINTs
     in quick succession. */
-    linux_thread_message_t *interrupt_msg = self->set_interrupt_message(NULL);
-
-    if (interrupt_msg) {
-        self->threads[self->n_threads - 1]->message_hub.insert_external_message(interrupt_msg);
+    os_signal_cond_t *interrupt_signal = self->set_interrupt_message(NULL);
+    if (interrupt_signal != NULL) {
+        interrupt_signal->source_signo = signo;
+        interrupt_signal->source_pid = siginfo->si_pid;
+        interrupt_signal->source_uid = siginfo->si_uid;
+        self->threads[self->n_threads - 1]->message_hub.insert_external_message(interrupt_signal);
     }
 }
 
@@ -353,7 +376,7 @@ linux_thread_pool_t::~linux_thread_pool_t() {
 
 linux_thread_t::linux_thread_t(linux_thread_pool_t *parent_pool, int thread_id)
     : queue(this),
-      message_hub(&queue, parent_pool, thread_id),
+      message_hub(&queue, parent_pool, threadnum_t(thread_id)),
       timer_handler(&queue),
       do_shutdown(false)
 #ifndef NDEBUG

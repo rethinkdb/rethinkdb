@@ -13,6 +13,13 @@ public:
         return new semilattice_watchable_t(view);
     }
 
+    void apply_read(const std::function<void(const T*)> &read) {
+        // Inefficient but generic implementation that works with any view.
+        const T current_value = view->get();
+        ASSERT_NO_CORO_WAITING;
+        read(&current_value);
+    }
+
     T get() {
         return view->get();
     }
@@ -33,7 +40,8 @@ private:
 };
 
 template<class T>
-cross_thread_watchable_variable_t<T> cross_thread_watchable_from_semilattice(boost::shared_ptr<semilattice_read_view_t<T> > view, int dest_thread) {
+cross_thread_watchable_variable_t<T> cross_thread_watchable_from_semilattice(boost::shared_ptr<semilattice_read_view_t<T> > view,
+                                                                             threadnum_t dest_thread) {
     return cross_thread_watchable_variable_t<T>(new semilattice_watchable_t<T>(view), dest_thread);
 }
 

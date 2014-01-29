@@ -206,7 +206,7 @@ private:
     mutex_t argparsing_mutex;
 
     // Used to limit number of concurrent requests
-    semaphore_t requests_out_sem;
+    static_semaphore_t requests_out_sem;
 
     mutex_t mutex;
     txt_memcached_handler_t *rh_;

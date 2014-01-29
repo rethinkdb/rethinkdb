@@ -94,9 +94,31 @@ public:
     void run_console(bool exit_on_failure);
     void run_completion(const std::vector<std::string>& command_args);
 
-    static void do_usage(bool console);
+    void do_usage(bool console);
 
 private:
+
+    // Class to provide terminal capabilities for bold and underline
+    class admin_term_cap_t {
+    public:
+        explicit admin_term_cap_t(fd_t fd);
+
+        const std::string &bold() const;
+        const std::string &underline() const;
+        const std::string &normal() const;
+    private:
+        std::string bold_str;
+        std::string underline_str;
+        std::string normal_str;
+    } termcap;
+
+    // Helper functions to format strings
+    std::string make_bold(const std::string &str);
+    std::string underline_options(const std::string &str);
+    std::string indent_and_underline(const std::string &str,
+                                     size_t initial_indent,
+                                     size_t subsequent_indent,
+                                     size_t terminal_width);
 
     struct admin_help_info_t {
         admin_help_info_t(const char *_command, const char *_usage, const char *_description) :
@@ -106,10 +128,10 @@ private:
         std::string description;
     };
 
-    static void do_usage_internal(const std::vector<admin_help_info_t>& helps,
-                                  const std::vector<std::pair<std::string, std::string> >& options,
-                                  const std::string& header,
-                                  bool console);
+    void do_usage_internal(const std::vector<admin_help_info_t>& helps,
+                           const std::vector<std::pair<std::string, std::string> >& options,
+                           const std::string& header,
+                           bool console);
 
     void build_command_descriptions();
     static void destroy_command_descriptions(std::map<std::string, command_info_t *> *cmd_map);

@@ -39,7 +39,7 @@ void server_test_helper_t::setup_server_and_run_tests() {
             &file_opener,
             &get_global_perfmon_collection());
 
-    std::vector<standard_serializer_t *> serializers;
+    std::vector<serializer_t *> serializers;
     serializers.push_back(&log_serializer);
     serializer_multiplexer_t::create(serializers, 1);
     serializer_multiplexer_t multiplexer(serializers);
@@ -79,7 +79,7 @@ uint32_t server_test_helper_t::get_value(buf_lock_t *buf) {
 bool server_test_helper_t::acq_check_if_blocks_until_buf_released(buf_lock_t *newly_acquired_block, transaction_t *txn, buf_lock_t *already_acquired_block, access_t acquire_mode, bool do_release) {
     acquiring_coro_t acq_coro(newly_acquired_block, txn, already_acquired_block->get_block_id(), acquire_mode);
 
-    coro_t::spawn(boost::bind(&acquiring_coro_t::run, &acq_coro));
+    coro_t::spawn_later_ordered(boost::bind(&acquiring_coro_t::run, &acq_coro));
     nap(500);
     bool result = !acq_coro.signaled;
 

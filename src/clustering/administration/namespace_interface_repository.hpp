@@ -1,10 +1,12 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_NAMESPACE_INTERFACE_REPOSITORY_HPP_
 #define CLUSTERING_ADMINISTRATION_NAMESPACE_INTERFACE_REPOSITORY_HPP_
 
-#include <map>
-
-#include "clustering/reactor/namespace_interface.hpp"
+#include "containers/clone_ptr.hpp"
+#include "concurrency/auto_drainer.hpp"
+#include "concurrency/one_per_thread.hpp"
+#include "concurrency/promise.hpp"
+#include "containers/incremental_lenses.hpp"
 
 /* `namespace_repo_t` is responsible for constructing and caching
 `cluster_namespace_interface_t` objects for all of the namespaces in the cluster
@@ -13,8 +15,13 @@ important because every time a new `cluster_namespace_interface_t` is created,
 it must perform a handshake with every `master_t`, which means several network
 round-trips. */
 
-template <class> class watchable_t;
+class mailbox_manager_t;
+template <class> class namespace_interface_t;
 template <class> class namespaces_directory_metadata_t;
+class peer_id_t;
+class signal_t;
+class uuid_u;
+template <class> class watchable_t;
 
 template <class protocol_t>
 class base_namespace_repo_t {
@@ -47,7 +54,7 @@ public:
         };
         namespace_cache_entry_t *cache_entry;
         ref_handler_t ref_handler;
-        int thread;
+        threadnum_t thread;
     };
 
 protected:
@@ -69,7 +76,7 @@ private:
 
 public:
     namespace_repo_t(mailbox_manager_t *,
-                     clone_ptr_t<watchable_t<std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > >,
+                     clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > >,
                      typename protocol_t::context_t *);
     ~namespace_repo_t();
 
@@ -83,7 +90,7 @@ private:
     typename base_namespace_repo_t<protocol_t>::namespace_cache_entry_t *get_cache_entry(const uuid_u &ns_id);
 
     mailbox_manager_t *mailbox_manager;
-    clone_ptr_t<watchable_t<std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > > namespaces_directory_metadata;
+    clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > > namespaces_directory_metadata;
     typename protocol_t::context_t *ctx;
 
     one_per_thread_t<namespace_cache_t> namespace_caches;

@@ -15,7 +15,7 @@ struct mirrored_cache_config_t {
         max_size = 8 * MEGABYTE; // This should be overwritten
             // at a place where more information about the system and use of the cache is available.
         flush_timer_ms = DEFAULT_FLUSH_TIMER_MS;
-        max_dirty_size = DEFAULT_UNSAVED_DATA_LIMIT;
+        max_dirty_size = max_size / 2; // This should be overwritten
         flush_dirty_size = 0;
         max_concurrent_flushes = DEFAULT_MAX_CONCURRENT_FLUSHES;
         io_priority_reads = CACHE_READS_IO_PRIORITY;

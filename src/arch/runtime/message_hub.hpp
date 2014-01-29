@@ -13,6 +13,12 @@
 #include "containers/intrusive_list.hpp"
 #include "utils.hpp"
 
+
+#define NUM_SCHEDULER_PRIORITIES (MESSAGE_SCHEDULER_MAX_PRIORITY \
+                                  - MESSAGE_SCHEDULER_MIN_PRIORITY \
+                                  + 1)
+
+
 class linux_thread_pool_t;
 
 /* There is one message hub per thread, NOT one message hub for the entire program.
@@ -24,7 +30,8 @@ class linux_message_hub_t : private linux_event_callback_t {
 public:
     typedef intrusive_list_t<linux_thread_message_t> msg_list_t;
 
-    linux_message_hub_t(linux_event_queue_t *queue, linux_thread_pool_t *thread_pool, int current_thread);
+    linux_message_hub_t(linux_event_queue_t *queue, linux_thread_pool_t *thread_pool,
+                        threadnum_t current_thread);
 
     /* For each thread, transfer messages from our msg_local_list for that thread to our
     msg_global_list for that thread */
@@ -32,11 +39,11 @@ public:
 
     /* Schedules the given message to be sent to the given thread by pushing it onto our
     msg_local_list for that thread */
-    void store_message(unsigned int nthread, linux_thread_message_t *msg);
+    void store_message_ordered(threadnum_t nthread, linux_thread_message_t *msg);
 
     // Schedules the given message to be sent to the given thread.  However, these are not
     // guaranteed to be called in the same order relative to one another.
-    void store_message_sometime(unsigned int nthread, linux_thread_message_t *msg);
+    void store_message_sometime(threadnum_t nthread, linux_thread_message_t *msg);
 
     // Called by the thread pool when it needs to deliver a message from the main thread
     // (which does not have an event queue)
@@ -47,14 +54,13 @@ public:
 private:
     // Does store_message or store_message_sometime, only without setting the reloop_count_ in
     // debug mode.
-    void do_store_message(unsigned int nthread, linux_thread_message_t *msg);
+    void do_store_message(threadnum_t nthread, linux_thread_message_t *msg);
 
+    // Moves messages from incoming_messages_ into the respective entries of
+    // priority_msg_lists, depending on the messages' priorities.
+    void sort_incoming_messages_by_priority();
 
-    /* pull_messages should be called on thread N with N as its argument. (The argument is
-    partially redundant.) It will cause the actual delivery of messages that originated
-    on this->current_thread and are destined for thread N. It is (almost) the only method on
-    linux_message_hub_t that is not called on the thread that the message hub belongs to. */
-    void pull_messages(int thread);
+    msg_list_t &get_priority_msg_list(int priority);
 
     linux_event_queue_t *const queue_;
     linux_thread_pool_t *const thread_pool_;
@@ -68,8 +74,19 @@ private:
         msg_list_t msg_local_list;
     } queues_[MAX_THREADS];
 
+    // Must only be used with acquired incoming_messages_lock_
+    bool check_and_set_is_woken_up();
+    bool is_woken_up_;
     msg_list_t incoming_messages_;
     spinlock_t incoming_messages_lock_;
+
+    // Use `sort_incoming_messages_by_priority()` to sort incoming_messages_ into
+    // these lists.
+    // Use `get_priority_msg_list()` to get the list for a given priority.
+    // Each list contains messages of the respective priority.
+    // (except for ordered messages, which go onto the list for
+    // MESSAGE_SCHEDULER_ORDERED_PRIORITY)
+    msg_list_t priority_msg_lists_[NUM_SCHEDULER_PRIORITIES];
 
     void on_event(int events);
 
@@ -79,7 +96,7 @@ private:
 
     /* The thread that we queue messages originating from. (Recall that there is one
     message_hub_t per thread.) */
-    const unsigned int current_thread_;
+    const threadnum_t current_thread_;
 
     DISABLE_COPYING(linux_message_hub_t);
 };

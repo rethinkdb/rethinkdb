@@ -164,7 +164,7 @@ static int enableRawMode(int fd) {
     return 0;
 
 fatal:
-    errno = ENOTTY;
+    set_errno(ENOTTY);
     return -1;
 }
 
@@ -472,7 +472,7 @@ static int linenoisePrompt(int fd, char *buf, size_t buflen, const char *prompt)
                 refreshLine(fd,prompt,buf,len,pos,cols);
             } else {
                 // Already empty line, exit
-                errno = EAGAIN;
+                set_errno(EAGAIN);
                 return -1;
             }
             break;
@@ -623,7 +623,7 @@ static int linenoiseRaw(char *buf, size_t buflen, const char *prompt) {
     int count;
 
     if (buflen == 0) {
-        errno = EINVAL;
+        set_errno(EINVAL);
         return -1;
     }
     if (!isatty(STDIN_FILENO)) {

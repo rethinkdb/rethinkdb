@@ -16,6 +16,7 @@
 #include "clustering/reactor/reactor.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
 #include "concurrency/watchable.hpp"
+#include "containers/incremental_lenses.hpp"
 #include "rpc/semilattice/view/field.hpp"
 #include "rpc/semilattice/watchable.hpp"
 #include "utils.hpp"
@@ -47,17 +48,18 @@ blueprint_t<protocol_t> translate_blueprint(const persistable_blueprint_t<protoc
 template <class protocol_t>
 class per_thread_ack_info_t {
 public:
-    per_thread_ack_info_t(const clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > &machine_id_translation_table,
+    per_thread_ack_info_t(const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> > > &machine_id_translation_table,
                           const semilattice_watchable_t<machines_semilattice_metadata_t> &machines_view,
                           const semilattice_watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > > &namespaces_view,
-                          int dest_thread)
+                          threadnum_t dest_thread)
         : machine_id_translation_table_(machine_id_translation_table, dest_thread),
           machines_view_(clone_ptr_t<watchable_t<machines_semilattice_metadata_t> >(machines_view.clone()), dest_thread),
           namespaces_view_(clone_ptr_t<watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > > >(namespaces_view.clone()), dest_thread) { }
 
     // TODO: Just get the value directly.
+    // ^^^^^^^^^ What does this mean? (~daniel)
     std::map<peer_id_t, machine_id_t> get_machine_id_translation_table() {
-        return machine_id_translation_table_.get_watchable()->get();
+        return machine_id_translation_table_.get_watchable()->get().get_inner();
     }
 
     machines_semilattice_metadata_t get_machines_view() {
@@ -69,7 +71,7 @@ public:
     }
 
 private:
-    cross_thread_watchable_variable_t<std::map<peer_id_t, machine_id_t> > machine_id_translation_table_;
+    cross_thread_watchable_variable_t<change_tracking_map_t<peer_id_t, machine_id_t> > machine_id_translation_table_;
     cross_thread_watchable_variable_t<machines_semilattice_metadata_t> machines_view_;
     cross_thread_watchable_variable_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > > namespaces_view_;
     DISABLE_COPYING(per_thread_ack_info_t);
@@ -78,7 +80,7 @@ private:
 template <class protocol_t>
 class ack_info_t : public home_thread_mixin_t {
 public:
-    ack_info_t(const clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > &machine_id_translation_table,
+    ack_info_t(const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> > > &machine_id_translation_table,
                const boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > &machines_view,
                const boost::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > > > &namespaces_view)
         : machine_id_translation_table_(machine_id_translation_table),
@@ -86,16 +88,16 @@ public:
           namespaces_view_(namespaces_view),
           per_thread_info_(get_num_db_threads()) {
         for (size_t i = 0; i < per_thread_info_.size(); ++i) {
-            per_thread_info_[i].init(new per_thread_ack_info_t<protocol_t>(machine_id_translation_table_, machines_view_, namespaces_view_, i));
+            per_thread_info_[i].init(new per_thread_ack_info_t<protocol_t>(machine_id_translation_table_, machines_view_, namespaces_view_, threadnum_t(i)));
         }
     }
 
     per_thread_ack_info_t<protocol_t> *per_thread_ack_info() {
-        return per_thread_info_[get_thread_id()].get();
+        return per_thread_info_[get_thread_id().threadnum].get();
     }
 
 private:
-    clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > machine_id_translation_table_;
+    clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> > > machine_id_translation_table_;
     semilattice_watchable_t<machines_semilattice_metadata_t> machines_view_;
     semilattice_watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > > namespaces_view_;
 
@@ -151,13 +153,9 @@ public:
         reactor_.reset();
 
         /* Finally we remove the reactor bcard. */
-        {
-            DEBUG_VAR mutex_assertion_t::acq_t acq(&parent_->watchable_variable_lock);
-            namespaces_directory_metadata_t<protocol_t> directory = parent_->watchable_variable.get_watchable()->get();
-            size_t num_erased = directory.reactor_bcards.erase(namespace_id_);
-            guarantee(num_erased == 1);
-            parent_->watchable_variable.set_value(directory);
-        }
+        parent_->set_reactor_directory_entry(namespace_id_,
+            boost::optional<
+                typename reactor_driver_t<protocol_t>::reactor_directory_entry_t>());
     }
 
     static bool compute_is_acceptable_ack_set(const std::set<peer_id_t> &acks, const namespace_id_t &namespace_id, per_thread_ack_info_t<protocol_t> *ack_info) {
@@ -279,26 +277,25 @@ public:
     }
 
 private:
-    std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > > extract_reactor_directory(
-            const std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > &nss) {
-        std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > > out;
-        for (typename std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> >::const_iterator it = nss.begin(); it != nss.end(); it++) {
-            typename std::map<namespace_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >::const_iterator jt =
-                it->second.reactor_bcards.find(namespace_id_);
-            if (jt == it->second.reactor_bcards.end()) {
-                out.insert(std::make_pair(it->first, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >()));
-            } else {
-                out.insert(std::make_pair(it->first, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >(jt->second)));
-            }
+    typedef boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >
+        extract_reactor_directory_per_peer_result_type;
+
+    extract_reactor_directory_per_peer_result_type extract_reactor_directory_per_peer(
+        const namespaces_directory_metadata_t<protocol_t> &nss) {
+
+        auto it = nss.reactor_bcards.find(namespace_id_);
+        if (it == nss.reactor_bcards.end()) {
+            return boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >();
+        } else {
+            return boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >(it->second);
         }
-        return out;
     }
 
     void on_change_reactor_directory() {
-        DEBUG_VAR mutex_assertion_t::acq_t acq(&parent_->watchable_variable_lock);
-        namespaces_directory_metadata_t<protocol_t> directory = parent_->watchable_variable.get_watchable()->get();
-        directory.reactor_bcards.find(namespace_id_)->second = reactor_->get_reactor_directory()->get();
-        parent_->watchable_variable.set_value(directory);
+        // Tell our parent, the reactor driver, that this reactor's directory
+        // has changed, and what its new value is:
+        parent_->set_reactor_directory_entry(namespace_id_,
+            boost::make_optional(reactor_->get_reactor_directory()->get()));
     }
 
     void initialize_reactor(io_backender_t *io_backender) {
@@ -309,12 +306,20 @@ private:
         // TODO: We probably shouldn't have to pass in this perfmon collection.
         svs_by_namespace_->get_svs(serializers_collection, namespace_id_, cache_size, &stores_lifetimer_, &svs_, ctx);
 
+        auto const extract_reactor_directory_per_peer_fun =
+            boost::bind(&watchable_and_reactor_t<protocol_t>::extract_reactor_directory_per_peer,
+                        this, _1);
+        incremental_map_lens_t<peer_id_t,
+                               namespaces_directory_metadata_t<protocol_t>,
+                               typeof extract_reactor_directory_per_peer_fun>
+            extract_reactor_directory(extract_reactor_directory_per_peer_fun);
+
         reactor_.init(new reactor_t<protocol_t>(
             base_path,
             io_backender,
             parent_->mbox_manager,
             this,
-            parent_->directory_view->subview(boost::bind(&watchable_and_reactor_t<protocol_t>::extract_reactor_directory, this, _1)),
+            parent_->directory_view->incremental_subview(extract_reactor_directory),
             parent_->branch_history_manager,
             watchable.get_watchable(),
             svs_.get(), namespace_collection, ctx));
@@ -325,12 +330,9 @@ private:
                 new typename watchable_t<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >::subscription_t(
                     boost::bind(&watchable_and_reactor_t<protocol_t>::on_change_reactor_directory, this),
                     reactor_->get_reactor_directory(), &reactor_directory_freeze));
-            DEBUG_VAR mutex_assertion_t::acq_t acq(&parent_->watchable_variable_lock);
-            namespaces_directory_metadata_t<protocol_t> directory = parent_->watchable_variable.get_watchable()->get();
-            std::pair<typename std::map<namespace_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >::iterator, bool> insert_res
-                = directory.reactor_bcards.insert(std::make_pair(namespace_id_, reactor_->get_reactor_directory()->get()));
-            guarantee(insert_res.second);  // Ensure a value did not already exist.
-            parent_->watchable_variable.set_value(directory);
+
+            parent_->set_reactor_directory_entry(namespace_id_,
+                boost::make_optional(reactor_->get_reactor_directory()->get()));
         }
 
         reactor_has_been_initialized_.pulse();
@@ -364,11 +366,11 @@ template <class protocol_t>
 reactor_driver_t<protocol_t>::reactor_driver_t(const base_path_t &_base_path,
                                                io_backender_t *_io_backender,
                                                mailbox_manager_t *_mbox_manager,
-                                               const clone_ptr_t<watchable_t<std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > > &_directory_view,
+                                               const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > > &_directory_view,
                                                branch_history_manager_t<protocol_t> *_branch_history_manager,
                                                boost::shared_ptr<semilattice_readwrite_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > > > _namespaces_view,
                                                boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > machines_view_,
-                                               const clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > &_machine_id_translation_table,
+                                               const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> > > &_machine_id_translation_table,
                                                svs_by_namespace_t<protocol_t> *_svs_by_namespace,
                                                perfmon_collection_repo_t *_perfmon_collection_repo,
                                                typename protocol_t::context_t *_ctx)
@@ -388,7 +390,7 @@ reactor_driver_t<protocol_t>::reactor_driver_t(const base_path_t &_base_path,
       translation_table_subscription(boost::bind(&reactor_driver_t<protocol_t>::on_change, this)),
       perfmon_collection_repo(_perfmon_collection_repo)
 {
-    watchable_t<std::map<peer_id_t, machine_id_t> >::freeze_t freeze(machine_id_translation_table);
+    watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> >::freeze_t freeze(machine_id_translation_table);
     translation_table_subscription.reset(machine_id_translation_table, &freeze);
     on_change();
 }
@@ -397,6 +399,70 @@ template<class protocol_t>
 reactor_driver_t<protocol_t>::~reactor_driver_t() {
     /* This must be defined in the `.tcc` file because the full definition of
     `watchable_and_reactor_t` is not available in the `.hpp` file. */
+}
+
+template<class protocol_t>
+void reactor_driver_t<protocol_t>::set_reactor_directory_entry(
+    const namespace_id_t reactor_namespace,
+    const boost::optional<reactor_directory_entry_t> &new_value) {
+
+    // Just stash the change for now. If necessary, we spawn a coroutine that takes
+    // care of eventually committing the changes to `watchable_variable`.
+    // This allows us to combine multiple reactor directory changes into a single
+    // update of the watchable_variable, which significantly reduces the overhead
+    // of metadata operations that affect multiple reactors (such as resharding)
+    // in large clusters.
+    const bool must_initiate_commit = changed_reactor_directories.empty();
+    changed_reactor_directories[reactor_namespace] = new_value;
+
+    if (must_initiate_commit) {
+        coro_t::spawn_sometime(
+            boost::bind(&reactor_driver_t<protocol_t>::commit_directory_changes,
+                        this,
+                        auto_drainer_t::lock_t(&directory_change_drainer)));
+    }
+}
+
+template<class protocol_t>
+void reactor_driver_t<protocol_t>::commit_directory_changes(auto_drainer_t::lock_t lock) {
+    // Delay the commit for a moment in anticipation that more changes come in
+    lock.assert_is_holding(&directory_change_drainer);
+    try {
+        // The nap time of 200 ms was determined experimentally as follows:
+        // In the specific test, a 200 ms nap provided a high speed up when
+        // resharding a table in a cluster of 64 nodes. Higher values improved the
+        // efficiency of the operation only marginally, while unnecessarily slowing
+        // down directory changes in smaller clusters.
+        nap(200, lock.get_drain_signal());
+    } catch (const interrupted_exc_t &e) {
+    }
+    lock.assert_is_holding(&directory_change_drainer);
+
+    DEBUG_VAR mutex_assertion_t::acq_t acq(&watchable_variable_lock);
+
+    watchable_variable.apply_atomic_op(std::bind(&apply_directory_changes,
+                                                 &changed_reactor_directories,
+                                                 std::placeholders::_1));
+}
+
+template<class protocol_t>
+bool reactor_driver_t<protocol_t>::apply_directory_changes(
+    std::map<namespace_id_t, boost::optional<reactor_directory_entry_t> >
+        *_changed_reactor_directories,
+    namespaces_directory_metadata_t<protocol_t> *directory) {
+
+    for (auto it = _changed_reactor_directories->begin();
+         it != _changed_reactor_directories->end();
+         ++it) {
+        // it->second is a boost::optional<reactor_directory_entry_t>
+        if (it->second) {
+            directory->reactor_bcards[it->first] = it->second.get();
+        } else {
+            directory->reactor_bcards.erase(it->first);
+        }
+    }
+    _changed_reactor_directories->clear();
+    return true;
 }
 
 template<class protocol_t>
@@ -413,6 +479,7 @@ void reactor_driver_t<protocol_t>::delete_reactor_data(
 template<class protocol_t>
 void reactor_driver_t<protocol_t>::on_change() {
     cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > namespaces = namespaces_view->get();
+    std::map<peer_id_t, machine_id_t> machine_id_translation_table_value = machine_id_translation_table->get().get_inner();
 
     for (typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t::const_iterator
              it =  namespaces->namespaces.begin(); it != namespaces->namespaces.end(); it++) {
@@ -433,17 +500,17 @@ void reactor_driver_t<protocol_t>::on_change() {
                     reactor_map_t::auto_type(reactor_data.release(reactor_data.find(it->first))),
                 it->first));
         } else if (!it->second.is_deleted()) {
-            persistable_blueprint_t<protocol_t> pbp;
+            const persistable_blueprint_t<protocol_t> *pbp = NULL;
 
             try {
-                pbp = it->second.get_ref().blueprint.get();
+                pbp = &it->second.get_ref().blueprint.get_ref();
             } catch (const in_conflict_exc_t &) {
                 //Nothing to do for this namespaces, its blueprint is in
                 //conflict.
                 continue;
             }
 
-            blueprint_t<protocol_t> bp = translate_blueprint(pbp, machine_id_translation_table->get());
+            blueprint_t<protocol_t> bp = translate_blueprint(*pbp, machine_id_translation_table_value);
 
             if (std_contains(bp.peers_roles, mbox_manager->get_connectivity_service()->get_me())) {
                 /* Either construct a new reactor (if this is a namespace we
@@ -465,7 +532,7 @@ void reactor_driver_t<protocol_t>::on_change() {
                     }
 
                     if (cache_size > 64 * GIGABYTE) {
-                        cache_size = 16 * GIGABYTE;
+                        cache_size = 64 * GIGABYTE;
                         logINF("Namespace %s(%s) has too large of a cache size. Decreasing it to 64 gigabyes.\n",
                                 uuid_to_str(it->first).c_str(),
                                 it->second.get_ref().name.in_conflict() ? "Name in conflict" : it->second.get_ref().name.get().c_str());
@@ -474,7 +541,18 @@ void reactor_driver_t<protocol_t>::on_change() {
                     namespace_id_t tmp = it->first;
                     reactor_data.insert(tmp, new watchable_and_reactor_t<protocol_t>(base_path, io_backender, this, it->first, cache_size, bp, svs_by_namespace, ctx));
                 } else {
-                    reactor_data.find(it->first)->second->watchable.set_value(bp);
+                    struct op_closure_t {
+                        static bool apply(const blueprint_t<protocol_t> &_bp,
+                                          blueprint_t<protocol_t> *bp_ref) {
+                            const bool blueprint_changed = (*bp_ref != _bp);
+                            if (blueprint_changed) {
+                                *bp_ref = _bp;
+                            }
+                            return blueprint_changed;
+                        }
+                    };
+
+                    reactor_data.find(it->first)->second->watchable.apply_atomic_op(std::bind(&op_closure_t::apply, std::ref(bp), std::placeholders::_1));
                 }
             } else {
                 /* The blueprint does not mentions us so we destroy the

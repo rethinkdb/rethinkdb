@@ -18,6 +18,7 @@ SHELL := $(shell which bash)
 
 empty :=
 space := $(empty) $(empty)
+tab := $(empty)	$(empty)
 comma := ,
 hash  := \#
 dollar := \$
@@ -109,7 +110,6 @@ endif
 # foo/bar: baz | foo/.
 # 	zap $< > $@
 %/.:
-	$P MKDIR $(patsubst %/.,%,$@)
 	mkdir -p $@
 
 ##### Make recursive make less error-prone
@@ -122,6 +122,19 @@ else
   # unset MAKEFLAGS to avoid some confusion
   EXTERN_MAKE := MAKEFLAGS= make --no-print-directory
 endif
+
+##### Test for certain make command line flags
+
+# Extract the short flags from MAKEFLAGS
+ifeq (,$(filter --%,$(firstword $(MAKEFLAGS))))
+  # MAKEFLAGS look like `SHoRt --long-options - ...'
+  SHORTFLAGS := $(firstword $(MAKEFLAGS))
+else
+  # MAKEFLAGS looks like `--long-options - ... - -SHoRt'
+  SHORTFLAGS := $(firstword $(filter -%, $(filter-out -, $(filter-out --%, $(MAKEFLAGS)))))
+endif
+ALWAYS_MAKE := $(if $(findstring B,$(SHORTFLAGS)),1)
+DRY_RUN := $(if $(findstring n,$(SHORTFLAGS)),1)
 
 ##### Misc
 

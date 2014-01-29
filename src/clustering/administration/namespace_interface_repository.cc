@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "clustering/administration/namespace_interface_repository.hpp"
 
 #include "errors.hpp"
@@ -7,6 +7,7 @@
 
 #include "arch/timing.hpp"
 #include "clustering/administration/namespace_metadata.hpp"
+#include "clustering/reactor/namespace_interface.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
 
@@ -22,7 +23,7 @@ public:
 
 template <class protocol_t>
 namespace_repo_t<protocol_t>::namespace_repo_t(mailbox_manager_t *_mailbox_manager,
-                                               clone_ptr_t<watchable_t<std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > > _namespaces_directory_metadata,
+                                               clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > > _namespaces_directory_metadata,
                                                typename protocol_t::context_t *_ctx)
     : mailbox_manager(_mailbox_manager),
       namespaces_directory_metadata(_namespaces_directory_metadata),
@@ -34,10 +35,10 @@ namespace_repo_t<protocol_t>::~namespace_repo_t() { }
 
 template <class protocol_t>
 std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > get_reactor_business_cards(
-        const std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > &ns_directory_metadata, const namespace_id_t &n_id) {
+        const change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t<protocol_t> > &ns_directory_metadata, const namespace_id_t &n_id) {
     std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > res;
-    for (typename std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> >::const_iterator it  = ns_directory_metadata.begin();
-                                                                                                    it != ns_directory_metadata.end();
+    for (typename std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> >::const_iterator it  = ns_directory_metadata.get_inner().begin();
+                                                                                                    it != ns_directory_metadata.get_inner().end();
                                                                                                     it++) {
         typename namespaces_directory_metadata_t<protocol_t>::reactor_bcards_map_t::const_iterator jt =
             it->second.reactor_bcards.find(n_id);
@@ -141,7 +142,7 @@ void namespace_repo_t<protocol_t>::create_and_destroy_namespace_interface(
             auto_drainer_t::lock_t keepalive)
             THROWS_NOTHING{
     keepalive.assert_is_holding(&cache->drainer);
-    int thread = get_thread_id();
+    threadnum_t thread = get_thread_id();
 
     typename base_namespace_repo_t<protocol_t>::namespace_cache_entry_t *cache_entry = cache->entries.find(namespace_id)->second;
     guarantee(!cache_entry->namespace_if.get_ready_signal()->is_pulsed());

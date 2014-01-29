@@ -1,3 +1,4 @@
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "rdb_protocol/pathspec.hpp"
 
 #include "rdb_protocol/term.hpp"
@@ -55,8 +56,8 @@ pathspec_t::pathspec_t(counted_t<const datum_t> datum, term_t *_creator)
             }
         }
     } else {
-        rfail_target(creator, base_exc_t::GENERIC, "Invalid path argument of `%s` to %s.",
-                datum->print().c_str(), creator->name());
+        rfail_target(creator, base_exc_t::GENERIC, "Invalid path argument `%s`.",
+                datum->print().c_str());
     }
 
     if (type == VEC && vec->size() == 1) {

@@ -74,8 +74,8 @@ private:
     // std::string implementation, since we copy by value.
     std::string tag_;
 
-    RDB_MAKE_ME_SERIALIZABLE_4(bucket_, read_mode_, value_, tag_);
-#else  // ifndef NDEBUG
+    RDB_DECLARE_ME_SERIALIZABLE;
+#else
     RDB_MAKE_ME_SERIALIZABLE_0();
 #endif  // ifndef NDEBUG
 
@@ -92,14 +92,14 @@ class order_source_t : public home_thread_mixin_debug_only_t {
 public:
 #ifndef NDEBUG
     order_source_t();
-    explicit order_source_t(int specified_home_thread);
+    explicit order_source_t(threadnum_t specified_home_thread);
     ~order_source_t();
 
     // Makes a write-mode order token.
     order_token_t check_in(const std::string &tag);
 #else
     order_source_t() { }
-    explicit order_source_t(int specified_home_thread) : home_thread_mixin_debug_only_t(specified_home_thread) { }
+    explicit order_source_t(threadnum_t specified_home_thread) : home_thread_mixin_debug_only_t(specified_home_thread) { }
     ~order_source_t() { }
 
     order_token_t check_in(const std::string&) { return order_token_t(); }

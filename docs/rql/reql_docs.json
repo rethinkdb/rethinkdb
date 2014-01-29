@@ -1,0 +1,1797 @@
+{
+  "api/javascript/connect/": {
+    "body": "r.connect(options, callback)r.connect(host, callback)", 
+    "description": "<p>Create a new connection to the database server.  Accepts the following\noptions:</p>\n<ul>\n<li><code>host</code>: the host to connect to (default <code>localhost</code>).</li>\n<li><code>port</code>: the port to connect on (default <code>28015</code>).</li>\n<li><code>db</code>: the default database (default <code>test</code>).</li>\n<li><code>authKey</code>: the authentication key (default none).</li>\n</ul>\n<p>If the connection cannot be established, a <code>RqlDriverError</code> will be\npassed to the callback instead of a connection.</p>", 
+    "url": "connect", 
+    "io": [
+      [
+        "r", 
+        "undefined"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Opens a new connection to the database.</p>\n<p><code>r.connect({host:'localhost', port:28015, db:'marvel', authKey:'hunter2'},\n          function(err, conn) { ... })</code></p>", 
+    "name": "connect"
+  }, 
+  "api/javascript/close/": {
+    "body": "conn.close([opts, ]callback)", 
+    "description": "<p>Close an open connection.  Accepts the following options:</p>\n<ul>\n<li><code>noreplyWait</code>: whether to wait for noreply writes to complete\n  before closing (default <code>true</code>).  If this is set to <code>false</code>, some\n  outstanding noreply writes may be aborted.</li>\n</ul>\n<p>Closing a connection waits until all outstanding requests have\nfinished and then frees any open resources associated with the\nconnection.  If <code>noreplyWait</code> is set to <code>false</code>, all outstanding\nrequests are canceled immediately.</p>", 
+    "url": "close", 
+    "io": [
+      [
+        "connection", 
+        "undefined"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Close an open connection, waiting for noreply writes to finish.</p>\n<p><code>conn.close(function(err) { if (err) throw err; })</code></p>\n<p><strong>Example:</strong> Close an open connection immediately.</p>\n<p><code>conn.close({noreplyWait: false}, function(err) { if (err) throw err; })</code></p>", 
+    "name": "close"
+  }, 
+  "api/javascript/replace/": {
+    "body": "table.replace(json | expr[, {durability: 'soft', return_vals: true}])&rarr; objectselection.replace(json | expr[, {durability: 'soft', return_vals: true}])&rarr; objectsingleSelection.replace(json | expr[, {durability: 'soft', return_vals: true}])&rarr; object", 
+    "description": "<p>Replace documents in a table. Accepts a JSON document or a ReQL expression, and replaces\nthe original document with the new one. The new document must have the same primary key\nas the original document. The optional argument durability with value 'hard' or 'soft'\nwill override the table or query's default durability setting. The optional argument\n<code>return_vals</code> will return the old and new values of the row you're modifying when set to\ntrue (only valid for single-row replacements). The optional argument <code>non_atomic</code> lets you\npermit non-atomic updates.</p>\n<p>Replace returns an object that contains the following attributes:</p>\n<ul>\n<li><code>replaced</code>: the number of documents that were replaced</li>\n<li><code>unchanged</code>: the number of documents that would have been modified, except that the\nnew value was the same as the old value</li>\n<li><code>inserted</code>: the number of new documents added. You can have new documents inserted if\nyou do a point-replace on a key that isn't in the table or you do a replace on a\nselection and one of the documents you are replacing has been deleted</li>\n<li><code>deleted</code>: the number of deleted documents when doing a replace with null</li>\n<li><code>errors</code>: the number of errors encountered while performing the replace; if errors\noccurred performing the replace, first_error contains the text of the first error encountered</li>\n<li><code>skipped</code>: 0 for a replace operation</li>\n</ul>", 
+    "url": "replace", 
+    "io": [
+      [
+        "table", 
+        "object"
+      ], 
+      [
+        "selection", 
+        "object"
+      ], 
+      [
+        "singleSelection", 
+        "object"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Remove all existing attributes from Superman's document, and add an attribute 'age'.</p>\n<p><code>r.table('marvel').get('superman').replace({ id: 'superman', age: 30 })\n    .run(conn, callback)</code></p>", 
+    "name": "replace"
+  }, 
+  "api/javascript/get_all/": {
+    "body": "table.getAll(key[, key2...], [, {index:'id'}]) &rarr; selection", 
+    "description": "<p>Get all documents where the given value matches the value of the requested index.</p>", 
+    "url": "get_all", 
+    "io": [
+      [
+        "table", 
+        "selection"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Secondary index keys are not guaranteed to be unique so we cannot query via\n\"get\" when using a secondary index.</p>\n<p><code>r.table('marvel').getAll('man_of_steel', {index:'code_name'}).run(conn, callback)</code></p>", 
+    "name": "getAll"
+  }, 
+  "api/javascript/db_create/": {
+    "body": "r.dbCreate(dbName) &rarr; object", 
+    "description": "<p>Create a database. A RethinkDB database is a collection of tables, similar to\nrelational databases.</p>\n<p>If successful, the operation returns an object: <code>{created: 1}</code>. If a database with the\nsame name already exists the operation throws <code>RqlRuntimeError</code>.\nNote: that you can only use alphanumeric characters and underscores for the database name.</p>", 
+    "url": "db_create", 
+    "io": [
+      [
+        "r", 
+        "object"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Create a database named 'superheroes'.</p>\n<p><code>r.dbCreate('superheroes').run(conn, callback)</code></p>", 
+    "name": "dbCreate"
+  }, 
+  "api/javascript/avg/": {
+    "body": "r.avg(attr)", 
+    "description": "<p>Compute the average value of the given attribute for the group.</p>", 
+    "url": "avg", 
+    "io": [
+      [
+        "r", 
+        null
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> What's the average agility of heroes at each strength level?</p>\n<p><code>r.table('marvel').groupBy('strength', r.avg('agility')).run(conn, callback)</code></p>", 
+    "name": "avg"
+  }, 
+  "api/javascript/day_of_year/": {
+    "body": "time.day_of_year() &rarr; number", 
+    "description": "<p>Return the day of the year of a time object as a number between 1 and 366 (following ISO 8601 standard).</p>", 
+    "url": "day_of_year", 
+    "io": [
+      [
+        "time", 
+        "number"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Retrieve all the users who were born the first day of a year.</p>\n<p><code>r.table(\"users\").filter(\n    r.row(\"birthdate\").dayOfYear().eq(1)\n)</code></p>", 
+    "name": "dayOfYear"
+  }, 
+  "api/javascript/get/": {
+    "body": "table.get(key) &rarr; singleRowSelection", 
+    "description": "<p>Get a document by primary key.</p>", 
+    "url": "get", 
+    "io": [
+      [
+        "table", 
+        "singleSelection"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Find a document with the primary key 'superman'.</p>\n<p><code>r.table('marvel').get('superman').run(conn, callback)</code></p>", 
+    "name": "get"
+  }, 
+  "api/javascript/add_listener/": {
+    "body": "conn.addListener(event, listener)", 
+    "description": "<p>The connection object also supports the event emitter interface so you can listen for\nchanges in connection state.</p>", 
+    "url": "add_listener", 
+    "io": [
+      [
+        "connection", 
+        "undefined"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Monitor connection state with events 'connect', 'close', and 'error'.</p>\n<p>```\nr.connect({}, function(err, conn) {\n    if (err) throw err;</p>\n<pre><code>conn.addListener('error', function(e) {\n    processNetworkError(e);\n});\n\nconn.addListener('close', function() {\n    cleanup();\n});\n\nrunQueries(conn);\n</code></pre>\n<p>});</p>\n<p>```</p>", 
+    "name": "addListener"
+  }, 
+  "api/javascript/count/": {
+    "body": "sequence.count([filter]) &rarr; number", 
+    "description": "<p>Count the number of elements in the sequence. With a single argument, count the number\nof elements equal to it. If the argument is a function, it is equivalent to calling\nfilter before count.</p>", 
+    "url": "count", 
+    "io": [
+      [
+        "sequence", 
+        "value"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Just how many super heroes are there?</p>\n<p><code>r.table('marvel').count().add(r.table('dc').count()).run(conn, callback)</code></p>", 
+    "name": "count"
+  }, 
+  "api/javascript/contains/": {
+    "body": "sequence.contains(value1[, value2...]) &rarr; bool", 
+    "description": "<p>Returns whether or not a sequence contains all the specified values, or if functions are\nprovided instead, returns whether or not a sequence contains values matching all the\nspecified functions.</p>", 
+    "url": "contains", 
+    "io": [
+      [
+        "sequence", 
+        "value"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Has Iron Man ever fought Superman?</p>\n<p><code>r.table('marvel').get('ironman')('opponents').contains('superman').run(conn, callback)</code></p>\n<p>These standard aggregator objects are to be used in conjunction with groupBy.</p>", 
+    "name": "contains"
+  }, 
+  "api/javascript/mul/": {
+    "body": "number.mul(number) &rarr; numberarray.mul(number) &rarr; array", 
+    "description": "<p>Multiply two numbers, or make a periodic array.</p>", 
+    "url": "mul", 
+    "io": [
+      [
+        "number", 
+        "number"
+      ], 
+      [
+        "array", 
+        "array"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> It's as easy as 2 * 2 = 4.</p>\n<p><code>r.expr(2).mul(2).run(conn, callback)</code></p>", 
+    "name": "mul"
+  }, 
+  "api/javascript/index_wait/": {
+    "body": "table.indexWait([, index...]) &rarr; array", 
+    "description": "<p>Wait for the specified indexes on this table to be ready, or for all\nindexes on this table to be ready if no indexes are specified.</p>", 
+    "url": "index_wait", 
+    "io": [
+      [
+        "table", 
+        "array"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Wait for all indexes on the table <code>test</code> to be ready:</p>\n<p><code>r.table('test').indexWait().run(conn, callback)</code></p>\n<p><strong>Example:</strong> Wait for the index <code>timestamp</code> to be ready:</p>\n<p><code>r.table('test').indexWait('timestamp').run(conn, callback)</code></p>", 
+    "name": "indexWait"
+  }, 
+  "api/javascript/index_create/": {
+    "body": "table.indexCreate(indexName[, indexFunction]) &rarr; object", 
+    "description": "<p>Create a new secondary index on this table.</p>", 
+    "url": "index_create", 
+    "io": [
+      [
+        "table", 
+        "object"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> To efficiently query our heros by code name we have to create a secondary\nindex.</p>\n<p><code>r.table('dc').indexCreate('code_name').run(conn, callback)</code></p>", 
+    "name": "indexCreate"
+  }, 
+  "api/javascript/each/": {
+    "body": "cursor.each(callback[, onFinishedCallback])array.each(callback[, onFinishedCallback])", 
+    "description": "<p>Lazily iterate over the result set one element at a time.</p>", 
+    "url": "each", 
+    "io": [
+      [
+        "cursor", 
+        "undefined"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Let's process all the elements!</p>\n<p><code>cursor.each(function(err, row) {\n    if (err) throw err;\n    processRow(row);\n});</code></p>", 
+    "name": "each"
+  }, 
+  "api/javascript/year/": {
+    "body": "time.year() &rarr; number", 
+    "description": "<p>Return the year of a time object.</p>", 
+    "url": "year", 
+    "io": [
+      [
+        "time", 
+        "number"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Retrieve all the users born in 1986.</p>\n<p><code>r.table(\"users\").filter(function(user) {\n    return user(\"birthdate\").year().eq(1986)\n}).run(conn, callback)</code></p>", 
+    "name": "year"
+  }, 
+  "api/javascript/do/": {
+    "body": "any.do(arg [, args]*, expr) &rarr; any", 
+    "description": "<p>Evaluate the expr in the context of one or more value bindings.</p>\n<p>The type of the result is the type of the value returned from expr.</p>", 
+    "url": "do", 
+    "io": [
+      [
+        "any", 
+        "any"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> The object(s) passed to do() can be bound to name(s). The last argument is the expression to evaluate in the context of the bindings.</p>\n<p><code>r.do(r.table('marvel').get('IronMan'),\n    function (ironman) { return ironman('name'); }\n).run(conn, callback)</code></p>", 
+    "name": "do"
+  }, 
+  "api/javascript/noreply_wait/": {
+    "body": "conn.noreplyWait(callback)", 
+    "description": "<p><code>noreplyWait</code> ensures that previous queries with the <code>noreply</code> flag have been processed\nby the server. Note that this guarantee only applies to queries run on the given connection.</p>", 
+    "url": "noreply_wait", 
+    "io": [
+      [
+        "connection", 
+        null
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> We have previously run queries with the <code>noreply</code> argument set to <code>true</code>. Now\nwait until the server has processed them.</p>\n<p><code>conn.noreplyWait(function(err) { ... })</code></p>", 
+    "name": "noreplyWait"
+  }, 
+  "api/javascript/with_fields/": {
+    "body": "sequence.withFields([selector1, selector2...]) &rarr; streamarray.withFields([selector1, selector2...]) &rarr; array", 
+    "description": "<p>Takes a sequence of objects and a list of fields. If any objects in the sequence don't\nhave all of the specified fields, they're dropped from the sequence. The remaining\nobjects have the specified fields plucked out. (This is identical to <code>has_fields</code>\nfollowed by <code>pluck</code> on a sequence.)</p>", 
+    "url": "with_fields", 
+    "io": [
+      [
+        "sequence", 
+        "stream"
+      ], 
+      [
+        "array", 
+        "array"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Get a list of heroes and their nemeses, excluding any heroes that lack one.</p>\n<p><code>r.table('marvel').withFields('id', 'nemesis')</code></p>", 
+    "name": "withFields"
+  }, 
+  "api/javascript/in_timezone/": {
+    "body": "time.inTimezone(timezone) &rarr; time", 
+    "description": "<p>Return a new time object with a different timezone. While the time stays the same, the results returned by methods such as hours() will change since they take the timezone into account. The timezone argument has to be of the ISO 8601 format.</p>", 
+    "url": "in_timezone", 
+    "io": [
+      [
+        "time", 
+        "time"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Hour of the day in San Francisco (UTC/GMT -8, without daylight saving time).</p>\n<p><code>r.now().inTimezone('-08:00').hours().run(conn, callback)</code></p>", 
+    "name": "inTimezone"
+  }, 
+  "api/javascript/set_difference/": {
+    "body": "array.setDifference(array) &rarr; array", 
+    "description": "<p>Remove the elements of one array from another and return them as a set (an array with\ndistinct values).</p>", 
+    "url": "set_difference", 
+    "io": [
+      [
+        "array", 
+        "array"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Check which pieces of equipment Iron Man has, excluding a fixed list.</p>\n<p><code>r.table('marvel').get('IronMan')('equipment').setDifference(['newBoots', 'arc_reactor']).run(conn, callback)</code></p>", 
+    "name": "setDifference"
+  }, 
+  "api/javascript/reconnect/": {
+    "body": "conn.reconnect([opts, ]callback)", 
+    "description": "<p>Close and reopen a connection.  Accepts the following options:</p>\n<ul>\n<li><code>noreplyWait</code>: whether to wait for noreply writes to complete\n  before closing (default <code>true</code>).  If this is set to <code>false</code>, some\n  outstanding noreply writes may be aborted.</li>\n</ul>\n<p>Closing a connection waits until all outstanding requests have\nfinished.  If <code>noreplyWait</code> is set to <code>false</code>, all outstanding\nrequests are canceled immediately.</p>", 
+    "url": "reconnect", 
+    "io": [
+      [
+        "connection", 
+        "undefined"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Cancel outstanding requests/queries that are no longer needed.</p>\n<p><code>conn.reconnect({noreplyWait: false}, function(errror, connection) { ... })</code></p>", 
+    "name": "reconnect"
+  }, 
+  "api/javascript/time_of_day/": {
+    "body": "time.timeOfDay() &rarr; number", 
+    "description": "<p>Return the number of seconds elapsed since the beginning of the day stored in the time object.</p>", 
+    "url": "time_of_day", 
+    "io": [
+      [
+        "time", 
+        "number"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Retrieve posts that were submitted before noon.</p>\n<p><code>r.table(\"posts\").filter(\n    r.row(\"date\").timeOfDay().le(12*60*60)\n).run(conn, callback)</code></p>", 
+    "name": "timeOfDay"
+  }, 
+  "api/javascript/seconds/": {
+    "body": "time.seconds() &rarr; number", 
+    "description": "<p>Return the seconds in a time object as a number between 0 and 59.999 (double precision).</p>", 
+    "url": "seconds", 
+    "io": [
+      [
+        "time", 
+        "number"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Return the post submitted during the first 30 seconds of every minute.</p>\n<p><code>r.table(\"posts\").filter(function(post) {\n    return post(\"date\").seconds().lt(30)\n})</code></p>", 
+    "name": "seconds"
+  }, 
+  "api/javascript/get_field/": {
+    "body": "sequence(attr) &rarr; sequencesingleSelection(attr) &rarr; valueobject(attr) &rarr; value", 
+    "description": "<p>Get a single field from an object. If called on a sequence, gets that field from every\nobject in the sequence, skipping objects that lack it.</p>", 
+    "url": "get_field", 
+    "io": [
+      [
+        "sequence", 
+        "sequence"
+      ], 
+      [
+        "singleSelection", 
+        "value"
+      ], 
+      [
+        "object", 
+        "value"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> What was Iron Man's first appearance in a comic?</p>\n<p><code>r.table('marvel').get('IronMan')('firstAppearance').run(conn, callback)</code></p>", 
+    "name": "()"
+  }, 
+  "api/javascript/is_empty/": {
+    "body": "sequence.isEmpty() &rarr; bool", 
+    "description": "<p>Test if a sequence is empty.</p>", 
+    "url": "is_empty", 
+    "io": [
+      [
+        "sequence", 
+        "bool"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Are there any documents in the marvel table?</p>\n<p><code>r.table('marvel').isEmpty().run(conn, callback)</code></p>", 
+    "name": "isEmpty"
+  }, 
+  "api/javascript/set_union/": {
+    "body": "array.setUnion(array) &rarr; array", 
+    "description": "<p>Add a several values to an array and return it as a set (an array with distinct values).</p>", 
+    "url": "set_union", 
+    "io": [
+      [
+        "array", 
+        "array"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Retrieve Iron Man's equipment list with the addition of some new boots and an arc reactor.</p>\n<p><code>r.table('marvel').get('IronMan')('equipment').setUnion(['newBoots', 'arc_reactor']).run(conn, callback)</code></p>", 
+    "name": "setUnion"
+  }, 
+  "api/javascript/json/": {
+    "body": "r.json(json_string) &rarr; value", 
+    "description": "<p>Parse a JSON string on the server.</p>", 
+    "url": "json", 
+    "io": [
+      [
+        "r", 
+        "value"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Send an array to the server'</p>\n<p><code>js\nr.json(\"[1,2,3]\").run(conn, callback)</code></p>", 
+    "name": "json"
+  }, 
+  "api/javascript/or/": {
+    "body": "bool.or(bool) &rarr; bool", 
+    "description": "<p>Compute the logical or of two values.</p>", 
+    "url": "or", 
+    "io": [
+      [
+        "bool", 
+        "bool"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> True or false ored is true?</p>\n<p><code>r.expr(true).or(false).run(conn, callback)</code></p>", 
+    "name": "or"
+  }, 
+  "api/javascript/not/": {
+    "body": "bool.not() &rarr; bool", 
+    "description": "<p>Compute the logical inverse (not).</p>", 
+    "url": "not", 
+    "io": [
+      [
+        "bool", 
+        "bool"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Not true is false.</p>\n<p><code>r.expr(true).not().run(conn, callback)</code></p>", 
+    "name": "not"
+  }, 
+  "api/javascript/error/": {
+    "body": "r.error(message) &rarr; error", 
+    "description": "<p>Throw a runtime error. If called with no arguments inside the second argument to <code>default</code>, re-throw the current error.</p>", 
+    "url": "error", 
+    "io": [
+      [
+        "r", 
+        "error"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Iron Man can't possibly have lost a battle:</p>\n<p><code>r.table('marvel').get('IronMan').do(function(ironman) {\n    return r.branch(ironman('victories').lt(ironman('battles')),\n        r.error('impossible code path'),\n        ironman)\n}).run(conn, callback)</code></p>", 
+    "name": "error"
+  }, 
+  "api/javascript/default/": {
+    "body": "value.default(default_value) &rarr; anysequence.default(default_value) &rarr; any", 
+    "description": "<p>Handle non-existence errors. Tries to evaluate and return its first argument. If an\nerror related to the absence of a value is thrown in the process, or if its first\nargument returns <code>null</code>, returns its second argument. (Alternatively, the second argument\nmay be a function which will be called with either the text of the non-existence error\nor <code>null</code>.)</p>\n<p><strong>Exmple:</strong> Suppose we want to retrieve the titles and authors of the table <code>posts</code>.\nIn the case where the author field is missing or <code>null</code>, we want to retrieve the string\n<code>Anonymous</code>.</p>\n<p><code>js\nr.table(\"posts\").map( function(post) {\n    return {\n        title: post(\"title\"),\n        author: post(\"author\").default(\"Anonymous\")\n    }\n}).run(conn, callback)</code></p>", 
+    "url": "default", 
+    "io": [
+      [
+        "value", 
+        "any"
+      ], 
+      [
+        "sequence", 
+        "any"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Iron Man can't possibly have lost a battle:</p>\n<p><code>r.table('marvel').get('IronMan').do(function(ironman) {\n    return r.branch(ironman('victories').lt(ironman('battles')),\n        r.error('impossible code path'),\n        ironman)\n}).run(conn, callback)</code></p>", 
+    "name": "default"
+  }, 
+  "api/javascript/and/": {
+    "body": "bool.and(bool) &rarr; bool", 
+    "description": "<p>Compute the logical and of two values.</p>", 
+    "url": "and", 
+    "io": [
+      [
+        "bool", 
+        "bool"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> True and false anded is false?</p>\n<p><code>r.expr(true).and(false).run(conn, callback)</code></p>", 
+    "name": "and"
+  }, 
+  "api/javascript/lt/": {
+    "body": "value.lt(value) &rarr; bool", 
+    "description": "<p>Test if the first value is less than other.</p>", 
+    "url": "lt", 
+    "io": [
+      [
+        "value", 
+        "bool"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Is 2 less than 2?</p>\n<p><code>r.expr(2).lt(2).run(conn, callback)</code></p>", 
+    "name": "lt"
+  }, 
+  "api/javascript/nth/": {
+    "body": "sequence.nth(index) &rarr; object", 
+    "description": "<p>Get the nth element of a sequence.</p>", 
+    "url": "nth", 
+    "io": [
+      [
+        "sequence", 
+        "object"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Select the second element in the array.</p>\n<p><code>r.expr([1,2,3]).nth(1).run(conn, callback)</code></p>", 
+    "name": "nth"
+  }, 
+  "api/javascript/set_intersection/": {
+    "body": "array.setIntersection(array) &rarr; array", 
+    "description": "<p>Intersect two arrays returning values that occur in both of them as a set (an array with\ndistinct values).</p>", 
+    "url": "set_intersection", 
+    "io": [
+      [
+        "array", 
+        "array"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Check which pieces of equipment Iron Man has from a fixed list.</p>\n<p><code>r.table('marvel').get('IronMan')('equipment').setIntersection(['newBoots', 'arc_reactor']).run(conn, callback)</code></p>", 
+    "name": "setIntersection"
+  }, 
+  "api/javascript/sub/": {
+    "body": "number.sub(number) &rarr; numbertime.sub(time) &rarr; numbertime.sub(number) &rarr; time", 
+    "description": "<p>Subtract two numbers.</p>", 
+    "url": "sub", 
+    "io": [
+      [
+        "number", 
+        "number"
+      ], 
+      [
+        "time", 
+        "time"
+      ], 
+      [
+        "time", 
+        "number"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> It's as easy as 2 - 2 = 0.</p>\n<p><code>r.expr(2).sub(2).run(conn, callback)</code></p>", 
+    "name": "sub"
+  }, 
+  "api/javascript/map/": {
+    "body": "sequence.map(mappingFunction) &rarr; streamarray.map(mappingFunction) &rarr; array", 
+    "description": "<p>Transform each element of the sequence by applying the given mapping function.</p>", 
+    "url": "map", 
+    "io": [
+      [
+        "sequence", 
+        "stream"
+      ], 
+      [
+        "array", 
+        "array"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Construct a sequence of hero power ratings.</p>\n<p><code>r.table('marvel').map(function(hero) {\n    return hero('combatPower').add(hero('compassionPower').mul(2))\n}).run(conn, callback)</code></p>", 
+    "name": "map"
+  }, 
+  "api/javascript/zip/": {
+    "body": "stream.zip() &rarr; streamarray.zip() &rarr; array", 
+    "description": "<p>Used to 'zip' up the result of a join by merging the 'right' fields into 'left' fields of each member of the sequence.</p>", 
+    "url": "zip", 
+    "io": [
+      [
+        "stream", 
+        "stream"
+      ], 
+      [
+        "array", 
+        "array"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> 'zips up' the sequence by merging the left and right fields produced by a join.</p>\n<p><code>r.table('marvel').eqJoin('main_dc_collaborator', r.table('dc'))\n    .zip().run(conn, callback)</code></p>\n<p>These commands are used to transform data in a sequence.</p>", 
+    "name": "zip"
+  }, 
+  "api/javascript/append/": {
+    "body": "array.append(value) &rarr; array", 
+    "description": "<p>Append a value to an array.</p>", 
+    "url": "append", 
+    "io": [
+      [
+        "array", 
+        "array"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Retrieve Iron Man's equipment list with the addition of some new boots.</p>\n<p><code>r.table('marvel').get('IronMan')('equipment').append('newBoots').run(conn, callback)</code></p>", 
+    "name": "append"
+  }, 
+  "api/javascript/row/": {
+    "body": "r.row &rarr; value", 
+    "description": "<p>Returns the currently visited document.</p>", 
+    "url": "row", 
+    "io": [
+      [
+        "r", 
+        "value"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Get all users whose age is greater than 5.</p>\n<p><code>r.table('users').filter(r.row('age').gt(5)).run(conn, callback)</code></p>", 
+    "name": "row"
+  }, 
+  "api/javascript/index_list/": {
+    "body": "table.indexList() &rarr; array", 
+    "description": "<p>List all the secondary indexes of this table.</p>", 
+    "url": "index_list", 
+    "io": [
+      [
+        "table", 
+        "array"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> List the available secondary indexes for this table.</p>\n<p><code>r.table('marvel').indexList().run(conn, callback)</code></p>", 
+    "name": "indexList"
+  }, 
+  "api/javascript/branch/": {
+    "body": "r.branch(test, true_branch, false_branch) &rarr; any", 
+    "description": "<p>Evaluate one of two control paths based on the value of an expression. branch is effectively an if renamed due to language constraints.</p>\n<p>The type of the result is determined by the type of the branch that gets executed.</p>", 
+    "url": "branch", 
+    "io": [
+      [
+        "r", 
+        "any"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Return the manlier of two heroes:</p>\n<p><code>r.table('marvel').map(r.branch(r.row('victories').gt(100),\n    r.row('name').add(' is a superhero'),\n    r.row('name').add(' is a hero'))\n).run(conn, callback)</code></p>", 
+    "name": "branch"
+  }, 
+  "api/javascript/prepend/": {
+    "body": "array.prepend(value) &rarr; array", 
+    "description": "<p>Prepend a value to an array.</p>", 
+    "url": "prepend", 
+    "io": [
+      [
+        "array", 
+        "array"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Retrieve Iron Man's equipment list with the addition of some new boots.</p>\n<p><code>r.table('marvel').get('IronMan')('equipment').prepend('newBoots').run(conn, callback)</code></p>", 
+    "name": "prepend"
+  }, 
+  "api/javascript/date/": {
+    "body": "time.date() &rarr; time", 
+    "description": "<p>Return a new time object only based on the day, month and year (ie. the same day at 00:00).</p>", 
+    "url": "date", 
+    "io": [
+      [
+        "time", 
+        "time"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Retrieve all the users whose birthday is today</p>\n<p><code>r.table(\"users\").filter(function(user) {\n    return user(\"birthdate\").date().eq(r.now().date())\n}).run(conn, callback)</code></p>", 
+    "name": "date"
+  }, 
+  "api/javascript/match/": {
+    "body": "string.match(regexp) &rarr; array", 
+    "description": "<p>Match against a regular expression. Returns a match object containing the matched string,\nthat string's start/end position, and the capture groups. Accepts RE2 syntax\n(<a href=\"https://code.google.com/p/re2/wiki/Syntax\">https://code.google.com/p/re2/wiki/Syntax</a>).\nYou can enable case-insensitive matching by prefixing the regular expression with\n<code>(?i)</code>. (See linked RE2 documentation for more flags.)</p>", 
+    "url": "match", 
+    "io": [
+      [
+        "string", 
+        "array"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Get all users whose name starts with A.</p>\n<p><code>r.table('users').filter(function(row){return row('name').match(\"^A\")}).run(conn, callback)</code></p>", 
+    "name": "match"
+  }, 
+  "api/javascript/info/": {
+    "body": "any.info() &rarr; object", 
+    "description": "<p>Get information about a ReQL value.</p>", 
+    "url": "info", 
+    "io": [
+      [
+        "any", 
+        "object"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Get information about a table such as primary key, or cache size.</p>\n<p><code>r.table('marvel').info().run(conn, callback)</code></p>", 
+    "name": "info"
+  }, 
+  "api/javascript/update/": {
+    "body": "table.update(json | expr[, {durability: 'soft', return_vals: true])&rarr; objectselection.update(json | expr[, {durability: 'soft', return_vals: true])&rarr; objectsingleSelection.update(json | expr[, {durability: 'soft', return_vals: true])&rarr; object", 
+    "description": "<p>Update JSON documents in a table. Accepts a JSON document, a ReQL expression, or a\ncombination of the two. You can pass options like <code>returnVals</code> that will return the old\nand new values of the row you have modified.</p>\n<p>Update returns an object that contains the following attributes:</p>\n<ul>\n<li><code>replaced</code>: the number of documents that were updated</li>\n<li><code>unchanged</code>: the number of documents that would have been modified except the new\nvalue was the same as the old value;</li>\n<li><code>skipped</code>: the number of documents that were left unmodified because there was nothing\nto do: either the row didn't exist or the new value is null;</li>\n<li><code>errors</code>: the number of errors encountered while performing the update; if errors\noccured, first_error contains the text of the first error;</li>\n<li><code>deleted</code> and <code>inserted</code>: 0 for an update operation.</li>\n</ul>", 
+    "url": "update", 
+    "io": [
+      [
+        "table", 
+        "object"
+      ], 
+      [
+        "selection", 
+        "object"
+      ], 
+      [
+        "singleSelection", 
+        "object"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Update Superman's age to 30. If attribute 'age' doesn't exist, adds it to\nthe document.</p>\n<p><code>r.table('marvel').get('superman').update({ age: 30 }).run(conn, callback)</code></p>", 
+    "name": "update"
+  }, 
+  "api/javascript/inner_join/": {
+    "body": "sequence.innerJoin(otherSequence, predicate) &rarr; streamarray.innerJoin(otherSequence, predicate) &rarr; array", 
+    "description": "<p>Returns the inner product of two sequences (e.g. a table, a filter result) filtered by\nthe predicate. The query compares each row of the left sequence with each row of the\nright sequence to find all pairs of rows which satisfy the predicate. When the predicate\nis satisfied, each matched pair of rows of both sequences are combined into a result row.</p>", 
+    "url": "inner_join", 
+    "io": [
+      [
+        "sequence", 
+        "stream"
+      ], 
+      [
+        "array", 
+        "array"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Construct a sequence of documents containing all cross-universe matchups where a marvel hero would lose.</p>\n<p><code>r.table('marvel').innerJoin(r.table('dc'), function(marvelRow, dcRow) {\n    return marvelRow('strength').lt(dcRow('strength'))\n}).run(conn, callback)</code></p>", 
+    "name": "innerJoin"
+  }, 
+  "api/javascript/during/": {
+    "body": "time.during(startTime, endTime[, options]) &rarr; bool", 
+    "description": "<p>Return if a time is between two other times (by default, inclusive for the start, exclusive for the end).</p>", 
+    "url": "during", 
+    "io": [
+      [
+        "time", 
+        "bool"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Retrieve all the posts that were posted between December 1st, 2013 (inclusive) and December 10th, 2013 (exclusive).</p>\n<p><code>r.table(\"posts\").filter(\n    r.row('date').during(r.time(2013, 12, 1), r.time(2013, 12, 10))\n).run(conn, callback)</code></p>", 
+    "name": "during"
+  }, 
+  "api/javascript/timezone/": {
+    "body": "time.timezone() &rarr; string", 
+    "description": "<p>Return the timezone of the time object.</p>", 
+    "url": "timezone", 
+    "io": [
+      [
+        "time", 
+        "time"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Return all the users in the \"-07:00\" timezone.</p>\n<p><code>r.table(\"users\").filter( function(user) {\n    return user(\"subscriptionDate\").timezone().eq(\"-07:00\")\n})</code></p>", 
+    "name": "timezone"
+  }, 
+  "api/javascript/group_by/": {
+    "body": "sequence.groupBy(selector1[, selector2...], reductionObject)&rarr; array", 
+    "description": "<p>Groups elements by the values of the given attributes and then applies the given\nreduction. Though similar to <code>groupedMapReduce</code>, <code>groupBy</code> takes a standardized object\nfor specifying the reduction. Can be used with a number of predefined common reductions.</p>", 
+    "url": "group_by", 
+    "io": [
+      [
+        "sequence", 
+        "value"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Using a predefined reduction we can easily find the average strength of members of each weight class.</p>\n<p><code>r.table('marvel').groupBy('weightClass', r.avg('strength')).run(conn, callback)</code></p>", 
+    "name": "groupBy"
+  }, 
+  "api/javascript/filter/": {
+    "body": "sequence.filter(predicate[, {default: false}]) &rarr; selectionstream.filter(predicate[, {default: false}]) &rarr; streamarray.filter(predicate[, {default: false}]) &rarr; array", 
+    "description": "<p>Get all the documents for which the given predicate is true.</p>\n<p><code>filter</code> can be called on a sequence, selection, or a field containing an array of\nelements. The return type is the same as the type on which the function was called on.</p>\n<p>The body of every filter is wrapped in an implicit <code>.default(false)</code>, which means that\nif a non-existence errors is thrown (when you try to access a field that does not exist\nin a document), RethinkDB will just ignore the document.\nThe <code>default</code> value can be changed by passing an object with a <code>default</code> field.\nSetting this optional argument to <code>r.error()</code> will cause any non-existence errors to\nreturn a <code>RqlRuntimeError</code>.</p>", 
+    "url": "filter", 
+    "io": [
+      [
+        "sequence", 
+        "selection"
+      ], 
+      [
+        "stream", 
+        "stream"
+      ], 
+      [
+        "array", 
+        "array"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Get all the users that are 30 years old.</p>\n<p><code>r.table('users').filter({age: 30}).run(conn, callback)</code></p>\n<p>These commands allow the combination of multiple sequences into a single sequence</p>", 
+    "name": "filter"
+  }, 
+  "api/javascript/table_list/": {
+    "body": "db.tableList() &rarr; array", 
+    "description": "<p>List all table names in a database. The result is a list of strings.</p>", 
+    "url": "table_list", 
+    "io": [
+      [
+        "db", 
+        "array"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> List all tables of the 'test' database.</p>\n<p><code>r.db('test').tableList().run(conn, callback)</code></p>", 
+    "name": "tableList"
+  }, 
+  "api/javascript/sample/": {
+    "body": "sequence.sample(number) &rarr; selectionstream.sample(number) &rarr; arrayarray.sample(number) &rarr; array", 
+    "description": "<p>Select a given number of elements from a sequence with uniform random distribution. Selection is done without replacement.</p>", 
+    "url": "sample", 
+    "io": [
+      [
+        "sequence", 
+        "selection"
+      ], 
+      [
+        "stream", 
+        "array"
+      ], 
+      [
+        "array", 
+        "array"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Select 3 random heroes.</p>\n<p><code>r.table('marvel').sample(3).run(conn, callback)</code></p>\n<p>These commands are used to compute smaller values from large sequences.</p>", 
+    "name": "sample"
+  }, 
+  "api/javascript/merge/": {
+    "body": "singleSelection.merge(object) &rarr; objectobject.merge(object) &rarr; objectsequence.merge(object) &rarr; streamarray.merge(object) &rarr; array", 
+    "description": "<p>Merge two objects together to construct a new object with properties from both. Gives preference to attributes from other when there is a conflict.</p>", 
+    "url": "merge", 
+    "io": [
+      [
+        "sequence", 
+        "stream"
+      ], 
+      [
+        "array", 
+        "array"
+      ], 
+      [
+        "object", 
+        "object"
+      ], 
+      [
+        "singleSelection", 
+        "object"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Equip IronMan for battle.</p>\n<p><code>r.table('marvel').get('IronMan').merge(\n    r.table('loadouts').get('alienInvasionKit')\n).run(conn, callback)</code></p>", 
+    "name": "merge"
+  }, 
+  "api/javascript/for_each/": {
+    "body": "sequence.forEach(write_query) &rarr; object", 
+    "description": "<p>Loop over a sequence, evaluating the given write query for each element.</p>", 
+    "url": "for_each", 
+    "io": [
+      [
+        "sequence", 
+        "object"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Now that our heroes have defeated their villains, we can safely remove them from the villain table.</p>\n<p><code>r.table('marvel').forEach(function(hero) {\n    return r.table('villains').get(hero('villainDefeated')).delete()\n}).run(conn, callback)</code></p>", 
+    "name": "forEach"
+  }, 
+  "api/javascript/expr/": {
+    "body": "r.expr(value) &rarr; value", 
+    "description": "<p>Construct a ReQL JSON object from a native object.</p>", 
+    "url": "expr", 
+    "io": [
+      [
+        "r", 
+        "value"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Objects wrapped with <code>expr</code> can then be manipulated by ReQL API functions.</p>\n<p><code>r.expr({a:'b'}).merge({b:[1,2,3]}).run(conn, callback)</code></p>", 
+    "name": "expr"
+  }, 
+  "api/javascript/js/": {
+    "body": "r.js(jsString) &rarr; value", 
+    "description": "<p>Create a javascript expression.</p>", 
+    "url": "js", 
+    "io": [
+      [
+        "r", 
+        "value"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Concatenate two strings using Javascript'</p>\n<p><code>r.js(\"'str1' + 'str2'\").run(conn, callback)</code></p>", 
+    "name": "js"
+  }, 
+  "api/javascript/use/": {
+    "body": "conn.use(dbName)", 
+    "description": "<p>Change the default database on this connection.</p>", 
+    "url": "use", 
+    "io": [
+      [
+        "connection", 
+        "undefined"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Change the default database so that we don't need to\nspecify the database when referencing a table.</p>\n<p><code>conn.use('marvel')\nr.table('heroes').run(conn, ...) // refers to r.db('marvel').table('heroes')</code></p>", 
+    "name": "use"
+  }, 
+  "api/javascript/table/": {
+    "body": "db.table(name[, {useOutdated: false}]) &rarr; table", 
+    "description": "<p>Select all documents in a table. This command can be chained with other commands to do\nfurther processing on the data.</p>", 
+    "url": "table", 
+    "io": [
+      [
+        "db", 
+        "table"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Return all documents in the table 'marvel' of the default database.</p>\n<p><code>r.table('marvel').run(conn, callback)</code></p>", 
+    "name": "table"
+  }, 
+  "api/javascript/ne/": {
+    "body": "value.ne(value) &rarr; bool", 
+    "description": "<p>Test if two values are not equal.</p>", 
+    "url": "ne", 
+    "io": [
+      [
+        "value", 
+        "bool"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Does 2 not equal 2?</p>\n<p><code>r.expr(2).ne(2).run(conn, callback)</code></p>", 
+    "name": "ne"
+  }, 
+  "api/javascript/without/": {
+    "body": "sequence.without([selector1, selector2...]) &rarr; streamarray.without([selector1, selector2...]) &rarr; arraysingleSelection.without([selector1, selector2...]) &rarr; objectobject.without([selector1, selector2...]) &rarr; object", 
+    "description": "<p>The opposite of pluck; takes an object or a sequence of objects, and returns them with\nthe specified paths removed.</p>", 
+    "url": "without", 
+    "io": [
+      [
+        "sequence", 
+        "stream"
+      ], 
+      [
+        "array", 
+        "array"
+      ], 
+      [
+        "object", 
+        "object"
+      ], 
+      [
+        "singleSelection", 
+        "object"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Since we don't need it for this computation we'll save bandwidth and leave\nout the list of IronMan's romantic conquests.</p>\n<p><code>r.table('marvel').get('IronMan').without('personalVictoriesList').run(conn, callback)</code></p>", 
+    "name": "without"
+  }, 
+  "api/javascript/concat_map/": {
+    "body": "sequence.concatMap(mappingFunction) &rarr; streamarray.concatMap(mappingFunction) &rarr; array", 
+    "description": "<p>Flattens a sequence of arrays returned by the mappingFunction into a single sequence.</p>", 
+    "url": "concat_map", 
+    "io": [
+      [
+        "sequence", 
+        "stream"
+      ], 
+      [
+        "array", 
+        "array"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Construct a sequence of all monsters defeated by Marvel heroes. Here the field\n'defeatedMonsters' is a list that is concatenated to the sequence.</p>\n<p><code>r.table('marvel').concatMap(function(hero) {\n    return hero('defeatedMonsters')\n}).run(conn, callback)</code></p>", 
+    "name": "concatMap"
+  }, 
+  "api/javascript/difference/": {
+    "body": "array.difference(array) &rarr; array", 
+    "description": "<p>Remove the elements of one array from another array.</p>", 
+    "url": "difference", 
+    "io": [
+      [
+        "array", 
+        "array"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Retrieve Iron Man's equipment list without boots.</p>\n<p><code>r.table('marvel').get('IronMan')('equipment').difference(['Boots']).run(conn, callback)</code></p>", 
+    "name": "difference"
+  }, 
+  "api/javascript/grouped_map_reduce/": {
+    "body": "sequence.groupedMapReduce(grouping, mapping, reduction, base)&rarr; value", 
+    "description": "<p>Partition the sequence into groups based on the <code>grouping</code> function. The elements of each\ngroup are then mapped using the <code>mapping</code> function and reduced using the <code>reduction</code>\nfunction.</p>\n<p><code>grouped_map_reduce</code> is a generalized form of group by.</p>", 
+    "url": "grouped_map_reduce", 
+    "io": [
+      [
+        "sequence", 
+        "value"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> It's only fair that heroes be compared against their weight class.</p>\n<p><code>r.table('marvel').groupedMapReduce(\n    function(hero) { return hero('weightClass')},  // grouping\n    function(hero) { return hero.pluck('name', 'strength')},  // mapping\n    function(acc, hero) {  // reduction\n        return r.branch(acc('strength').lt(hero('strength')), hero, acc)\n    },\n    {name:'none', strength:0} // reduction base\n).run(conn, callback)</code></p>", 
+    "name": "groupedMapReduce"
+  }, 
+  "api/javascript/mod/": {
+    "body": "number.mod(number) &rarr; number", 
+    "description": "<p>Find the remainder when dividing two numbers.</p>", 
+    "url": "mod", 
+    "io": [
+      [
+        "number", 
+        "number"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> It's as easy as 2 % 2 = 0.</p>\n<p><code>r.expr(2).mod(2).run(conn, callback)</code></p>", 
+    "name": "mod"
+  }, 
+  "api/javascript/keys/": {
+    "body": "singleSelection.keys() &rarr; arrayobject.keys() &rarr; array", 
+    "description": "<p>Return an array containing all of the object's keys.</p>", 
+    "url": "keys", 
+    "io": [
+      [
+        "singleSelection", 
+        "array"
+      ], 
+      [
+        "object", 
+        "array"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Get all the keys of a row.</p>\n<p><code>r.table('marvel').get('ironman').keys().run(conn, callback)</code></p>\n<p>These commands provide string operators.</p>", 
+    "name": "keys"
+  }, 
+  "api/javascript/next/": {
+    "body": "cursor.next(callback)array.next(callback)", 
+    "description": "<p>Get the next element in the cursor.</p>", 
+    "url": "next", 
+    "io": [
+      [
+        "cursor", 
+        "undefined"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Let's grab the next element!</p>\n<p><code>cursor.next(function(err, row) {\n    if (err) throw err;\n    processRow(row);\n});</code></p>", 
+    "name": "next"
+  }, 
+  "api/javascript/insert_at/": {
+    "body": "array.insertAt(index, value) &rarr; array", 
+    "description": "<p>Insert a value in to an array at a given index. Returns the modified array.</p>", 
+    "url": "insert_at", 
+    "io": [
+      [
+        "array", 
+        "array"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Hulk decides to join the avengers.</p>\n<p><code>r.expr([\"Iron Man\", \"Spider-Man\"]).insertAt(1, \"Hulk\").run(conn, callback)</code></p>", 
+    "name": "insertAt"
+  }, 
+  "api/javascript/iso8601/": {
+    "body": "r.ISO8601(iso8601Date[, {default_timezone:''}]) &rarr; time", 
+    "description": "<p>Create a time object based on an iso8601 date-time string (e.g.\n'2013-01-01T01:01:01+00:00'). We support all valid ISO 8601 formats except for week\ndates. If you pass an ISO 8601 date-time without a time zone, you must specify the time\nzone with the optarg <code>default_timezone</code>. Read more about the ISO 8601 format on the\nWikipedia page.</p>", 
+    "url": "iso8601", 
+    "io": [
+      [
+        "r", 
+        "time"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Update the time of John's birth.</p>\n<p><code>r.table(\"user\").get(\"John\").update({birth: r.ISO8601('1986-11-03T08:30:00-07:00')}).run(conn, callback)</code></p>", 
+    "name": "ISO8601"
+  }, 
+  "api/javascript/sync/": {
+    "body": "table.sync()&rarr; object", 
+    "description": "<p><code>sync</code> ensures that writes on a given table are written to permanent storage. Queries\nthat specify soft durability (<code>{durability: 'soft'}</code>) do not give such guarantees, so\n<code>sync</code> can be used to ensure the state of these queries. A call to <code>sync</code> does not return\nuntil all previous writes to the table are persisted.</p>", 
+    "url": "sync", 
+    "io": [
+      [
+        "table", 
+        "object"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> After having updated multiple heroes with soft durability, we now want to wait\nuntil these changes are persisted.</p>\n<p><code>r.table('marvel').sync().run(conn, callback)</code></p>", 
+    "name": "sync"
+  }, 
+  "api/javascript/indexes_of/": {
+    "body": "sequence.indexesOf(datum | predicate) &rarr; array", 
+    "description": "<p>Get the indexes of an element in a sequence. If the argument is a predicate, get the indexes of all elements matching it.</p>", 
+    "url": "indexes_of", 
+    "io": [
+      [
+        "sequence", 
+        "array"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Find the position of the letter 'c'.</p>\n<p><code>r.expr(['a','b','c']).indexesOf('c').run(conn, callback)</code></p>", 
+    "name": "indexesOf"
+  }, 
+  "api/javascript/between/": {
+    "body": "table.between(lowerKey, upperKey[, {index:'id', left_bound:'closed', right_bound:'open'}])&rarr; selection", 
+    "description": "<p>Get all documents between two keys. Accepts three optional arguments: <code>index</code>,\n<code>left_bound</code>, and <code>right_bound</code>. If <code>index</code> is set to the name of a secondary index,\n<code>between</code> will return all documents where that index's value is in the specified range\n(it uses the primary key by default). <code>left_bound</code> or <code>right_bound</code> may be set to <code>open</code>\nor <code>closed</code> to indicate whether or not to include that endpoint of the range (by default,\n<code>left_bound</code> is closed and <code>right_bound</code> is open).</p>", 
+    "url": "between", 
+    "io": [
+      [
+        "table", 
+        "selection"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Find all users with primary key &gt;= 10 and &lt; 20 (a normal half-open interval).</p>\n<p><code>r.table('marvel').between(10, 20).run(conn, callback)</code></p>", 
+    "name": "between"
+  }, 
+  "api/javascript/table_drop/": {
+    "body": "db.tableDrop(tableName) &rarr; object", 
+    "description": "<p>Drop a table. The table and all its data will be deleted.</p>\n<p>If succesful, the operation returns an object: {dropped: 1}. If the specified table\ndoesn't exist a <code>RqlRuntimeError</code> is thrown.</p>", 
+    "url": "table_drop", 
+    "io": [
+      [
+        "db", 
+        "object"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Drop a table named 'dc_universe'.</p>\n<p><code>r.db('test').tableDrop('dc_universe').run(conn, callback)</code></p>", 
+    "name": "tableDrop"
+  }, 
+  "api/javascript/type_of/": {
+    "body": "any.typeOf() &rarr; string", 
+    "description": "<p>Gets the type of a value.</p>", 
+    "url": "type_of", 
+    "io": [
+      [
+        "any", 
+        "string"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Get the type of a string.</p>\n<p><code>r.expr(\"foo\").typeOf().run(conn, callback)</code></p>", 
+    "name": "typeOf"
+  }, 
+  "api/javascript/has_fields/": {
+    "body": "sequence.hasFields([selector1, selector2...]) &rarr; streamarray.hasFields([selector1, selector2...]) &rarr; arraysingleSelection.hasFields([selector1, selector2...]) &rarr; booleanobject.hasFields([selector1, selector2...]) &rarr; boolean", 
+    "description": "<p>Test if an object has all of the specified fields. An object has a field if it has the\nspecified key and that key maps to a non-null value. For instance, the object\n<code>{'a':1,'b':2,'c':null}</code> has the fields <code>a</code> and <code>b</code>.</p>", 
+    "url": "has_fields", 
+    "io": [
+      [
+        "sequence", 
+        "stream"
+      ], 
+      [
+        "array", 
+        "array"
+      ], 
+      [
+        "singleSelection", 
+        "boolean"
+      ], 
+      [
+        "object", 
+        "boolean"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Which heroes are married?</p>\n<p><code>r.table('marvel').hasFields('spouse')</code></p>", 
+    "name": "hasFields"
+  }, 
+  "api/javascript/gt/": {
+    "body": "value.gt(value) &rarr; bool", 
+    "description": "<p>Test if the first value is greater than other.</p>", 
+    "url": "gt", 
+    "io": [
+      [
+        "value", 
+        "bool"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Is 2 greater than 2?</p>\n<p><code>r.expr(2).gt(2).run(conn, callback)</code></p>", 
+    "name": "gt"
+  }, 
+  "api/javascript/skip/": {
+    "body": "sequence.skip(n) &rarr; streamarray.skip(n) &rarr; array", 
+    "description": "<p>Skip a number of elements from the head of the sequence.</p>", 
+    "url": "skip", 
+    "io": [
+      [
+        "sequence", 
+        "stream"
+      ], 
+      [
+        "array", 
+        "array"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Here in conjunction with <code>order_by</code> we choose to ignore the most successful heroes.</p>\n<p><code>r.table('marvel').orderBy('successMetric').skip(10).run(conn, callback)</code></p>", 
+    "name": "skip"
+  }, 
+  "api/javascript/slice/": {
+    "body": "sequence.slice(startIndex[, endIndex]) &rarr; streamarray.slice(startIndex[, endIndex]) &rarr; array", 
+    "description": "<p>Trim the sequence to within the bounds provided.</p>", 
+    "url": "slice", 
+    "io": [
+      [
+        "sequence", 
+        "stream"
+      ], 
+      [
+        "array", 
+        "array"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> For this fight, we need heroes with a good mix of strength and agility.</p>\n<p><code>r.table('marvel').orderBy('strength').slice(5, 10).run(conn, callback)</code></p>", 
+    "name": "slice"
+  }, 
+  "api/javascript/eq_join/": {
+    "body": "sequence.eqJoin(leftAttr, otherTable[, {index:'id'}]) &rarr; streamarray.eqJoin(leftAttr, otherTable[, {index:'id'}]) &rarr; array", 
+    "description": "<p>An efficient join that looks up elements in the right table by primary key.</p>", 
+    "url": "eq_join", 
+    "io": [
+      [
+        "sequence", 
+        "stream"
+      ], 
+      [
+        "array", 
+        "array"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Let our heroes join forces to battle evil!</p>\n<p><code>r.table('marvel').eqJoin('main_dc_collaborator', r.table('dc')).run(conn, callback)</code></p>", 
+    "name": "eqJoin"
+  }, 
+  "api/javascript/db_list/": {
+    "body": "r.dbList() &rarr; array", 
+    "description": "<p>List all database names in the system. The result is a list of strings.</p>", 
+    "url": "db_list", 
+    "io": [
+      [
+        "r", 
+        "object"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> List all databases.</p>\n<p><code>r.dbList().run(conn, callback)</code></p>", 
+    "name": "dbList"
+  }, 
+  "api/javascript/limit/": {
+    "body": "sequence.limit(n) &rarr; streamarray.limit(n) &rarr; array", 
+    "description": "<p>End the sequence after the given number of elements.</p>", 
+    "url": "limit", 
+    "io": [
+      [
+        "sequence", 
+        "stream"
+      ], 
+      [
+        "array", 
+        "array"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Only so many can fit in our Pantheon of heroes.</p>\n<p><code>r.table('marvel').orderBy('belovedness').limit(10).run(conn, callback)</code></p>", 
+    "name": "limit"
+  }, 
+  "api/javascript/delete_at/": {
+    "body": "array.deleteAt(index [,endIndex]) &rarr; array", 
+    "description": "<p>Remove an element from an array at a given index. Returns the modified array.</p>", 
+    "url": "delete_at", 
+    "io": [
+      [
+        "array", 
+        "array"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Hulk decides to leave the avengers.</p>\n<p><code>r.expr([\"Iron Man\", \"Hulk\", \"Spider-Man\"]).deleteAt(1).run(conn, callback)</code></p>", 
+    "name": "deleteAt"
+  }, 
+  "api/javascript/div/": {
+    "body": "number.div(number) &rarr; number", 
+    "description": "<p>Divide two numbers.</p>", 
+    "url": "div", 
+    "io": [
+      [
+        "number", 
+        "number"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> It's as easy as 2 / 2 = 1.</p>\n<p><code>r.expr(2).div(2).run(conn, callback)</code></p>", 
+    "name": "div"
+  }, 
+  "api/javascript/r/": {
+    "body": "r &rarr; r", 
+    "description": "<p>The top-level ReQL namespace.</p>", 
+    "url": "r", 
+    "io": [
+      [
+        null, 
+        "r"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Set up your top-level namespace.</p>\n<p><code>var r = require('rethinkdb');</code></p>", 
+    "name": "r"
+  }, 
+  "api/javascript/run/": {
+    "body": "query.run(conn, callback)query.run(options[, callback])", 
+    "description": "<p>Run a query on a connection.  Accepts the following options:</p>\n<ul>\n<li><code>useOutdated</code>: whether or not outdated reads are OK (default: <code>false</code>).</li>\n<li><code>timeFormat</code>: what format to return times in (default: <code>'native'</code>).\n  Set this to <code>'raw'</code> if you want times returned as JSON objects for exporting.</li>\n<li><code>profile</code>: whether or not to return a profile of the query's\n  execution (default: <code>false</code>).</li>\n</ul>\n<p>The callback will get either an error, a single JSON result, or a\ncursor, depending on the query.</p>", 
+    "url": "run", 
+    "io": [
+      [
+        "any", 
+        null
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Run a query on the connection <code>conn</code> and log each row in\nthe result to the console.</p>\n<p><code>r.table('marvel').run(conn, function(err, cursor) { cursor.each(console.log); })</code></p>", 
+    "name": "run"
+  }, 
+  "api/javascript/set_insert/": {
+    "body": "array.setInsert(value) &rarr; array", 
+    "description": "<p>Add a value to an array and return it as a set (an array with distinct values).</p>", 
+    "url": "set_insert", 
+    "io": [
+      [
+        "array", 
+        "array"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Retrieve Iron Man's equipment list with the addition of some new boots.</p>\n<p><code>r.table('marvel').get('IronMan')('equipment').setInsert('newBoots').run(conn, callback)</code></p>", 
+    "name": "setInsert"
+  }, 
+  "api/javascript/month/": {
+    "body": "time.month() &rarr; number", 
+    "description": "<p>Return the month of a time object as a number between 1 and 12. For your convenience, the terms r.january, r.february etc. are defined and map to the appropriate integer.</p>", 
+    "url": "month", 
+    "io": [
+      [
+        "time", 
+        "number"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Retrieve all the users who were born in November.</p>\n<p><code>r.table(\"users\").filter(\n    r.row(\"birthdate\").month().eq(11)\n)</code></p>", 
+    "name": "month"
+  }, 
+  "api/javascript/eq/": {
+    "body": "value.eq(value) &rarr; bool", 
+    "description": "<p>Test if two values are equal.</p>", 
+    "url": "eq", 
+    "io": [
+      [
+        "value", 
+        "bool"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Does 2 equal 2?</p>\n<p><code>r.expr(2).eq(2).run(conn, callback)</code></p>", 
+    "name": "eq"
+  }, 
+  "api/javascript/day_of_week/": {
+    "body": "time.dayOfWeek() &rarr; number", 
+    "description": "<p>Return the day of week of a time object as a number between 1 and 7 (following ISO 8601 standard). For your convenience, the terms r.monday, r.tuesday etc. are defined and map to the appropriate integer.</p>", 
+    "url": "day_of_week", 
+    "io": [
+      [
+        "time", 
+        "number"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Return today's day of week.</p>\n<p><code>r.now().dayOfWeek().run(conn, callback)</code></p>", 
+    "name": "dayOfWeek"
+  }, 
+  "api/javascript/change_at/": {
+    "body": "array.changeAt(index, value) &rarr; array", 
+    "description": "<p>Change a value in an array at a given index. Returns the modified array.</p>", 
+    "url": "change_at", 
+    "io": [
+      [
+        "array", 
+        "array"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Bruce Banner hulks out.</p>\n<p><code>r.expr([\"Iron Man\", \"Bruce\", \"Spider-Man\"]).changeAt(1, \"Hulk\").run(conn, callback)</code></p>", 
+    "name": "changeAt"
+  }, 
+  "api/javascript/time/": {
+    "body": "r.time(year, month, day[, hour, minute, second], timezone)&rarr; time", 
+    "description": "<p>Create a time object for a specific time.</p>\n<p>A few restrictions exist on the arguments:</p>\n<ul>\n<li><code>year</code> is an integer between 1400 and 9,999.</li>\n<li><code>month</code> is an integer between 1 and 12.</li>\n<li><code>day</code> is an integer between 1 and 31.</li>\n<li><code>hour</code> is an integer.</li>\n<li><code>minutes</code> is an integer.</li>\n<li><code>seconds</code> is a double. Its value will be rounded to three decimal places\n(millisecond-precision).</li>\n<li><code>timezone</code> can be <code>'Z'</code> (for UTC) or a string with the format <code>\u00b1[hh]:[mm]</code>.</li>\n</ul>", 
+    "url": "time", 
+    "io": [
+      [
+        "r", 
+        "time"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Update the birthdate of the user \"John\" to November 3rd, 1986 UTC.</p>\n<p><code>r.table(\"user\").get(\"John\").update({birthdate: r.time(1986, 11, 3, 'Z')})\n    .run(conn, callback)</code></p>", 
+    "name": "time"
+  }, 
+  "api/javascript/add/": {
+    "body": "number.add(number) &rarr; numberstring.add(string) &rarr; stringarray.add(array) &rarr; arraytime.add(number) &rarr; time", 
+    "description": "<p>Sum two numbers, concatenate two strings, or concatenate 2 arrays.</p>", 
+    "url": "add", 
+    "io": [
+      [
+        "number", 
+        "number"
+      ], 
+      [
+        "string", 
+        "string"
+      ], 
+      [
+        "array", 
+        "array"
+      ], 
+      [
+        "time", 
+        "time"
+      ], 
+      [
+        "time", 
+        "number"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> It's as easy as 2 + 2 = 4.</p>\n<p><code>r.expr(2).add(2).run(conn, callback)</code></p>", 
+    "name": "add"
+  }, 
+  "api/javascript/count-aggregator/": {
+    "body": "r.count", 
+    "description": "<p>Count the total size of the group.</p>", 
+    "url": "count-aggregator", 
+    "io": [
+      [
+        "r", 
+        null
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Just how many heroes do we have at each strength level?</p>\n<p><code>r.table('marvel').groupBy('strength', r.count).run(conn, callback)</code></p>", 
+    "name": "count"
+  }, 
+  "api/javascript/le/": {
+    "body": "value.le(value) &rarr; bool", 
+    "description": "<p>Test if the first value is less than or equal to other.</p>", 
+    "url": "le", 
+    "io": [
+      [
+        "value", 
+        "bool"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Is 2 less than or equal to 2?</p>\n<p><code>r.expr(2).le(2).run(conn, callback)</code></p>", 
+    "name": "le"
+  }, 
+  "api/javascript/splice_at/": {
+    "body": "array.spliceAt(index, array) &rarr; array", 
+    "description": "<p>Insert several values in to an array at a given index. Returns the modified array.</p>", 
+    "url": "splice_at", 
+    "io": [
+      [
+        "array", 
+        "array"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Hulk and Thor decide to join the avengers.</p>\n<p><code>r.expr([\"Iron Man\", \"Spider-Man\"]).spliceAt(1, [\"Hulk\", \"Thor\"]).run(conn, callback)</code></p>", 
+    "name": "spliceAt"
+  }, 
+  "api/javascript/coerce_to/": {
+    "body": "sequence.coerceTo(typeName) &rarr; arrayvalue.coerceTo(typeName) &rarr; stringarray.coerceTo(typeName) &rarr; objectobject.coerceTo(typeName) &rarr; array", 
+    "description": "<p>Converts a value of one type into another.</p>\n<p>You can convert: a selection, sequence, or object into an ARRAY, an array of pairs into an OBJECT, and any DATUM into a STRING.</p>", 
+    "url": "coerce_to", 
+    "io": [
+      [
+        "sequence", 
+        "array"
+      ], 
+      [
+        "value", 
+        "string"
+      ], 
+      [
+        "array", 
+        "object"
+      ], 
+      [
+        "object", 
+        "array"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Convert a table to an array.</p>\n<p><code>r.table('marvel').coerceTo('array').run(conn, callback)</code></p>", 
+    "name": "coerceTo"
+  }, 
+  "api/javascript/insert/": {
+    "body": "table.insert(json | [json][, {durability: 'soft', returnVals: true, upsert:true}])&rarr; object", 
+    "description": "<p>Insert JSON documents into a table. Accepts a single JSON document or an array of\ndocuments.</p>\n<p>Insert returns an object that contains the following attributes:</p>\n<ul>\n<li><code>inserted</code>: the number of documents that were succesfully inserted</li>\n<li><code>replaced</code>: the number of documents that were updated when upsert is used</li>\n<li><code>unchanged</code>: the number of documents that would have been modified, except that the\nnew value was the same as the old value when doing an upsert</li>\n<li><code>errors</code>: the number of errors encountered while inserting; if errors where\nencountered while inserting, <code>first_error</code> contains the text of the first error</li>\n<li><code>generated_keys</code>: a list of generated primary key values</li>\n<li><code>deleted</code> and <code>skipped</code>: 0 for an insert operation.</li>\n</ul>", 
+    "url": "insert", 
+    "io": [
+      [
+        "table", 
+        "object"
+      ], 
+      [
+        "selection", 
+        "object"
+      ], 
+      [
+        "singleSelection", 
+        "object"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Insert a row into a table named 'marvel'.</p>\n<p><code>r.table('marvel').insert({ superhero: 'Iron Man', superpower: 'Arc Reactor' })\n    .run(conn, callback)</code></p>", 
+    "name": "insert"
+  }, 
+  "api/javascript/now/": {
+    "body": "r.now() &rarr; time", 
+    "description": "<p>Return a time object representing the current time in UTC. The command now() is computed once when the server receives the query, so multiple instances of r.now() will always return the same time inside a query.</p>", 
+    "url": "now", 
+    "io": [
+      [
+        "r", 
+        "time"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Add a new user with the time at which he subscribed.</p>\n<p><code>r.table(\"users\").insert({\n    name: \"John\",\n    subscription_date: r.now()\n}).run(conn, callback)</code></p>", 
+    "name": "now"
+  }, 
+  "api/javascript/outer_join/": {
+    "body": "sequence.outerJoin(otherSequence, predicate) &rarr; streamarray.outerJoin(otherSequence, predicate) &rarr; array", 
+    "description": "<p>Computes a left outer join by retaining each row in the left table even if no match was\nfound in the right table.</p>", 
+    "url": "outer_join", 
+    "io": [
+      [
+        "sequence", 
+        "stream"
+      ], 
+      [
+        "array", 
+        "array"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Construct a sequence of documents containing all cross-universe matchups\nwhere a marvel hero would lose, but keep marvel heroes who would never lose a matchup in\nthe sequence.</p>\n<p><code>r.table('marvel').outerJoin(r.table('dc'), function(marvelRow, dcRow) {\n    return marvelRow('strength').lt(dcRow('strength'))\n}).run(conn, callback)</code></p>", 
+    "name": "outerJoin"
+  }, 
+  "api/javascript/has_next/": {
+    "body": "cursor.hasNext() &rarr; boolarray.hasNext() &rarr; bool", 
+    "description": "<p>Check if there are more elements in the cursor.</p>", 
+    "url": "has_next", 
+    "io": [
+      [
+        "cursor", 
+        "undefined"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Are there more elements in the cursor?</p>\n<p><code>var hasMore = cursor.hasNext();</code></p>", 
+    "name": "hasNext"
+  }, 
+  "api/javascript/epoch_time/": {
+    "body": "r.epochTime(epochTime) &rarr; time", 
+    "description": "<p>Create a time object based on seconds since epoch. The first argument is a double and\nwill be rounded to three decimal places (millisecond-precision).</p>", 
+    "url": "epoch_time", 
+    "io": [
+      [
+        "r", 
+        "time"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Update the birthdate of the user \"John\" to November 3rd, 1986.</p>\n<p><code>r.table(\"user\").get(\"John\").update({birthdate: r.epochTime(531360000)})\n    .run(conn, callback)</code></p>", 
+    "name": "epochTime"
+  }, 
+  "api/javascript/db_drop/": {
+    "body": "r.dbDrop(dbName) &rarr; object", 
+    "description": "<p>Drop a database. The database, all its tables, and corresponding data will be deleted.</p>\n<p>If successful, the operation returns the object <code>{dropped: 1}</code>. If the specified database\ndoesn't exist a <code>RqlRuntimeError</code> is thrown.</p>", 
+    "url": "db_drop", 
+    "io": [
+      [
+        "r", 
+        "object"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Drop a database named 'superheroes'.</p>\n<p><code>r.dbDrop('superheroes').run(conn, callback)</code></p>", 
+    "name": "dbDrop"
+  }, 
+  "api/javascript/order_by/": {
+    "body": "sequence.orderBy(key1, [key2...]) &rarr; streamarray.orderBy(key1, [key2...]) &rarr; array", 
+    "description": "<p>Sort the sequence by document values of the given key(s). <code>orderBy</code> defaults to ascending\nordering. To explicitly specify the ordering, wrap the attribute with either <code>r.asc</code> or\n<code>r.desc</code>.</p>", 
+    "url": "order_by", 
+    "io": [
+      [
+        "sequence", 
+        "stream"
+      ], 
+      [
+        "array", 
+        "array"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Order our heroes by a series of performance metrics.</p>\n<p><code>r.table('marvel').orderBy('enemiesVanquished', 'damselsSaved').run(conn, callback)</code></p>", 
+    "name": "orderBy"
+  }, 
+  "api/javascript/reduce/": {
+    "body": "sequence.reduce(reductionFunction[, base]) &rarr; value", 
+    "description": "<p>Produce a single value from a sequence through repeated application of a reduction\nfunction.</p>\n<p>The reduce function gets invoked repeatedly not only for the input values but also for\nresults of previous reduce invocations. The type and format of the object that is passed\nin to reduce must be the same with the one returned from reduce.</p>", 
+    "url": "reduce", 
+    "io": [
+      [
+        "sequence", 
+        "value"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> How many enemies have our heroes defeated?</p>\n<p><code>r.table('marvel').map(r.row('monstersKilled')).reduce(function(acc, val) {\n    return acc.add(val)\n}, 0).run(conn, callback)</code></p>", 
+    "name": "reduce"
+  }, 
+  "api/javascript/to_array/": {
+    "body": "cursor.toArray(callback)array.toArray(callback)", 
+    "description": "<p>Retrieve all results and pass them as an array to the given callback.</p>", 
+    "url": "to_array", 
+    "io": [
+      [
+        "cursor", 
+        "undefined"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> For small result sets it may be more convenient to process them at once as\nan array.</p>\n<p><code>cursor.toArray(function(err, results) {\n    if (err) throw err;\n    processResults(results);\n});</code></p>", 
+    "name": "toArray"
+  }, 
+  "api/javascript/to_iso8601/": {
+    "body": "time.toISO8601() &rarr; string", 
+    "description": "<p>Convert a time object to its iso 8601 format.</p>", 
+    "url": "to_iso8601", 
+    "io": [
+      [
+        "time", 
+        "string"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Return the current time in an ISO8601 format.</p>\n<p><code>r.now().toISO8601()</code></p>", 
+    "name": "toISO8601"
+  }, 
+  "api/javascript/distinct/": {
+    "body": "sequence.distinct() &rarr; array", 
+    "description": "<p>Remove duplicate elements from the sequence.</p>", 
+    "url": "distinct", 
+    "io": [
+      [
+        "sequence", 
+        "value"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Which unique villains have been vanquished by marvel heroes?</p>\n<p><code>r.table('marvel').concatMap(function(hero) {return hero('villainList')}).distinct()\n    .run(conn, callback)</code></p>", 
+    "name": "distinct"
+  }, 
+  "api/javascript/delete/": {
+    "body": "table.delete([{durability: 'soft', return_vals: true}])&rarr; objectselection.delete([{durability: 'soft', return_vals: true}])&rarr; objectsingleSelection.delete([{durability: 'soft', return_vals: true}])&rarr; object", 
+    "description": "<p>Delete one or more documents from a table. The optional argument return_vals will return\nthe old value of the row you're deleting when set to true (only valid for single-row\ndeletes). The optional argument durability with value 'hard' or 'soft' will override the\ntable or query's default durability setting.</p>\n<p>Delete returns an object that contains the following attributes:</p>\n<ul>\n<li><code>deleted</code>: the number of documents that were deleted</li>\n<li><code>skipped</code>: the number of documents from the selection that were left unmodified because\nthere was nothing to do. For example, if you delete a row that has already been deleted,\nthat row will be skipped</li>\n<li><code>errors</code>: the number of errors encountered while deleting\nif errors occured, first_error contains the text of the first error</li>\n<li><code>inserted</code>, <code>replaced</code>, and <code>unchanged</code>: all 0 for a delete operation.</li>\n</ul>", 
+    "url": "delete", 
+    "io": [
+      [
+        "table", 
+        "object"
+      ], 
+      [
+        "selection", 
+        "object"
+      ], 
+      [
+        "singleSelection", 
+        "object"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Delete superman from the database.</p>\n<p><code>r.table('marvel').get('superman').delete().run(conn, callback)</code></p>", 
+    "name": "delete"
+  }, 
+  "api/javascript/sum/": {
+    "body": "r.sum(attr)", 
+    "description": "<p>Compute the sum of the given field in the group.</p>", 
+    "url": "sum", 
+    "io": [
+      [
+        "r", 
+        null
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> How many enemies have been vanquished by heroes at each strength level?</p>\n<p><code>r.table('marvel').groupBy('strength', r.sum('enemiesVanquished')).run(conn, callback)</code></p>", 
+    "name": "sum"
+  }, 
+  "api/javascript/close-cursor/": {
+    "body": "cursor.close()", 
+    "description": "<p>Close a cursor. Closing a cursor cancels the corresponding query and frees the memory\nassociated with the open request.</p>", 
+    "url": "close-cursor", 
+    "io": [
+      [
+        "cursor", 
+        "undefined"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Close a cursor.</p>\n<p><code>cursor.close()</code></p>", 
+    "name": "close (cursor)"
+  }, 
+  "api/javascript/union/": {
+    "body": "sequence.union(sequence) &rarr; array", 
+    "description": "<p>Concatenate two sequences.</p>", 
+    "url": "union", 
+    "io": [
+      [
+        "sequence", 
+        "array"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Construct a stream of all heroes.</p>\n<p><code>r.table('marvel').union(r.table('dc')).run(conn, callback)</code></p>", 
+    "name": "union"
+  }, 
+  "api/javascript/pluck/": {
+    "body": "sequence.pluck([selector1, selector2...]) &rarr; streamarray.pluck([selector1, selector2...]) &rarr; arrayobject.pluck([selector1, selector2...]) &rarr; objectsingleSelection.pluck([selector1, selector2...]) &rarr; object", 
+    "description": "<p>Plucks out one or more attributes from either an object or a sequence of objects\n(projection).</p>", 
+    "url": "pluck", 
+    "io": [
+      [
+        "sequence", 
+        "stream"
+      ], 
+      [
+        "array", 
+        "array"
+      ], 
+      [
+        "object", 
+        "object"
+      ], 
+      [
+        "singleSelection", 
+        "object"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> We just need information about IronMan's reactor and not the rest of the\ndocument.</p>\n<p><code>r.table('marvel').get('IronMan').pluck('reactorState', 'reactorPower').run(conn, callback)</code></p>", 
+    "name": "pluck"
+  }, 
+  "api/javascript/hours/": {
+    "body": "time.hours() &rarr; number", 
+    "description": "<p>Return the hour in a time object as a number between 0 and 23.</p>", 
+    "url": "hours", 
+    "io": [
+      [
+        "time", 
+        "number"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Return all the posts submitted after midnight and before 4am.</p>\n<p><code>r.table(\"posts\").filter(function(post) {\n    return post(\"date\").hours().lt(4)\n})</code></p>", 
+    "name": "hours"
+  }, 
+  "api/javascript/ge/": {
+    "body": "value.ge(value) &rarr; bool", 
+    "description": "<p>Test if the first value is greater than or equal to other.</p>", 
+    "url": "ge", 
+    "io": [
+      [
+        "value", 
+        "bool"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Is 2 greater than or equal to 2?</p>\n<p><code>r.expr(2).ge(2).run(conn, callback)</code></p>", 
+    "name": "ge"
+  }, 
+  "api/javascript/to_epoch_time/": {
+    "body": "time.to_epoch_time() &rarr; number", 
+    "description": "<p>Convert a time object to its epoch time.</p>", 
+    "url": "to_epoch_time", 
+    "io": [
+      [
+        "time", 
+        "number"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Return the current time in an ISO8601 format.</p>\n<p><code>r.now().toEpochTime()</code></p>", 
+    "name": "toEpochTime"
+  }, 
+  "api/javascript/minutes/": {
+    "body": "time.minutes() &rarr; number", 
+    "description": "<p>Return the minute in a time object as a number between 0 and 59.</p>", 
+    "url": "minutes", 
+    "io": [
+      [
+        "time", 
+        "number"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Return all the posts submitted during the first 10 minutes of every hour.</p>\n<p><code>r.table(\"posts\").filter(function(post) {\n    return post(\"date\").minutes().lt(10)\n})</code></p>", 
+    "name": "minutes"
+  }, 
+  "api/javascript/table_create/": {
+    "body": "db.tableCreate(tableName[, options]) &rarr; object", 
+    "description": "<p>Create a table. A RethinkDB table is a collection of JSON documents.</p>\n<p>If successful, the operation returns an object: <code>{created: 1}</code>. If a table with the same\nname already exists, the operation throws <code>RqlRuntimeError</code>.\nNote: that you can only use alphanumeric characters and underscores for the table name.</p>\n<p>When creating a table you can specify the following options:</p>\n<ul>\n<li><code>primaryKey</code>: the name of the primary key. The default primary key is id;</li>\n<li><code>durability</code>: if set to <code>soft</code>, this enables <em>soft durability</em> on this table:\nwrites will be acknowledged by the server immediately and flushed to disk in the\nbackground. Default is <code>hard</code> (acknowledgement of writes happens after data has been\nwritten to disk);</li>\n<li><code>cacheSize</code>: set the cache size (in bytes) to be used by the table. The\ndefault is 1073741824 (1024MB);</li>\n<li><code>datacenter</code>: the name of the datacenter this table should be assigned to.</li>\n</ul>", 
+    "url": "table_create", 
+    "io": [
+      [
+        "db", 
+        "table"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Create a table named 'dc_universe' with the default settings.</p>\n<p><code>r.db('test').tableCreate('dc_universe').run(conn, callback)</code></p>", 
+    "name": "tableCreate"
+  }, 
+  "api/javascript/index_status/": {
+    "body": "table.indexStatus([, index...]) &rarr; array", 
+    "description": "<p>Get the status of the specified indexes on this table, or the status\nof all indexes on this table if no indexes are specified.</p>", 
+    "url": "index_status", 
+    "io": [
+      [
+        "table", 
+        "array"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Get the status of all the indexes on <code>test</code>:</p>\n<p><code>r.table('test').indexStatus().run(conn, callback)</code></p>\n<p><strong>Example:</strong> Get the status of the <code>timestamp</code> index:</p>\n<p><code>r.table('test').indexStatus('timestamp').run(conn, callback)</code></p>", 
+    "name": "indexStatus"
+  }, 
+  "api/javascript/db/": {
+    "body": "r.db(dbName) &rarr; db", 
+    "description": "<p>Reference a database.</p>", 
+    "url": "db", 
+    "io": [
+      [
+        "r", 
+        "db"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Before we can query a table we have to select the correct database.</p>\n<p><code>r.db('heroes').table('marvel').run(conn, callback)</code></p>", 
+    "name": "db"
+  }, 
+  "api/javascript/index_drop/": {
+    "body": "table.indexDrop(indexName) &rarr; object", 
+    "description": "<p>Delete a previously created secondary index of this table.</p>", 
+    "url": "index_drop", 
+    "io": [
+      [
+        "table", 
+        "object"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Drop a secondary index named 'code_name'.</p>\n<p><code>r.table('dc').indexDrop('code_name').run(conn, callback)</code></p>", 
+    "name": "indexDrop"
+  }, 
+  "api/javascript/day/": {
+    "body": "time.day() &rarr; number", 
+    "description": "<p>Return the day of a time object as a number between 1 and 31.</p>", 
+    "url": "day", 
+    "io": [
+      [
+        "time", 
+        "number"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Return the users born on the 24th of any month.</p>\n<p><code>r.table(\"users\").filter(\n    r.row(\"birthdate\").day().eq(24)\n).run(conn, callback)</code></p>", 
+    "name": "day"
+  }
+}

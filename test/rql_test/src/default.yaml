@@ -175,19 +175,19 @@ tests:
       ot: ([{},{'a':null},{'a':1}])
 
     - cd: arr.filter{|x| x['a'].eq(1).or(x['a']['b'].eq(2))}
-      py: arr.filter(lambda x:r.any(x['a'].eq(1), x['a']['b'].eq(2)))
+      py: arr.filter(lambda x:r.or_(x['a'].eq(1), x['a']['b'].eq(2)))
       js: arr.filter(function(x){return x('a').eq(1).or(x('a')('b').eq(2))})
       ot: [{'a':1}]
     - cd: arr.filter(:default => false){|x| x['a'].eq(1).or(x['a']['b'].eq(2))}
-      py: arr.filter(lambda x:r.any(x['a'].eq(1), x['a']['b'].eq(2)), default=False)
+      py: arr.filter(lambda x:r.or_(x['a'].eq(1), x['a']['b'].eq(2)), default=False)
       js: arr.filter(function(x){return x('a').eq(1).or(x('a')('b').eq(2))}, {default:false})
       ot: [{'a':1}]
     - cd: arr.filter(:default => true){|x| x['a'].eq(1).or(x['a']['b'].eq(2))}.orderby('a')
-      py: arr.filter(lambda x:r.any(x['a'].eq(1), x['a']['b'].eq(2)), default=True).order_by('a')
+      py: arr.filter(lambda x:r.or_(x['a'].eq(1), x['a']['b'].eq(2)), default=True).order_by('a')
       js: arr.filter(function(x){return x('a').eq(1).or(x('a')('b').eq(2))}, {default:true}).orderBy('a')
       ot: ([{}, {'a':null}, {'a':1}])
     - cd: arr.filter(:default => r.error){|x| x['a'].eq(1).or(x['a']['b'].eq(2))}
-      py: arr.filter(lambda x:r.any(x['a'].eq(1), x['a']['b'].eq(2)), default=r.error())
+      py: arr.filter(lambda x:r.or_(x['a'].eq(1), x['a']['b'].eq(2)), default=r.error())
       js: arr.filter(function(x){return x('a').eq(1).or(x('a')('b').eq(2))}, {default:r.error()})
       ot: err("RqlRuntimeError", "No attribute `a` in object.", [])
 
@@ -248,19 +248,19 @@ tests:
       ot: ([{},{'a':null},{'a':1}])
 
     - cd: tbl.filter{|x| x['a'].eq(1).or(x['a']['b'].eq(2))}
-      py: tbl.filter(lambda x:r.any(x['a'].eq(1), x['a']['b'].eq(2)))
+      py: tbl.filter(lambda x:r.or_(x['a'].eq(1), x['a']['b'].eq(2)))
       js: tbl.filter(function(x){return x('a').eq(1).or(x('a')('b').eq(2))})
       ot: [{'a':1}]
     - cd: tbl.filter(:default => false){|x| x['a'].eq(1).or(x['a']['b'].eq(2))}
-      py: tbl.filter(lambda x:r.any(x['a'].eq(1), x['a']['b'].eq(2)), default=False)
+      py: tbl.filter(lambda x:r.or_(x['a'].eq(1), x['a']['b'].eq(2)), default=False)
       js: tbl.filter(function(x){return x('a').eq(1).or(x('a')('b').eq(2))}, {default:false})
       ot: [{'a':1}]
     - cd: tbl.filter(:default => true){|x| x['a'].eq(1).or(x['a']['b'].eq(2))}.orderby('a')
-      py: tbl.filter(lambda x:r.any(x['a'].eq(1), x['a']['b'].eq(2)), default=True).order_by('a')
+      py: tbl.filter(lambda x:r.or_(x['a'].eq(1), x['a']['b'].eq(2)), default=True).order_by('a')
       js: tbl.filter(function(x){return x('a').eq(1).or(x('a')('b').eq(2))}, {default:true}).orderBy('a')
       ot: ([{}, {'a':null}, {'a':1}])
     - cd: tbl.filter(:default => r.error){|x| x['a'].eq(1).or(x['a']['b'].eq(2))}
-      py: tbl.filter(lambda x:r.any(x['a'].eq(1), x['a']['b'].eq(2)), default=r.error())
+      py: tbl.filter(lambda x:r.or_(x['a'].eq(1), x['a']['b'].eq(2)), default=r.error())
       js: tbl.filter(function(x){return x('a').eq(1).or(x('a')('b').eq(2))}, {default:r.error()})
       ot: err("RqlRuntimeError", "No attribute `a` in object.", [])
 

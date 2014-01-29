@@ -7,6 +7,7 @@
 #include "memcached/protocol.hpp"
 #include "serializer/config.hpp"
 #include "serializer/translator.hpp"
+#include "serializer/merger.hpp"
 #include "unittest/gtest.hpp"
 #include "unittest/dummy_namespace_interface.hpp"
 
@@ -25,20 +26,23 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<mem
 
     io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
 
-    scoped_ptr_t<standard_serializer_t> serializer;
+    scoped_ptr_t<serializer_t> serializer;
 
     filepath_file_opener_t file_opener(temp_file.name(), &io_backender);
     standard_serializer_t::create(&file_opener,
                                   standard_serializer_t::static_config_t());
 
-    serializer.init(new standard_serializer_t(standard_serializer_t::dynamic_config_t(),
-                                              &file_opener,
-                                              &get_global_perfmon_collection()));
+    serializer.init(new merger_serializer_t(
+                        scoped_ptr_t<serializer_t>(
+                            new standard_serializer_t(standard_serializer_t::dynamic_config_t(),
+                                                      &file_opener,
+                                                      &get_global_perfmon_collection())),
+                        MERGER_SERIALIZER_MAX_ACTIVE_WRITES));
 
 
     scoped_ptr_t<serializer_multiplexer_t> multiplexer;
 
-    std::vector<standard_serializer_t *> ptrs;
+    std::vector<serializer_t *> ptrs;
     ptrs.push_back(serializer.get());
     serializer_multiplexer_t::create(ptrs, shards.size());
     multiplexer.init(new serializer_multiplexer_t(ptrs));

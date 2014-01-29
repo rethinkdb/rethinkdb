@@ -9,6 +9,7 @@
 #include <boost/variant.hpp>
 
 #include "containers/archive/archive.hpp"
+#include "containers/archive/varint.hpp"
 
 inline
 write_message_t &operator<<(UNUSED write_message_t &msg /* NOLINT */, UNUSED const boost::detail::variant::void_ &v) {
@@ -211,7 +212,7 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, boost::optional<T> *x) {
 
 template <class K, class V>
 write_message_t &operator<<(write_message_t &msg, const boost::ptr_map<K, V> &x) {
-    msg << x.size();
+    serialize_varint_uint64(&msg, x.size());
     for (typename boost::ptr_map<K, V>::const_iterator it = x.begin(); it != x.end(); ++it) {
         msg << it->first;
         msg << *it->second;
@@ -224,8 +225,8 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, boost::ptr_map<K, V> *x)
     x->clear();
     boost::ptr_map<K, V> tmp;
 
-    typename boost::ptr_map<K, V>::size_type size;
-    archive_result_t res = deserialize(s, &size);
+    uint64_t size;
+    archive_result_t res = deserialize_varint_uint64(s, &size);
     if (res != ARCHIVE_SUCCESS) { return res; }
 
     for (typename boost::ptr_map<K, V>::size_type i = 0; i < size; ++i) {

@@ -48,7 +48,7 @@ std::string admin_cluster_link_t::peer_id_to_machine_name(const std::string& pee
         if (peer == connectivity_cluster.get_me()) {
             result.assign("admin_cli");
         } else {
-            std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager->get_root_view()->get();
+            std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager->get_root_view()->get().get_inner();
             std::map<peer_id_t, cluster_directory_metadata_t>::iterator i = directory.find(peer);
 
             if (i != directory.end()) {
@@ -231,13 +231,16 @@ std::string admin_cluster_link_t::truncate_uuid(const uuid_u& uuid) {
 }
 
 void admin_cluster_link_t::do_metadata_update(cluster_semilattice_metadata_t *cluster_metadata,
-                                              metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t *change_request,
-                                              bool prioritize_distribution) {
+        metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t *change_request,
+        const boost::optional<namespace_id_t> &prioritize_distr_for_ns) {
     std::string error;
     try {
-        fill_in_blueprints(cluster_metadata, directory_read_manager->get_root_view()->get(), change_request_id, prioritize_distribution);
+        fill_in_blueprints(cluster_metadata,
+                           directory_read_manager->get_root_view()->get().get_inner(),
+                           change_request_id,
+                           prioritize_distr_for_ns);
     } catch (const missing_machine_exc_t &ex) {
-        error = strprintf("Warning: %s", ex.what());
+        error = std::string(ex.what());
     }
 
     if (!change_request->update(*cluster_metadata)) {
@@ -246,7 +249,7 @@ void admin_cluster_link_t::do_metadata_update(cluster_semilattice_metadata_t *cl
 
     // Print this out afterwards to avoid spammy warnings if retries must be performed
     if (!error.empty()) {
-        fprintf(stderr, "%s\n", error.c_str());
+        fprintf(stderr, "warn: %s", error.c_str());
     }
 }
 
@@ -289,7 +292,7 @@ admin_cluster_link_t::admin_cluster_link_t(const peer_address_set_t &joins,
     directory_manager_client_run(&directory_manager_client, directory_read_manager.get()),
     message_multiplexer_run(&message_multiplexer),
     connectivity_cluster_run(&connectivity_cluster,
-                             ip_address_t::get_local_addresses(std::set<ip_address_t>(), false),
+                             get_local_ips(std::set<ip_address_t>(), false),
                              canonical_addresses,
                              0,
                              &message_multiplexer_run,
@@ -309,7 +312,7 @@ admin_cluster_link_t::~admin_cluster_link_t() {
 }
 
 metadata_change_handler_t<cluster_semilattice_metadata_t>::request_mailbox_t::address_t admin_cluster_link_t::choose_sync_peer() {
-    const std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager->get_root_view()->get();
+    const std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager->get_root_view()->get().get_inner();
 
     for (std::map<peer_id_t, cluster_directory_metadata_t>::const_iterator i = directory.begin(); i != directory.end(); ++i) {
         if (i->second.peer_type == SERVER_PEER) {
@@ -322,7 +325,7 @@ metadata_change_handler_t<cluster_semilattice_metadata_t>::request_mailbox_t::ad
 }
 
 metadata_change_handler_t<auth_semilattice_metadata_t>::request_mailbox_t::address_t admin_cluster_link_t::choose_auth_sync_peer() {
-    const std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager->get_root_view()->get();
+    const std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager->get_root_view()->get().get_inner();
 
     for (std::map<peer_id_t, cluster_directory_metadata_t>::const_iterator i = directory.begin(); i != directory.end(); ++i) {
         if (i->second.peer_type == SERVER_PEER) {
@@ -341,13 +344,16 @@ void admin_cluster_link_t::update_metadata_maps() {
     add_subset_to_maps("machines", cluster_metadata.machines.machines);
     add_subset_to_maps("databases", cluster_metadata.databases.databases);
     add_subset_to_maps("datacenters", cluster_metadata.datacenters.datacenters);
-    add_subset_to_maps("rdb_namespaces", cluster_metadata.rdb_namespaces->namespaces);
-    add_subset_to_maps("dummy_namespaces", cluster_metadata.dummy_namespaces->namespaces);
-    add_subset_to_maps("memcached_namespaces", cluster_metadata.memcached_namespaces->namespaces);
+
+    // This also adds "db.table" notation to the name_map, and depends on databases already being done
+    add_ns_subset_to_maps("rdb_namespaces", cluster_metadata.rdb_namespaces->namespaces);
+    add_ns_subset_to_maps("dummy_namespaces", cluster_metadata.dummy_namespaces->namespaces);
+    add_ns_subset_to_maps("memcached_namespaces", cluster_metadata.memcached_namespaces->namespaces);
 }
 
 void admin_cluster_link_t::clear_metadata_maps() {
-    // All metadata infos will be in the name_map and uuid_map exactly one each
+    // All metadata infos will be in the uuid map exactly once, but in the name map 0 to 2 times
+    //  depending on name vclock conflicts.  Therefore, delete from the uuid map.
     for (std::map<std::string, metadata_info_t *>::iterator i = uuid_map.begin(); i != uuid_map.end(); ++i) {
         delete i->second;
     }
@@ -357,30 +363,57 @@ void admin_cluster_link_t::clear_metadata_maps() {
 }
 
 template <class T>
+void admin_cluster_link_t::add_ns_subset_to_maps(const std::string& base, const T& ns_map) {
+    for (typename T::const_iterator i = ns_map.begin(); i != ns_map.end(); ++i) {
+        if (!i->second.is_deleted()) {
+            metadata_info_t *info = new metadata_info_t;
+            info->uuid = i->first;
+            std::string uuid_str = uuid_to_str(i->first);
+            info->path.push_back(base);
+            info->path.push_back(uuid_str);
+
+            if (!i->second.get_ref().name.in_conflict()) {
+                info->name = i->second.get_ref().name.get().str();
+                name_map.insert(std::pair<std::string, metadata_info_t *>(info->name, info));
+
+                // Get the database name and add "db.table" as well
+                if (!i->second.get_ref().database.in_conflict()) {
+                    auto db_it = uuid_map.find(uuid_to_str(i->second.get_ref().database.get()));
+                    if (db_it != uuid_map.end() &&
+                        db_it->second->name.length() != 0) {
+                        info->alt_name = strprintf("%s.%s", db_it->second->name.c_str(), info->name.c_str());
+                        name_map.insert(std::pair<std::string, metadata_info_t *>(info->alt_name, info));
+                    }
+                }
+            }
+            uuid_map.insert(std::pair<std::string, metadata_info_t *>(uuid_str, info));
+        }
+    }
+}
+
+template <class T>
 void admin_cluster_link_t::add_subset_to_maps(const std::string& base, const T& data_map) {
     for (typename T::const_iterator i = data_map.begin(); i != data_map.end(); ++i) {
-        if (i->second.is_deleted()) {
-            continue;
-        }
+        if (!i->second.is_deleted()) {
+            metadata_info_t *info = new metadata_info_t;
+            info->uuid = i->first;
+            std::string uuid_str = uuid_to_str(i->first);
+            info->path.push_back(base);
+            info->path.push_back(uuid_str);
 
-        metadata_info_t * info = new metadata_info_t;
-        info->uuid = i->first;
-        std::string uuid_str = uuid_to_str(i->first);
-        info->path.push_back(base);
-        info->path.push_back(uuid_str);
-
-        if (!i->second.get_ref().name.in_conflict()) {
-            info->name = i->second.get_ref().name.get().str();
-            name_map.insert(std::pair<std::string, metadata_info_t *>(info->name, info));
+            if (!i->second.get_ref().name.in_conflict()) {
+                info->name = i->second.get_ref().name.get().str();
+                name_map.insert(std::pair<std::string, metadata_info_t *>(info->name, info));
+            }
+            uuid_map.insert(std::pair<std::string, metadata_info_t *>(uuid_str, info));
         }
-        uuid_map.insert(std::pair<std::string, metadata_info_t *>(uuid_str, info));
     }
 }
 
 void admin_cluster_link_t::sync_from() {
     try {
         cond_t interruptor;
-        std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager->get_root_view()->get();
+        std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager->get_root_view()->get().get_inner();
 
         if (sync_peer_id.is_nil() || directory.count(sync_peer_id) == 0) {
             choose_sync_peer();
@@ -622,7 +655,7 @@ void admin_cluster_link_t::do_admin_pin_shard(const admin_command_parser_t::comm
         throw admin_cluster_exc_t("unexpected error, unrecognized table protocol");
     }
 
-    do_metadata_update(&cluster_metadata, &change_request, false);
+    do_metadata_update(&cluster_metadata, &change_request);
 }
 
 template <class protocol_t>
@@ -827,23 +860,25 @@ void admin_cluster_link_t::do_admin_split_shard(const admin_command_parser_t::co
     const std::vector<std::string> split_points = guarantee_param_vec(data.params, "split-points");
     std::string error;
 
+    boost::optional<namespace_id_t> ns_id;
+
     if (ns_path[0] == "rdb_namespaces") {
-        cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t change(&cluster_metadata.rdb_namespaces);
-        error = admin_split_shard_internal(change.get(),
-                                           str_to_uuid(ns_path[1]),
-                                           split_points);
+        ns_id.reset(str_to_uuid(ns_path[1]));
+        cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t
+            change(&cluster_metadata.rdb_namespaces);
+        error = admin_split_shard_internal(change.get(), ns_id.get(), split_points);
     } else if (ns_path[0] == "memcached_namespaces") {
-        cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> >::change_t change(&cluster_metadata.memcached_namespaces);
-        error = admin_split_shard_internal(change.get(),
-                                           str_to_uuid(ns_path[1]),
-                                           split_points);
+        ns_id.reset(str_to_uuid(ns_path[1]));
+        cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> >::change_t
+            change(&cluster_metadata.memcached_namespaces);
+        error = admin_split_shard_internal(change.get(), ns_id.get(), split_points);
     } else if (ns_path[0] == "dummy_namespaces") {
         throw admin_cluster_exc_t("splitting not supported for dummy tables");
     } else {
         throw admin_cluster_exc_t("invalid object type");
     }
 
-    do_metadata_update(&cluster_metadata, &change_request, true);
+    do_metadata_update(&cluster_metadata, &change_request, ns_id);
 
     if (!error.empty()) {
         if (split_points.size() > 1) {
@@ -950,19 +985,27 @@ void admin_cluster_link_t::do_admin_merge_shard(const admin_command_parser_t::co
     const std::vector<std::string> split_points(guarantee_param_vec(data.params, "split-points"));
     std::string error;
 
+    boost::optional<namespace_id_t> prioritize_distr_for_ns;
+
     if (info->path[0] == "rdb_namespaces") {
+        const namespace_id_t ns_id = str_to_uuid(info->path[1]);
+        prioritize_distr_for_ns.reset(ns_id);
         cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t change(&cluster_metadata.rdb_namespaces);
-        admin_merge_shard_internal(change.get(), str_to_uuid(info->path[1]), split_points);
+        admin_merge_shard_internal(change.get(), ns_id, split_points);
     } else if (info->path[0] == "memcached_namespaces") {
+        const namespace_id_t ns_id = str_to_uuid(info->path[1]);
+        prioritize_distr_for_ns.reset(ns_id);
         cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> >::change_t change(&cluster_metadata.memcached_namespaces);
-        admin_merge_shard_internal(change.get(), str_to_uuid(info->path[1]), split_points);
+        admin_merge_shard_internal(change.get(), ns_id, split_points);
     } else if (info->path[0] == "dummy_namespaces") {
         throw admin_cluster_exc_t("merging not supported for dummy tables");
     } else {
         throw admin_cluster_exc_t("invalid object type");
     }
 
-    do_metadata_update(&cluster_metadata, &change_request, true);
+    do_metadata_update(&cluster_metadata,
+                       &change_request,
+                       prioritize_distr_for_ns);
 
     if (!error.empty()) {
         if (split_points.size() > 1) {
@@ -1217,7 +1260,7 @@ struct admin_stats_request_t {
 };
 
 void admin_cluster_link_t::do_admin_list_stats(const admin_command_parser_t::command_data_t& data) {
-    std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager->get_root_view()->get();
+    std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager->get_root_view()->get().get_inner();
     cluster_semilattice_metadata_t cluster_metadata = cluster_metadata_view->get();
     boost::ptr_map<machine_id_t, admin_stats_request_t> request_map;
     std::set<machine_id_t> machine_filters;
@@ -1331,7 +1374,7 @@ void admin_cluster_link_t::do_admin_list_stats(const admin_command_parser_t::com
 }
 
 void admin_cluster_link_t::do_admin_list_directory(const admin_command_parser_t::command_data_t& data) {
-    std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager->get_root_view()->get();
+    std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager->get_root_view()->get().get_inner();
     cluster_semilattice_metadata_t cluster_metadata = cluster_metadata_view->get();
     bool long_format = data.params.count("long");
     std::vector<std::vector<std::string> > table;
@@ -1775,7 +1818,7 @@ void admin_cluster_link_t::add_namespaces(const std::string&,
 }
 
 std::map<machine_id_t, admin_cluster_link_t::machine_info_t> admin_cluster_link_t::build_machine_info(const cluster_semilattice_metadata_t& cluster_metadata) {
-    std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager->get_root_view()->get();
+    std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager->get_root_view()->get().get_inner();
     std::map<machine_id_t, machine_info_t> results;
 
     // Initialize each machine, reachable machines are in the directory
@@ -1925,7 +1968,7 @@ void admin_cluster_link_t::do_admin_create_database(const admin_command_parser_t
     }
     database->name.upgrade_version(change_request_id);
 
-    do_metadata_update(&cluster_metadata, &change_request, false);
+    do_metadata_update(&cluster_metadata, &change_request);
 
     printf("uuid: %s\n", uuid_to_str(new_id).c_str());
 }
@@ -1942,7 +1985,7 @@ void admin_cluster_link_t::do_admin_create_datacenter(const admin_command_parser
     }
     datacenter->name.upgrade_version(change_request_id);
 
-    do_metadata_update(&cluster_metadata, &change_request, false);
+    do_metadata_update(&cluster_metadata, &change_request);
 
     printf("uuid: %s\n", uuid_to_str(new_id).c_str());
 }
@@ -2039,7 +2082,7 @@ void admin_cluster_link_t::do_admin_create_table(const admin_command_parser_t::c
         throw admin_parse_exc_t("unrecognized protocol: " + protocol);
     }
 
-    do_metadata_update(&cluster_metadata, &change_request, false);
+    do_metadata_update(&cluster_metadata, &change_request);
     printf("uuid: %s\n", uuid_to_str(new_id).c_str());
 }
 
@@ -2121,7 +2164,7 @@ void admin_cluster_link_t::do_admin_set_primary(const admin_command_parser_t::co
         throw admin_cluster_exc_t("target object is not a table");
     }
 
-    do_metadata_update(&cluster_metadata, &change_request, false);
+    do_metadata_update(&cluster_metadata, &change_request);
 }
 
 void admin_cluster_link_t::do_admin_unset_primary(const admin_command_parser_t::command_data_t& data) {
@@ -2145,7 +2188,7 @@ void admin_cluster_link_t::do_admin_unset_primary(const admin_command_parser_t::
         throw admin_cluster_exc_t("target object is not a table");
     }
 
-    do_metadata_update(&cluster_metadata, &change_request, false);
+    do_metadata_update(&cluster_metadata, &change_request);
 }
 
 void admin_cluster_link_t::do_admin_set_datacenter(const admin_command_parser_t::command_data_t& data) {
@@ -2169,7 +2212,7 @@ void admin_cluster_link_t::do_admin_set_datacenter(const admin_command_parser_t:
         throw admin_cluster_exc_t("target object is not a machine");
     }
 
-    do_metadata_update(&cluster_metadata, &change_request, false);
+    do_metadata_update(&cluster_metadata, &change_request);
 }
 
 void admin_cluster_link_t::do_admin_unset_datacenter(const admin_command_parser_t::command_data_t& data) {
@@ -2186,7 +2229,7 @@ void admin_cluster_link_t::do_admin_unset_datacenter(const admin_command_parser_
         throw admin_cluster_exc_t("target object is not a machine");
     }
 
-    do_metadata_update(&cluster_metadata, &change_request, false);
+    do_metadata_update(&cluster_metadata, &change_request);
 }
 
 void admin_cluster_link_t::do_admin_set_database(const admin_command_parser_t::command_data_t& data) {
@@ -2217,7 +2260,7 @@ void admin_cluster_link_t::do_admin_set_database(const admin_command_parser_t::c
         throw admin_cluster_exc_t("target object is not a machine");
     }
 
-    do_metadata_update(&cluster_metadata, &change_request, false);
+    do_metadata_update(&cluster_metadata, &change_request);
 }
 
 template <class obj_map>
@@ -2394,7 +2437,7 @@ void admin_cluster_link_t::do_admin_set_name(const admin_command_parser_t::comma
         throw admin_cluster_exc_t("unrecognized object type");
     }
 
-    do_metadata_update(&cluster_metadata, &change_request, false);
+    do_metadata_update(&cluster_metadata, &change_request);
 }
 
 void do_assign_string_to_name(name_string_t &assignee, const std::string& s) THROWS_ONLY(admin_cluster_exc_t) {
@@ -2474,7 +2517,7 @@ void admin_cluster_link_t::do_admin_set_acks(const admin_command_parser_t::comma
         throw admin_parse_exc_t(guarantee_param_0(data.params, "table") + " is not a table");
     }
 
-    do_metadata_update(&cluster_metadata, &change_request, false);
+    do_metadata_update(&cluster_metadata, &change_request);
 }
 
 template <class protocol_t>
@@ -2550,7 +2593,7 @@ void admin_cluster_link_t::do_admin_set_durability(const admin_command_parser_t:
         throw admin_parse_exc_t(guarantee_param_0(data.params, "table") + " is not a table");
     }
 
-    do_metadata_update(&cluster_metadata, &change_request, false);
+    do_metadata_update(&cluster_metadata, &change_request);
 }
 
 template <class protocol_t>
@@ -2610,7 +2653,7 @@ void admin_cluster_link_t::do_admin_set_replicas(const admin_command_parser_t::c
         throw admin_parse_exc_t(guarantee_param_0(data.params, "table") + " is not a table");  // TODO(sam): Check if this function body is copy/paste'd.
     }
 
-    do_metadata_update(&cluster_metadata, &change_request, false);
+    do_metadata_update(&cluster_metadata, &change_request);
 }
 
 template <class map_type>
@@ -2736,7 +2779,7 @@ void admin_cluster_link_t::do_admin_remove_internal(const std::string& obj_type,
     }
 
     if (do_update) {
-        do_metadata_update(&cluster_metadata, &change_request, false);
+        do_metadata_update(&cluster_metadata, &change_request);
     }
 
     if (!error.empty()) {
@@ -2844,7 +2887,7 @@ void admin_cluster_link_t::do_admin_touch(const admin_command_parser_t::command_
         change_request(&mailbox_manager, choose_sync_peer());
     cluster_semilattice_metadata_t cluster_metadata = change_request.get();
 
-    do_metadata_update(&cluster_metadata, &change_request, false);
+    do_metadata_update(&cluster_metadata, &change_request);
 }
 
 template <class protocol_t>
@@ -3412,7 +3455,7 @@ void admin_cluster_link_t::do_admin_resolve(const admin_command_parser_t::comman
             throw admin_cluster_exc_t("unexpected object type encountered: " + obj_info->path[0]);
         }
 
-        do_metadata_update(&cluster_metadata, &change_request, false);
+        do_metadata_update(&cluster_metadata, &change_request);
     }
 }
 
@@ -3569,7 +3612,7 @@ size_t admin_cluster_link_t::get_machine_count_in_datacenter(const cluster_semil
 }
 
 size_t admin_cluster_link_t::available_machine_count() {
-    std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager->get_root_view()->get();
+    std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager->get_root_view()->get().get_inner();
     cluster_semilattice_metadata_t cluster_metadata = cluster_metadata_view->get();
     size_t count = 0;
 

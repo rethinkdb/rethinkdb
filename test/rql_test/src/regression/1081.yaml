@@ -1,8 +1,8 @@
 desc: 1081 union two streams
 tests:
 
-    - rb: r.db('test').table_create('t309')
-      def: t = r.db('test').table('t309')
+    - rb: r.db('test').table_create('t1081')
+      def: t = r.db('test').table('t1081')
 
     - rb: t.insert([{'id':0}, {'id':1}])
 
@@ -13,7 +13,7 @@ tests:
     - rb: t.union([]).typeof
       ot: ("STREAM")
 
-    - rb: r.db('test').table_drop('t309')
+    - rb: r.db('test').table_drop('t1081')
 
     - rb: r.table_create('1081')
       ot: ({'created':1})
@@ -25,11 +25,11 @@ tests:
       ot: ({'created':1})
 
     - rb: r.table('1081').get_all(0, :index => 'password').typeof
-      ot: ("SELECTION")
+      ot: ("SELECTION<STREAM>")
     - rb: r.table('1081').get_all(0, :index => 'password').without('id').typeof
       ot: ("STREAM")
     - rb: r.table('1081').get_all(0, 0, :index => 'password').typeof
-      ot: ("SELECTION")
+      ot: ("SELECTION<STREAM>")
     - rb: r.table('1081').get_all(0, 0, :index => 'password').without('id').typeof
       ot: ("STREAM")
 

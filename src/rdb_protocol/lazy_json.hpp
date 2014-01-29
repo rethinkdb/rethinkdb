@@ -1,3 +1,4 @@
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_LAZY_JSON_HPP_
 #define RDB_PROTOCOL_LAZY_JSON_HPP_
 
@@ -46,8 +47,8 @@ class lazy_json_pointee_t : public single_threaded_countable_t<lazy_json_pointee
     // If empty, we haven't loaded the value yet.
     counted_t<const ql::datum_t> ptr;
 
-    // A pointer to the rdb value buffer in the leaf node (or perhaps a copy), and the
-    // transaction with which to load it.
+    // A pointer to the rdb value buffer in the leaf node (or perhaps a copy), and
+    // the transaction with which to load it.  Non-NULL only if ptr is empty.
     const rdb_value_t *rdb_value;
     transaction_t *txn;
 
@@ -63,6 +64,7 @@ public:
         : pointee(new lazy_json_pointee_t(rdb_value, txn)) { }
 
     const counted_t<const ql::datum_t> &get() const;
+    void reset();
 
 private:
     counted_t<lazy_json_pointee_t> pointee;

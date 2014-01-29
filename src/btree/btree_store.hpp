@@ -13,14 +13,15 @@
 #include <boost/ptr_container/ptr_vector.hpp>
 
 #include "btree/erase_range.hpp"
-#include "btree/operations.hpp"
 #include "btree/secondary_operations.hpp"
 #include "buffer_cache/mirrored/config.hpp"  // TODO: Move to buffer_cache/config.hpp or something.
 #include "buffer_cache/types.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "containers/disk_backed_queue.hpp"
+#include "containers/map_sentries.hpp"
 #include "perfmon/perfmon.hpp"
 #include "protocol_api.hpp"
+#include "btree/parallel_traversal.hpp"
 
 struct rdb_protocol_t;
 template <class T> class btree_store_t;
@@ -138,6 +139,12 @@ public:
     void sindex_queue_push(
             const write_message_t& value,
             const mutex_t::acq_t *acq);
+
+    void add_progress_tracker(
+        map_insertion_sentry_t<uuid_u, const parallel_traversal_progress_t *> *sentry,
+        uuid_u id, const parallel_traversal_progress_t *p);
+
+    progress_completion_fraction_t get_progress(uuid_u id);
 
     void acquire_sindex_block_for_read(
             read_token_pair_t *token_pair,
@@ -370,7 +377,18 @@ public:
             THROWS_ONLY(interrupted_exc_t);
 
     void acquire_superblock_for_write(
-            access_t access,
+            repli_timestamp_t timestamp,
+            int expected_change_count,
+            write_durability_t durability,
+            write_token_pair_t *token_pair,
+            scoped_ptr_t<transaction_t> *txn_out,
+            scoped_ptr_t<real_superblock_t> *sb_out,
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t);
+
+    void acquire_superblock_for_write(
+            access_t txn_access,
+            access_t superblock_access,
             repli_timestamp_t timestamp,
             int expected_change_count,
             write_durability_t durability,
@@ -381,7 +399,8 @@ public:
             THROWS_ONLY(interrupted_exc_t);
 private:
     void acquire_superblock_for_write(
-            access_t access,
+            access_t txn_access,
+            access_t superblock_access,
             repli_timestamp_t timestamp,
             int expected_change_count,
             write_durability_t durability,
@@ -414,6 +433,8 @@ public:
     fifo_enforcer_sink_t main_token_sink, sindex_token_sink;
 
     perfmon_collection_t perfmon_collection;
+    // Mind the constructor ordering. We must destruct the cache and btree
+    // before we destruct perfmon_collection
     scoped_ptr_t<cache_t> cache;
     scoped_ptr_t<btree_slice_t> btree;
     io_backender_t *io_backender_;
@@ -424,7 +445,10 @@ public:
 
     std::vector<internal_disk_backed_queue_t *> sindex_queues;
     mutex_t sindex_queue_mutex;
+    std::map<uuid_u, const parallel_traversal_progress_t *> progress_trackers;
 
+    // Mind the constructor ordering. We must destruct drainer before destructing
+    // many of the other structures.
     auto_drainer_t drainer;
 
 private:

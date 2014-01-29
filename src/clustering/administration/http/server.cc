@@ -16,17 +16,17 @@
 #include "http/routing_app.hpp"
 #include "rpc/semilattice/view/field.hpp"
 
-std::map<peer_id_t, log_server_business_card_t> get_log_mailbox(const std::map<peer_id_t, cluster_directory_metadata_t> &md) {
+std::map<peer_id_t, log_server_business_card_t> get_log_mailbox(const change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> &md) {
     std::map<peer_id_t, log_server_business_card_t> out;
-    for (std::map<peer_id_t, cluster_directory_metadata_t>::const_iterator it = md.begin(); it != md.end(); it++) {
+    for (std::map<peer_id_t, cluster_directory_metadata_t>::const_iterator it = md.get_inner().begin(); it != md.get_inner().end(); it++) {
         out.insert(std::make_pair(it->first, it->second.log_mailbox));
     }
     return out;
 }
 
-std::map<peer_id_t, machine_id_t> get_machine_id(const std::map<peer_id_t, cluster_directory_metadata_t> &md) {
+std::map<peer_id_t, machine_id_t> get_machine_id(const change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> &md) {
     std::map<peer_id_t, machine_id_t> out;
-    for (std::map<peer_id_t, cluster_directory_metadata_t>::const_iterator it = md.begin(); it != md.end(); it++) {
+    for (std::map<peer_id_t, cluster_directory_metadata_t>::const_iterator it = md.get_inner().begin(); it != md.get_inner().end(); it++) {
         out.insert(std::make_pair(it->first, it->second.machine_id));
     }
     return out;
@@ -39,7 +39,7 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
         metadata_change_handler_t<cluster_semilattice_metadata_t> *_metadata_change_handler,
         metadata_change_handler_t<auth_semilattice_metadata_t> *_auth_change_handler,
         boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > _semilattice_metadata,
-        clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > > _directory_metadata,
+        clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > > _directory_metadata,
         namespace_repo_t<memcached_protocol_t> *_namespace_repo,
         namespace_repo_t<rdb_protocol_t> *_rdb_namespace_repo,
         admin_tracker_t *_admin_tracker,
@@ -69,6 +69,8 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     white_list.insert("/js/chosen/chosen-sprite.png");
     white_list.insert("/js/chosen/chosen.css");
     white_list.insert("/js/chosen/chosen.jquery.min.js");
+    white_list.insert("/js/ZeroClipboard.min.js");
+    white_list.insert("/js/ZeroClipboard.swf");
     white_list.insert("/js/codemirror");
     white_list.insert("/js/codemirror/ambiance.css");
     white_list.insert("/js/codemirror/codemirror.css");
@@ -175,6 +177,7 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     white_list.insert("/images/clock-icon.png");
     white_list.insert("/images/clock-icon_alt.png");
     white_list.insert("/images/cog-icon.png");
+    white_list.insert("/images/copy_to_clipboard_16x16.png");
     white_list.insert("/images/disk-icon.png");
     white_list.insert("/images/disk-slot-icon.png");
     white_list.insert("/images/document-icon.png");
@@ -195,6 +198,9 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     white_list.insert("/images/pencil-icon.png");
     white_list.insert("/images/pencil-icon_big.png");
     white_list.insert("/images/push-arrow-left-icon.png");
+    white_list.insert("/images/query_round_trip-icon.png");
+    white_list.insert("/images/query_server_time-icon.png");
+    white_list.insert("/images/query_shard_access-icon.png");
     white_list.insert("/images/red-light.png");
     white_list.insert("/images/red-light_glow.png");
     white_list.insert("/images/red-light_glow_small.png");

@@ -1,7 +1,10 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "rpc/connectivity/cluster.hpp"
 
+#include <netinet/in.h>
+
 #include "errors.hpp"
+#include <boost/bind.hpp>
 #include <boost/optional.hpp>
 
 #include "arch/io/network.hpp"
@@ -54,11 +57,11 @@ peer_address_t our_peer_address(std::set<ip_address_t> local_addresses,
     } else {
         // Otherwise we need to use the local addresses with the cluster port
         if (local_addresses.empty()) {
-            local_addresses = ip_address_t::get_local_addresses(std::set<ip_address_t>(), true);
+            local_addresses = get_local_ips(std::set<ip_address_t>(), true);
         }
         for (auto it = local_addresses.begin();
              it != local_addresses.end(); ++it) {
-            our_addrs.insert(host_and_port_t(it->as_dotted_decimal(), cluster_port));
+            our_addrs.insert(host_and_port_t(it->to_string(), cluster_port));
         }
     }
     return peer_address_t(our_addrs);
@@ -93,7 +96,7 @@ connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
     /* This constructor makes an entry for us in `routing_table`. The destructor
     will remove the entry. If the set of local addresses passed in is empty, it
     means that we bind to all local addresses.  That also means we need to get
-    a new set of all local addresses from get_local_addresses() in that case. */
+    a new set of all local addresses from get_local_ips() in that case. */
     routing_table_entry_for_ourself(&routing_table,
                                     parent->me,
                                     our_peer_address(local_addresses,
@@ -114,6 +117,11 @@ connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
 }
 
 connectivity_cluster_t::run_t::~run_t() { }
+
+std::set<ip_and_port_t> connectivity_cluster_t::run_t::get_ips() const {
+    parent->assert_thread();
+    return routing_table.at(parent->me).ips();
+}
 
 int connectivity_cluster_t::run_t::get_port() {
     return cluster_listener_port;
@@ -273,7 +281,7 @@ void connectivity_cluster_t::run_t::join_blocking(
 
     // Attempt to connect to all known ip addresses of the peer
     bool successful_join = false; // Variable so that handle() can check that only one connection succeeds
-    semaphore_t rate_control(peer.ips().size()); // Mutex to control the rate that connection attempts are made
+    static_semaphore_t rate_control(peer.ips().size()); // Mutex to control the rate that connection attempts are made
     rate_control.co_lock(peer.ips().size() - 1); // Start with only one coroutine able to run
 
     pmap(peer.ips().size(),
@@ -380,6 +388,64 @@ static bool deserialize_and_check(tcp_conn_stream_t *c, T *p, const char *peer) 
     }
 }
 
+// Reads a chunk of data off of the connection, buffer must have at least 'size' bytes
+//  available to write into
+static bool read_header_chunk(tcp_conn_stream_t *conn, char *buffer, int64_t size, const char *peer) {
+    int64_t r = conn->read(buffer, size);
+    if (-1 == r) {
+        logWRN("Network error while receiving clustering header from %s, closing connection.", peer);
+        return false; // network error.
+    }
+    rassert(r >= 0);
+    if (0 == r) {
+        logWRN("Received incomplete clustering header from %s, closing connection.", peer);
+        return false;
+    }
+    return true;
+}
+
+// Reads an int64_t for size, then the string data
+static bool deserialize_compatible_string(tcp_conn_stream_t *conn,
+                                          std::string* str_out,
+                                          const char *peer) {
+    uint64_t raw_size;
+    int64_t res = deserialize(conn, &raw_size);
+    if (res != 0) {
+        logWRN("Network error while receiving clustering header from %s, closing connection", peer);
+        return false;
+    }
+
+    if (raw_size > 4096) {
+        logWRN("Received excessive string size in header from peer %s, closing connection", peer);
+        return false;
+    }
+
+    size_t size = static_cast<size_t>(raw_size);
+    scoped_array_t<char> buffer(size);
+    if (!read_header_chunk(conn, buffer.data(), size, peer)) {
+        return false;
+    }
+
+    str_out->assign(buffer.data(), size);
+    return true;
+}
+
+// This implementation is used over operator == because we want to ignore different scope ids
+//  in the case of IPv6
+bool is_similar_ip_address(const ip_and_port_t &left,
+                           const ip_and_port_t &right) {
+    if (left.port().value() != right.port().value() ||
+        left.ip().get_address_family() != right.ip().get_address_family()) {
+        return false;
+    }
+
+    if (left.ip().is_ipv4()) {
+        return left.ip().get_ipv4_addr().s_addr == right.ip().get_ipv4_addr().s_addr;
+    } else {
+        return IN6_ARE_ADDR_EQUAL(&left.ip().get_ipv6_addr(), &right.ip().get_ipv6_addr());
+    }
+}
+
 bool is_similar_peer_address(const peer_address_t &left,
                              const peer_address_t &right) {
     bool left_loopback_only = true;
@@ -403,7 +469,7 @@ bool is_similar_peer_address(const peer_address_t &left,
                 right_loopback_only = false;
             }
 
-            if (*right_it == *left_it) {
+            if (is_similar_ip_address(*right_it, *left_it)) {
                 return true;
             }
         }
@@ -470,7 +536,7 @@ void connectivity_cluster_t::run_t::handle(
     ip_address_t peer_addr;
     std::string peerstr = "(unknown)";
     if (!conn->get_underlying_conn()->getpeername(&peer_addr))
-        peerstr = peer_addr.as_dotted_decimal();
+        peerstr = peer_addr.to_string();
     const char *peername = peerstr.c_str();
 
     // Make sure that if we're ordered to shut down, any pending read
@@ -483,9 +549,12 @@ void connectivity_cluster_t::run_t::handle(
     {
         write_message_t msg;
         msg.append(cluster_proto_header.c_str(), cluster_proto_header.length());
-        msg << cluster_version;
-        msg << cluster_arch_bitsize;
-        msg << cluster_build_mode;
+        msg << static_cast<uint64_t>(cluster_version.length());
+        msg.append(cluster_version.data(), cluster_version.length());
+        msg << static_cast<uint64_t>(cluster_arch_bitsize.length());
+        msg.append(cluster_arch_bitsize.data(), cluster_arch_bitsize.length());
+        msg << static_cast<uint64_t>(cluster_build_mode.length());
+        msg.append(cluster_build_mode.data(), cluster_build_mode.length());
         msg << parent->me;
         msg << routing_table[parent->me].hosts();
         if (send_write_message(conn, &msg))
@@ -510,34 +579,51 @@ void connectivity_cluster_t::run_t::handle(
         }
     }
 
+    // Check version number (e.g. 1.9.0-466-gadea67)
     {
         std::string remote_version;
-        std::string remote_arch_bitsize;
-        std::string remote_build_mode;
 
-        if (deserialize_and_check(conn, &remote_version, peername) ||
-            deserialize_and_check(conn, &remote_arch_bitsize, peername),
-            deserialize_and_check(conn, &remote_build_mode, peername))
+        if (!deserialize_compatible_string(conn, &remote_version, peername)) {
             return;
+        }
 
         if (remote_version != cluster_version) {
-            logWRN("Connection attempt with a RethinkDB node of the wrong version,"
-                   " local version: %s, remote version: %s, connection dropped\n",
-                   cluster_version.c_str(), remote_version.c_str());
+            logWRN("Connection attempt with a RethinkDB node of the wrong version, "
+                   "peer: %s, local version: %s, remote version: %s, connection dropped\n",
+                   peername, cluster_version.c_str(), remote_version.c_str());
+            return;
+        }
+    }
+
+    // Check bitsize (e.g. 32bit or 64bit)
+    {
+        std::string remote_arch_bitsize;
+
+        if (!deserialize_compatible_string(conn, &remote_arch_bitsize, peername)) {
             return;
         }
 
         if (remote_arch_bitsize != cluster_arch_bitsize) {
-            logWRN("Connection attempt with a RethinkDB node of the wrong architecture,"
-                   " local: %s, remote: %s, connection dropped\n",
-                   cluster_arch_bitsize.c_str(), remote_arch_bitsize.c_str());
+            logWRN("Connection attempt with a RethinkDB node of the wrong architecture, "
+                   "peer: %s, local: %s, remote: %s, connection dropped\n",
+                   peername, cluster_arch_bitsize.c_str(), remote_arch_bitsize.c_str());
+            return;
+        }
+
+    }
+
+    // Check build mode (e.g. debug or release)
+    {
+        std::string remote_build_mode;
+
+        if (!deserialize_compatible_string(conn, &remote_build_mode, peername)) {
             return;
         }
 
         if (remote_build_mode != cluster_build_mode) {
-            logWRN("Connection attempt with a RethinkDB node of the wrong build mode,"
-                   " local: %s, remote: %s, connection dropped\n",
-                   cluster_build_mode.c_str(), remote_build_mode.c_str());
+            logWRN("Connection attempt with a RethinkDB node of the wrong build mode, "
+                   "peer: %s, local: %s, remote: %s, connection dropped\n",
+                   peername, cluster_build_mode.c_str(), remote_build_mode.c_str());
             return;
         }
     }
@@ -690,7 +776,7 @@ void connectivity_cluster_t::run_t::handle(
 
     // We could pick a better way to pick a better thread, our choice
     // now is hopefully a performance non-problem.
-    int chosen_thread = rng.randint(get_num_threads());
+    threadnum_t chosen_thread = threadnum_t(rng.randint(get_num_threads()));
 
     cross_thread_signal_t connection_thread_drain_signal(drainer_lock.get_drain_signal(), chosen_thread);
 
@@ -728,6 +814,7 @@ void connectivity_cluster_t::run_t::handle(
 
                 string_read_stream_t stream(std::move(message), 0);
                 message_handler->on_message(other_id, &stream); // might raise fake_archive_exc_t
+                coro_t::yield();
             }
         } catch (const fake_archive_exc_t &) {
             /* The exception broke us out of the loop, and that's what we
@@ -795,7 +882,7 @@ void connectivity_cluster_t::send_message(peer_id_t dest, send_message_write_cal
 
     guarantee(!dest.is_nil());
 
-    /* We currently write the message to a vector_stream_t, then
+    /* We currently write the message to a string_stream_t, then
        serialize that as a string. It's horribly inefficient, of course. */
     // TODO: If we don't do it this way, we (or the caller) will need
     // to worry about having the writer run on the connection thread.

@@ -10,6 +10,7 @@
 
 #include "arch/runtime/thread_pool.hpp"
 #include "arch/io/disk/filestat.hpp"
+#include "arch/io/disk.hpp"
 #include "clustering/administration/persist.hpp"
 #include "concurrency/promise.hpp"
 #include "containers/scoped.hpp"
@@ -171,22 +172,22 @@ log_message_t assemble_log_message(log_level_t level, const std::string &message
 
 void throw_unless(bool condition, const std::string &where) {
     if (!condition) {
-        throw std::runtime_error("file IO error: " + where + " (errno = " + errno_string(errno).c_str() + ")");
+        throw std::runtime_error("file IO error: " + where + " (errno = " + errno_string(get_errno()).c_str() + ")");
     }
 }
 
 class file_reverse_reader_t {
 public:
     explicit file_reverse_reader_t(const std::string &filename) :
-        fd(-1),
+        fd(INVALID_FD),
         current_chunk(chunk_size) {
 
         {
             int res;
             do {
                 res = open(filename.c_str(), O_RDONLY);
-            } while (res == -1 && errno == EINTR);
-            throw_unless(res != -1, strprintf("could not open '%s' for reading.", filename.c_str()));
+            } while (res == INVALID_FD && get_errno() == EINTR);
+            throw_unless(res != INVALID_FD, strprintf("could not open '%s' for reading.", filename.c_str()));
             fd.reset(res);
         }
 
@@ -293,19 +294,33 @@ void fallback_log_writer_t::install(const std::string &logfile_name) {
     guarantee(filename.path() == "-", "Attempted to install a fallback_log_writer_t that was already installed.");
     filename = base_path_t(logfile_name);
 
-    // It's ok if the file couldn't be opened -- we create a local
-    // issue for it later
     int res;
     do {
         res = open(filename.path().c_str(), O_WRONLY|O_APPEND|O_CREAT, 0644);
-    } while (res == -1 && errno == EINTR);
+    } while (res == INVALID_FD && get_errno() == EINTR);
 
     fd.reset(res);
 
-    if (fd.get() != -1) {
-        // Get the absolute path for the log file, so it will still be valid if
-        //  the working directory changes
-        filename.make_absolute();
+    if (fd.get() == INVALID_FD) {
+        throw std::runtime_error(strprintf("Failed to open log file '%s': %s",
+                                           logfile_name.c_str(),
+                                           errno_string(errno).c_str()).c_str());
+    }
+
+    // Get the absolute path for the log file, so it will still be valid if
+    //  the working directory changes
+    filename.make_absolute();
+
+    // For the case that the log file was newly created,
+    // call fsync() on the parent directory to guarantee that its
+    // directory entry is persisted to disk.
+    int sync_res = fsync_parent_directory(filename.path().c_str());
+    if (sync_res != 0) {
+        char errno_str_buf[250];
+        const char *errno_str = errno_string_maybe_using_buffer(sync_res,
+            errno_str_buf, sizeof(errno_str_buf));
+        logWRN("Parent directory of log file (%s) could not be synced. (%s)\n",
+            filename.path().c_str(), errno_str);
     }
 }
 
@@ -317,38 +332,38 @@ bool fallback_log_writer_t::write(const log_message_t &msg, std::string *error_o
 
     ssize_t write_res = ::write(STDERR_FILENO, console_formatted.data(), console_formatted.length());
     if (write_res != static_cast<ssize_t>(console_formatted.length())) {
-        error_out->assign("cannot write to standard error: " + errno_string(errno));
+        error_out->assign("cannot write to standard error: " + errno_string(get_errno()));
         return false;
     }
 
     int res = fsync(STDERR_FILENO);
-    if (res != 0 && !(errno == EROFS || errno == EINVAL)) {
-        error_out->assign("cannot flush stderr: " + errno_string(errno));
+    if (res != 0 && !(get_errno() == EROFS || get_errno() == EINVAL)) {
+        error_out->assign("cannot flush stderr: " + errno_string(get_errno()));
         return false;
     }
 
     funlockfile(stderr);
 
-    if (fd.get() == -1) {
+    if (fd.get() == INVALID_FD) {
         error_out->assign("cannot open or find log file");
         return false;
     }
 
     res = fcntl(fd.get(), F_SETLKW, &filelock);
     if (res != 0) {
-        error_out->assign("cannot lock log file: " + errno_string(errno));
+        error_out->assign("cannot lock log file: " + errno_string(get_errno()));
         return false;
     }
 
     write_res = ::write(fd.get(), formatted.data(), formatted.length());
     if (write_res != static_cast<ssize_t>(formatted.length())) {
-        error_out->assign("cannot write to log file: " + errno_string(errno));
+        error_out->assign("cannot write to log file: " + errno_string(get_errno()));
         return false;
     }
 
     res = fcntl(fd.get(), F_SETLK, &fileunlock);
     if (res != 0) {
-        error_out->assign("cannot unlock log file: " + errno_string(errno));
+        error_out->assign("cannot unlock log file: " + errno_string(get_errno()));
         return false;
     }
 
@@ -407,14 +422,14 @@ std::vector<log_message_t> thread_pool_log_writer_t::tail(int max_lines, struct 
 }
 
 void thread_pool_log_writer_t::install_on_thread(int i) {
-    on_thread_t thread_switcher(i);
+    on_thread_t thread_switcher((threadnum_t(i)));
     guarantee(TLS_get_global_log_writer() == NULL);
     TLS_set_global_log_drainer(new auto_drainer_t);
     TLS_set_global_log_writer(this);
 }
 
 void thread_pool_log_writer_t::uninstall_on_thread(int i) {
-    on_thread_t thread_switcher(i);
+    on_thread_t thread_switcher((threadnum_t(i)));
     guarantee(TLS_get_global_log_writer() == this);
     TLS_set_global_log_writer(NULL);
     delete TLS_get_global_log_drainer();

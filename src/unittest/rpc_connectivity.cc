@@ -563,18 +563,46 @@ TEST(RPCConnectivityTest, PeerIDSemanticsMultiThread) {
     unittest::run_in_thread_pool(&run_peer_id_semantics_test, 3);
 }
 
-fd_t connect_to_node(const ip_and_port_t &ip_port) {
+fd_t connect_to_node_ipv4(const ip_and_port_t &ip_port) {
     struct sockaddr_in addr;
+    memset(&addr, 0, sizeof(addr));
     addr.sin_family = AF_INET;
     addr.sin_port = htons(ip_port.port().value());
-    addr.sin_addr = ip_port.ip().get_addr();
-    bzero(addr.sin_zero, sizeof(addr.sin_zero));
+    addr.sin_addr = ip_port.ip().get_ipv4_addr();
 
     fd_t sock(::socket(AF_INET, SOCK_STREAM, 0));
     guarantee_err(sock != INVALID_FD, "could not open socket to connect to cluster node");
-    int res = ::connect(sock, reinterpret_cast<struct sockaddr *>(&addr), sizeof(addr));
+    int res = ::connect(sock, reinterpret_cast<sockaddr *>(&addr), sizeof(addr));
     guarantee_err(res == 0, "could not connect to cluster node");
     return sock;
+}
+
+fd_t connect_to_node_ipv6(const ip_and_port_t &ip_port) {
+    struct sockaddr_in6 addr;
+    memset(&addr, 0, sizeof(addr));
+    addr.sin6_family = AF_INET6;
+    addr.sin6_port = htons(ip_port.port().value());
+    addr.sin6_addr = ip_port.ip().get_ipv6_addr();
+
+    fd_t sock(::socket(AF_INET6, SOCK_STREAM, 0));
+    guarantee_err(sock != INVALID_FD, "could not open socket to connect to cluster node");
+    int res = ::connect(sock, reinterpret_cast<sockaddr *>(&addr), sizeof(addr));
+    guarantee_err(res == 0, "could not connect to cluster node");
+    return sock;
+}
+
+fd_t connect_to_node(const ip_and_port_t &ip_port) {
+    fd_t result;
+
+    if (ip_port.ip().is_ipv4()) {
+        result = connect_to_node_ipv4(ip_port);
+    } else if (ip_port.ip().is_ipv6()) {
+        result = connect_to_node_ipv6(ip_port);
+    } else {
+        crash("unknown address type");
+    }
+
+    return result;
 }
 
 // Make sure each side of the connection is closed
@@ -590,7 +618,7 @@ void check_tcp_closed(socket_stream_t *stream) {
         int64_t res;
         do {
             res = stream->read(&buffer, 1024);
-        } while (res != 0);
+        } while (res > 0);
 
         do {
             let_stuff_happen();
@@ -673,10 +701,16 @@ void run_different_version_test() {
     ASSERT_TRUE(stream.is_read_open() && stream.is_write_open());
 
     // Send bad version
+    std::string bad_version_str("0.1.1b");
     write_message_t bad_version_msg;
-    bad_version_msg << std::string("0.1.1b");
-    bad_version_msg << connectivity_cluster_t::cluster_arch_bitsize;
-    bad_version_msg << connectivity_cluster_t::cluster_build_mode;
+    bad_version_msg << bad_version_str.length();
+    bad_version_msg.append(bad_version_str.data(), bad_version_str.length());
+    bad_version_msg << connectivity_cluster_t::cluster_arch_bitsize.length();
+    bad_version_msg.append(connectivity_cluster_t::cluster_arch_bitsize.data(),
+                           connectivity_cluster_t::cluster_arch_bitsize.length());
+    bad_version_msg << connectivity_cluster_t::cluster_build_mode.length();
+    bad_version_msg.append(connectivity_cluster_t::cluster_build_mode.data(),
+                           connectivity_cluster_t::cluster_build_mode.length());
     ASSERT_FALSE(send_write_message(&stream, &bad_version_msg));
     let_stuff_happen();
 
@@ -716,10 +750,16 @@ void run_different_arch_test() {
     ASSERT_TRUE(stream.is_read_open() && stream.is_write_open());
 
     // Send the expected version but bad arch bitsize
+    std::string bad_arch_str("96bit");
     write_message_t bad_arch_msg;
-    bad_arch_msg << connectivity_cluster_t::cluster_version;
-    bad_arch_msg << std::string("96bit");
-    bad_arch_msg << connectivity_cluster_t::cluster_build_mode;
+    bad_arch_msg << connectivity_cluster_t::cluster_version.length();
+    bad_arch_msg.append(connectivity_cluster_t::cluster_version.data(),
+                        connectivity_cluster_t::cluster_version.length());
+    bad_arch_msg << bad_arch_str.length();
+    bad_arch_msg.append(bad_arch_str.data(), bad_arch_str.length());
+    bad_arch_msg << connectivity_cluster_t::cluster_build_mode.length();
+    bad_arch_msg.append(connectivity_cluster_t::cluster_build_mode.data(),
+                        connectivity_cluster_t::cluster_build_mode.length());
     ASSERT_FALSE(send_write_message(&stream, &bad_arch_msg));
     let_stuff_happen();
 
@@ -758,10 +798,16 @@ void run_different_build_mode_test() {
     ASSERT_TRUE(stream.is_read_open() && stream.is_write_open());
 
     // Send the expected version but bad arch bitsize
+    std::string bad_build_mode_str("build mode activated");
     write_message_t bad_build_mode_msg;
-    bad_build_mode_msg << connectivity_cluster_t::cluster_version;
-    bad_build_mode_msg << connectivity_cluster_t::cluster_arch_bitsize;
-    bad_build_mode_msg << std::string("build mode activated");
+    bad_build_mode_msg << connectivity_cluster_t::cluster_version.length();
+    bad_build_mode_msg.append(connectivity_cluster_t::cluster_version.data(),
+                              connectivity_cluster_t::cluster_version.length());
+    bad_build_mode_msg << connectivity_cluster_t::cluster_arch_bitsize.length();
+    bad_build_mode_msg.append(connectivity_cluster_t::cluster_arch_bitsize.data(),
+                              connectivity_cluster_t::cluster_arch_bitsize.length());
+    bad_build_mode_msg << bad_build_mode_str.length();
+    bad_build_mode_msg.append(bad_build_mode_str.data(), bad_build_mode_str.length());
     ASSERT_FALSE(send_write_message(&stream, &bad_build_mode_msg));
     let_stuff_happen();
 
@@ -792,11 +838,13 @@ void run_canonical_address_test() {
     c2_addresses.insert(host_and_port_t("10.9.9.254", port_t(0)));
     c2_addresses.insert(host_and_port_t("192.168.255.55", port_t(0)));
     c2_addresses.insert(host_and_port_t("192.168.255.55", port_t(0)));
+    c2_addresses.insert(host_and_port_t("3aa2:8fe3::afa3:4843", port_t(0)));
 
     std::set<host_and_port_t> c3_addresses;
     c3_addresses.insert(host_and_port_t("10.9.9.254", port_t(6811)));
     c3_addresses.insert(host_and_port_t("10.255.255.255", port_t(0)));
     c3_addresses.insert(host_and_port_t("192.168.255.55", port_t(1034)));
+    c3_addresses.insert(host_and_port_t("::c3a4:7159:27:aa78", port_t(1034)));
 
     // Note: this won't have full connectivity in the unit test because we aren't actually using
     //  a proxy or anything
@@ -805,11 +853,9 @@ void run_canonical_address_test() {
     connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), peer_address_t(c2_addresses), ANY_PORT, NULL, 0, NULL);
     connectivity_cluster_t::run_t cr3(&c3, get_unittest_addresses(), peer_address_t(c3_addresses), ANY_PORT, NULL, 0, NULL);
 
-    struct in_addr addr;
     int c2_port = 0;
     peer_address_t c2_self_address = c2.get_peer_address(c2.get_me());
-    ASSERT_EQ(inet_pton(AF_INET, "10.9.9.254", &addr), 1);
-    ip_address_t chosen_c2_addr(addr);
+    ip_address_t chosen_c2_addr("10.9.9.254");
     for (auto it = c2_self_address.ips().begin();
          it != c2_self_address.ips().end(); ++it) {
         if (it->ip() == chosen_c2_addr) {
@@ -820,8 +866,7 @@ void run_canonical_address_test() {
 
     int c3_port = 0;
     peer_address_t c3_self_address = c3.get_peer_address(c3.get_me());
-    ASSERT_EQ(inet_pton(AF_INET, "10.255.255.255", &addr), 1);
-    ip_address_t chosen_c3_addr(addr);
+    ip_address_t chosen_c3_addr("10.255.255.255");
     for (auto it = c3_self_address.ips().begin();
          it != c3_self_address.ips().end(); ++it) {
         if (it->ip() == chosen_c3_addr) {

@@ -1,3 +1,4 @@
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "rdb_protocol/terms/terms.hpp"
 
 #include <algorithm>
@@ -23,6 +24,7 @@ static const int MAX_TYPE = 10;
 static const int DB_TYPE = val_t::type_t::DB * MAX_TYPE;
 static const int TABLE_TYPE = val_t::type_t::TABLE * MAX_TYPE;
 static const int SELECTION_TYPE = val_t::type_t::SELECTION * MAX_TYPE;
+static const int ARRAY_SELECTION_TYPE = SELECTION_TYPE + datum_t::R_ARRAY;
 static const int SEQUENCE_TYPE = val_t::type_t::SEQUENCE * MAX_TYPE;
 static const int SINGLE_SELECTION_TYPE = val_t::type_t::SINGLE_SELECTION * MAX_TYPE;
 static const int DATUM_TYPE = val_t::type_t::DATUM * MAX_TYPE;
@@ -40,9 +42,10 @@ public:
     coerce_map_t() {
         map["DB"] = DB_TYPE;
         map["TABLE"] = TABLE_TYPE;
-        map["SELECTION"] = SELECTION_TYPE;
+        map["SELECTION<STREAM>"] = SELECTION_TYPE;
+        map["SELECTION<ARRAY>"] = ARRAY_SELECTION_TYPE;
         map["STREAM"] = SEQUENCE_TYPE;
-        map["SINGLE_SELECTION"] = SINGLE_SELECTION_TYPE;
+        map["SELECTION<OBJECT>"] = SINGLE_SELECTION_TYPE;
         map["DATUM"] = DATUM_TYPE;
         map["FUNCTION"] = FUNC_TYPE;
         CT_ASSERT(val_t::type_t::FUNC < MAX_TYPE);
@@ -127,11 +130,11 @@ static int merge_types(int supertype, int subtype) {
 
 class coerce_term_t : public op_term_t {
 public:
-    coerce_term_t(env_t *env, const protob_t<const Term> &term)
+    coerce_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
-        counted_t<val_t> val = arg(0);
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+        counted_t<val_t> val = arg(env, 0);
         val_t::type_t opaque_start_type = val->get_type();
         int start_supertype = opaque_start_type.raw_type;
         int start_subtype = 0;
@@ -141,7 +144,7 @@ private:
         }
         int start_type = merge_types(start_supertype, start_subtype);
 
-        std::string end_type_name = arg(1)->as_str();
+        std::string end_type_name = arg(env, 1)->as_str();
         int end_type = get_type(end_type_name, this);
 
         // Identity
@@ -188,7 +191,6 @@ private:
                         rfail(base_exc_t::GENERIC, "Could not coerce `%s` to NUMBER.",
                               s.c_str());
                     }
-                    unreachable();
                 }
             }
             // TODO: Object to sequence?
@@ -199,39 +201,49 @@ private:
                  && start_type != R_ARRAY_TYPE)) {
             counted_t<datum_stream_t> ds;
             try {
-                ds = val->as_seq();
+                ds = val->as_seq(env->env);
             } catch (const base_exc_t &e) {
                 rfail(base_exc_t::GENERIC,
                       "Cannot coerce %s to %s (failed to produce intermediate stream).",
                       get_name(start_type).c_str(), get_name(end_type).c_str());
-                unreachable();
             }
+
             // SEQUENCE -> ARRAY
             if (end_type == R_ARRAY_TYPE || end_type == DATUM_TYPE) {
                 datum_ptr_t arr(datum_t::R_ARRAY);
-                while (counted_t<const datum_t> el = ds->next()) {
-                    arr.add(el);
+                batchspec_t batchspec
+                    = batchspec_t::user(batch_type_t::TERMINAL, env->env);
+                {
+                    profile::sampler_t sampler("Coercing to array.", env->env->trace);
+                    while (auto el = ds->next(env->env, batchspec)) {
+                        arr.add(el);
+                        sampler.new_sample();
+                    }
                 }
                 return new_val(arr.to_counted());
             }
 
             // SEQUENCE -> OBJECT
-            if (end_type == R_OBJECT_TYPE) {
-                if (start_type == R_ARRAY_TYPE && end_type == R_OBJECT_TYPE) {
-                    datum_ptr_t obj(datum_t::R_OBJECT);
-                    while (counted_t<const datum_t> pair = ds->next()) {
+            if (start_type == R_ARRAY_TYPE && end_type == R_OBJECT_TYPE) {
+                datum_ptr_t obj(datum_t::R_OBJECT);
+                batchspec_t batchspec
+                    = batchspec_t::user(batch_type_t::TERMINAL, env->env);
+                {
+                    profile::sampler_t sampler("Coercing to object.", env->env->trace);
+                    while (auto pair = ds->next(env->env, batchspec)) {
                         std::string key = pair->get(0)->as_str();
                         counted_t<const datum_t> keyval = pair->get(1);
                         bool b = obj.add(key, keyval);
                         rcheck(!b, base_exc_t::GENERIC,
-                               strprintf("Duplicate key %s in coerced object.  "
-                                         "(got %s and %s as values)",
+                               strprintf("Duplicate key `%s` in coerced object.  "
+                                         "(got `%s` and `%s` as values)",
                                          key.c_str(),
-                                         obj->get(key)->print().c_str(),
-                                         keyval->print().c_str()));
+                                         obj->get(key)->trunc_print().c_str(),
+                                         keyval->trunc_print().c_str()));
+                        sampler.new_sample();
                     }
-                    return new_val(obj.to_counted());
                 }
+                return new_val(obj.to_counted());
             }
         }
 
@@ -245,22 +257,27 @@ int val_type(counted_t<val_t> v) {
     int t = v->get_type().raw_type * MAX_TYPE;
     if (t == DATUM_TYPE) {
         t += v->as_datum()->get_type();
+    } else if (t == SELECTION_TYPE) {
+        if (v->sequence()->is_array()) {
+            t += datum_t::R_ARRAY;
+        }
     }
     return t;
 }
 
 class typeof_term_t : public op_term_t {
 public:
-    typeof_term_t(env_t *env, const protob_t<const Term> &term)
+    typeof_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
-        counted_t<val_t> v = arg(0);
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+        counted_t<val_t> v = arg(env, 0);
         if (v->get_type().raw_type == val_t::type_t::DATUM) {
             counted_t<const datum_t> d = v->as_datum();
             return new_val(make_counted<const datum_t>(d->get_type_name()));
         } else {
-            return new_val(make_counted<const datum_t>(get_name(val_type(arg(0)))));
+            return new_val(
+                make_counted<const datum_t>(get_name(val_type(arg(env, 0)))));
         }
     }
     virtual const char *name() const { return "typeof"; }
@@ -268,13 +285,13 @@ private:
 
 class info_term_t : public op_term_t {
 public:
-    info_term_t(env_t *env, const protob_t<const Term> &term) : op_term_t(env, term, argspec_t(1)) { }
+    info_term_t(compile_env_t *env, const protob_t<const Term> &term) : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
-        return new_val(val_info(arg(0)));
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+        return new_val(val_info(env, arg(env, 0)));
     }
 
-    counted_t<const datum_t> val_info(counted_t<val_t> v) {
+    counted_t<const datum_t> val_info(scope_env_t *env, counted_t<val_t> v) {
         datum_ptr_t info(datum_t::R_OBJECT);
         int type = val_type(v);
         bool b = info.add("type", make_counted<datum_t>(get_name(type)));
@@ -286,15 +303,22 @@ private:
         case TABLE_TYPE: {
             counted_t<table_t> table = v->as_table();
             b |= info.add("name", make_counted<datum_t>(std::string(table->name)));
-            b |= info.add("primary_key", make_counted<datum_t>(std::string(table->get_pkey())));
-            b |= info.add("indexes", table->sindex_list());
-            b |= info.add("db", val_info(new_val(table->db)));
+            b |= info.add("primary_key",
+                          make_counted<datum_t>(std::string(table->get_pkey())));
+            b |= info.add("indexes", table->sindex_list(env->env));
+            b |= info.add("db", val_info(env, new_val(table->db)));
         } break;
         case SELECTION_TYPE: {
-            b |= info.add("table", val_info(new_val(v->as_selection().first)));
+            b |= info.add("table",
+                          val_info(env, new_val(v->as_selection(env->env).first)));
+        } break;
+        case ARRAY_SELECTION_TYPE: {
+            b |= info.add("table",
+                          val_info(env, new_val(v->as_selection(env->env).first)));
         } break;
         case SINGLE_SELECTION_TYPE: {
-            b |= info.add("table", val_info(new_val(v->as_single_selection().first)));
+            b |= info.add("table",
+                          val_info(env, new_val(v->as_single_selection().first)));
         } break;
         case SEQUENCE_TYPE: {
             // No more info.
@@ -302,7 +326,7 @@ private:
 
         case FUNC_TYPE: {
             b |= info.add("source_code",
-                          make_counted<datum_t>(v->as_func()->print_src()));
+                          make_counted<datum_t>(v->as_func()->print_source()));
         } break;
 
         case R_NULL_TYPE:   // fallthru
@@ -315,7 +339,7 @@ private:
             b |= info.add("value", make_counted<datum_t>(v->as_datum()->print()));
         } break;
 
-        default: unreachable();
+        default: r_sanity_check(false);
         }
         r_sanity_check(!b);
         return info.to_counted();
@@ -324,13 +348,13 @@ private:
     virtual const char *name() const { return "info"; }
 };
 
-counted_t<term_t> make_coerce_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_coerce_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<coerce_term_t>(env, term);
 }
-counted_t<term_t> make_typeof_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_typeof_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<typeof_term_t>(env, term);
 }
-counted_t<term_t> make_info_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_info_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<info_term_t>(env, term);
 }
 

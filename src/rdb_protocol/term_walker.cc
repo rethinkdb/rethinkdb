@@ -1,7 +1,7 @@
 #include "rdb_protocol/term_walker.hpp"
 
 #include "rdb_protocol/error.hpp"
-#include "rdb_protocol/pb_utils.hpp"
+#include "rdb_protocol/minidriver.hpp"
 #include "rdb_protocol/pseudo_time.hpp"
 #include "rdb_protocol/ql2.pb.h"
 #include "rdb_protocol/ql2_extensions.pb.h"
@@ -14,7 +14,7 @@ public:
     // This constructor fills in the backtraces of a term (`walk`) and checks
     // that it's well-formed with regard to write placement.
     explicit term_walker_t(Term *root)
-        : depth(0), writes_legal(true), bt(0), curtime(pseudo::time_now()) {
+        : depth(0), writes_legal(true), bt(0) {
         walk(root, 0, head_frame);
     }
 
@@ -37,8 +37,11 @@ public:
         add_bt(t, parent, frame);
 
         if (t->type() == Term::NOW && t->args_size() == 0) {
-            Term *arg = t;
-            NDATUM(curtime);
+            // Construct curtime the first time we access it
+            if (!curtime.has()) {
+                curtime = pseudo::time_now();
+            }
+            *t = r::expr(*curtime.get()).get();
         }
 
         if (t->type() == Term::ASC || t->type() == Term::DESC) {
@@ -102,13 +105,12 @@ private:
         case Term::REPLACE:
         case Term::DB_CREATE:
         case Term::DB_DROP:
-        case Term::DB_LIST:
         case Term::TABLE_CREATE:
         case Term::TABLE_DROP:
-        case Term::TABLE_LIST:
+        case Term::SYNC:
         case Term::INDEX_CREATE:
         case Term::INDEX_DROP:
-        case Term::INDEX_LIST:
+        case Term::INDEX_WAIT:
             return true;
 
         case Term::DATUM:
@@ -183,11 +185,14 @@ private:
         case Term::DESC:
         case Term::INFO:
         case Term::MATCH:
+        case Term::UPCASE:
+        case Term::DOWNCASE:
         case Term::SAMPLE:
         case Term::IS_EMPTY:
         case Term::DEFAULT:
         case Term::CONTAINS:
         case Term::KEYS:
+        case Term::OBJECT:
         case Term::WITH_FIELDS:
         case Term::JSON:
         case Term::ISO8601:
@@ -228,6 +233,10 @@ private:
         case Term::OCTOBER:
         case Term::NOVEMBER:
         case Term::DECEMBER:
+        case Term::DB_LIST:
+        case Term::TABLE_LIST:
+        case Term::INDEX_LIST:
+        case Term::INDEX_STATUS:
             return false;
         default: unreachable();
         }
@@ -323,9 +332,12 @@ private:
         case Term::TABLE_CREATE:
         case Term::TABLE_DROP:
         case Term::TABLE_LIST:
+        case Term::SYNC:
         case Term::INDEX_CREATE:
         case Term::INDEX_DROP:
         case Term::INDEX_LIST:
+        case Term::INDEX_STATUS:
+        case Term::INDEX_WAIT:
         case Term::FUNCALL:
         case Term::BRANCH:
         case Term::ANY:
@@ -336,11 +348,14 @@ private:
         case Term::DESC:
         case Term::INFO:
         case Term::MATCH:
+        case Term::UPCASE:
+        case Term::DOWNCASE:
         case Term::SAMPLE:
         case Term::IS_EMPTY:
         case Term::DEFAULT:
         case Term::CONTAINS:
         case Term::KEYS:
+        case Term::OBJECT:
         case Term::WITH_FIELDS:
         case Term::JSON:
         case Term::ISO8601:

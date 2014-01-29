@@ -129,7 +129,7 @@ public:
 
 public:
 
-    void rethread(int);
+    void rethread(threadnum_t thread);
 
     int getsockname(ip_address_t *addr);
     int getpeername(ip_address_t *addr);
@@ -283,11 +283,11 @@ private:
     void internal_flush_write_buffer();
 
     /* Used to queue up buffers to write. The functions in `write_queue` will all be
-    `boost::bind()`s of the `perform_write()` function below. */
+    `std::bind()`s of the `perform_write()` function below. */
     unlimited_fifo_queue_t<write_queue_op_t*, intrusive_list_t<write_queue_op_t> > write_queue;
 
     /* This semaphore prevents the write queue from getting arbitrarily big. */
-    semaphore_t write_queue_limiter;
+    static_semaphore_t write_queue_limiter;
 
     /* Used to actually perform the writes. Only has one coroutine in it, which will call the
     handle_write_queue callback when operations are ready */

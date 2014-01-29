@@ -4,7 +4,7 @@
 #include "arch/runtime/coroutines.hpp"
 #include "concurrency/cond_var.hpp"
 
-void semaphore_t::lock(semaphore_available_callback_t *cb, int count) {
+void static_semaphore_t::lock(semaphore_available_callback_t *cb, int count) {
     rassert(!in_callback);
     rassert(count <= capacity || capacity == SEMAPHORE_NO_LIMIT);
     if (current + count <= capacity || capacity == SEMAPHORE_NO_LIMIT) {
@@ -21,7 +21,7 @@ void semaphore_t::lock(semaphore_available_callback_t *cb, int count) {
     }
 }
 
-void semaphore_t::co_lock(int count) {
+void static_semaphore_t::co_lock(int count) {
     rassert(!in_callback);
     struct : public semaphore_available_callback_t, public one_waiter_cond_t {
         void on_semaphore_available() { pulse(); }
@@ -29,15 +29,15 @@ void semaphore_t::co_lock(int count) {
     lock(&cb, count);
     cb.wait_eagerly_deprecated();
     // TODO: Remove the need for in_callback checks.
-    coro_t::yield();
+    coro_t::yield_ordered();
 }
 
-void semaphore_t::co_lock_interruptible(signal_t *interruptor) {
+void static_semaphore_t::co_lock_interruptible(signal_t *interruptor, int count) {
     rassert(!in_callback);
     struct : public semaphore_available_callback_t, public cond_t {
         void on_semaphore_available() { pulse(); }
     } cb;
-    lock(&cb, 1);
+    lock(&cb, count);
 
     try {
         wait_interruptible(&cb, interruptor);
@@ -54,7 +54,7 @@ void semaphore_t::co_lock_interruptible(signal_t *interruptor) {
     }
 }
 
-void semaphore_t::unlock(int count) {
+void static_semaphore_t::unlock(int count) {
     rassert(!in_callback);
     rassert(current >= count);
     current -= count;
@@ -73,9 +73,13 @@ void semaphore_t::unlock(int count) {
     }
 }
 
-void semaphore_t::lock_now(int count) {
+void static_semaphore_t::lock_now(int count) {
     rassert(!in_callback);
     rassert(current + count <= capacity || capacity == SEMAPHORE_NO_LIMIT);
+    current += count;
+}
+
+void static_semaphore_t::force_lock(int count) {
     current += count;
 }
 
@@ -104,15 +108,15 @@ void adjustable_semaphore_t::co_lock(int count) {
     lock(&cb, count);
     cb.wait_eagerly_deprecated();
     // TODO: remove need for in_callback checks
-    coro_t::yield();
+    coro_t::yield_ordered();
 }
 
-void adjustable_semaphore_t::co_lock_interruptible(signal_t *interruptor) {
+void adjustable_semaphore_t::co_lock_interruptible(signal_t *interruptor, int count) {
     rassert(!in_callback);
     struct : public semaphore_available_callback_t, public cond_t {
         void on_semaphore_available() { pulse(); }
     } cb;
-    lock(&cb, 1);
+    lock(&cb, count);
 
     try {
         wait_interruptible(&cb, interruptor);

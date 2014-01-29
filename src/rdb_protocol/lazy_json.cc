@@ -1,3 +1,4 @@
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "rdb_protocol/lazy_json.hpp"
 
 #include "containers/archive/buffer_group_stream.hpp"
@@ -14,15 +15,22 @@ counted_t<const ql::datum_t> get_data(const rdb_value_t *value,
     buffer_group_t buffer_group;
     blob.expose_all(txn, rwi_read, &buffer_group, &acq_group);
     buffer_group_read_stream_t read_stream(const_view(&buffer_group));
-    int res = deserialize(&read_stream, &data);
-    guarantee_err(res == 0, "disk corruption (or programmer error) detected");
+    archive_result_t res = deserialize(&read_stream, &data);
+    guarantee_deserialization(res, "rdb value");
 
     return data;
 }
 
 const counted_t<const ql::datum_t> &lazy_json_t::get() const {
-    if (!pointee->ptr) {
+    guarantee(pointee.has());
+    if (!pointee->ptr.has()) {
         pointee->ptr = get_data(pointee->rdb_value, pointee->txn);
+        pointee->rdb_value = NULL;
+        pointee->txn = NULL;
     }
     return pointee->ptr;
+}
+
+void lazy_json_t::reset() {
+    pointee.reset();
 }

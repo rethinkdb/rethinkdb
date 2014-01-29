@@ -7,6 +7,7 @@
 #include <sys/stat.h>
 #include <sys/file.h>
 #include <unistd.h>
+#include <libgen.h>
 
 #include <algorithm>
 #include <functional>
@@ -24,8 +25,6 @@
 #include "do_on_thread.hpp"
 #include "logger.hpp"
 
-using namespace std::placeholders;  // for _1, _2, ...  NOLINT(build/namespaces)
-
 void verify_aligned_file_access(DEBUG_VAR int64_t file_size, DEBUG_VAR int64_t offset,
                                 DEBUG_VAR size_t length,
                                 DEBUG_VAR const scoped_array_t<iovec> &bufs);
@@ -35,7 +34,9 @@ void verify_aligned_file_access(DEBUG_VAR int64_t file_size, DEBUG_VAR int64_t o
 class linux_disk_manager_t : public home_thread_mixin_t {
 public:
     struct action_t : public stats_diskmgr_t::action_t {
-        int cb_thread;
+        action_t(threadnum_t _cb_thread, linux_iocallback_t *_cb)
+            : cb_thread(_cb_thread), cb(_cb) { }
+        threadnum_t cb_thread;
         linux_iocallback_t *cb;
     };
 
@@ -55,17 +56,17 @@ public:
         queue. (The parts below the queue use the `passive_producer_t` interface instead
         of a callback function.) */
         stack_stats.submit_fun = std::bind(&conflict_resolving_diskmgr_t::submit,
-                                           &conflict_resolver, _1);
+                                           &conflict_resolver, ph::_1);
         conflict_resolver.submit_fun = std::bind(&accounting_diskmgr_t::submit,
-                                                 &accounter, _1);
+                                                 &accounter, ph::_1);
 
         /* Hook up everything's `done_fun`. */
-        backend.done_fun = std::bind(&stats_diskmgr_2_t::done, &backend_stats, _1);
-        backend_stats.done_fun = std::bind(&accounting_diskmgr_t::done, &accounter, _1);
+        backend.done_fun = std::bind(&stats_diskmgr_2_t::done, &backend_stats, ph::_1);
+        backend_stats.done_fun = std::bind(&accounting_diskmgr_t::done, &accounter, ph::_1);
         accounter.done_fun = std::bind(&conflict_resolving_diskmgr_t::done,
-                                       &conflict_resolver, _1);
-        conflict_resolver.done_fun = std::bind(&stats_diskmgr_t::done, &stack_stats, _1);
-        stack_stats.done_fun = std::bind(&linux_disk_manager_t::done, this, _1);
+                                       &conflict_resolver, ph::_1);
+        conflict_resolver.done_fun = std::bind(&stats_diskmgr_t::done, &stack_stats, ph::_1);
+        stack_stats.done_fun = std::bind(&linux_disk_manager_t::done, this, ph::_1);
     }
 
     ~linux_disk_manager_t() {
@@ -95,13 +96,11 @@ public:
     void submit_write(fd_t fd, const void *buf, size_t count, int64_t offset,
                       void *account, linux_iocallback_t *cb,
                       bool wrap_in_datasyncs) {
-        int calling_thread = get_thread_id();
+        threadnum_t calling_thread = get_thread_id();
 
-        action_t *a = new action_t;
+        action_t *a = new action_t(calling_thread, cb);
         a->make_write(fd, buf, count, offset, wrap_in_datasyncs);
         a->account = static_cast<accounting_diskmgr_t::account_t *>(account);
-        a->cb = cb;
-        a->cb_thread = calling_thread;
 
         do_on_thread(home_thread(),
                      std::bind(&linux_disk_manager_t::submit_action_to_stack_stats, this,
@@ -113,13 +112,11 @@ public:
 #elif USE_WRITEV
     void submit_writev(fd_t fd, scoped_array_t<iovec> &&bufs, size_t count,
                        int64_t offset, void *account, linux_iocallback_t *cb) {
-        int calling_thread = get_thread_id();
+        threadnum_t calling_thread = get_thread_id();
 
-        action_t *a = new action_t;
+        action_t *a = new action_t(calling_thread, cb);
         a->make_writev(fd, std::move(bufs), count, offset);
         a->account = static_cast<accounting_diskmgr_t::account_t *>(account);
-        a->cb = cb;
-        a->cb_thread = calling_thread;
 
         do_on_thread(home_thread(),
                      std::bind(&linux_disk_manager_t::submit_action_to_stack_stats, this,
@@ -128,13 +125,11 @@ public:
 #endif  // USE_WRITEV
 
     void submit_read(fd_t fd, void *buf, size_t count, int64_t offset, void *account, linux_iocallback_t *cb) {
-        int calling_thread = get_thread_id();
+        threadnum_t calling_thread = get_thread_id();
 
-        action_t *a = new action_t;
+        action_t *a = new action_t(calling_thread, cb);
         a->make_read(fd, buf, count, offset);
         a->account = static_cast<accounting_diskmgr_t::account_t*>(account);
-        a->cb = cb;
-        a->cb_thread = calling_thread;
 
         do_on_thread(home_thread(),
                      std::bind(&linux_disk_manager_t::submit_action_to_stack_stats, this,
@@ -190,7 +185,7 @@ private:
 io_backender_t::io_backender_t(file_direct_io_mode_t _direct_io_mode,
                                int max_concurrent_io_requests)
     : direct_io_mode(_direct_io_mode),
-      diskmgr(new linux_disk_manager_t(&linux_thread_pool_t::thread->queue,
+      diskmgr(new linux_disk_manager_t(&linux_thread_pool_t::get_thread()->queue,
                                        DEFAULT_IO_BATCH_FACTOR,
                                        max_concurrent_io_requests,
                                        &stats)) { }
@@ -207,7 +202,7 @@ linux_file_t::linux_file_t(scoped_fd_t &&_fd, int64_t _file_size, linux_disk_man
     // TODO: Why do we care whether we're in a thread pool?  (Maybe it's that you can't create a
     // file_account_t outside of the thread pool?  But they're associated with the diskmgr,
     // aren't they?)
-    if (linux_thread_pool_t::thread) {
+    if (linux_thread_pool_t::get_thread()) {
         default_account.init(new file_account_t(this, 1, UNLIMITED_OUTSTANDING_REQUESTS));
     }
 }
@@ -221,7 +216,7 @@ void linux_file_t::set_size(int64_t size) {
     int res;
     do {
         res = ftruncate(fd.get(), size);
-    } while (res == -1 && errno == EINTR);
+    } while (res == -1 && get_errno() == EINTR);
     guarantee_err(res == 0, "Could not ftruncate()");
 
     int errcode = perform_datasync(fd.get());
@@ -317,7 +312,7 @@ void linux_file_t::writev_async(int64_t offset, size_t length,
 
 bool linux_file_t::coop_lock_and_check() {
     if (flock(fd.get(), LOCK_EX | LOCK_NB) != 0) {
-        rassert(errno == EWOULDBLOCK);
+        rassert(get_errno() == EWOULDBLOCK);
         return false;
     }
     return true;
@@ -414,13 +409,13 @@ file_open_result_t open_file(const char *path, const int mode, io_backender_t *b
         int res_open;
         do {
             res_open = open(path, flags, 0644);
-        } while (res_open == -1 && errno == EINTR);
+        } while (res_open == -1 && get_errno() == EINTR);
 
         fd.reset(res_open);
     }
 
     if (fd.get() == INVALID_FD) {
-        return file_open_result_t(file_open_result_t::ERROR, errno);
+        return file_open_result_t(file_open_result_t::ERROR, get_errno());
     }
 
     // When building, we must either support O_DIRECT or F_NOCACHE.  The former works on Linux,
@@ -456,13 +451,9 @@ file_open_result_t open_file(const char *path, const int mode, io_backender_t *b
 
     const int64_t file_size = get_file_size(fd.get());
 
-    // TODO: We have a very minor correctness issue here, which is that
-    // we don't guarantee data durability for newly created database files.
-    // In theory, we would have to fsync() not only the file itself, but
-    // also the directory containing it. Otherwise the file might not
-    // survive a crash of the system. However, the window for data to get lost
-    // this way is just a few seconds after the creation of a new database,
-    // until the file system flushes the metadata to disk.
+    // Call fsync() on the parent directory to guarantee that the newly
+    // created file's directory entry is persisted to disk.
+    guarantee_fsync_parent_directory(path);
 
     out->init(new linux_file_t(std::move(fd), file_size, backender->get_diskmgr_ptr()));
 
@@ -488,7 +479,7 @@ size_t linux_semantic_checking_file_t::semantic_blocking_read(void *buf,
     ssize_t res;
     do {
         res = ::read(fd_.get(), buf, length);
-    } while (res == -1 && errno == EINTR);
+    } while (res == -1 && get_errno() == EINTR);
     guarantee_err(res != -1, "Could not read from the semantic checker file");
     return res;
 }
@@ -498,7 +489,7 @@ size_t linux_semantic_checking_file_t::semantic_blocking_write(const void *buf,
     ssize_t res;
     do {
         res = ::write(fd_.get(), buf, length);
-    } while (res == -1 && errno == EINTR);
+    } while (res == -1 && get_errno() == EINTR);
     guarantee_err(res != -1, "Could not write to the semantic checker file");
     return res;
 }
@@ -514,15 +505,46 @@ int perform_datasync(fd_t fd) {
     int fcntl_res;
     do {
         fcntl_res = fcntl(fd, F_FULLFSYNC);
-    } while (fcntl_res == -1 && errno == EINTR);
+    } while (fcntl_res == -1 && get_errno() == EINTR);
 
-    return fcntl_res == -1 ? errno : 0;
+    return fcntl_res == -1 ? get_errno() : 0;
 
 #else  // __MACH__
 
     int res = fdatasync(fd);
-    return res == -1 ? errno : 0;
+    return res == -1 ? get_errno() : 0;
 
 #endif  // __MACH__
 }
 
+MUST_USE int fsync_parent_directory(const char *path) {
+    // Locate the parent directory
+    char absolute_path[PATH_MAX];
+    char *abs_res = realpath(path, absolute_path);
+    guarantee_err(abs_res != NULL, "Failed to determine absolute path for '%s'", path);
+    char *parent_path = dirname(absolute_path); // Note: modifies absolute_path
+
+    // Get a file descriptor on the parent directory
+    int res;
+    do {
+        res = open(parent_path, O_RDONLY);
+    } while (res == -1 && get_errno() == EINTR);
+    if (res == -1) {
+        return get_errno();
+    }
+    scoped_fd_t fd(res);
+
+    do {
+        res = fsync(fd.get());
+    } while (res == -1 && get_errno() == EINTR);
+    if (res == -1) {
+        return get_errno();
+    }
+
+    return 0;
+}
+
+void guarantee_fsync_parent_directory(const char *path) {
+    int sync_res = fsync_parent_directory(path);
+    guarantee_xerr(sync_res == 0, sync_res, "Failed to fsync() parent directory of '%s'.", path);
+}

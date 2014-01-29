@@ -3,7 +3,6 @@
 #define CONCURRENCY_CORO_POOL_HPP_
 
 #include "errors.hpp"
-#include <boost/bind.hpp>
 #include <boost/function.hpp>
 
 #include "concurrency/auto_drainer.hpp"
@@ -53,7 +52,7 @@ public:
         source->available->unset_callback();
     }
 
-    void rethread(int new_thread) {
+    void rethread(threadnum_t new_thread) {
         /* Can't rethread while there are active operations */
         rassert(active_worker_count == 0);
         rassert(!source->available->get());
@@ -72,6 +71,7 @@ private:
                 } else {
                     break;
                 }
+                coro_t::yield();
             }
         } catch (const interrupted_exc_t &) {
             rassert(coro_drain_semaphore_lock.get_drain_signal()->is_pulsed());
@@ -83,7 +83,7 @@ private:
         assert_thread();
         while (source->available->get() && active_worker_count < max_worker_count) {
             ++active_worker_count;
-            coro_t::spawn_sometime(boost::bind(
+            coro_t::spawn_sometime(std::bind(
                 &coro_pool_t::worker_run, this,
                 source->pop(), auto_drainer_t::lock_t(&coro_drain_semaphore)));
         }

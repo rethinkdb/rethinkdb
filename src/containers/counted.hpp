@@ -41,9 +41,19 @@ public:
         movee.p_ = NULL;
     }
 
+// Avoid a spurious warning when building on Saucy. See issue #1674
+#if defined(__GNUC__) && (100 * __GNUC__ + __GNUC_MINOR__ >= 408)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
+
     ~counted_t() {
         if (p_) { counted_release(p_); }
     }
+
+#if defined(__GNUC__) && (100 * __GNUC__ + __GNUC_MINOR__ >= 408)
+#pragma GCC diagnostic pop
+#endif
 
     void swap(counted_t &other) {
         T *tmp = p_;
@@ -256,5 +266,29 @@ inline intptr_t counted_use_count(const slow_atomic_countable_t<T> *p) {
     return tmp;
 }
 
+
+// A noncopyable reference to a reference-counted object.
+template <class T>
+class movable_t {
+public:
+    explicit movable_t(const counted_t<T> &copyee) : ptr_(copyee) { }
+    movable_t(movable_t &&movee) : ptr_(std::move(movee.ptr_)) { }
+    movable_t &operator=(movable_t &&movee) {
+        ptr_ = std::move(movee.ptr_);
+        return *this;
+    }
+
+    void reset() { ptr_.reset(); }
+
+    T *get() const { return ptr_.get(); }
+    T *operator->() const { return ptr_.get(); }
+    T &operator*() const { return *ptr_; }
+
+    bool has() const { return ptr_.has(); }
+
+private:
+    counted_t<T> ptr_;
+    DISABLE_COPYING(movable_t);
+};
 
 #endif  // CONTAINERS_COUNTED_HPP_

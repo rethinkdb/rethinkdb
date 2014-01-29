@@ -6,8 +6,9 @@
 #include <string>
 #include <vector>
 
-#include "buffer_cache/mirrored/writeback.hpp"
+#include "buffer_cache/types.hpp"
 #include "containers/archive/archive.hpp"
+#include "containers/uuid.hpp"
 #include "rpc/serialize_macros.hpp"
 #include "serializer/types.hpp"
 
@@ -42,12 +43,12 @@ struct secondary_index_t {
     uuid_u id;
 
     /* Used in unit tests. */
-    bool operator==(const secondary_index_t & other) const {
+    bool operator==(const secondary_index_t &other) const {
         return superblock == other.superblock &&
                opaque_definition == other.opaque_definition;
     }
 
-    RDB_MAKE_ME_SERIALIZABLE_4(superblock, opaque_definition, post_construction_complete, id);
+    RDB_DECLARE_ME_SERIALIZABLE;
 };
 
 //Secondary Index functions
@@ -70,11 +71,11 @@ void set_secondary_index(transaction_t *txn, buf_lock_t *sindex_block, const std
 void set_secondary_index(transaction_t *txn, buf_lock_t *sindex_block, uuid_u id, const secondary_index_t &sindex);
 
 //XXX note this just drops the entry. It doesn't cleanup the btree that it
-//points to. drop_secondary_index. Does both and should be used publicly.
+//points to. `drop_sindex` does both and should be used publicly.
 bool delete_secondary_index(transaction_t *txn, buf_lock_t *sindex_block, const std::string &id);
 
 //XXX note this just drops the enties. It doesn't cleanup the btree that it
-//points to. drop_secondary_indexes. Does both and should be used publicly.
+//points to. `drop_all_sindexes` does both and should be used publicly.
 void delete_all_secondary_indexes(transaction_t *txn, buf_lock_t *sindex_block);
 
 #endif /* BTREE_SECONDARY_OPERATIONS_HPP_ */

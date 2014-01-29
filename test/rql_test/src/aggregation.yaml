@@ -150,10 +150,9 @@ tests:
             {'group':2, 'reduction':2500},
             {'group':3, 'reduction':2550}])
 
-    # gmr optional base
     - py:
-        - tbl.grouped_map_reduce(lambda row:row['a'], lambda row:row['id'], lambda a,b:a + b, base=0)
-        - tbl.grouped_map_reduce(r.row['a'], r.row['id'], lambda a,b:a + b, base=0)
+        - tbl.grouped_map_reduce(lambda row:row['a'], lambda row:row['id'], lambda a,b:a + b)
+        - tbl.grouped_map_reduce(r.row['a'], r.row['id'], lambda a,b:a + b)
       js:
         - |
           tbl.groupedMapReduce(function(row) {
@@ -168,7 +167,7 @@ tests:
               function(a,b) {
                   return a.add(b);
               }, 0)
-      rb: tbl.grouped_map_reduce(proc{ |row| row['a'] }, proc{ |row| row['id'] }, 0, proc{ |a, b| a + b })
+      rb: tbl.grouped_map_reduce(proc{ |row| row['a'] }, proc{ |row| row['id'] }, proc{ |a, b| a + b })
       ot: |
           ([{'group':0, 'reduction':1200},
             {'group':1, 'reduction':1225},
@@ -182,7 +181,7 @@ tests:
           }, function(a,b) {
           })
       cd: []
-      ot: err('RqlDriverError', 'Annonymous function returned `undefined`. Did you forget a `return`?', [0])
+      ot: err('RqlDriverError', 'Anonymous function returned `undefined`. Did you forget a `return`?', [0])
 
     # GroupBy
 

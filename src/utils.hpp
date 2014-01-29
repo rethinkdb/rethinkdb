@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef UTILS_HPP_
 #define UTILS_HPP_
 
@@ -10,6 +10,7 @@
 #endif
 
 #include <inttypes.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -17,6 +18,7 @@
 #include <valgrind/memcheck.h>
 #endif  // VALGRIND
 
+#include <functional>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -25,8 +27,20 @@
 #include "errors.hpp"
 #include "config/args.hpp"
 
+namespace ph = std::placeholders;
+
 class Term;
 void pb_print(Term *t);
+
+// A thread number as used by the thread pool.
+class threadnum_t {
+public:
+    explicit threadnum_t(int32_t _threadnum) : threadnum(_threadnum) { }
+
+    bool operator==(threadnum_t other) const { return threadnum == other.threadnum; }
+
+    int32_t threadnum;
+};
 
 class startup_shutdown_t {
 public:
@@ -53,16 +67,24 @@ public:
     }
 };
 
-/* Pad a value to the size of a cache line to avoid false sharing.
- * TODO: This is implemented as a struct with subtraction rather than a union
- * so that it gives an error when trying to pad a value bigger than
- * CACHE_LINE_SIZE. If that's needed, this may have to be done differently.
+/* Forbid the following function definition to be inlined
+ * (note: some compilers might require `noinline` instead of `__attribute__ ((noinline))`)
  */
+#define NOINLINE __attribute__ ((noinline))
+
+/* Pad a value to the size of one or multiple cache lines to avoid false sharing.
+ */
+#define COMPUTE_PADDING_SIZE(value, alignment) \
+        alignment - (((value + alignment - 1) % alignment) + 1)
+
 template<typename value_t>
 struct cache_line_padded_t {
+    cache_line_padded_t() { }
+    explicit cache_line_padded_t(value_t const &_value) : value(_value) { }
     value_t value;
-    char padding[CACHE_LINE_SIZE - sizeof(value_t)];
+    char padding[COMPUTE_PADDING_SIZE(sizeof(value_t), CACHE_LINE_SIZE)];
 };
+#undef COMPUTE_PADDING_SIZE
 
 void *malloc_aligned(size_t size, size_t alignment);
 
@@ -216,7 +238,7 @@ on a single thread. Its thread ID is exposed as the `home_thread()`
 method. Some subclasses of `home_thread_mixin_debug_only_t` can move themselves to
 another thread, modifying the field real_home_thread. */
 
-#define INVALID_THREAD (-1)
+#define INVALID_THREAD (threadnum_t(-1))
 
 class home_thread_mixin_debug_only_t {
 public:
@@ -227,18 +249,18 @@ public:
 #endif
 
 protected:
-    explicit home_thread_mixin_debug_only_t(int specified_home_thread);
+    explicit home_thread_mixin_debug_only_t(threadnum_t specified_home_thread);
     home_thread_mixin_debug_only_t();
     ~home_thread_mixin_debug_only_t() { }
 
 #ifndef NDEBUG
-    int real_home_thread;
+    threadnum_t real_home_thread;
 #endif
 };
 
 class home_thread_mixin_t {
 public:
-    int home_thread() const { return real_home_thread; }
+    threadnum_t home_thread() const { return real_home_thread; }
 #ifndef NDEBUG
     void assert_thread() const;
 #else
@@ -246,11 +268,11 @@ public:
 #endif
 
 protected:
-    explicit home_thread_mixin_t(int specified_home_thread);
+    explicit home_thread_mixin_t(threadnum_t specified_home_thread);
     home_thread_mixin_t();
-    virtual ~home_thread_mixin_t() { }
+    ~home_thread_mixin_t() { }
 
-    int real_home_thread;
+    threadnum_t real_home_thread;
 
 private:
     // Things with home threads should not be copyable, since we don't
@@ -272,8 +294,20 @@ back in its destructor. For example:
 
 class on_thread_t : public home_thread_mixin_t {
 public:
-    explicit on_thread_t(int thread);
+    explicit on_thread_t(threadnum_t thread);
     ~on_thread_t();
+};
+
+/* `with_priority_t` changes the priority of the current coroutine to the
+ value given in its constructor. When it is destructed, it restores the
+ original priority of the coroutine. */
+
+class with_priority_t {
+public:
+    explicit with_priority_t(int priority);
+    ~with_priority_t();
+private:
+    int previous_priority;
 };
 
 
@@ -415,10 +449,17 @@ void remove_directory_recursive(const char *path) THROWS_ONLY(remove_directory_e
 bool ptr_in_byte_range(const void *p, const void *range_start, size_t size_in_bytes);
 bool range_inside_of_byte_range(const void *p, size_t n_bytes, const void *range_start, size_t size_in_bytes);
 
+class debug_timer_t {
+public:
+    explicit debug_timer_t(std::string _name = "");
+    ~debug_timer_t();
+    microtime_t tick(const std::string &tag);
+private:
+    microtime_t start, last;
+    std::string name, out;
+};
 
-
-#define STR(x) #x
-#define MSTR(x) STR(x) // Stringify a macro
+#define MSTR(x) stringify(x) // Stringify a macro
 #if defined __clang__
 #define COMPILER "CLANG " __clang_version__
 #elif defined __GNUC__
@@ -438,5 +479,38 @@ bool range_inside_of_byte_range(const void *p, size_t n_bytes, const void *range
 #define DBLPRI "%.20g"
 
 #define ANY_PORT 0
+
+/** RVALUE_THIS
+ *
+ * This macro is used to annotate methods that treat *this as an
+ * rvalue reference. On compilers that support it, it expands to &&
+ * and all uses of the method on non-rvlaue *this are reported as
+ * errors.
+ *
+ * The supported compilers are clang >= 2.9 and gcc >= 4.8.1
+ *
+ **/
+#if defined(__clang__)
+#if __has_extension(cxx_rvalue_references)
+#define RVALUE_THIS &&
+#else
+#define RVALUE_THIS
+#endif
+#elif __GNUC__ > 4 || (__GNUC__ == 4 && \
+    (__GNUC_MINOR__ > 8 || (__GNUC_MINOR__ == 8 && \
+                            __GNUC_PATCHLEVEL__ > 1)))
+#define RVALUE_THIS &&
+#else
+#define RVALUE_THIS
+#endif
+
+template <class T>
+double safe_to_double(T val) {
+    double res = static_cast<double>(val);
+    if (val != static_cast<T>(res)) {
+        return NAN;
+    }
+    return res;
+}
 
 #endif // UTILS_HPP_

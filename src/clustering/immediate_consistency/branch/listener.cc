@@ -75,7 +75,6 @@ listener_t<protocol_t>::listener_t(const base_path_t &base_path,
                  &perfmon_collection_),
     write_queue_semaphore_(SEMAPHORE_NO_LIMIT,
         WRITE_QUEUE_SEMAPHORE_TRICKLE_FRACTION),
-    enforce_max_outstanding_writes_from_broadcaster_(MAX_OUTSTANDING_WRITES_FROM_BROADCASTER),
     write_mailbox_(mailbox_manager_,
         boost::bind(&listener_t::on_write, this, _1, _2, _3, _4, _5)),
     writeread_mailbox_(mailbox_manager_,
@@ -245,7 +244,6 @@ listener_t<protocol_t>::listener_t(const base_path_t &base_path,
     write_queue_(io_backender, serializer_filepath_t(base_path, "backfill-serialization-" + uuid_to_str(uuid_)), &perfmon_collection_),
     write_queue_semaphore_(WRITE_QUEUE_SEMAPHORE_LONG_TERM_CAPACITY,
         WRITE_QUEUE_SEMAPHORE_TRICKLE_FRACTION),
-    enforce_max_outstanding_writes_from_broadcaster_(MAX_OUTSTANDING_WRITES_FROM_BROADCASTER),
     write_mailbox_(mailbox_manager_,
         boost::bind(&listener_t::on_write, this, _1, _2, _3, _4, _5)),
     writeread_mailbox_(mailbox_manager_,
@@ -411,18 +409,11 @@ void listener_t<protocol_t>::enqueue_write(const typename protocol_t::write_t &w
         mailbox_addr_t<void()> ack_addr,
         auto_drainer_t::lock_t keepalive) THROWS_NOTHING {
     try {
-        /* Make sure that the broadcaster isn't sending us too many concurrent
-        writes */
-        semaphore_assertion_t::acq_t sem_acq(&enforce_max_outstanding_writes_from_broadcaster_);
-
         fifo_enforcer_sink_t::exit_write_t fifo_exit(&write_queue_entrance_sink_, fifo_token);
         wait_interruptible(&fifo_exit, keepalive.get_drain_signal());
         write_queue_semaphore_.co_lock_interruptible(keepalive.get_drain_signal());
         write_queue_.push(write_queue_entry_t(write, transition_timestamp, order_token, fifo_token));
 
-        /* Release the semaphore before sending the response, because the
-        broadcaster can send us a new write as soon as we send the ack */
-        sem_acq.reset();
         send(mailbox_manager_, ack_addr);
 
     } catch (const interrupted_exc_t &) {
@@ -500,9 +491,6 @@ void listener_t<protocol_t>::perform_writeread(const typename protocol_t::write_
         const write_durability_t durability,
         auto_drainer_t::lock_t keepalive) THROWS_NOTHING {
     try {
-        /* Make sure the broadcaster isn't sending us too many writes */
-        semaphore_assertion_t::acq_t sem_acq(&enforce_max_outstanding_writes_from_broadcaster_);
-
         write_token_pair_t write_token_pair;
         {
             {
@@ -543,9 +531,6 @@ void listener_t<protocol_t>::perform_writeread(const typename protocol_t::write_
                     &write_token_pair,
                     keepalive.get_drain_signal());
 
-        /* Release the semaphore before sending the response, because the
-        broadcaster can send us a new write as soon as we send the ack */
-        sem_acq.reset();
         send(mailbox_manager_, ack_addr, response);
 
     } catch (const interrupted_exc_t &) {
@@ -584,10 +569,12 @@ void listener_t<protocol_t>::perform_read(const typename protocol_t::read_t &rea
             {
                 /* Briefly pass through `write_queue_entrance_sink_` in case we
                 are receiving a mix of writes and write-reads */
-                fifo_enforcer_sink_t::exit_read_t fifo_exit_1(&write_queue_entrance_sink_, fifo_token);
+                fifo_enforcer_sink_t::exit_read_t fifo_exit_1(
+                    &write_queue_entrance_sink_, fifo_token);
             }
 
-            fifo_enforcer_sink_t::exit_read_t fifo_exit_2(&store_entrance_sink_, fifo_token);
+            fifo_enforcer_sink_t::exit_read_t fifo_exit_2(
+                &store_entrance_sink_, fifo_token);
             wait_interruptible(&fifo_exit_2, keepalive.get_drain_signal());
 
             guarantee(current_timestamp_ == expected_timestamp);
@@ -596,8 +583,10 @@ void listener_t<protocol_t>::perform_read(const typename protocol_t::read_t &rea
         }
 
 #ifndef NDEBUG
-        version_leq_metainfo_checker_callback_t<protocol_t> metainfo_checker_callback(expected_timestamp);
-        metainfo_checker_t<protocol_t> metainfo_checker(&metainfo_checker_callback, svs_->get_region());
+        version_leq_metainfo_checker_callback_t<protocol_t> metainfo_checker_callback(
+            expected_timestamp);
+        metainfo_checker_t<protocol_t> metainfo_checker(
+            &metainfo_checker_callback, svs_->get_region());
 #endif
 
         // Perform the operation

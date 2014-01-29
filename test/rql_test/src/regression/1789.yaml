@@ -1,0 +1,26 @@
+desc: 1789 -- deleting a secondary index on a table that contains non-inline stored documents corrupts db
+tests:
+  - rb: r.db('test').table_create('1789')
+    ot: ({'created':1})
+
+  - rb: r.db('test').table('1789').insert({:foo => 'a', :data => "AAAAAAAAAAAAAAAAAA
+      AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"}).pluck('inserted')
+    ot: ({'inserted':1})
+
+  - rb: r.db('test').table('1789').index_create('foo')
+    ot: ({'created':1})
+
+  - rb: r.db('test').table('1789').index_wait('foo')
+    ot: ([{'index':'foo', 'ready':true}])
+
+  - rb: r.db('test').table('1789').index_drop('foo')
+    ot: ({'dropped':1})
+ 
+  - rb: r.db('test').table('1789').coerce_to('ARRAY').count()
+    ot: (1)
+
+  # clean up
+  - cd: r.db('test').table_drop('1789')

@@ -1,3 +1,4 @@
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "rdb_protocol/pseudo_time.hpp"
 
 #include <time.h>
@@ -377,7 +378,7 @@ void add_seconds_to_ptime(ptime_t *t, double raw_sec) {
     int64_t microsec = (raw_sec * 1000000.0) - (sec * 1000000);
 
     // boost::posix_time::seconds doesn't like large numbers, and like any
-    // mature library, it reacts by silently overflowing somehwere and producing
+    // mature library, it reacts by silently overflowing somewhere and producing
     // an incorrect date if you give it a number that it doesn't like.
     int sign = sec < 0 ? -1 : 1;
     sec *= sign;
@@ -458,7 +459,8 @@ void sanitize_time(datum_t *time) {
     r_sanity_check(time != NULL);
     r_sanity_check(time->is_ptype(time_string));
     std::string msg;
-    bool has_epoch_time = false, has_timezone = false;;
+    bool has_epoch_time = false;
+    bool has_timezone = false;
     for (auto it = time->as_object().begin(); it != time->as_object().end(); ++it) {
         if (it->first == epoch_time_key) {
             if (it->second->get_type() == datum_t::R_NUM) {
@@ -628,7 +630,7 @@ double time_portion(counted_t<const datum_t> time, time_component_t c) {
             // We use the ISO 8601 convention which counts from 1 and starts with Monday.
             int d = ptime.date().day_of_week();
             return d == 0 ? 7 : d;
-        } unreachable();
+        } break;
         case DAY_OF_YEAR: return ptime.date().day_of_year();
         case HOURS: return ptime.time_of_day().hours();
         case MINUTES: return ptime.time_of_day().minutes();
@@ -636,10 +638,9 @@ double time_portion(counted_t<const datum_t> time, time_component_t c) {
             double frac = modf(time->get(epoch_time_key)->as_num(), &frac);
             frac = round(frac * 1000) / 1000;
             return ptime.time_of_day().seconds() + frac;
-        } unreachable();
+        } break;
         default: unreachable();
         }
-        unreachable();
     } HANDLE_BOOST_ERRORS_NO_TARGET;
 }
 

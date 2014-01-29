@@ -126,6 +126,8 @@ private:
     // to be not young.
     void remove_last_unyoung_entry();
 
+    void destroy_entry(gc_entry_t *entry);
+
     bool should_perform_read_ahead(int64_t offset);
 
     /* internal garbage collection structures */

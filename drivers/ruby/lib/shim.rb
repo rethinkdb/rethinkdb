@@ -2,7 +2,41 @@ require 'json'
 require 'time'
 
 module RethinkDB
+
   module Shim
+
+    def self.is_reql_time(obj)
+      obj.is_a? Hash and obj["$reql_type$"] == "TIME"
+    end
+
+    def self.convert_time(obj)
+      t = Time.at(obj['epoch_time'])
+      tz = obj['timezone']
+      (tz && tz != "" && tz != "Z") ? t.getlocal(tz) : t.utc
+    end
+
+    def self.convert_times!(result)
+      case result
+      when Hash
+        result.each { |k, v|
+          if is_reql_time v
+            result[k] = convert_time v
+          else
+            convert_times! v
+          end
+        }
+      when Array
+        result.each_index { |i|
+          if is_reql_time result[i]
+            result[i] = convert_time result[i]
+          else
+            convert_times! result[i]
+          end
+        }
+      end
+      result
+    end
+
     def self.datum_to_native(d, opts)
       raise RqlRuntimeError, "SHENANIGANS" if d.class != Datum
       dt = Datum::DatumType
@@ -14,14 +48,19 @@ module RethinkDB
       when dt::R_ARRAY then d.r_array.map{|d2| datum_to_native(d2, opts)}
       when dt::R_OBJECT then
         obj = Hash[d.r_object.map{|x| [x.key, datum_to_native(x.val, opts)]}]
-        if obj["$reql_type$"] == "TIME" && opts[:time_format] != 'raw'
-          t = Time.at(obj['epoch_time'])
-          tz = obj['timezone']
-          (tz && tz != "" && tz != "Z") ? t.getlocal(tz) : t.utc
+        if opts[:time_format] != 'raw'
+          is_reql_time(obj) ? convert_time(obj) : obj
         else
           obj
         end
-      else raise RqlRuntimeError, "Unimplemented."
+      when dt::R_JSON then
+        result = JSON.parse("[" + d.r_str + "]")[0]
+        if opts[:time_format] != 'raw'
+          is_reql_time(result) ? convert_time(result) : convert_times!(result)
+        else
+          result
+        end
+      else raise RqlRuntimeError, "#{dt} Unimplemented."
       end
     end
 
@@ -49,9 +88,8 @@ module RethinkDB
         else raise RqlRuntimeError, "Unexpected response: #{r.inspect}"
         end
       rescue RqlError => e
-        term = orig_term.dup
+        term = orig_term.deep_dup
         term.bt_tag(bt)
-        $t = term
         raise e.class, "#{e.message}\nBacktrace:\n#{RPP.pp(term)}"
       end
     end
