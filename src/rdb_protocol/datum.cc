@@ -92,7 +92,7 @@ datum_t::~datum_t() {
     case R_NUM: break;
     case R_STR: {
         r_sanity_check(r_str != NULL);
-        wire_string_t::destroy(r_str);
+        delete r_str;
     } break;
     case R_ARRAY: {
         r_sanity_check(r_array != NULL);

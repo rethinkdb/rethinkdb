@@ -2,97 +2,51 @@
 #ifndef CONTAINERS_WIRE_STRING_HPP_
 #define CONTAINERS_WIRE_STRING_HPP_
 
-#include <stdlib.h>
-#include <string.h>
 #include <string>
 
-#include "utils.hpp"
 #include "containers/archive/archive.hpp"
 
-// TODO! Document
+/* `wire_string_t` is a length-prefixed ("Pascal style") string.
+ * This has two advantages over C-strings:
+ * - it can be efficiently serialized and deserialized
+ * - it can contain any character, including '\0'
+ * 
+ * Its length cannot be changed once created.
+ *
+ * `wire_string_t` has no public constructors, and doesn't have
+ * a fixed size. You can allocate one through the create() or create_and_init()
+ * function. The returned object can be freed by using the delete operator.
+ */
 struct wire_string_t {
     wire_string_t() = delete;
-    ~wire_string_t() = delete;
 
-    static wire_string_t *create(size_t _size) {
-        rassert(sizeof(_size) <= sizeof(uint64_t));
-        size_t memory_size = sizeof(uint64_t) + _size*sizeof(char) + sizeof(char);
-        void *raw_result = ::malloc(memory_size);
-        // TODO! Check return value
-        wire_string_t *result = reinterpret_cast<wire_string_t *>(raw_result);
-        result->size_ = static_cast<uint64_t>(_size);
-        // Append a 0 character to allow for an efficient `c_str()`
-        result->data_[_size] = '\0';
-        return result;
-    }
-    static wire_string_t *create_and_init(size_t _size, const char *_data) {
-        wire_string_t *result = create(_size);
-        memcpy(result->data_, _data, _size);
-        return result;
-    }
-    static void destroy(wire_string_t *s) {
-        ::free(s);
-    }
+    static wire_string_t *create(size_t _size);
+    static wire_string_t *create_and_init(size_t _size, const char *_data);
+    static void operator delete(void *p);
 
-    const char *c_str() const {
-        return data_;
-    }
+    const char *c_str() const;
+    char *data();
+    const char *data() const;
+    size_t length() const;
+    size_t size() const;
 
-    char *data() {
-        return data_;
-    }
-    const char *data() const {
-        return data_;
-    }
+    int compare(const wire_string_t &other) const;
 
-    size_t length() const {
-        return static_cast<size_t>(size_);
-    }
+    // Short cut for comparing to C-strings
+    bool operator==(const char *other) const;
+    bool operator==(const wire_string_t &other) const;
+    bool operator!=(const wire_string_t &other) const;
+    bool operator<(const wire_string_t &other) const;
+    bool operator>(const wire_string_t &other) const;
+    bool operator<=(const wire_string_t &other) const;
+    bool operator>=(const wire_string_t &other) const;
 
-    size_t memory_size() const {
-        // TODO! Make this more robust. Probably use offset(data_)
-        return sizeof(uint64_t) + size_*sizeof(char) + sizeof(char);
-    }
+    operator std::string() const;
 
-    int compare(const wire_string_t &other) const {
-        size_t common_size = static_cast<size_t>(std::min(size_, other.size_));
-        int content_compare = memcmp(data_, other.data_, common_size);
-        if (content_compare == 0) {
-            // Both strings have the same first `content_compare` characters.
-            // Compare their lengths.
-            if (size_ < other.size_) {
-                return -1;
-            } else if (size_ > other.size_) {
-                return 1;
-            } else {
-                return 0;
-            }
-        } else {
-            return content_compare;
-        }
-    }
-
-    bool operator==(const wire_string_t &other) const {
-        return compare(other) == 0;
-    }
-    bool operator==(const char *other) const {
-        rassert(data_[size_] == '\0');
-        return strcmp(data_, other) == 0;
-    }
-
-    operator std::string() const {
-        return std::string(data_, size_);
-    }
-
-    wire_string_t *operator+(const wire_string_t &other) const {
-        wire_string_t *result = create(size_ + other.size_);
-        memcpy(result->data_, data_, size_);
-        memcpy(&result->data_[size_], other.data_, other.size_);
-        return result;
-    }
+    wire_string_t *operator+(const wire_string_t &other) const;
 
 private:
-    uint64_t size_; // TODO! Make this a size_t
+    size_t size_;
     char data_[0];
 
     DISABLE_COPYING(wire_string_t);
@@ -103,6 +57,6 @@ size_t serialized_size(const wire_string_t *s);
 
 write_message_t &operator<<(write_message_t &msg, const wire_string_t *s);
 
-archive_result_t deserialize(read_stream_t *s, wire_string_t **out);
+archive_result_t deserialize(read_stream_t *s, wire_string_t **out) THROWS_NOTHING;
 
 #endif  // CONTAINERS_WIRE_STRING_HPP_
