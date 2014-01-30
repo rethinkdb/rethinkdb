@@ -977,6 +977,7 @@ void connectivity_cluster_t::kill_connection(peer_id_t peer) THROWS_NOTHING {
 
     if (it != connection_map->end()) {
         tcp_conn_stream_t *conn = it->second.first->conn;
+        guarantee(conn != NULL, "Attempted to kill connection to myself.");
         guarantee(get_thread_id() == conn->home_thread());
 
         if (conn->is_read_open()) {

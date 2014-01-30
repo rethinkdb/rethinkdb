@@ -161,30 +161,43 @@ void mailbox_manager_t::on_message(peer_id_t source_peer, read_stream_t *stream)
         dest_thread = get_thread_id().threadnum;
     }
 
-    // Construct a new stream to use
-    scoped_ptr_t<vector_read_stream_t> new_stream(
-            new vector_read_stream_t(std::move(stream_data), stream_data_offset));
-
-    coro_t::spawn_sometime(boost::bind(&mailbox_manager_t::mailbox_read_coroutine,
-                                       this, source_peer, threadnum_t(dest_thread),
-                                       dest_mailbox_id, new_stream.release()));
+    // We use `spawn_now_dangerously()` to avoid having to heap-allocate `stream_data`.
+    // Instead we pass in a pointer to our local automatically allocated object
+    // and `mailbox_read_coroutine()` moves the data out of it before it yields.
+    coro_t::spawn_now_dangerously(boost::bind(&mailbox_manager_t::mailbox_read_coroutine,
+                                              this, source_peer, threadnum_t(dest_thread),
+                                              dest_mailbox_id, &stream_data,
+                                              stream_data_offset));
 }
 
 void mailbox_manager_t::mailbox_read_coroutine(peer_id_t source_peer,
                                                threadnum_t dest_thread,
                                                raw_mailbox_t::id_t dest_mailbox_id,
-                                               vector_read_stream_t *stream_ptr) {
+                                               std::vector<char> *stream_data,
+                                               int64_t stream_data_offset) {
 
-    scoped_ptr_t<vector_read_stream_t> stream(stream_ptr);
+    // Construct a new stream to use
+    vector_read_stream_t stream(std::move(*stream_data), stream_data_offset);
+    stream_data = NULL; // <- It is not safe to use `stream_data` anymore once we
+                        //    switch the thread
 
-    try {
+    bool archive_exception = false;
+    {
         on_thread_t rethreader(dest_thread);
 
-        raw_mailbox_t *mbox = mailbox_tables.get()->find_mailbox(dest_mailbox_id);
-        if (mbox != NULL) {
-            mbox->callback->read(stream.get());
+        try {
+            raw_mailbox_t *mbox = mailbox_tables.get()->find_mailbox(dest_mailbox_id);
+            if (mbox != NULL) {
+                mbox->callback->read(&stream);
+            }
+        } catch (const fake_archive_exc_t &e) {
+            // Set a flag and handle the exception later.
+            // This is to avoid doing thread switches and other coroutine things
+            // while being in the exception handler. Just a precaution...
+            archive_exception = true;
         }
-    } catch (const fake_archive_exc_t &e) {
+    }
+    if (archive_exception) {
         logWRN("Received an invalid cluster message from a peer. Disconnecting.");
         message_service->kill_connection(source_peer);
     }
