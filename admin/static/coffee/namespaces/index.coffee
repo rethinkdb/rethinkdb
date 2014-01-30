@@ -23,7 +23,14 @@ module 'NamespaceView', ->
             @add_namespace_dialog = new NamespaceView.AddNamespaceModal
             @remove_namespace_dialog = new NamespaceView.RemoveNamespaceModal
 
-            super databases, NamespaceView.DatabaseListElement, '.collapsible-list', {}, 'database', 'cluster'
+            super databases, NamespaceView.DatabaseListElement, '.collapsible-list',
+                sort: (a, b) ->
+                    if b.model.get('name') < a.model.get('name')
+                        return 1
+                    else if b.model.get('name') > a.model.get('name')
+                        return -1
+                    return 0
+                , 'database', 'cluster'
 
             @datacenters_length = -1
             @databases_length = -1
@@ -180,7 +187,13 @@ module 'NamespaceView', ->
 
             super namespaces, NamespaceView.NamespaceListElement, '.list',
                 {
-                filter: (model) -> model.get('database') is database_id
+                filter: (model) -> model.get('database') is database_id,
+                sort: (a, b) ->
+                    if b.model.get('name') < a.model.get('name')
+                        return 1
+                    else if b.model.get('name') > a.model.get('name')
+                        return -1
+                    return 0
                 }
                 , 'table', 'database'
 
