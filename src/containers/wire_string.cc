@@ -123,10 +123,12 @@ archive_result_t deserialize(read_stream_t *s, wire_string_t **out) THROWS_NOTHI
     int64_t num_read = force_read(s, (*out)->data(), sz);
     if (num_read == -1) {
         delete *out;
+        *out = NULL;
         return ARCHIVE_SOCK_ERROR;
     }
     if (static_cast<uint64_t>(num_read) < sz) {
         delete *out;
+        *out = NULL;
         return ARCHIVE_SOCK_EOF;
     }
 

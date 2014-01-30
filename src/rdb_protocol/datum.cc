@@ -38,7 +38,6 @@ datum_t::datum_t(double _num) : type(R_NUM), r_num(_num) {
            strprintf("Non-finite number: " DBLPRI, r_num));
 }
 
-// TODO! Remove this one
 datum_t::datum_t(std::string &&_str)
     : type(R_STR), r_str(wire_string_t::create_and_init(_str.size(), _str.data())) {
     check_str_validity(r_str);
@@ -1253,6 +1252,7 @@ archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum) 
         wire_string_t *value;
         res = deserialize(s, &value);
         if (res) {
+            guarantee(value == NULL);
             return res;
         }
         try {

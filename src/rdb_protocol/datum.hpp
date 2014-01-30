@@ -67,7 +67,8 @@ public:
     // Need to explicitly ask to construct a bool.
     datum_t(type_t _type, bool _bool);
     explicit datum_t(double _num);
-    // TODO! Remove
+    // TODO: Eventually get rid of the std::string constructor (in favor of
+    //   wire_string_t *)
     explicit datum_t(std::string &&str);
     explicit datum_t(wire_string_t *str);
     explicit datum_t(const char *cstr);

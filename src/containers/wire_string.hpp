@@ -43,6 +43,8 @@ struct wire_string_t {
 
     operator std::string() const;
 
+    // Creates a new wire_string_t and returns a pointer to it.
+    // The new string is the concatenation of this and other.
     wire_string_t *operator+(const wire_string_t &other) const;
 
 private:
