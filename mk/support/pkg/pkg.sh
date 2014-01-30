@@ -202,9 +202,10 @@ git_clone_tag () {
     tag=$2
     repo=$3
     ( cd "$repo"
+      unset GIT_DIR
       git init
       git remote add origin "$remote"
-      git fetch --depth 1 origin "$tag"
+      git fetch --depth 1 origin "refs/tags/$tag"
       git checkout FETCH_HEAD
       rm -rf .git
     )
