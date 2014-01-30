@@ -43,12 +43,12 @@ def generate_async_message_template(nargs):
             print "        write_impl_t(%s) :" % csep("const arg#_t& _arg#")
         print "            %s" % csep("arg#(_arg#)")
         print "        { }"
-    print "        void write(write_stream_t *stream) {"
-    print "            write_message_t msg;"
+    if nargs == 0:
+        print "        void write(write_message_t *) {"
+    else:
+        print "        void write(write_message_t *msg) {"
     for i in xrange(nargs):
-        print "            msg << arg%d;" % i
-    print "            int res = send_write_message(stream, &msg);"
-    print "            if (res) { throw fake_archive_exc_t(); }"
+        print "            *msg << arg%d;" % i
     print "        }"
     print "    };"
     print

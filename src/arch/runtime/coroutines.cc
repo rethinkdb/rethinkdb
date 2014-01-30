@@ -1,27 +1,24 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "arch/runtime/coroutines.hpp"
 
 #include <stdio.h>
 #include <string.h>
 
+#include <functional>
 #ifndef NDEBUG
-#include <stack>   /* the data structure, not the run-time concept */
+#include <stack>
 #endif
 
-#include "errors.hpp"
-#include <boost/bind.hpp>
-
 #include "arch/runtime/context_switching.hpp"
-#include "arch/runtime/thread_pool.hpp"
+#include "arch/runtime/coro_profiler.hpp"
 #include "arch/runtime/runtime.hpp"
+#include "arch/runtime/thread_pool.hpp"
 #include "config/args.hpp"
 #include "do_on_thread.hpp"
-#include "thread_local.hpp"
-
 #include "perfmon/perfmon.hpp"
-#include "utils.hpp"
 #include "rethinkdb_backtrace.hpp"
-#include "arch/runtime/coro_profiler.hpp"
+#include "thread_local.hpp"
+#include "utils.hpp"
 
 size_t coro_stack_size = COROUTINE_STACK_SIZE; //Default, setable by command-line parameter
 
@@ -199,7 +196,7 @@ void coro_t::run() {
         coro->action_wrapper.reset();
 
         /* Return the context to the free-contexts list we took it from. */
-        do_on_thread(coro->home_thread(), boost::bind(coro_t::return_coro_to_free_list, coro));
+        do_on_thread(coro->home_thread(), std::bind(&coro_t::return_coro_to_free_list, coro));
         --pm_active_coroutines;
 
         if (TLS_get_cglobals()->prev_coro) {
@@ -211,7 +208,7 @@ void coro_t::run() {
 }
 
 #ifndef NDEBUG
-// This function parses out the type that a coroutine was created with (usually a boost::bind), by
+// This function parses out the type that a coroutine was created with (usually a std::bind), by
 //  parsing it out of the __PRETTY_FUNCTION__ string of a templated function.  This makes some
 //  assumptions about the format of that string, but if get_and_init_coro is changed, this may
 //  need to be updated.  The only reason we do this is so we don't have to enable RTTI to figure

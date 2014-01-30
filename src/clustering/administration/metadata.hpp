@@ -203,16 +203,19 @@ enum metadata_search_status_t {
 /* A helper class to search through metadata in various ways.  Can be
    constructed from a pointer to the internal map of the metadata,
    e.g. `metadata.databases.databases`.  Look in rdb_protocol/query_language.cc
-   for examples on how to use. */
-template<class T>
-class metadata_searcher_t {
+   for examples on how to use.
+   `generic_metadata_searcher_t` should not be directly used. Instead there
+   are two variants defined below:
+     `const_metadata_searcher_t` for const maps
+     and `metadata_searcher_t` for non-const maps. */
+template<class T, class metamap_t, class iterator_t>
+class generic_metadata_searcher_t {
 public:
-    typedef std::map<uuid_u, deletable_t<T> > metamap_t;
-    typedef typename metamap_t::iterator iterator;
+    typedef iterator_t iterator;
     iterator begin() {return map->begin();}
     iterator end() {return map->end();}
 
-    explicit metadata_searcher_t(metamap_t *_map): map(_map) { }
+    explicit generic_metadata_searcher_t(metamap_t *_map): map(_map) { }
 
     template<class callable_t>
     /* Find the next iterator >= [start] matching [predicate]. */
@@ -261,6 +264,28 @@ public:
     };
 private:
     metamap_t *map;
+};
+template<class T>
+class metadata_searcher_t :
+        public generic_metadata_searcher_t<T,
+            typename std::map<uuid_u, deletable_t<T> >,
+            typename std::map<uuid_u, deletable_t<T> >::iterator> {
+public:
+    typedef typename std::map<uuid_u, deletable_t<T> >::iterator iterator;
+    typedef typename std::map<uuid_u, deletable_t<T> > metamap_t;
+    explicit metadata_searcher_t(metamap_t *_map) :
+            generic_metadata_searcher_t<T, metamap_t, iterator>(_map) { }
+};
+template<class T>
+class const_metadata_searcher_t :
+        public generic_metadata_searcher_t<T,
+            const typename std::map<uuid_u, deletable_t<T> >,
+            typename std::map<uuid_u, deletable_t<T> >::const_iterator> {
+public:
+    typedef typename std::map<uuid_u, deletable_t<T> >::const_iterator iterator;
+    typedef const typename std::map<uuid_u, deletable_t<T> > metamap_t;
+    explicit const_metadata_searcher_t(metamap_t *_map) :
+            generic_metadata_searcher_t<T, metamap_t, iterator>(_map) { }
 };
 
 class namespace_predicate_t {

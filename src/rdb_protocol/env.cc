@@ -176,7 +176,8 @@ env_t::env_t(
     signal_t *_interruptor,
     uuid_u _this_machine,
     protob_t<Query> query)
-  : global_optargs(query),
+  : evals_since_yield(0),
+    global_optargs(query),
     extproc_pool(_extproc_pool),
     cluster_access(_ns_repo,
                    _namespaces_semilattice_metadata,
@@ -211,7 +212,8 @@ env_t::env_t(
     signal_t *_interruptor,
     uuid_u _this_machine,
     profile_bool_t _profile)
-  : global_optargs(protob_t<Query>()),
+  : evals_since_yield(0),
+    global_optargs(protob_t<Query>()),
     extproc_pool(_extproc_pool),
     cluster_access(_ns_repo,
                    _namespaces_semilattice_metadata,
@@ -228,7 +230,8 @@ env_t::env_t(
 }
 
 env_t::env_t(signal_t *_interruptor)
-  : extproc_pool(NULL),
+  : evals_since_yield(0),
+    extproc_pool(NULL),
     cluster_access(NULL,
                    clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t> > >(),
                    clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >(),
@@ -241,5 +244,12 @@ env_t::env_t(signal_t *_interruptor)
 { }
 
 env_t::~env_t() { }
+
+void env_t::maybe_yield() {
+    if (++evals_since_yield > EVALS_BEFORE_YIELD) {
+        coro_t::yield();
+        evals_since_yield = 0;
+    }
+}
 
 } // namespace ql

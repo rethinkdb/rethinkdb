@@ -71,39 +71,9 @@ void lba_disk_structure_t::add_entry(block_id_t block_id, repli_timestamp_t rece
         extents_in_superblock.push_back(last_extent);
         last_extent = NULL;
 
-        /* Since there is a new extent on the superblock, we need to rewrite the superblock. Make
-        sure that the superblock extent has enough room for a new superblock. */
+        /* Since there is a new extent on the superblock, we need to rewrite the superblock. */
 
-        size_t superblock_size = sizeof(lba_superblock_t) + sizeof(lba_superblock_entry_t) * extents_in_superblock.size();
-        rassert(superblock_size <= em->extent_size);
-
-        if (superblock_extent && superblock_extent->amount_filled + superblock_size > em->extent_size) {
-            superblock_extent->destroy(txn);
-            superblock_extent = NULL;
-        }
-
-        if (!superblock_extent) {
-            superblock_extent = new extent_t(em, file);
-        }
-
-        /* Prepare the new superblock. */
-
-        scoped_malloc_t<char> buffer(ceil_aligned(superblock_size, DEVICE_BLOCK_SIZE));
-        bzero(buffer.get(), ceil_aligned(superblock_size, DEVICE_BLOCK_SIZE));
-
-        lba_superblock_t *new_superblock = reinterpret_cast<lba_superblock_t *>(buffer.get());
-        memcpy(new_superblock->magic, lba_super_magic, LBA_SUPER_MAGIC_SIZE);
-        int i = 0;
-        for (lba_disk_extent_t *e = extents_in_superblock.head(); e; e = extents_in_superblock.next(e)) {
-            new_superblock->entries[i].offset = e->data->extent_ref.offset();
-            new_superblock->entries[i].lba_entries_count = e->count;
-            i++;
-        }
-
-        /* Write the new superblock */
-
-        superblock_offset = superblock_extent->extent_ref.offset() + superblock_extent->amount_filled;
-        superblock_extent->append(buffer.get(), ceil_aligned(superblock_size, DEVICE_BLOCK_SIZE), io_account);
+        write_superblock(io_account, txn);
     }
 
     if (!last_extent) {
@@ -113,6 +83,67 @@ void lba_disk_structure_t::add_entry(block_id_t block_id, repli_timestamp_t rece
     rassert(!last_extent->full());
 
     last_extent->add_entry(lba_entry_t::make(block_id, recency, offset, ser_block_size), io_account);
+}
+
+std::set<lba_disk_extent_t *> lba_disk_structure_t::get_inactive_extents() const {
+    std::set<lba_disk_extent_t *> result;
+    for (lba_disk_extent_t *e = extents_in_superblock.head();
+         e != NULL; e = extents_in_superblock.next(e)) {
+        result.insert(e);
+    }
+    return result;
+}
+
+void lba_disk_structure_t::destroy_extents(const std::set<lba_disk_extent_t *> &extents,
+                                           file_account_t *io_account,
+                                           extent_transaction_t *txn) {
+    for (auto e = extents.begin(); e != extents.end(); ++e) {
+        extents_in_superblock.remove(*e);
+        (*e)->destroy(txn);
+    }
+    write_superblock(io_account, txn);
+}
+
+void lba_disk_structure_t::write_superblock(file_account_t *io_account,
+                                            extent_transaction_t *txn) {
+
+    /* Make sure that the superblock extent has enough room for a new superblock. */
+
+    size_t superblock_size = sizeof(lba_superblock_t)
+        + sizeof(lba_superblock_entry_t) * extents_in_superblock.size();
+    rassert(superblock_size <= em->extent_size);
+
+    if (superblock_extent
+            && superblock_extent->amount_filled + superblock_size > em->extent_size) {
+        superblock_extent->destroy(txn);
+        superblock_extent = NULL;
+    }
+
+    if (!superblock_extent) {
+        superblock_extent = new extent_t(em, file);
+    }
+
+    /* Prepare the new superblock. */
+
+    scoped_malloc_t<char> buffer(ceil_aligned(superblock_size, DEVICE_BLOCK_SIZE));
+    bzero(buffer.get(), ceil_aligned(superblock_size, DEVICE_BLOCK_SIZE));
+
+    lba_superblock_t *new_superblock = reinterpret_cast<lba_superblock_t *>(buffer.get());
+    memcpy(new_superblock->magic, lba_super_magic, LBA_SUPER_MAGIC_SIZE);
+    int i = 0;
+    for (lba_disk_extent_t *e = extents_in_superblock.head();
+         e != NULL; e = extents_in_superblock.next(e)) {
+        new_superblock->entries[i].offset = e->data->extent_ref.offset();
+        new_superblock->entries[i].lba_entries_count = e->count;
+        i++;
+    }
+
+    /* Write the new superblock */
+
+    superblock_offset = superblock_extent->extent_ref.offset()
+        + superblock_extent->amount_filled;
+    superblock_extent->append(buffer.get(),
+            ceil_aligned(superblock_size, DEVICE_BLOCK_SIZE), io_account);
 }
 
 class lba_writer_t :
@@ -151,7 +182,8 @@ void lba_disk_structure_t::sync(file_account_t *io_account, sync_callback_t *cb)
     } else {
         if (last_extent) last_extent->sync(io_account, writer);
         if (superblock_extent) superblock_extent->sync(writer);
-        for (lba_disk_extent_t *e = extents_in_superblock.head(); e; e = extents_in_superblock.next(e)) {
+        for (lba_disk_extent_t *e = extents_in_superblock.head();
+             e != NULL; e = extents_in_superblock.next(e)) {
             e->sync(io_account, writer);
         }
     }
@@ -229,7 +261,8 @@ struct reader_t
     reader_t(lba_disk_structure_t *_ds, in_memory_index_t *_index, lba_disk_structure_t::read_callback_t *cb)
         : ds(_ds), index(_index), rcb(cb)
     {
-        for (lba_disk_extent_t *e = ds->extents_in_superblock.head(); e; e = ds->extents_in_superblock.next(e)) {
+        for (lba_disk_extent_t *e = ds->extents_in_superblock.head();
+             e != NULL; e = ds->extents_in_superblock.next(e)) {
             new extent_reader_t(this, e);
         }
         if (ds->last_extent) new extent_reader_t(this, ds->last_extent);

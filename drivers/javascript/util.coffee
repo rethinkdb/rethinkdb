@@ -110,7 +110,8 @@ mkErr = (ErrClass, response, root) ->
                 if frame.type is "POS"
                     parseInt frame.pos
                 else
-                    frame.opt
+                    # protobufjs returns Long object that we need to convert to number
+                    frame.pos.toInt()
         new ErrClass msg, root, bt
 
 module.exports.deconstructDatum = deconstructDatum

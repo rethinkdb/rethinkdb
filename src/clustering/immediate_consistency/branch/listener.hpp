@@ -45,11 +45,6 @@ There are four ways a `listener_t` can go wrong:
 template<class protocol_t>
 class listener_t {
 public:
-    /* If the number of writes the broadcaster has sent us minus the number of
-    responses it's gotten is greater than this, then it is not allowed to send
-    another write until it gets another response. */
-    static const int MAX_OUTSTANDING_WRITES_FROM_BROADCASTER = 1000;
-
     class backfiller_lost_exc_t : public std::exception {
     public:
         const char *what() const throw () {
@@ -250,10 +245,6 @@ private:
     below `write_queue_coro_pool` from within `perform_enqueued_write()`,
     because their destructors might have been called. */
     scoped_ptr_t<coro_pool_t<write_queue_entry_t> > write_queue_coro_pool_;
-
-    /* This asserts that the broadcaster doesn't send us too many concurrent
-    writes at the same time. */
-    semaphore_assertion_t enforce_max_outstanding_writes_from_broadcaster_;
 
     auto_drainer_t drainer_;
 

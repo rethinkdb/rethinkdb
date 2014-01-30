@@ -1,0 +1,42 @@
+{
+  "name": "packed-protobufjs",
+  "version": "1.1.4",
+  "dependencies": {
+    "protobufjs": {
+      "version": "1.1.4",
+      "from": "protobufjs@1.1.4",
+      "resolved": "https://registry.npmjs.org/protobufjs/-/protobufjs-1.1.4.tgz",
+      "dependencies": {
+        "bytebuffer": {
+          "version": "2.1.0",
+          "from": "bytebuffer@latest",
+          "resolved": "https://registry.npmjs.org/bytebuffer/-/bytebuffer-2.1.0.tgz",
+          "dependencies": {
+            "long": {
+              "version": "1.1.2",
+              "from": "long@latest",
+              "resolved": "https://registry.npmjs.org/long/-/long-1.1.2.tgz"
+            }
+          }
+        },
+        "ascli": {
+          "version": "0.3.0",
+          "from": "ascli@latest",
+          "resolved": "https://registry.npmjs.org/ascli/-/ascli-0.3.0.tgz",
+          "dependencies": {
+            "colour": {
+              "version": "0.7.1",
+              "from": "colour@latest",
+              "resolved": "https://registry.npmjs.org/colour/-/colour-0.7.1.tgz"
+            },
+            "optjs": {
+              "version": "3.2.1-boom",
+              "from": "optjs@latest",
+              "resolved": "https://registry.npmjs.org/optjs/-/optjs-3.2.1-boom.tgz"
+            }
+          }
+        }
+      }
+    }
+  }
+}

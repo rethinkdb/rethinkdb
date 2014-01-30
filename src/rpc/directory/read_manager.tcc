@@ -34,13 +34,15 @@ void directory_read_manager_t<metadata_t>::on_connect(peer_id_t peer) THROWS_NOT
 }
 
 template<class metadata_t>
-void directory_read_manager_t<metadata_t>::on_message(peer_id_t source_peer, string_read_stream_t *s) THROWS_NOTHING {
+void directory_read_manager_t<metadata_t>::on_message(peer_id_t source_peer,
+        read_stream_t *s) THROWS_ONLY(fake_archive_exc_t) {
+
     with_priority_t p(CORO_PRIORITY_DIRECTORY_CHANGES);
 
     uint8_t code = 0;
     {
         archive_result_t res = deserialize(s, &code);
-        guarantee_deserialization(res, "code");
+        if (res != ARCHIVE_SUCCESS) { throw fake_archive_exc_t(); }
     }
 
     switch (code) {
@@ -50,10 +52,9 @@ void directory_read_manager_t<metadata_t>::on_message(peer_id_t source_peer, str
             fifo_enforcer_state_t metadata_fifo_state;
             {
                 archive_result_t res = deserialize(s, initial_value.get());
-                guarantee_deserialization(res, "metadata");
+                if (res != ARCHIVE_SUCCESS) { throw fake_archive_exc_t(); }
                 res = deserialize(s, &metadata_fifo_state);
-                guarantee_deserialization(res, "metadata fifo state");
-                guarantee(!res);
+                if (res != ARCHIVE_SUCCESS) { throw fake_archive_exc_t(); }
             }
 
             /* Spawn a new coroutine because we might not be on the home thread
@@ -73,11 +74,9 @@ void directory_read_manager_t<metadata_t>::on_message(peer_id_t source_peer, str
             fifo_enforcer_write_token_t metadata_fifo_token;
             {
                 archive_result_t res = deserialize(s, new_value.get());
-                guarantee_deserialization(res, "metadata");
+                if (res != ARCHIVE_SUCCESS) { throw fake_archive_exc_t(); }
                 res = deserialize(s, &metadata_fifo_token);
-                guarantee_deserialization(res, "metadata fifo state");
-
-                // TODO Don't fail catastrophically just because there's bad data on the stream.
+                if (res != ARCHIVE_SUCCESS) { throw fake_archive_exc_t(); }
             }
 
             /* Spawn a new coroutine because we might not be on the home thread

@@ -368,6 +368,9 @@ class TcpConnection extends Connection
 
         @rawSocket.on 'close', => @open = false; @emit 'close', {noreplyWait: false}
 
+        # In case the raw socket timesout, we close it and re-emit the event for the user
+        @rawSocket.on 'timeout', => @open = false; @emit 'timeout'
+
     close: (varar 0, 2, (optsOrCallback, callback) ->
         if callback?
             opts = optsOrCallback

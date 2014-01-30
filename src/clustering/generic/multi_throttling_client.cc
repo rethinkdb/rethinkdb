@@ -23,6 +23,7 @@ multi_throttling_client_t<request_type, inner_client_business_card_type>::ticket
         break;
     case state_acquired_ticket:
         parent->free_tickets++;
+        parent->pump_free_tickets();
         break;
     case state_used_ticket:
         break;
@@ -39,6 +40,7 @@ multi_throttling_client_t<request_type, inner_client_business_card_type>::multi_
         signal_t *interruptor) :
     mailbox_manager(mm),
     free_tickets(0),
+    to_relinquish(0),
     give_tickets_mailbox(mailbox_manager,
         boost::bind(&multi_throttling_client_t::on_give_tickets, this, _1)),
     reclaim_tickets_mailbox(mailbox_manager,
@@ -110,23 +112,45 @@ boost::optional<boost::optional<registrar_business_card_t<typename multi_throttl
 
 template <class request_type, class inner_client_business_card_type>
 void multi_throttling_client_t<request_type, inner_client_business_card_type>::on_give_tickets(int count) {
-    while (count > 0 && !ticket_queue.empty()) {
+    free_tickets += count;
+    pump_free_tickets();
+}
+
+template <class request_type, class inner_client_business_card_type>
+void multi_throttling_client_t<request_type, inner_client_business_card_type>::pump_free_tickets() {
+    // Hand out tickets to the waiter
+    while (free_tickets > 0 && !ticket_queue.empty()) {
         ticket_acq_t *lucky_winner = ticket_queue.head();
         ticket_queue.remove(lucky_winner);
         lucky_winner->state = ticket_acq_t::state_acquired_ticket;
+        free_tickets--;
         lucky_winner->pulse();
-        count--;
     }
-    free_tickets += count;
+    // If we didn't need all tickets, see if we are still supposed to return some
+    // of them to the server.
+    try_to_relinquish_tickets();
 }
 
 template <class request_type, class inner_client_business_card_type>
 void multi_throttling_client_t<request_type, inner_client_business_card_type>::on_reclaim_tickets(int count) {
-    int to_relinquish = std::min(count, free_tickets);
-    if (to_relinquish > 0) {
-        free_tickets -= to_relinquish;
+    /* We must try out best to relinquish as many tickets as the server asked us
+       to. Otherwise the target tickets can drift increasingly far away
+       from the actual tickets we have.
+       To do this, we keep track of how many more tickets we are supposed to
+       relinquish and then return them to the server as soon as we have something left
+       to return. */
+    to_relinquish += count;
+    try_to_relinquish_tickets();
+}
+
+template <class request_type, class inner_client_business_card_type>
+void multi_throttling_client_t<request_type, inner_client_business_card_type>::try_to_relinquish_tickets() {
+    int can_relinquish = std::min(to_relinquish, free_tickets);
+    if (can_relinquish > 0) {
+        to_relinquish -= can_relinquish;
+        free_tickets -= can_relinquish;
         coro_t::spawn_sometime(boost::bind(&multi_throttling_client_t<request_type, inner_client_business_card_type>::relinquish_tickets_blocking, this,
-                                           to_relinquish,
+                                           can_relinquish,
                                            auto_drainer_t::lock_t(&drainer)));
     }
 }

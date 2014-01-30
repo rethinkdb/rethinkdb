@@ -21,3 +21,6 @@ tests:
  
   - rb: r.db('test').table('1789').coerce_to('ARRAY').count()
     ot: (1)
+
+  # clean up
+  - cd: r.db('test').table_drop('1789')

@@ -69,7 +69,7 @@ public:
         return coro;
     }
 
-    // Use coro_t::spawn_*(boost::bind(...)) for spawning with parameters.
+    // Use coro_t::spawn_*(std::bind(...)) for spawning with parameters.
 
     /* Pauses the current coroutine until it is notified */
     static void wait();

@@ -1083,7 +1083,7 @@ void rdb_update_single_sindex(
 
     ql::map_wire_func_t mapping;
     sindex_multi_bool_t multi = sindex_multi_bool_t::MULTI;
-    vector_read_stream_t read_stream(&sindex->sindex.opaque_definition);
+    inplace_vector_read_stream_t read_stream(&sindex->sindex.opaque_definition);
     archive_result_t success = deserialize(&read_stream, &mapping);
     guarantee_deserialization(success, "sindex deserialize");
     success = deserialize(&read_stream, &multi);
