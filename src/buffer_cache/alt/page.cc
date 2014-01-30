@@ -46,6 +46,7 @@ page_cache_t::~page_cache_t() {
 void page_cache_t::do_flush_and_destroy_txn(auto_drainer_t::lock_t,
                                             page_txn_t *txn,
                                             std::function<void()> on_flush_complete) {
+    txn->flush_complete_cond_.wait();
     delete txn;
     on_flush_complete();
 }
@@ -56,6 +57,9 @@ void page_cache_t::flush_and_destroy_txn(auto_drainer_t::lock_t lock,
     rassert(txn->live_acqs_.empty(),
             "current_page_acq_t lifespan exceeds its page_txn_t's");
     guarantee(!txn->began_waiting_for_flush_);
+
+    // RSI: Should announce... be in page_txn_t?
+    txn->announce_waiting_for_flush_if_we_should();
 
     // RSI: Obviously, have a better implementation than this.
     coro_t::spawn_later_ordered(std::bind(do_flush_and_destroy_txn,
@@ -1011,22 +1015,7 @@ void page_txn_t::remove_subseqer(page_txn_t *subseqer) {
 }
 
 
-page_txn_t::~page_txn_t() {
-    rassert(live_acqs_.empty(), "current_page_acq_t lifespan exceeds its page_txn_t's");
-
-    // RSI: Remove this assertion when we support manually starting txn flushes
-    // sooner.
-    rassert(!began_waiting_for_flush_);
-
-    // RSI: We need a way to more quickly destroy transactions that have not made any
-    // changes.
-
-    if (!began_waiting_for_flush_) {
-        announce_waiting_for_flush_if_we_should();
-    }
-
-    flush_complete_cond_.wait();
-}
+page_txn_t::~page_txn_t() { }
 
 void page_txn_t::set_account(alt_cache_account_t *cache_account) {
     // There's nothing intrinsically wrong with trying to set an already-set cache
