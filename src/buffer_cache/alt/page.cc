@@ -43,9 +43,9 @@ page_cache_t::~page_cache_t() {
     }
 }
 
-void do_flush_and_destroy_txn(auto_drainer_t::lock_t,
-                              page_txn_t *txn,
-                              std::function<void()> on_flush_complete) {
+void page_cache_t::do_flush_and_destroy_txn(auto_drainer_t::lock_t,
+                                            page_txn_t *txn,
+                                            std::function<void()> on_flush_complete) {
     delete txn;
     on_flush_complete();
 }
@@ -53,6 +53,10 @@ void do_flush_and_destroy_txn(auto_drainer_t::lock_t,
 void page_cache_t::flush_and_destroy_txn(auto_drainer_t::lock_t lock,
                                          scoped_ptr_t<page_txn_t> txn,
                                          std::function<void()> on_flush_complete) {
+    rassert(txn->live_acqs_.empty(),
+            "current_page_acq_t lifespan exceeds its page_txn_t's");
+    guarantee(!txn->began_waiting_for_flush_);
+
     // RSI: Obviously, have a better implementation than this.
     coro_t::spawn_later_ordered(std::bind(do_flush_and_destroy_txn,
                                           lock,

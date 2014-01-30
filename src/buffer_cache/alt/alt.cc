@@ -166,7 +166,9 @@ alt_inner_txn_t::alt_inner_txn_t(cache_t *cache,
                                preceding_txn == NULL ? NULL
                                : preceding_txn->page_txn_.get())) { }
 
-alt_inner_txn_t::~alt_inner_txn_t() { }
+alt_inner_txn_t::~alt_inner_txn_t() {
+    rassert(!page_txn_.has());
+}
 
 alt_cache_account_t::alt_cache_account_t(threadnum_t thread, file_account_t *io_account)
     : thread_(thread), io_account_(io_account) { }

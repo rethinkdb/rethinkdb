@@ -528,6 +528,10 @@ public:
     void create_cache_account(int priority, scoped_ptr_t<alt_cache_account_t> *out);
 
 private:
+    static void do_flush_and_destroy_txn(auto_drainer_t::lock_t lock,
+                                         page_txn_t *txn,
+                                         std::function<void()> on_flush_complete);
+
     current_page_t *internal_page_for_new_chosen(block_id_t block_id);
 
     friend class page_t;
@@ -704,11 +708,15 @@ public:
                // Unused for read transactions, pass repli_timestamp_t::invalid.
                repli_timestamp_t txn_recency,
                page_txn_t *preceding_txn = NULL);
+
+    // KSI: This is only to be called by the page cache -- should txn_t use a
+    // scoped_ptr_t?
     ~page_txn_t();
 
     page_cache_t *page_cache() const { return page_cache_; }
 
     void set_account(alt_cache_account_t *cache_account);
+
 private:
     // page cache has access to all of this type's innards, including fields.
     friend class page_cache_t;
