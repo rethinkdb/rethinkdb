@@ -14,8 +14,8 @@ public:
         : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
-        std::string str = arg(env, 0)->as_str();
-        RE2 regexp(arg(env, 1)->as_str());
+        const wire_string_t &str = arg(env, 0)->as_str();
+        RE2 regexp(arg(env, 1)->as_str().c_str());
         if (!regexp.ok()) {
             rfail(base_exc_t::GENERIC,
                   "Error in regexp `%s` (portion `%s`): %s",
@@ -26,7 +26,7 @@ private:
         // We add 1 to account for $0.
         int ngroups = regexp.NumberOfCapturingGroups() + 1;
         scoped_array_t<re2::StringPiece> groups(ngroups);
-        if (regexp.Match(str, 0, str.size(), RE2::UNANCHORED, groups.data(), ngroups)) {
+        if (regexp.Match(str.c_str(), 0, str.size(), RE2::UNANCHORED, groups.data(), ngroups)) {
             datum_ptr_t match(datum_t::R_OBJECT);
             // We use `b` to store whether or not we got a conflict when writing
             // to an object.  This should never happen here because we aren't

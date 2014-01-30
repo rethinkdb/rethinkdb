@@ -144,7 +144,7 @@ private:
         }
         int start_type = merge_types(start_supertype, start_subtype);
 
-        std::string end_type_name = arg(env, 1)->as_str();
+        std::string end_type_name = arg(env, 1)->as_str().to_std();
         int end_type = get_type(end_type_name, this);
 
         // Identity

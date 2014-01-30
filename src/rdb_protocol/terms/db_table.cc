@@ -6,6 +6,7 @@
 
 #include "clustering/administration/main/ports.hpp"
 #include "clustering/administration/suggester.hpp"
+#include "containers/wire_string.hpp"
 #include "rdb_protocol/meta_utils.hpp"
 #include "rdb_protocol/op.hpp"
 #include "rpc/directory/read_manager.hpp"
@@ -18,7 +19,7 @@ durability_requirement_t parse_durability_optarg(counted_t<val_t> arg,
 name_string_t get_name(counted_t<val_t> val, const term_t *caller,
         const char *type_str) {
     r_sanity_check(val.has());
-    std::string raw_name = val->as_str();
+    const wire_string_t &raw_name = val->as_str();
     name_string_t name;
     bool assignment_successful = name.assign_value(raw_name);
     rcheck_target(caller, base_exc_t::GENERIC, assignment_successful,
@@ -195,7 +196,7 @@ private:
 
         std::string primary_key = "id";
         if (counted_t<val_t> v = optarg(env, "primary_key")) {
-            primary_key = v->as_str();
+            primary_key = v->as_str().to_std();
         }
 
         int64_t cache_size = 1073741824;
@@ -461,11 +462,11 @@ private:
             counted_t<val_t> dbv = optarg(env, "db");
             r_sanity_check(dbv.has());
             db = dbv->as_db();
-            name = arg(env, 0)->as_str();
+            name = arg(env, 0)->as_str().to_std();
         } else {
             r_sanity_check(num_args() == 2);
             db = arg(env, 0)->as_db();
-            name = arg(env, 1)->as_str();
+            name = arg(env, 1)->as_str().to_std();
         }
         return new_val(make_counted<table_t>(
                            env->env, db, name, use_outdated, backtrace()));
@@ -495,12 +496,13 @@ private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         counted_t<table_t> table = arg(env, 0)->as_table();
         counted_t<val_t> index = optarg(env, "index");
-        if (index && index->as_str() != table->get_pkey()) {
+        std::string index_str = index ? index->as_str().to_std() : "";
+        if (index && index_str != table->get_pkey()) {
             std::vector<counted_t<datum_stream_t> > streams;
             for (size_t i = 1; i < num_args(); ++i) {
                 counted_t<const datum_t> key = arg(env, i)->as_datum();
                 counted_t<datum_stream_t> seq =
-                    table->get_all(env->env, key, index->as_str(), backtrace());
+                    table->get_all(env->env, key, index_str, backtrace());
                 streams.push_back(seq);
             }
             counted_t<datum_stream_t> stream

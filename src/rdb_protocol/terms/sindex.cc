@@ -109,7 +109,7 @@ public:
         counted_t<table_t> table = arg(env, 0)->as_table();
         std::set<std::string> sindexes;
         for (size_t i = 1; i < num_args(); ++i) {
-            sindexes.insert(arg(env, i)->as_str());
+            sindexes.insert(arg(env, i)->as_str().to_std());
         }
         return new_val(table->sindex_status(env->env, sindexes));
     }
@@ -138,7 +138,7 @@ public:
         counted_t<table_t> table = arg(env, 0)->as_table();
         std::set<std::string> sindexes;
         for (size_t i = 1; i < num_args(); ++i) {
-            sindexes.insert(arg(env, i)->as_str());
+            sindexes.insert(arg(env, i)->as_str().to_std());
         }
         for (;;) {
             counted_t<const datum_t> statuses =

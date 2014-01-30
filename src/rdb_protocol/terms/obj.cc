@@ -39,7 +39,7 @@ private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         datum_ptr_t obj(datum_t::R_OBJECT);
         for (size_t i = 0; i < num_args(); i+=2){
-            std::string key = arg(env, i)->as_str();
+            std::string key = arg(env, i)->as_str().to_std();
             counted_t<const datum_t> keyval = arg(env, i+1)->as_datum();
             bool b = obj.add(key, keyval);
             rcheck(!b, base_exc_t::GENERIC,
