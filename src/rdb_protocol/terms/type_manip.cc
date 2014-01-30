@@ -182,14 +182,14 @@ private:
 
                 // STR -> NUM
                 if (start_type == R_STR_TYPE && end_type == R_NUM_TYPE) {
-                    const wire_string_t *s = d->as_str();
+                    const wire_string_t &s = d->as_str();
                     double dbl;
                     char end; // Used to ensure that there's no trailing garbage.
-                    if (sscanf(s->c_str(), "%lf%c", &dbl, &end) == 1) {
+                    if (sscanf(s.c_str(), "%lf%c", &dbl, &end) == 1) {
                         return new_val(make_counted<const datum_t>(dbl));
                     } else {
                         rfail(base_exc_t::GENERIC, "Could not coerce `%s` to NUMBER.",
-                              s->c_str());
+                              s.c_str());
                     }
                 }
             }
@@ -231,7 +231,7 @@ private:
                 {
                     profile::sampler_t sampler("Coercing to object.", env->env->trace);
                     while (auto pair = ds->next(env->env, batchspec)) {
-                        std::string key = static_cast<std::string>(*pair->get(0)->as_str());
+                        std::string key = pair->get(0)->as_str().to_std();
                         counted_t<const datum_t> keyval = pair->get(1);
                         bool b = obj.add(key, keyval);
                         rcheck(!b, base_exc_t::GENERIC,

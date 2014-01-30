@@ -25,7 +25,7 @@ pathspec_t::pathspec_t(counted_t<const datum_t> datum, term_t *_creator)
 {
     if (datum->get_type() == datum_t::R_STR) {
         type = STR;
-        str = new std::string(static_cast<std::string>(*datum->as_str()));
+        str = new std::string(datum->as_str().to_std());
     } else if (datum->get_type() == datum_t::R_ARRAY) {
         type = VEC;
         vec = new std::vector<pathspec_t>;

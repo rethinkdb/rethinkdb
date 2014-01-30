@@ -399,7 +399,7 @@ time_t time_to_boost(counted_t<const datum_t> d) {
 
     if (counted_t<const datum_t> tz = d->get(timezone_key, NOTHROW)) {
         boost::local_time::time_zone_ptr zone(
-            new boost::local_time::posix_time_zone(sanitize::tz(static_cast<std::string>(*tz->as_str()))));
+            new boost::local_time::posix_time_zone(sanitize::tz(tz->as_str().to_std())));
         return time_t(t, zone);
     } else {
         return time_t(t, utc);
@@ -481,7 +481,7 @@ void sanitize_time(datum_t *time) {
             }
         } else if (it->first == timezone_key) {
             if (it->second->get_type() == datum_t::R_STR) {
-                const std::string raw_tz = static_cast<std::string>(*it->second->as_str());
+                const std::string raw_tz = it->second->as_str().to_std();
                 std::string tz;
                 if (tz_valid(raw_tz, &tz)) {
                     has_timezone = true;
@@ -538,7 +538,7 @@ counted_t<const datum_t> time_in_tz(counted_t<const datum_t> t,
                                     counted_t<const datum_t> tz) {
     r_sanity_check(t->is_ptype(time_string));
     datum_ptr_t t2(t->as_object());
-    std::string raw_new_tzs = static_cast<std::string>(*tz->as_str());
+    std::string raw_new_tzs = tz->as_str().to_std();
     std::string new_tzs = sanitize::tz(raw_new_tzs);
     if (raw_new_tzs == new_tzs) {
         UNUSED bool b = t2.add(timezone_key, tz, CLOBBER);

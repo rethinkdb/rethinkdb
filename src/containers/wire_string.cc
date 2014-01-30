@@ -37,9 +37,6 @@ char *wire_string_t::data() {
 const char *wire_string_t::data() const {
     return data_;
 }
-size_t wire_string_t::length() const {
-    return size_;
-}
 size_t wire_string_t::size() const {
     return size_;
 }
@@ -85,7 +82,7 @@ bool wire_string_t::operator>=(const wire_string_t &other) const {
     return compare(other) >= 0;
 }
 
-wire_string_t::operator std::string() const {
+std::string wire_string_t::to_std() const {
     return std::string(data_, size_);
 }
 
@@ -97,13 +94,13 @@ wire_string_t *wire_string_t::operator+(const wire_string_t &other) const {
 }
 
 
-size_t serialized_size(const wire_string_t *s) {
-    return varint_uint64_serialized_size(s->length()) + s->length();
+size_t serialized_size(const wire_string_t &s) {
+    return varint_uint64_serialized_size(s.size()) + s.size();
 }
 
-write_message_t &operator<<(write_message_t &msg, const wire_string_t *s) {
-    serialize_varint_uint64(&msg, static_cast<uint64_t>(s->length()));
-    msg.append(reinterpret_cast<const void *>(s->data()), s->length());
+write_message_t &operator<<(write_message_t &msg, const wire_string_t &s) {
+    serialize_varint_uint64(&msg, static_cast<uint64_t>(s.size()));
+    msg.append(reinterpret_cast<const void *>(s.data()), s.size());
     return msg;
 }
 

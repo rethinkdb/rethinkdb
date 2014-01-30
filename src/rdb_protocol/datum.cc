@@ -168,21 +168,15 @@ void datum_t::init_json(cJSON *json) {
 }
 
 void datum_t::check_str_validity(const wire_string_t *str) {
-    bool contains_invalid = false;
-    size_t null_offset = 0;
-    for (size_t i = 0; i < str->length(); ++i) {
+    for (size_t i = 0; i < str->size(); ++i) {
         if (str->data()[i] == '\0') {
-            contains_invalid = true;
-            null_offset = i;
-            break;
+            rfail(base_exc_t::GENERIC,
+                  // We truncate because lots of other places can call `c_str` on the
+                  // error message.
+                  "String `%.20s` (truncated) contains NULL byte at offset %zu.",
+                  str->c_str(), i);
         }
     }
-    rcheck(!contains_invalid,
-           base_exc_t::GENERIC,
-           // We truncate because lots of other places can call `c_str` on the
-           // error message.
-           strprintf("String `%.20s` (truncated) contains NULL byte at offset %zu.",
-                     str->c_str(), null_offset));
 }
 
 void datum_t::check_str_validity(const std::string &str) {
@@ -223,7 +217,7 @@ std::string datum_t::get_reql_type() const {
                      maybe_reql_type->second->trunc_print().c_str(),
                      maybe_reql_type->second->get_type_name().c_str(),
                      trunc_print().c_str()));
-    return static_cast<std::string>(*maybe_reql_type->second->as_str());
+    return maybe_reql_type->second->as_str().to_std();
 }
 
 std::string raw_type_name(datum_t::type_t type) {
@@ -302,7 +296,7 @@ void datum_t::num_to_str_key(std::string *str_out) const {
 void datum_t::str_to_str_key(std::string *str_out) const {
     r_sanity_check(type == R_STR);
     str_out->append("S");
-    str_out->append(static_cast<std::string>(*as_str()));
+    str_out->append(as_str().to_std());
 }
 
 void datum_t::bool_to_str_key(std::string *str_out) const {
@@ -644,9 +638,9 @@ int64_t datum_t::as_int() const {
     return checked_convert_to_int(&target, as_num());
 }
 
-const wire_string_t *datum_t::as_str() const {
+const wire_string_t &datum_t::as_str() const {
     check_type(R_STR);
-    return r_str;
+    return *r_str;
 }
 
 const std::vector<counted_t<const datum_t> > &datum_t::as_array() const {
@@ -744,7 +738,7 @@ cJSON *datum_t::as_json_raw() const {
     case R_NULL: return cJSON_CreateNull();
     case R_BOOL: return cJSON_CreateBool(as_bool());
     case R_NUM: return cJSON_CreateNumber(as_num());
-    case R_STR: return cJSON_CreateString(as_str()->c_str());
+    case R_STR: return cJSON_CreateString(as_str().c_str());
     case R_ARRAY: {
         scoped_cJSON_t arr(cJSON_CreateArray());
         for (size_t i = 0; i < as_array().size(); ++i) {
@@ -875,7 +869,7 @@ int datum_t::cmp(const datum_t &rhs) const {
     case R_NULL: return 0;
     case R_BOOL: return derived_cmp(as_bool(), rhs.as_bool());
     case R_NUM: return derived_cmp(as_num(), rhs.as_num());
-    case R_STR: return as_str()->compare(*(rhs.as_str()));
+    case R_STR: return as_str().compare(rhs.as_str());
     case R_ARRAY: {
         const std::vector<counted_t<const datum_t> >
             &arr = as_array(),
@@ -962,7 +956,7 @@ void datum_t::init_from_pb(const Datum *d) {
                strprintf("Illegal non-finite number `" DBLPRI "`.", r_num));
     } break;
     case Datum::R_STR: {
-        init_str(d->r_str().length(), d->r_str().data());
+        init_str(d->r_str().size(), d->r_str().data());
         check_str_validity(r_str);
     } break;
     case Datum::R_JSON: {
@@ -1033,7 +1027,7 @@ void datum_t::write_to_protobuf(Datum *d, use_json_t use_json) const {
         } break;
         case R_STR: {
             d->set_type(Datum::R_STR);
-            d->set_r_str(r_str->data(), r_str->length());
+            d->set_r_str(r_str->data(), r_str->size());
         } break;
         case R_ARRAY: {
             d->set_type(Datum::R_ARRAY);
@@ -1155,7 +1149,7 @@ write_message_t &operator<<(write_message_t &wm, const counted_t<const datum_t> 
     } break;
     case datum_t::R_STR: {
         wm << datum_serialized_type_t::R_STR;
-        const wire_string_t *value = datum->as_str();
+        const wire_string_t &value = datum->as_str();
         wm << value;
     } break;
     case datum_t::UNINITIALIZED:  // fall through

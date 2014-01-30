@@ -111,7 +111,7 @@ public:
     bool as_bool() const;
     double as_num() const;
     int64_t as_int() const;
-    const wire_string_t *as_str() const;
+    const wire_string_t &as_str() const;
 
     // Use of `size` and `get` is preferred to `as_array` when possible.
     const std::vector<counted_t<const datum_t> > &as_array() const;

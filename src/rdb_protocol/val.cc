@@ -610,7 +610,7 @@ const std::string val_t::as_str() {
     try {
         counted_t<const datum_t> d = as_datum();
         r_sanity_check(d.has());
-        return static_cast<std::string>(*d->as_str());
+        return d->as_str().to_std();
     } catch (const datum_exc_t &e) {
         rfail(e.get_type(), "%s", e.what());
     }
