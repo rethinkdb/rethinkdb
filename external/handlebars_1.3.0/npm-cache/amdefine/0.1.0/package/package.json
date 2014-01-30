@@ -1,0 +1,25 @@
+{
+    "name": "amdefine",
+    "description": "Provide AMD's define() API for declaring modules in the AMD format",
+    "version": "0.1.0",
+    "homepage": "http://github.com/jrburke/amdefine",
+    "author": "James Burke <jrburke@gmail.com> (http://github.com/jrburke)",
+    "licenses": [
+        {
+            "type": "BSD",
+            "url": "https://github.com/jrburke/amdefine/blob/master/LICENSE"
+        },
+        {
+            "type": "MIT",
+            "url": "https://github.com/jrburke/amdefine/blob/master/LICENSE"
+        }
+    ],
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/jrburke/amdefine.git"
+    },
+    "main": "./amdefine.js",
+    "engines": {
+        "node": ">=0.4.2"
+    }
+}
