@@ -1015,7 +1015,10 @@ void page_txn_t::remove_subseqer(page_txn_t *subseqer) {
 }
 
 
-page_txn_t::~page_txn_t() { }
+page_txn_t::~page_txn_t() {
+    guarantee(preceders_.empty());
+    guarantee(subseqers_.empty());
+}
 
 void page_txn_t::set_account(alt_cache_account_t *cache_account) {
     // There's nothing intrinsically wrong with trying to set an already-set cache
@@ -1189,9 +1192,12 @@ void page_cache_t::remove_txn_set_from_graph(page_cache_t *page_cache,
                 }
             }
         }
+        txn->subseqers_.clear();
+
         for (auto jt = txn->preceders_.begin(); jt != txn->preceders_.end(); ++jt) {
             (*jt)->remove_subseqer(txn);
         }
+        txn->preceders_.clear();
 
         // RSI: Maybe we could remove pages_modified_last_ earlier?  Like when we
         // begin the index write? (but that's the wrong thread) Or earlier?
