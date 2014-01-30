@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "containers/counted.hpp"
+#include "containers/wire_string.hpp"
 #include "rdb_protocol/datum_stream.hpp"
 #include "rdb_protocol/ql2.pb.h"
 
@@ -189,7 +190,7 @@ public:
         return t;
     }
     int64_t as_int();
-    const std::string &as_str();
+    const wire_string_t &as_str();
 
     std::string print() const;
     std::string trunc_print() const;
