@@ -383,12 +383,24 @@ module 'NamespaceView', ->
                 id: universe_datacenter.get('id')
                 name: universe_datacenter.get('name')
 
+            ordered_databases = databases.map (d) ->
+                id: d.get('id')
+                name: d.get('name')
+
+            ordered_databases.sort (a, b) ->
+                if b.name < a.name
+                    return 1
+                else if b.name > a.name
+                    return -1
+                return 0
+
+
             super
                 modal_title: 'Add table'
                 btn_primary_text: 'Add'
                 datacenters: ordered_datacenters
                 all_datacenters: datacenters.length is ordered_datacenters.length
-                databases: _.map(databases.models, (database) -> database.toJSON())
+                databases: ordered_databases
 
             @check_if_can_create_table()
             @.$('.show_advanced_settings-link').click @show_advanced_settings
