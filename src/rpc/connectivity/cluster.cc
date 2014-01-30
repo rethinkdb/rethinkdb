@@ -412,8 +412,8 @@ static bool deserialize_compatible_string(tcp_conn_stream_t *conn,
                                           std::string* str_out,
                                           const char *peer) {
     uint64_t raw_size;
-    int64_t res = deserialize(conn, &raw_size);
-    if (res != 0) {
+    archive_result_t res = deserialize(conn, &raw_size);
+    if (res != ARCHIVE_SUCCESS) {
         logWRN("Network error while receiving clustering header from %s, closing connection", peer);
         return false;
     }
