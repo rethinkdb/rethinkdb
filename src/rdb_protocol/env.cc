@@ -196,6 +196,60 @@ env_t::env_t(
     }
 }
 
+env_t::env_t(rdb_protocol_t::contex_t *ctx, signal_t *interruptor)
+    : global_optargs(protob_t<Query>()),
+      extproc_pool(ctx ? ctx->extproc_pool : NULL),
+      cluster_access(
+          ctx ? ctx->ns_repo : NULL,
+          ctx ? ctx->cross_thread_namespace_watchables[get_thread_id().threadnum].get()
+                ->get_watchable(),
+              : clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t> > >(),
+          ctx ? ctx->cross_thread_database_watchables[get_thread_id().threadnum].get()
+                ->get_watchable(),
+              : clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >(),
+          ctx ? ctx->cluster_metadata,
+              : boost::shared_ptr<
+                    semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >(),
+          NULL,
+          ctx ? ctx->machine_id : uuid_u()),
+      interruptor(_interruptor),
+      eval_callback(NULL) { }
+
+env_t::env_t(
+    extproc_pool_t *_extproc_pool,
+    base_namespace_repo_t<rdb_protocol_t> *_ns_repo,
+
+    clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t> > >
+    _namespaces_semilattice_metadata,
+
+    clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >
+    _databases_semilattice_metadata,
+    boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
+    _semilattice_metadata,
+    directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
+    signal_t *_interruptor,
+    uuid_u _this_machine,
+    protob_t<Query> query)
+  : global_optargs(query),
+    extproc_pool(_extproc_pool),
+    cluster_access(_ns_repo,
+                   _namespaces_semilattice_metadata,
+                   _databases_semilattice_metadata,
+                   _semilattice_metadata,
+                   _directory_read_manager,
+                   _this_machine),
+    interruptor(_interruptor),
+    eval_callback(NULL)
+{
+    if (query.has()) {
+        counted_t<const datum_t> profile_arg = static_optarg("profile", query);
+        if (profile_arg.has() && profile_arg->get_type() == datum_t::type_t::R_BOOL &&
+            profile_arg->as_bool()) {
+            trace.init(new profile::trace_t());
+        }
+    }
+}
+
 env_t::env_t(
     extproc_pool_t *_extproc_pool,
     base_namespace_repo_t<rdb_protocol_t> *_ns_repo,
@@ -226,19 +280,6 @@ env_t::env_t(
         trace.init(new profile::trace_t());
     }
 }
-
-env_t::env_t(signal_t *_interruptor)
-  : extproc_pool(NULL),
-    cluster_access(NULL,
-                   clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t> > >(),
-                   clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >(),
-                   boost::shared_ptr<
-                       semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >(),
-                   NULL,
-                   uuid_u()),
-    interruptor(_interruptor),
-    eval_callback(NULL)
-{ }
 
 env_t::~env_t() { }
 

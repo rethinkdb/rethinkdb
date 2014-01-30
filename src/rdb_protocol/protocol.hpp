@@ -291,21 +291,15 @@ struct rdb_protocol_t {
             ql::wire_datum_map_t, // gmr
             stream_t // no terminal
             > res_t;
-        typedef std::map<counted_t<const ql::datum_t>, res_t> grouped_res_t;
-        typedef boost::variant<
-            ql::exc_t,
-            res_t,
-            grouped_res_t
-            > result_t;
+        typedef std::map<counted_t<const ql::datum_t>, res_t> res_groups_t;
+        typedef boost::variant<ql::exc_t, res_groups_t> result_t;
 
         key_range_t key_range;
         result_t result;
         bool truncated;
         store_key_t last_considered_key;
 
-        // Code seems to depend on a default-initialized rget_read_response_t
-        // having a `stream_t` in this variant.  TODO: wtf?
-        rget_read_response_t() : result(stream_t()), truncated(false) { }
+        rget_read_response_t() : result(res_groups_t()), truncated(false) { }
         rget_read_response_t(
             const key_range_t &_key_range, const result_t _result,
             bool _truncated, const store_key_t &_last_considered_key)

@@ -609,63 +609,55 @@ public:
                             rdb_protocol_t::context_t *ctx,
                             signal_t *interruptor)
         : responses(_responses), count(_count), response_out(_response_out),
-          ql_env(ctx->extproc_pool,
-                 ctx->ns_repo,
-                 ctx->cross_thread_namespace_watchables[get_thread_id().threadnum].get()
-                     ->get_watchable(),
-                 ctx->cross_thread_database_watchables[get_thread_id().threadnum].get()
-                     ->get_watchable(),
-                 ctx->cluster_metadata,
-                 NULL,
-                 interruptor,
-                 ctx->machine_id,
-                 ql::protob_t<Query>())
-    { }
+          env(ctx, interruptor) { }
 
-    rdb_r_unshard_visitor_t(const read_response_t *_responses,
-                            size_t _count,
-                            read_response_t *_response_out,
-                            signal_t *interruptor)
-        : responses(_responses), count(_count), response_out(_response_out),
-          ql_env(interruptor)
-    { }
+    void operator()(const point_read_t &);
 
-    void operator()(const point_read_t &) {
-        guarantee(count == 1);
-        guarantee(NULL != boost::get<point_read_response_t>(&responses[0].response));
-        *response_out = responses[0];
-    }
+    void combine(const std::vector<res_t *> &results,
+                 rget_read_response_t *out, res_t *res_out);
+    void operator()(const rget_read_t &rg);
 
-    void operator()(const rget_read_t &rg) {
-        response_out->response = rget_read_response_t();
-        rget_read_response_t *rg_response
-            = boost::get<rget_read_response_t>(&response_out->response);
-        rg_response->truncated = false;
-        rg_response->key_range = read_t(rg, profile_bool_t::DONT_PROFILE).get_region().inner;
-        rg_response->last_considered_key =
-            read_t(rg, profile_bool_t::DONT_PROFILE).get_region().inner.left;
+private:
+    const read_response_t *responses;
+    size_t count;
+    read_response_t *response_out;
+    ql::env_t env;
+};
 
-        /* First check to see if any of the responses we're unsharding threw. */
-        for (size_t i = 0; i < count; ++i) {
-            // TODO: we're ignoring the limit when recombining.
-            auto rr = boost::get<rget_read_response_t>(&responses[i].response);
-            guarantee(rr != NULL);
+void rdb_r_unshard_visitor_t::operator()(const point_read_t &) {
+    guarantee(count == 1);
+    guarantee(NULL != boost::get<point_read_response_t>(&responses[0].response));
+    *response_out = responses[0];
+}
 
-            if (auto e = boost::get<ql::exc_t>(&rr->result)) {
-                rg_response->result = *e;
-                return;
-            } else if (auto e = boost::get<ql::datum_exc_t>(&rr->result)) {
-                rg_response->result = *e;
-                return;
-            }
-        }
+typedef rget_read_response_t::res_t res_t;
+typedef rget_read_response_t::grouped_res_t grouped_res_t;
+void rdb_r_unshard_visitor_t::operator()(const rget_read_t &rg) {
+    response_out->response = rget_read_response_t();
+    auto out = boost::get<rget_read_response_t>(&response_out->response);
+    out->truncated = false;
+    out->key_range = read_t(rg, profile_bool_t::DONT_PROFILE).get_region().inner;
+    out->last_considered_key = out->key_range.left;
 
-        if (!rg.terminal) {
-            unshard_range_get(rg);
+    // RSI: get truncation, last considered key.
+
+    std::vector<res_groups_t *> rgs;
+    rgs.reserve(count);
+    for (size_t i = 0; i < count; ++i) {
+        if (auto e = boost::get<ql::exc_t>(&responses[i].response)) {
+            out->result = e;
+            return;
+        } else if (auto rg = boost::get<res_groups_t>(&responses[i].response)) {
+            rgs.push_back(rg);
         } else {
-            unshard_reduce(rg);
+            unreachable();
         }
     }
+    scoped_ptr_t<accumulator_t> acc(
+        rg.terminal ? make_terminal(env, *rg.terminal) : make_append());
+    acc->unshard(rgs);
+    acc->finish(out);
+}
 
     void operator()(const distribution_read_t &dg) {
         // TODO: do this without copying so much and/or without dynamic memory

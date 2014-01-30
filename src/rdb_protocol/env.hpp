@@ -83,7 +83,7 @@ public:
 class env_t : public home_thread_mixin_t {
 public:
     typedef namespaces_semilattice_metadata_t<rdb_protocol_t> ns_metadata_t;
-    // This is copied basically verbatim from old code.
+
     env_t(
         extproc_pool_t *_extproc_pool,
         base_namespace_repo_t<rdb_protocol_t> *_ns_repo,
@@ -116,7 +116,7 @@ public:
         uuid_u _this_machine,
         profile_bool_t _profile);
 
-    explicit env_t(signal_t *);
+    env_t(rdb_protocol_t::contex_t *ctx, signal_t *interruptor, uuid_u machine);
 
     ~env_t();
     void throw_if_interruptor_pulsed() THROWS_ONLY(interrupted_exc_t) {
