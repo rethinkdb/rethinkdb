@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 # coding=utf8
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 

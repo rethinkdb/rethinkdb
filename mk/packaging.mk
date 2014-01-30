@@ -12,7 +12,7 @@ DEBIAN_PKG_DIR := $(PACKAGING_DIR)/debian
 SUPPRESSED_LINTIAN_TAGS := new-package-should-close-itp-bug
 DEB_CONTROL_ROOT := $(DEB_PACKAGE_DIR)/DEBIAN
 
-DIST_FILE_LIST_REL := admin bench demos docs drivers external lib mk packaging scripts src test
+DIST_FILE_LIST_REL := admin bench demos docs drivers lib mk packaging scripts src test
 DIST_FILE_LIST_REL += configure COPYRIGHT Makefile NOTES.md README.md
 
 DIST_FILE_LIST := $(foreach x,$(DIST_FILE_LIST_REL),$/$x)
@@ -39,18 +39,20 @@ prepare_deb_package_dirs:
 DSC_CONFIGURE_DEFAULT += --prefix=/usr --sysconfdir=/etc --localstatedir=/var
 
 ifeq ($(BUILD_PORTABLE),1)
-  DIST_SUPPORT := $(V8_SRC_DIR) $(PROTOC_SRC_DIR) $(GPERFTOOLS_SRC_DIR) $(LIBUNWIND_SRC_DIR)
+  DIST_SUPPORT_PACKAGES := v8 protobuf gperftools libunwind re2 gtest
 
   DIST_CUSTOM_MK_LINES :=
   ifneq ($(CWD),$(TOP))
     DIST_CUSTOM_LINES = $(error Portable packages need to be built from '$(TOP)')
   endif
   DIST_CUSTOM_MK_LINES += 'BUILD_PORTABLE := 1'
-  DIST_CONFIGURE_DEFAULT += --fetch v8 --fetch protoc --fetch tcmalloc_minimal
+  DIST_CONFIGURE_DEFAULT += --fetch v8 --fetch protobuf --fetch gperftools
 else
-  DIST_SUPPORT :=
+  DIST_SUPPORT_PACKAGES := re2 gtest
   DIST_CUSTOM_MK_LINES :=
 endif
+
+DIST_SUPPORT = $(foreach pkg, $(DIST_SUPPORT_PACKAGES), $(SUPPORT_SRC_DIR)/$(pkg)_$($(pkg)_VERSION))
 
 DEB_BUILD_DEPENDS := g++, libboost-dev, libssl-dev, curl, exuberant-ctags, m4, debhelper
 DEB_BUILD_DEPENDS += , fakeroot, python, libncurses5-dev
@@ -141,7 +143,6 @@ build-osx: install-osx
 .PHONY: reset-dist-dir
 reset-dist-dir: FORCE | web-assets
 	$P CP $(DIST_FILE_LIST) $(DIST_DIR)
-	$(EXTERN_MAKE) -C $(TOP)/external/gtest/make clean
 	rm -rf $(DIST_DIR)
 	mkdir -p $(DIST_DIR)
 	cp -pRP $(DIST_FILE_LIST) $(DIST_DIR)
@@ -169,11 +170,11 @@ $(DIST_DIR)/VERSION.OVERRIDE: FORCE | reset-dist-dir
 .PHONY: dist-dir
 dist-dir: reset-dist-dir $(DIST_DIR)/custom.mk $(DIST_DIR)/precompiled/web
 dist-dir: $(DIST_DIR)/VERSION.OVERRIDE $(DIST_SUPPORT) $(DIST_DIR)/configure.default
-	$P CP $(DIST_SUPPORT) "->" $(DIST_DIR)
+	$P CP $(DIST_SUPPORT) "->" $(DIST_DIR)/external
 	$(foreach path,$(DIST_SUPPORT), \
-	  $(foreach dir,$(DIST_DIR)/support/$(patsubst $(SUPPORT_DIR)/%,%,$(dir $(path))), \
+	  $(foreach dir,$(DIST_DIR)/external/$(patsubst $(SUPPORT_SRC_DIR)/%,%,$(path)), \
 	    mkdir -p $(dir) $(newline) \
-	    cp -pPR $(path) $(dir) $(newline) ))
+	    cp -pPR $(path)/. $(dir) $(newline) ))
 
 $(DIST_PACKAGE_TGZ): dist-dir
 	$P TAR $@ $(DIST_DIR)

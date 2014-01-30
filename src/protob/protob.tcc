@@ -259,7 +259,9 @@ http_res_t protob_server_t<request_t, response_t, context_t>::handle(
 
         http_res_t res(HTTP_OK);
         res.version = "HTTP/1.1";
+#ifndef NDEBUG
         res.add_header_line("Access-Control-Allow-Origin", "*");
+#endif
 
         return res;
     } else if (req.method == GET &&
@@ -268,7 +270,9 @@ http_res_t protob_server_t<request_t, response_t, context_t>::handle(
 
         http_res_t res(HTTP_OK);
         res.version = "HTTP/1.1";
+#ifndef NDEBUG
         res.add_header_line("Access-Control-Allow-Origin", "*");
+#endif
         std::string body_data;
         body_data.assign(reinterpret_cast<char *>(&conn_id), sizeof(conn_id));
         res.set_body("application/octet-stream", body_data);
@@ -329,7 +333,9 @@ http_res_t protob_server_t<request_t, response_t, context_t>::handle(
 
         http_res_t res(HTTP_OK);
         res.version = "HTTP/1.1";
+#ifndef NDEBUG
         res.add_header_line("Access-Control-Allow-Origin", "*");
+#endif
 
         std::string body_data;
         body_data.assign(res_data.data(), res_size + sizeof(res_size));
