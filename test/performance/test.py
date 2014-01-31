@@ -7,7 +7,7 @@ import json
 import os
 
 from util import gen_doc, gen_num_docs
-from queries import constant_queries, table_queries, write_queries, delete_queries, range_write_queries
+from queries import constant_queries, table_queries, write_queries, delete_queries
 
 import rethinkdb as r
 
@@ -56,12 +56,17 @@ connection = None
 def run_tests(build="../../build/release"):
     global connection
     print "Starting cluster...",
+    sys.stdout.flush()
     with RethinkDBTestServers(1, server_build_dir=build) as servers:
         print " Done."
+        sys.stdout.flush()
 
         print "Connecting...",
+        sys.stdout.flush()
+
         connection = connect(servers)
         print " Done."
+        sys.stdout.flush()
 
         init_tables()
 
@@ -82,6 +87,7 @@ def init_tables():
     global connection, tables
 
     print "Creating databases/tables...",
+    sys.stdout.flush()
     try:
         r.db_drop("test").run(connection)
     except r.errors.RqlRuntimeError, e:
@@ -97,6 +103,7 @@ def init_tables():
         r.db("test").table(table["name"]).index_create("field1").run(connection)
 
     print " Done."
+    sys.stdout.flush()
 
 
 
@@ -108,6 +115,7 @@ def execute_queries():
 
     # Execute the insert queries
     print "Running inserts...",
+    sys.stdout.flush()
     for table in tables:
         for p in xrange(len(write_queries)):
             docs = []
@@ -126,10 +134,12 @@ def execute_queries():
             table["ids"].sort()
 
     print " Done."
+    sys.stdout.flush()
 
 
     # Execute the read queries on every tables
     print "Running reads...",
+    sys.stdout.flush()
     for table in tables:
         for p in xrange(len(table_queries)):
             start = time.time()
@@ -157,10 +167,12 @@ def execute_queries():
             results[table_queries[p]["tag"]+"-"+table["name"]] = count/(time.time()-start)
 
     print " Done."
+    sys.stdout.flush()
 
 
     # Execute the queries that do not require a table
     print "Running constant queries...",
+    sys.stdout.flush()
     for p in xrange(len(constant_queries)):
         start = time.time()
         count = 0
@@ -173,6 +185,7 @@ def execute_queries():
                         cursor.close()
                 except:
                     print constant_queries[p]
+                    sys.stdout.flush()
             else:
                 cursor = eval(constant_queries[p]["query"]).run(connection)
                 if isinstance(cursor, r.net.Cursor):
@@ -186,10 +199,12 @@ def execute_queries():
             results[constant_queries[p]["tag"]] = count/(time.time()-start)
 
     print " Done."
+    sys.stdout.flush()
 
 
     # Execute the delete queries
     print "Running delete...",
+    sys.stdout.flush()
     for table in tables:
         for p in xrange(len(delete_queries)):
             start = time.time()
@@ -201,6 +216,7 @@ def execute_queries():
             results[delete_queries[p]["tag"]+"-"+table["name"]] = num_writes/(time.time()-start)
 
     print " Done."
+    sys.stdout.flush()
 
 
 
@@ -217,6 +233,7 @@ def check_driver():
     """
     if r.protobuf_implementation == 'py':
         print "Please install the C++ backend for the tests."
+        sys.stdout.flush()
         exit(1)
 
 
@@ -281,6 +298,7 @@ def save_compare_results():
         f.close()
     else:
         print "No previous results to compare to."
+        sys.stdout.flush()
  
 
 
