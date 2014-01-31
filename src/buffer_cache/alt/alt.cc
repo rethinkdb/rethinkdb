@@ -234,15 +234,13 @@ txn_t::~txn_t() {
     inner_.reset();
 
     if (durability_ == write_durability_t::SOFT) {
-        cache->page_cache_.flush_and_destroy_txn(cache->drainer_->lock(),
-                                                 std::move(page_txn),
+        cache->page_cache_.flush_and_destroy_txn(std::move(page_txn),
                                                  std::bind(&txn_t::inform_tracker,
                                                            cache,
                                                            saved_expected_change_count_));
     } else {
         cond_t cond;
         cache->page_cache_.flush_and_destroy_txn(
-                cache->drainer_->lock(),
                 std::move(page_txn),
                 std::bind(&txn_t::pulse_and_inform_tracker,
                           cache, saved_expected_change_count_, &cond));

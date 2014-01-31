@@ -56,10 +56,10 @@ public:
 
 private:
     void run() {
-        // Reset our subscription (why can't we have one-shot subscriptions?)
-        // TODO: Refactor the entire signal_t stack.
+        // Tell everybody without delay that the flush is complete.
         on_flush_complete_();
-        // We have to do this _later_ because of signal_t::subscription_t not
+
+        // We have to do the rest _later_ because of signal_t::subscription_t not
         // allowing reentrant signal_t::subscription_t::reset() calls, and the like,
         // even though it would be valid.
         coro_t::spawn_sometime(std::bind(&flush_and_destroy_t::kill_ourselves,
@@ -81,9 +81,7 @@ private:
     DISABLE_COPYING(flush_and_destroy_t);
 };
 
-// RSI: Any reason not to use the page cache's drainer here?
-void page_cache_t::flush_and_destroy_txn(auto_drainer_t::lock_t lock,
-                                         scoped_ptr_t<page_txn_t> txn,
+void page_cache_t::flush_and_destroy_txn(scoped_ptr_t<page_txn_t> txn,
                                          std::function<void()> on_flush_complete) {
     rassert(txn->live_acqs_.empty(),
             "current_page_acq_t lifespan exceeds its page_txn_t's");
@@ -93,14 +91,10 @@ void page_cache_t::flush_and_destroy_txn(auto_drainer_t::lock_t lock,
 
     page_txn_t *page_txn = txn.release();
     flush_and_destroy_t *sub
-        = new flush_and_destroy_t(std::move(lock), page_txn,
+        = new flush_and_destroy_t(drainer_->lock(), page_txn,
                                   std::move(on_flush_complete));
 
     sub->reset(&page_txn->flush_complete_cond_);
-
-    // KSI: This is still somewhat ghetto -- why not just give the page_txn_t a
-    // drainer lock, and then move the drainer around?  Or something else that's much
-    // more elegant.
 }
 
 

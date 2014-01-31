@@ -55,9 +55,7 @@ public:
         : page_cache_t(serializer, make_config(memory_limit), tracker) { }
 
     void flush(scoped_ptr_t<test_txn_t> txn) {
-        auto_drainer_t drainer;
-        flush_and_destroy_txn(drainer.lock(), std::move(txn),
-                              &nop);
+        flush_and_destroy_txn(std::move(txn), &nop);
     }
 
 private:
