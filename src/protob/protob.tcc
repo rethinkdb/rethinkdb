@@ -240,6 +240,28 @@ void protob_server_t<request_t, response_t, context_t>::send(
     conn->write(data.data(), size, closer);
 }
 
+// Used in protob_server_t::handle(...) below to combine the interruptor from the
+// http_conn_cache_t with the interruptor from the http_server_t in an exception-safe
+// manner, and return it to how it was once handle(...) is complete.
+template <class context_t>
+class interruptor_mixer_t {
+public:
+    interruptor_mixer_t(context_t *_ctx, signal_t *new_interruptor) :
+        ctx(_ctx), old_interruptor(ctx->interruptor),
+        combined_interruptor(old_interruptor, new_interruptor) {
+        ctx->interruptor = &combined_interruptor;
+    }
+
+    ~interruptor_mixer_t() {
+        ctx->interruptor = old_interruptor;
+    }
+
+private:
+    context_t *ctx;
+    signal_t *old_interruptor;
+    wait_any_t combined_interruptor;
+};
+
 template <class request_t, class response_t, class context_t>
 http_res_t protob_server_t<request_t, response_t, context_t>::handle(
     const http_req_t &req, signal_t *interruptor) {
@@ -310,13 +332,9 @@ http_res_t protob_server_t<request_t, response_t, context_t>::handle(
                 std::string err = "This HTTP connection not open.";
                 response = on_unparsable_query(request, err);
             } else {
-                // TODO: exception-safe code
                 context_t *ctx = conn->get_ctx();
-                signal_t *old_interruptor = ctx->interruptor;
-                wait_any_t new_interruptor(old_interruptor, interruptor);
-                ctx->interruptor = &new_interruptor;
+                interruptor_mixer_t<context_t> interruptor_mixer(ctx, interruptor);
                 response_needed = f(request, &response, ctx);
-                ctx->interruptor = old_interruptor;
                 if (!response_needed) {
                     return http_res_t(HTTP_BAD_REQUEST, "application/text",
                                       "Noreply writes unsupported over HTTP\n");
