@@ -1,3 +1,4 @@
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "buffer_cache/alt/page.hpp"
 
 #include <algorithm>
@@ -211,7 +212,7 @@ current_page_acq_t::current_page_acq_t()
 current_page_acq_t::current_page_acq_t(page_txn_t *txn,
                                        block_id_t block_id,
                                        access_t access,
-                                       bool create)
+                                       page_create_t create)
     : page_cache_(NULL), the_txn_(NULL) {
     init(txn, block_id, access, create);
 }
@@ -232,9 +233,9 @@ current_page_acq_t::current_page_acq_t(page_cache_t *page_cache,
 void current_page_acq_t::init(page_txn_t *txn,
                               block_id_t block_id,
                               access_t access,
-                              bool create) {
+                              page_create_t create) {
     if (access == access_t::read) {
-        rassert(create == false);
+        rassert(create == page_create_t::no);
         init(txn->page_cache(), block_id, read_access_t::read);
     } else {
         txn->page_cache()->assert_thread();
@@ -244,7 +245,7 @@ void current_page_acq_t::init(page_txn_t *txn,
         access_ = access;
         declared_snapshotted_ = false;
         block_id_ = block_id;
-        if (create) {
+        if (create == page_create_t::yes) {
             current_page_ = page_cache_->page_for_new_chosen_block_id(block_id);
         } else {
             current_page_ = page_cache_->page_for_block_id(block_id);

@@ -1,3 +1,4 @@
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef BUFFER_CACHE_ALT_PAGE_HPP_
 #define BUFFER_CACHE_ALT_PAGE_HPP_
 
@@ -26,6 +27,9 @@ class current_page_acq_t;
 class page_acq_t;
 class page_cache_t;
 class page_txn_t;
+
+enum class page_create_t { no, yes };
+
 }  // namespace alt
 
 enum class alt_create_t { create };
@@ -321,11 +325,10 @@ public:
     // the page_cache_ != NULL check in the destructor we remove the default
     // constructor.)
     current_page_acq_t();
-    // RSI: Clean up the interface (w.r.t. this create = false parameter).
     current_page_acq_t(page_txn_t *txn,
                        block_id_t block_id,
                        access_t access,
-                       bool create = false);
+                       page_create_t create = page_create_t::no);
     current_page_acq_t(page_txn_t *txn,
                        alt_create_t create);
     current_page_acq_t(page_cache_t *cache,
@@ -358,7 +361,7 @@ private:
     void init(page_txn_t *txn,
               block_id_t block_id,
               access_t access,
-              bool create);
+              page_create_t create);
     void init(page_txn_t *txn,
               alt_create_t create);
     void init(page_cache_t *page_cache,

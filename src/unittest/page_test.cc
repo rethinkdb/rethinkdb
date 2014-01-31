@@ -1,3 +1,4 @@
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "arch/runtime/coroutines.hpp"
 #include "arch/timing.hpp"
 #include "buffer_cache/alt/page.hpp"
@@ -15,6 +16,7 @@
 using alt::current_page_acq_t;
 using alt::page_acq_t;
 using alt::page_cache_t;
+using alt::page_create_t;
 using alt::page_t;
 using alt::page_txn_t;
 
@@ -138,7 +140,7 @@ void run_OneWriteAcq() {
     test_cache_t page_cache(mock.ser.get(), mock.tracker.get());
     auto txn = make_scoped<test_txn_t>(&page_cache);
     {
-        current_page_acq_t acq(txn.get(), 0, access_t::write, true);
+        current_page_acq_t acq(txn.get(), 0, access_t::write, page_create_t::yes);
         // Do nothing with the acq.
     }
     page_cache.flush(std::move(txn));
@@ -154,7 +156,7 @@ void run_OneWriteAcqOneReadAcq() {
     test_cache_t page_cache(mock.ser.get(), mock.tracker.get());
     auto txn1 = make_scoped<test_txn_t>(&page_cache);
     {
-        current_page_acq_t acq(txn1.get(), 0, access_t::write, true);
+        current_page_acq_t acq(txn1.get(), 0, access_t::write, page_create_t::yes);
         // Do nothing with the acq.
     }
     page_cache.flush(std::move(txn1));

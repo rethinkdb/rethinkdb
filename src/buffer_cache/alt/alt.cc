@@ -436,7 +436,7 @@ void buf_lock_t::help_construct(buf_parent_t parent, block_id_t block_id,
     current_page_acq_.init(new current_page_acq_t(txn_->page_txn(),
                                                   block_id,
                                                   access_t::write,
-                                                  true));
+                                                  alt::page_create_t::yes));
 
     if (parent.lock_or_null_ != NULL) {
         create_empty_child_snapshot_nodes(txn_->cache(),
