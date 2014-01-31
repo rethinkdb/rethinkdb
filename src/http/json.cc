@@ -17,8 +17,10 @@ std::string (*cJSON_default_print)(cJSON *json) = cJSON_print_std_string;
 #else
 std::string (*cJSON_default_print)(cJSON *json) = cJSON_print_unformatted_std_string;
 #endif
-http_res_t http_json_res(cJSON *json) {
-    return http_res_t(HTTP_OK, "application/json", cJSON_default_print(json));
+
+void http_json_res(cJSON *json, http_res_t *result) {
+    result->code = HTTP_OK;
+    result->set_body("application/json", cJSON_default_print(json));
 }
 
 cJSON *cJSON_merge(cJSON *lhs, cJSON *rhs) {
