@@ -693,8 +693,6 @@ public:
 // of the cache.
 class page_txn_t {
 public:
-    // RSI: Somehow distinguish between write and read behavior.
-
     // Our transaction has to get committed to disk _after_ or at the same time as
     // preceding_txn, if it's not NULL.
     page_txn_t(page_cache_t *page_cache,
@@ -741,8 +739,7 @@ private:
     alt_cache_account_t *cache_account_;
 
     // The transactions that must be committed before or at the same time as this
-    // transaction.  RSI: Are all these transactions those that still need to be
-    // flushed?
+    // transaction.
     std::vector<page_txn_t *> preceders_;
 
     // txn's that we precede.
@@ -762,10 +759,10 @@ private:
     // Touched pages (by block id).
     segmented_vector_t<touched_page_t, 8> touched_pages_;
 
-    // RSI: We could probably turn began_waiting_for_flush_ and spawned_flush_ into a
+    // KSI: We could probably turn began_waiting_for_flush_ and spawned_flush_ into a
     // generalized state enum.
     //
-    // RSI: Should we have the spawned_flush_ variable or should we remove the txn
+    // KSI: Should we have the spawned_flush_ variable or should we remove the txn
     // from the graph?
 
     // Tells whether this page_txn_t has announced itself (to the cache) to be
@@ -776,7 +773,7 @@ private:
     // RSI: Actually use this somehow?
     // Tells whether this page_txn_t, in the process of being flushed, began its
     // index write.  If it's a read-only transaction, this remains false.
-    // bool began_index_write_ = false;  // RSI: compilable
+    // bool began_index_write_ = false;  // RSI: Not compilable on all systems.
 
     // This gets pulsed when the flush is complete or when the txn has no reason to
     // exist any more.

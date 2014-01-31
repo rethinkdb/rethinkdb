@@ -78,7 +78,6 @@ private:
 
     two_level_nevershrink_array_t<intrusive_list_t<alt_snapshot_node_t> > snapshot_nodes_by_block_id_;
 
-    // RSI: Is there a reason this is in a scoped_ptr?
     scoped_ptr_t<auto_drainer_t> drainer_;
 
     DISABLE_COPYING(cache_t);
