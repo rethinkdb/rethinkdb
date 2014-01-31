@@ -1892,8 +1892,7 @@ private:
     btree_slice_t *btree;
     txn_t *txn;
     superblock_t *superblock;
-    // RSI: Is interruptor still ignored?
-    signal_t *interruptor;  // FIXME: interruptors are not used in btree code, so this one ignored.
+    signal_t *interruptor;
     buf_lock_t sindex_block;
 
     DISABLE_COPYING(rdb_receive_backfill_visitor_t);
