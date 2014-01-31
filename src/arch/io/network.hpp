@@ -351,7 +351,7 @@ protected:
 
 private:
     static const uint32_t MAX_BIND_ATTEMPTS = 20;
-    void init_sockets();
+    bool init_sockets();
     bool bind_sockets_internal(int *port_out);
 
     /* accept_loop() runs in a separate coroutine. It repeatedly tries to accept
