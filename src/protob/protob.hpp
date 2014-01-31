@@ -126,7 +126,7 @@ private:
     static auth_key_t read_auth_key(tcp_conn_t *conn, signal_t *interruptor);
 
     // For HTTP server
-    http_res_t handle(const http_req_t &);
+    void handle(const http_req_t &, http_res_t *result, signal_t *interruptor);
 
     boost::function<bool(request_t, response_t *, context_t *)> f;  // NOLINT(readability/casting)
     response_t (*on_unparsable_query)(request_t, std::string);

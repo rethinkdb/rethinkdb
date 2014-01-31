@@ -42,19 +42,22 @@ static bool scan_timespec(const char *string, struct timespec *out) {
     }
 }
 
-http_res_t log_http_app_t::handle(const http_req_t &req) {
+void log_http_app_t::handle(const http_req_t &req, http_res_t *result, signal_t *interruptor) {
     if (req.method != GET) {
-        return http_res_t(HTTP_METHOD_NOT_ALLOWED);
+        *result = http_res_t(HTTP_METHOD_NOT_ALLOWED);
+        return;
     }
 
     http_req_t::resource_t::iterator it = req.resource.begin();
     if (it == req.resource.end()) {
-        return http_res_t(HTTP_NOT_FOUND);
+        *result = http_res_t(HTTP_NOT_FOUND);
+        return;
     }
     std::string machine_id_str = *it;
     it++;
     if (it != req.resource.end()) {
-        return http_res_t(HTTP_NOT_FOUND);
+        *result = http_res_t(HTTP_NOT_FOUND);
+        return;
     }
 
     std::vector<machine_id_t> machine_ids;
@@ -70,7 +73,8 @@ http_res_t log_http_app_t::handle(const http_req_t &req) {
             try {
                 machine_ids.push_back(str_to_uuid(std::string(start, p - start)));
             } catch (const std::runtime_error &) {
-                return http_res_t(HTTP_NOT_FOUND);
+                *result = http_res_t(HTTP_NOT_FOUND);
+                return;
             }
             if (!*p) {
                 break;
@@ -88,17 +92,20 @@ http_res_t log_http_app_t::handle(const http_req_t &req) {
         char dummy;
         int res = sscanf(max_length_string.get().c_str(), "%d%c", &max_length, &dummy);
         if (res != 1) {
-            return http_res_t(HTTP_BAD_REQUEST);
+            *result = http_res_t(HTTP_BAD_REQUEST);
+            return;
         }
     }
     if (boost::optional<std::string> min_timestamp_string = req.find_query_param("min_timestamp")) {
         if (!scan_timespec(min_timestamp_string.get().c_str(), &min_timestamp)) {
-            return http_res_t(HTTP_BAD_REQUEST);
+            *result = http_res_t(HTTP_BAD_REQUEST);
+            return;
         }
     }
     if (boost::optional<std::string> max_timestamp_string = req.find_query_param("max_timestamp")) {
         if (!scan_timespec(max_timestamp_string.get().c_str(), &max_timestamp)) {
-            return http_res_t(HTTP_BAD_REQUEST);
+            *result = http_res_t(HTTP_BAD_REQUEST);
+            return;
         }
     }
 
@@ -106,22 +113,22 @@ http_res_t log_http_app_t::handle(const http_req_t &req) {
     for (std::vector<machine_id_t>::const_iterator jt = machine_ids.begin(); jt != machine_ids.end(); ++jt) {
         peer_id_t pid = machine_id_to_peer_id(*jt, machine_id_translation_table->get());
         if (pid.is_nil()) {
-            return http_res_t(HTTP_NOT_FOUND);
+            *result = http_res_t(HTTP_NOT_FOUND);
+            return;
         }
         peer_ids.push_back(pid);
     }
 
     scoped_cJSON_t map_to_fill(cJSON_CreateObject());
 
-    cond_t non_interruptor;
     pmap(peer_ids.size(), boost::bind(
         &log_http_app_t::fetch_logs, this, _1,
         machine_ids, peer_ids,
         max_length, min_timestamp, max_timestamp,
         map_to_fill.get(),
-        &non_interruptor));
+        interruptor));
 
-    return http_json_res(map_to_fill.get());
+    http_json_res(map_to_fill.get(), result);
 }
 
 void log_http_app_t::fetch_logs(int i,
