@@ -21,9 +21,9 @@ page_cache_t::page_cache_t(serializer_t *serializer,
       drainer_(make_scoped<auto_drainer_t>()) {
     {
         on_thread_t thread_switcher(serializer->home_thread());
-        reads_io_account.init(serializer->make_io_account(config.io_priority_reads));
-        writes_io_account.init(serializer->make_io_account(config.io_priority_writes));
-        index_write_sink.init(new fifo_enforcer_sink_t);
+        reads_io_account_.init(serializer->make_io_account(config.io_priority_reads));
+        writes_io_account_.init(serializer->make_io_account(config.io_priority_writes));
+        index_write_sink_.init(new fifo_enforcer_sink_t);
         recencies_ = serializer->get_all_recencies();
     }
 }
@@ -38,9 +38,9 @@ page_cache_t::~page_cache_t() {
     {
         /* IO accounts must be destroyed on the thread they were created on */
         on_thread_t thread_switcher(serializer_->home_thread());
-        reads_io_account.reset();
-        writes_io_account.reset();
-        index_write_sink.reset();
+        reads_io_account_.reset();
+        writes_io_account_.reset();
+        index_write_sink_.reset();
     }
 }
 
@@ -704,7 +704,7 @@ void page_t::load_with_block_id(page_t *page, block_id_t block_id,
         rassert(block_token.has());
         serializer->block_read(block_token,
                                buf.get(),
-                               page_cache->reads_io_account.get());
+                               page_cache->reads_io_account_.get());
     }
 
     ASSERT_FINITE_CORO_WAITING;
@@ -803,7 +803,7 @@ void page_t::load_using_block_token(page_t *page, page_cache_t *page_cache) {
         on_thread_t th(serializer->home_thread());
         serializer->block_read(block_token,
                                buf.get(),
-                               page_cache->reads_io_account.get());
+                               page_cache->reads_io_account_.get());
     }
 
     ASSERT_FINITE_CORO_WAITING;
@@ -1370,7 +1370,7 @@ void page_cache_t::do_flush_txn_set(page_cache_t *page_cache,
 
         std::vector<counted_t<standard_block_token_t> > tokens
             = page_cache->serializer_->block_writes(write_infos,
-                                                    page_cache->writes_io_account.get(),
+                                                    page_cache->writes_io_account_.get(),
                                                     &blocks_releasable_cb);
 
         rassert(tokens.size() == write_infos.size());
@@ -1410,7 +1410,7 @@ void page_cache_t::do_flush_txn_set(page_cache_t *page_cache,
         // RSI: Pass in the exiter to index_write, so that
         // subsequent index_write operations don't have to wait for one another to
         // finish.
-        fifo_enforcer_sink_t::exit_write_t exiter(page_cache->index_write_sink.get(),
+        fifo_enforcer_sink_t::exit_write_t exiter(page_cache->index_write_sink_.get(),
                                                   index_write_token);
         exiter.wait();
 
@@ -1419,7 +1419,7 @@ void page_cache_t::do_flush_txn_set(page_cache_t *page_cache,
             // RSI: Does the serializer guarantee that index_write operations happen in
             // exactly the order that they're specified in?
             page_cache->serializer_->index_write(write_ops,
-                                                 page_cache->writes_io_account.get());
+                                                 page_cache->writes_io_account_.get());
         }
     }
 
@@ -1519,7 +1519,7 @@ void page_cache_t::im_waiting_for_flush(page_txn_t *txn) {
             (*it)->spawned_flush_ = true;
         }
 
-        fifo_enforcer_write_token_t token = index_write_source.enter_write();
+        fifo_enforcer_write_token_t token = index_write_source_.enter_write();
 
         // RSI: We might be spawning too many coroutines, one for each flush.
         coro_t::spawn_later_ordered(std::bind(&page_cache_t::do_flush_txn_set,

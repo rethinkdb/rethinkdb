@@ -19,6 +19,8 @@
 #include "repli_timestamp.hpp"
 #include "serializer/types.hpp"
 
+// RSI: Readahead.
+
 class auto_drainer_t;
 class file_account_t;
 
@@ -381,9 +383,8 @@ private:
     void pulse_read_available();
     void pulse_write_available();
 
-    // RSI: the_txn_ is NULL if and only if access_ == read, these fields are redundant.
     page_cache_t *page_cache_;
-    page_txn_t *the_txn_;  // RSI: Rename back to txn_.
+    page_txn_t *the_txn_;
     access_t access_;
     bool declared_snapshotted_;
     // The block id of the page we acquired.
@@ -398,12 +399,12 @@ private:
     // The recency for our acquisition of the page.
     repli_timestamp_t recency_;
 
-    // RSI: Isn't recency_ redundant with the block version?
-
     // The block version for our acquisition of the page -- every write acquirer sees
     // a greater block version than the previous acquirer.  The current page's block
     // version will be less than or equal to this value if we have not yet acquired
-    // the page.  It could be greater than this value if we're snapshotted.
+    // the page.  It could be greater than this value if we're snapshotted (since
+    // we're holding an old version of the page).  These values are for internal
+    // cache bookkeeping only.
     block_version_t block_version_;
 
     bool dirtied_page_;
@@ -583,19 +584,17 @@ private:
 
     const page_cache_config_t dynamic_config_;
 
-    // RSI: Some of these things need postfix underscores.
-
     // We use a separate IO account for reads and writes, so reads can pass ahead of
     // active writebacks. Otherwise writebacks could badly block out readers, thereby
     // blocking user queries.
-    scoped_ptr_t<file_account_t> reads_io_account;
-    scoped_ptr_t<file_account_t> writes_io_account;
+    scoped_ptr_t<file_account_t> reads_io_account_;
+    scoped_ptr_t<file_account_t> writes_io_account_;
 
     // This fifo enforcement pair ensures ordering of index_write operations after we
     // move to the serializer thread and get a bunch of blocks written.
     // index_write_sink's pointee's home thread is on the serializer.
-    fifo_enforcer_source_t index_write_source;
-    scoped_ptr_t<fifo_enforcer_sink_t> index_write_sink;
+    fifo_enforcer_source_t index_write_source_;
+    scoped_ptr_t<fifo_enforcer_sink_t> index_write_sink_;
 
     serializer_t *serializer_;
     segmented_vector_t<repli_timestamp_t> recencies_;
@@ -607,7 +606,6 @@ private:
 
     evicter_t evicter_;
 
-    // RSI: Is there a reason this is in a scoped ptr?
     scoped_ptr_t<auto_drainer_t> drainer_;
 
     DISABLE_COPYING(page_cache_t);
