@@ -48,7 +48,7 @@ class Connection extends events.EventEmitter
             if e instanceof err.RqlDriverError
                 callback e
             else
-                callback new err.RqlDriverError "Could not connect to #{@host}:#{@port}."
+                callback new err.RqlDriverError "Could not connect to #{@host}:#{@port}.\n#{e.message}"
         @once 'error', errCallback
 
         conCallback = =>
