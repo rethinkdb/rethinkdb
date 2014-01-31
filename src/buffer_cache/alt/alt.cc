@@ -75,12 +75,9 @@ cache_t::cache_t(serializer_t *serializer, const alt_cache_config_t &config,
                  perfmon_collection_t *perfmon_collection)
     : stats_(make_scoped<alt_cache_stats_t>(perfmon_collection)),
       tracker_(),
-      page_cache_(serializer, config.page_config, &tracker_),
-      drainer_(make_scoped<auto_drainer_t>()) { }
+      page_cache_(serializer, config.page_config, &tracker_) { }
 
-cache_t::~cache_t() {
-    drainer_.reset();
-}
+cache_t::~cache_t() { }
 
 block_size_t cache_t::max_block_size() const {
     return page_cache_.max_block_size();

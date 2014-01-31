@@ -8,7 +8,6 @@
 
 #include "buffer_cache/alt/page.hpp"
 #include "buffer_cache/types.hpp"
-#include "concurrency/auto_drainer.hpp"
 #include "concurrency/semaphore.hpp"
 #include "containers/two_level_array.hpp"
 #include "repli_timestamp.hpp"
@@ -53,7 +52,7 @@ public:
     void create_cache_account(int priority, scoped_ptr_t<alt_cache_account_t> *out);
 
 private:
-    friend class txn_t;  // for drainer_->lock()
+    friend class txn_t;  // for tracker_ and &page_cache_
     friend class alt_inner_txn_t;  // for &page_cache_
     friend class buf_read_t;  // for &page_cache_
     friend class buf_write_t;  // for &page_cache_
@@ -77,8 +76,6 @@ private:
     alt::page_cache_t page_cache_;
 
     two_level_nevershrink_array_t<intrusive_list_t<alt_snapshot_node_t> > snapshot_nodes_by_block_id_;
-
-    scoped_ptr_t<auto_drainer_t> drainer_;
 
     DISABLE_COPYING(cache_t);
 };
