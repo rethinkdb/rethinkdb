@@ -243,9 +243,6 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
         }
     }
 
-    // RSI: This is bad-ish, make us not really need this again.
-    nap(1000);
-
     {
         /* Access the data using the secondary index. */
         rdb_protocol_t::read_t read = make_sindex_read(sindex_key_literal, id);
@@ -363,8 +360,6 @@ TEST(RDBProtocol, OvershardedSindexList) {
 
 void run_sindex_oversized_keys_test(namespace_interface_t<rdb_protocol_t> *nsi, order_source_t *osource) {
     std::string sindex_id = create_sindex(nsi, osource);
-    // RSI: Ugh.
-    nap(1000);
 
     for (size_t i = 0; i < 20; ++i) {
         for (size_t j = 100; j < 200; j += 5) {
