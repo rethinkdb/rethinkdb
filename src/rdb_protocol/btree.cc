@@ -165,8 +165,7 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location,
 
     // Update the leaf, if needed.
     kv_location->value = std::move(new_value);
-    // RSI: Any place we have tnhe null_key_modification_callback_t check for a need
-    // to detach.
+
     null_key_modification_callback_t<rdb_value_t> null_cb;
     apply_keyvalue_change(kv_location, key.btree_key(), timestamp,
                           expired_t::NO, &null_cb);
@@ -332,7 +331,9 @@ void do_a_replace_from_batched_replace(
         info, &one_replace, superblock_promise, &mod_report.info, trace);
     *stats_out = (*stats_out)->merge(res, ql::stats_merge);
 
-    // RSI: What is this for?  are we waiting to get in line to call on_mod_report?  I guess so.
+    // KSI: What is this for?  are we waiting to get in line to call on_mod_report?
+    // I guess so.
+
     // JD: Looks like this is a do_a_replace_from_batched_replace specific thing.
     exiter.wait();
     sindex_cb->on_mod_report(mod_report);
@@ -1217,9 +1218,9 @@ public:
         try {
             scoped_ptr_t<real_superblock_t> superblock;
 
-            // We want soft durability because having a partially constructed secondary index is
-            // okay -- we wipe it and rebuild it, if it has not been marked completely
-            // constructed.
+            // We want soft durability because having a partially constructed
+            // secondary index is okay -- we wipe it and rebuild it, if it has not
+            // been marked completely constructed.
             store_->acquire_superblock_for_write(
                     repli_timestamp_t::distant_past,
                     2,  // KSI: This is not the right value.
@@ -1228,28 +1229,9 @@ public:
                     &wtxn,
                     &superblock,
                     interruptor_);
-            // RSI: We used to have this comment.  We no longer do that (and we no
-            // longer want to do that).  How is performance affected?  We shouldn't
-            // have stuff blocking on the superblock (generally) anyway, right?
 
-
-            // While we need wtxn to be a write transaction (thus calling
-            // `acquire_superblock_for_write`), we only need a read lock
-            // on the superblock (which is why we pass in `rwi_read`).
-            // Usually in btree code, we are supposed to acquire the superblock
-            // in write mode if we are going to do writes further down the tree,
-            // in order to guarantee that no other read can bypass the write on
-            // the way down. However in this special case this is already
-            // guaranteed by the token_pair that all secondary index operations
-            // use, so we can safely acquire it with `rwi_read` instead.
-
-            // RSI: ^^ remove the above outdated comment left for reference for the
-            // previous RSI comment.
-
-            // Synchronization is guaranteed through the token_pair.
-            // Let's get the information we need from the superblock and then
-            // release it immediately.
-            block_id_t sindex_block_id = superblock->get_sindex_block_id();
+            // Acquire the sindex block.
+            const block_id_t sindex_block_id = superblock->get_sindex_block_id();
 
             buf_lock_t sindex_block
                 = store_->acquire_sindex_block_for_write(superblock->expose_buf(),
@@ -1308,16 +1290,6 @@ public:
         cb->no_more_interesting_children();
     }
 
-    // RSI: Parallel traversal should release the superblock, right?  That way we can
-    // get at the sindexes.
-
-    // RSI: Instead of wtxn we should just have one (write) transaction, pre-visit
-    // the sindex block, traverse the main subtree (snapshottedly) without releasing
-    // the superblock, instead of this two-transaction business.  We could get
-    // everything done in one write transaction?  But having big write transactions
-    // is bad for some reason (if it actually touches the superblock).  Think about
-    // that, make sindexes better, and talk to other people about known sindex
-    // problems.
     access_t btree_superblock_mode() { return access_t::read; }
     access_t btree_node_mode() { return access_t::read; }
 
