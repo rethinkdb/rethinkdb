@@ -82,6 +82,20 @@ enum class sorting_t {
 // UNORDERED sortings aren't reversed
 bool reversed(sorting_t sorting);
 
+class key_le_t {
+public:
+    key_le_t(sorting_t _sorting) : sorting(_sorting) { }
+    bool operator()(const store_key_t &key1, const store_key_t &key2) const {
+        return (!reversed(sorting) && key1 <= key2) || (reversed(sorting) && key2 <= key1);
+    }
+private:
+    sorting_t sorting;
+};
+
+store_key_t key_max(sorting_t sorting) {
+    return !reversed(sorting) ? store_key_t::max() : store_key_t::min();
+}
+
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
         sorting_t, int8_t,
         sorting_t::UNORDERED, sorting_t::DESCENDING);
@@ -177,18 +191,15 @@ void bring_sindexes_up_to_date(
 
 struct rget_item_t {
     rget_item_t() { }
-    rget_item_t(const store_key_t &_key, counted_t<const ql::datum_t> _data)
-        : key(_key), data(_data) { }
-
-    rget_item_t(const store_key_t &_key, counted_t<const ql::datum_t> _sindex_key,
-                counted_t<const ql::datum_t> _data)
-        : key(_key), sindex_key(_sindex_key), data(_data) { }
-
-    RDB_DECLARE_ME_SERIALIZABLE;
-
+    // Works for both rvalue and lvalue references.
+    template<class T>
+    rget_item_t(T &&_key,
+                const counted_t<const ql::datum_t> &_sindex_key,
+                const counted_t<const ql::datum_t> &_data)
+        : key(std::forward<T>(_key)), sindex_key(_sindex_key), data(_data) { }
     store_key_t key;
-    boost::optional<counted_t<const ql::datum_t> > sindex_key;
-    counted_t<const ql::datum_t> data;
+    counted_t<const ql::datum_t> sindex_key, data;
+    RDB_DECLARE_ME_SERIALIZABLE;
 };
 
 struct single_sindex_status_t {

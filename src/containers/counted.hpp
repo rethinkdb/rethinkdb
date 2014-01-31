@@ -202,11 +202,6 @@ inline intptr_t counted_use_count(const single_threaded_countable_t<T> *p) {
     return p->refcount_;
 }
 
-
-
-
-
-
 template <class> class slow_atomic_countable_t;
 
 template <class T>

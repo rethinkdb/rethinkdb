@@ -616,6 +616,9 @@ public:
     void combine(const std::vector<res_t *> &results,
                  rget_read_response_t *out, res_t *res_out);
     void operator()(const rget_read_t &rg);
+    void operator()(const distribution_read_t &rg);
+    void operator()(const sindex_list_t &rg);
+    void operator()(const sindex_status_t &rg);
 
 private:
     const read_response_t *responses;
@@ -633,296 +636,129 @@ void rdb_r_unshard_visitor_t::operator()(const point_read_t &) {
 typedef rget_read_response_t::res_t res_t;
 typedef rget_read_response_t::grouped_res_t grouped_res_t;
 void rdb_r_unshard_visitor_t::operator()(const rget_read_t &rg) {
+    // Initialize response.
     response_out->response = rget_read_response_t();
-    auto out = boost::get<rget_read_response_t>(&response_out->response);
     out->truncated = false;
+    auto out = boost::get<rget_read_response_t>(&response_out->response);
     out->key_range = read_t(rg, profile_bool_t::DONT_PROFILE).get_region().inner;
-    out->last_considered_key = out->key_range.left;
+    // RSI: safe to kill? (out->last_key = out->key_range.left;)
 
-    // RSI: get truncation, last considered key.
-
+    // Fill in `truncated` and `last_key`, get vector of groups to unshard
+    // (or abort early if there's an error).
     std::vector<res_groups_t *> rgs;
     rgs.reserve(count);
+    store_key_t *best = NULL;
+    key_le_t ke_le(rg.sorting);
     for (size_t i = 0; i < count; ++i) {
-        if (auto e = boost::get<ql::exc_t>(&responses[i].response)) {
+        auto resp = responses + i;
+        if (resp->truncated) {
+            out->truncated = true;
+            if (best == NULL || key_le(resp->last_key, *best)) {
+                best = &resp->last_key;
+            }
+        }
+        if (auto e = boost::get<ql::exc_t>(&resp->response)) {
             out->result = e;
             return;
-        } else if (auto rg = boost::get<res_groups_t>(&responses[i].response)) {
+        } else if (auto rg = boost::get<res_groups_t>(&resp->response)) {
             rgs.push_back(rg);
         } else {
             unreachable();
         }
     }
+    out->last_key = (best != NULL) ? std::move(*best) : key_max(sorting);
+
+    // Unshard and finish up.
     scoped_ptr_t<accumulator_t> acc(
-        rg.terminal ? make_terminal(env, *rg.terminal) : make_append());
+        rg.terminal ? make_terminal(env, *rg.terminal) : make_append(NULL));
     acc->unshard(rgs);
     acc->finish(out);
 }
 
-    void operator()(const distribution_read_t &dg) {
-        // TODO: do this without copying so much and/or without dynamic memory
-        // Sort results by region
-        std::vector<distribution_read_response_t> results(count);
-        guarantee(count > 0);
+void rdb_r_unshard_visitor_t::operator()(const distribution_read_t &dg) {
+    // TODO: do this without copying so much and/or without dynamic memory
+    // Sort results by region
+    std::vector<distribution_read_response_t> results(count);
+    guarantee(count > 0);
 
-        for (size_t i = 0; i < count; ++i) {
-            const distribution_read_response_t *result = boost::get<distribution_read_response_t>(&responses[i].response);
-            guarantee(result != NULL, "Bad boost::get\n");
-            results[i] = *result;
-        }
-
-        std::sort(results.begin(), results.end(), distribution_read_response_less_t());
-
-        distribution_read_response_t res;
-        size_t i = 0;
-        while (i < results.size()) {
-            // Find the largest hash shard for this key range
-            key_range_t range = results[i].region.inner;
-            size_t largest_index = i;
-            size_t largest_size = 0;
-            size_t total_range_keys = 0;
-
-            while (i < results.size() && results[i].region.inner == range) {
-                size_t tmp_total_keys = 0;
-                for (std::map<store_key_t, int64_t>::const_iterator mit = results[i].key_counts.begin(); mit != results[i].key_counts.end(); ++mit) {
-                    tmp_total_keys += mit->second;
-                }
-
-                if (tmp_total_keys > largest_size) {
-                    largest_size = tmp_total_keys;
-                    largest_index = i;
-                }
-
-                total_range_keys += tmp_total_keys;
-                ++i;
-            }
-
-            if (largest_size > 0) {
-                // Scale up the selected hash shard
-                double scale_factor = static_cast<double>(total_range_keys) / static_cast<double>(largest_size);
-
-                guarantee(scale_factor >= 1.0);  // Directly provable from code above.
-
-                for (std::map<store_key_t, int64_t>::iterator mit = results[largest_index].key_counts.begin();
-                     mit != results[largest_index].key_counts.end();
-                     ++mit) {
-                    mit->second = static_cast<int64_t>(mit->second * scale_factor);
-                }
-
-                res.key_counts.insert(results[largest_index].key_counts.begin(), results[largest_index].key_counts.end());
-            }
-        }
-
-        // If the result is larger than the requested limit, scale it down
-        if (dg.result_limit > 0 && res.key_counts.size() > dg.result_limit) {
-            scale_down_distribution(dg.result_limit, &res.key_counts);
-        }
-
-        response_out->response = res;
+    for (size_t i = 0; i < count; ++i) {
+        auto result = boost::get<distribution_read_response_t>(&responses[i].response);
+        guarantee(result != NULL, "Bad boost::get\n");
+        results[i] = *result;
     }
 
-    void operator()(UNUSED const sindex_list_t &sl) {
-        guarantee(count == 1);
-        guarantee(boost::get<sindex_list_response_t>(&responses[0].response));
-        *response_out = responses[0];
-    }
+    std::sort(results.begin(), results.end(), distribution_read_response_less_t());
 
-    void operator()(UNUSED const sindex_status_t &ss) {
-        *response_out = read_response_t(sindex_status_response_t());
-        auto ss_response = boost::get<sindex_status_response_t>(&response_out->response);
-        for (size_t i = 0; i < count; ++i) {
-            auto resp = boost::get<sindex_status_response_t>(&responses[0].response);
-            guarantee(resp);
-            for (auto it = resp->statuses.begin();
-                 it != resp->statuses.end(); ++it) {
-                add_status(it->second, &ss_response->statuses[it->first]);
+    distribution_read_response_t res;
+    size_t i = 0;
+    while (i < results.size()) {
+        // Find the largest hash shard for this key range
+        key_range_t range = results[i].region.inner;
+        size_t largest_index = i;
+        size_t largest_size = 0;
+        size_t total_range_keys = 0;
+
+        while (i < results.size() && results[i].region.inner == range) {
+            size_t tmp_total_keys = 0;
+            for (auto mit = results[i].key_counts.begin();
+                 mit != results[i].key_counts.end();
+                 ++mit) {
+                tmp_total_keys += mit->second;
             }
+
+            if (tmp_total_keys > largest_size) {
+                largest_size = tmp_total_keys;
+                largest_index = i;
+            }
+
+            total_range_keys += tmp_total_keys;
+            ++i;
+        }
+
+        if (largest_size > 0) {
+            // Scale up the selected hash shard
+            double scale_factor = double(total_range_keys) / double(largest_size);
+
+            guarantee(scale_factor >= 1.0);  // Directly provable from code above.
+
+            for (auto mit = results[largest_index].key_counts.begin();
+                 mit != results[largest_index].key_counts.end();
+                 ++mit) {
+                mit->second = static_cast<int64_t>(mit->second * scale_factor);
+            }
+
+            // RSI: move semantics
+            res.key_counts.insert(
+                results[largest_index].key_counts.begin(),
+                results[largest_index].key_counts.end());
         }
     }
 
-private:
-    const read_response_t *responses;
-    size_t count;
-    read_response_t *response_out;
-    ql::env_t ql_env;
-
-    void unshard_range_get(const rget_read_t &rg) {
-        rget_read_response_t *rg_response
-            = boost::get<rget_read_response_t>(&response_out->response);
-        // A vanilla range get
-        // First we need to determine the cutoff key:
-        rg_response->last_considered_key = !reversed(rg.sorting)
-            ? store_key_t::max() : store_key_t::min();
-        for (size_t i = 0; i < count; ++i) {
-            auto rr = boost::get<rget_read_response_t>(&responses[i].response);
-            guarantee(rr != NULL);
-
-            if (rr->truncated
-                && ((rg_response->last_considered_key > rr->last_considered_key
-                     && !reversed(rg.sorting))
-                    || (rg_response->last_considered_key < rr->last_considered_key
-                        && reversed(rg.sorting)))) {
-                rg_response->last_considered_key = rr->last_considered_key;
-            }
-        }
-
-        rg_response->result = stream_t();
-        stream_t *res_stream = boost::get<stream_t>(&rg_response->result);
-
-        if (rg.sorting == sorting_t::UNORDERED) {
-            for (size_t i = 0; i < count; ++i) {
-                // TODO: we're ignoring the limit when recombining.
-                auto rr = boost::get<rget_read_response_t>(&responses[i].response);
-                guarantee(rr != NULL);
-
-                const stream_t *stream = boost::get<stream_t>(&(rr->result));
-
-                for (auto it = stream->begin(); it != stream->end(); ++it) {
-                    if ((it->key <= rg_response->last_considered_key
-                         && !reversed(rg.sorting))
-                        || (it->key >= rg_response->last_considered_key
-                            && reversed(rg.sorting))) {
-                        res_stream->push_back(*it);
-                    }
-                }
-
-                rg_response->truncated = rg_response->truncated || rr->truncated;
-            }
-        } else {
-            std::vector<std::pair<stream_t::const_iterator, stream_t::const_iterator> >
-                iterators;
-
-            for (size_t i = 0; i < count; ++i) {
-                // TODO: we're ignoring the limit when recombining.
-                auto rr = boost::get<rget_read_response_t>(&responses[i].response);
-                guarantee(rr != NULL);
-
-                const stream_t *stream = boost::get<stream_t>(&(rr->result));
-                iterators.push_back(std::make_pair(stream->begin(), stream->end()));
-            }
-
-            while (true) {
-                store_key_t key_to_beat = !reversed(rg.sorting)
-                    ? store_key_t::max() : store_key_t::min();
-                stream_t::const_iterator *value = NULL;
-
-                for (auto it = iterators.begin(); it != iterators.end(); ++it) {
-                    if (it->first == it->second) {
-                        continue;
-                    }
-
-                    if ((!reversed(rg.sorting)
-                         && it->first->key <= key_to_beat
-                         && it->first->key <= rg_response->last_considered_key)
-                        || (reversed(rg.sorting)
-                            && it->first->key >= key_to_beat
-                            && it->first->key >= rg_response->last_considered_key)) {
-                        key_to_beat = it->first->key;
-                        value = &it->first;
-                    }
-                }
-                if (value != NULL) {
-                    res_stream->push_back(**value);
-                    ++(*value);
-                } else {
-                    break;
-                }
-            }
-        }
+    // If the result is larger than the requested limit, scale it down
+    if (dg.result_limit > 0 && res.key_counts.size() > dg.result_limit) {
+        scale_down_distribution(dg.result_limit, &res.key_counts);
     }
 
-    void unshard_reduce(const rget_read_t &rg) {
-        rget_read_response_t *rg_response = boost::get<rget_read_response_t>(
-            &response_out->response);
-        try {
-            if (const ql::reduce_wire_func_t *reduce_func =
-                    boost::get<ql::reduce_wire_func_t>(&*rg.terminal)) {
-                ql::reduce_wire_func_t local_reduce_func = *reduce_func;
-                rg_response->result = rget_read_response_t::empty_t();
-                for (size_t i = 0; i < count; ++i) {
-                    const rget_read_response_t *_rr =
-                        boost::get<rget_read_response_t>(&responses[i].response);
-                    guarantee(_rr);
-                    counted_t<const ql::datum_t> *lhs =
-                        boost::get<counted_t<const ql::datum_t> >(&rg_response->result);
-                    const counted_t<const ql::datum_t> *rhs =
-                        boost::get<counted_t<const ql::datum_t> >(&(_rr->result));
-                    if (!rhs) {
-                        guarantee(boost::get<rget_read_response_t::empty_t>(
-                                      &(_rr->result)));
-                        continue;
-                    } else {
-                        if (lhs) {
-                            counted_t<const ql::datum_t> reduced_val =
-                                local_reduce_func.compile_wire_func()->call(
-                                    &ql_env, *lhs, *rhs)->as_datum();
-                            rg_response->result = reduced_val;
-                        } else {
-                            guarantee(boost::get<rget_read_response_t::empty_t>(
-                                          &rg_response->result));
-                            rg_response->result = _rr->result;
-                        }
-                    }
-                }
-            } else if (boost::get<ql::count_wire_func_t>(&*rg.terminal)) {
-                rg_response->result = make_counted<const ql::datum_t>(0.0);
+    response_out->response = res;
+}
 
-                for (size_t i = 0; i < count; ++i) {
-                    const rget_read_response_t *_rr =
-                        boost::get<rget_read_response_t>(&responses[i].response);
-                    guarantee(_rr);
-                    counted_t<const ql::datum_t> lhs =
-                        boost::get<counted_t<const ql::datum_t> >(rg_response->result);
-                    counted_t<const ql::datum_t> rhs =
-                        boost::get<counted_t<const ql::datum_t> >(_rr->result);
-                    rg_response->result = make_counted<const ql::datum_t>(
-                        lhs->as_num() + rhs->as_num());
-                }
-            } else if (const ql::gmr_wire_func_t *gmr_func =
-                    boost::get<ql::gmr_wire_func_t>(&*rg.terminal)) {
-                ql::gmr_wire_func_t local_gmr_func = *gmr_func;
-                rg_response->result = ql::wire_datum_map_t();
-                ql::wire_datum_map_t *map =
-                    boost::get<ql::wire_datum_map_t>(&rg_response->result);
+void rdb_r_unshard_visitor_t::operator()(UNUSED const sindex_list_t &sl) {
+    guarantee(count == 1);
+    guarantee(boost::get<sindex_list_response_t>(&responses[0].response));
+    *response_out = responses[0];
+}
 
-                  for (size_t i = 0; i < count; ++i) {
-                    const rget_read_response_t *_rr =
-                        boost::get<rget_read_response_t>(&responses[i].response);
-                    guarantee(_rr);
-                    const ql::wire_datum_map_t *rhs =
-                        boost::get<ql::wire_datum_map_t>(&(_rr->result));
-                    r_sanity_check(rhs);
-                    ql::wire_datum_map_t local_rhs = *rhs;
-                    local_rhs.compile();
-
-                    counted_t<const ql::datum_t> rhs_arr = local_rhs.to_arr();
-                    for (size_t f = 0; f < rhs_arr->size(); ++f) {
-                        counted_t<const ql::datum_t> key
-                            = rhs_arr->get(f)->get("group");
-                        counted_t<const ql::datum_t> val
-                            = rhs_arr->get(f)->get("reduction");
-                        if (!map->has(key)) {
-                            map->set(key, val);
-                        } else {
-                            counted_t<ql::func_t> r
-                                = local_gmr_func.compile_reduce();
-                            map->set(key, r->call(&ql_env, map->get(key), val)->as_datum());
-                        }
-                    }
-                }
-                boost::get<ql::wire_datum_map_t>(rg_response->result).finalize();
-            } else {
-                unreachable();
-            }
-        } catch (const ql::datum_exc_t &e) {
-            /* Evaluation threw so we're not going to be accepting any
-               more requests. */
-            rg_response->result = ql::shards::terminal_exc(e, *rg.terminal);
-        } catch (const ql::exc_t &e) {
-            rg_response->result = e;
+void rdb_r_unshard_visitor_t::operator()(UNUSED const sindex_status_t &ss) {
+    *response_out = read_response_t(sindex_status_response_t());
+    auto ss_response = boost::get<sindex_status_response_t>(&response_out->response);
+    for (size_t i = 0; i < count; ++i) {
+        auto resp = boost::get<sindex_status_response_t>(&responses[0].response);
+        guarantee(resp != NULL);
+        for (auto it = resp->statuses.begin(); it != resp->statuses.end(); ++it) {
+            add_status(it->second, &ss_response->statuses[it->first]);
         }
     }
-};
+}
 
 void read_t::unshard(read_response_t *responses, size_t count,
                      read_response_t *response_out, context_t *ctx,
@@ -1968,7 +1804,10 @@ region_t rdb_protocol_t::cpu_sharding_subspace(int subregion_number,
     return region_t(beg, end, key_range_t::universe());
 }
 
-RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_details::rget_item_t, key, sindex_key, data);
+RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_details::rget_item_t,
+                           key,
+                           empty_ok(sindex_key),
+                           data);
 RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_details::single_sindex_status_t,
                            blocks_total, blocks_processed, ready);
 

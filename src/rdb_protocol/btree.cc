@@ -646,113 +646,6 @@ private:
 typedef std::vector<counted_t<const ql::datum_t> > lst_t;
 typedef std::map<counted_t<const ql::datum_t>, lst_t> groups_t;
 
-class op_t {
-public:
-    op_t() { }
-    virtual ~op_t() { }
-    virtual void operator()(groups_t *groups) = 0;
-};
-
-class ungrouped_op_t : public op_t {
-protected:
-private:
-    virtual void operator()(groups_t *groups) {
-        for (auto it = groups->begin(); it != groups->end(); ++it) {
-            lst_transform(&it->second);
-        }
-    }
-    virtual void lst_transform(lst_t *lst) = 0;
-};
-
-class map_trans_t : public ungrouped_op_t {
-public:
-    map_trans_t(ql::env_t *_env, const ql::map_wire_func_t &_f)
-        : env(_env), f(_f.compile_wire_func()) { }
-private:
-    virtual void lst_transform(lst_t *lst) {
-        try {
-            for (auto it = lst->begin(); it != lst->end(); ++it) {
-                *it = f->call(env, *it)->as_datum();
-            }
-        } catch (const ql::datum_exc_t &e) {
-            throw ql::exc_t(e, f->backtrace().get(), 1);
-        }
-    }
-    ql::env_t *env;
-    counted_t<ql::func_t> f;
-};
-
-class filter_trans_t : public ungrouped_op_t {
-public:
-    filter_trans_t(ql::env_t *_env, const filter_wire_func_t &_f)
-        : env(_env),
-          f(_f.compile_wire_func()),
-          default_val(_f.default_filter_val
-                      ? _f.default_filter_val->compile_wire_func()
-                      : counted_t<func_t>()) { }
-private:
-    virtual void lst_transform(lst_t *lst) {
-        auto it = lst->begin();
-        auto loc = it;
-        try {
-            for (it = lst->begin(); it != lst->end(); ++it) {
-                if (f->filter_call(env, *it, default_val)) {
-                    loc->swap(*it);
-                    ++loc;
-                }
-            }
-        } catch (const ql::datum_exc_t &e) {
-            throw ql::exc_t(e, f->backtrace().get(), 1);
-        }
-        lst->erase(loc, lst->end());
-    }
-    ql::env_t *env;
-    counted_t<ql::func_t> f, default_val;
-};
-
-class concatmap_trans_t : public ungrouped_op_t {
-public:
-    concatmap_trans_t(ql::env_t *_env, const concatmap_wire_func_t &_f)
-        : env(_env), f(_f.compile_wire_func()) { }
-private:
-    virtual void lst_transform(lst_t *lst) {
-        lst_t new_lst;
-        ql::batchspec_t bs = ql::batchspec_t::user(ql::batch_type_t::TERMINAL, env);
-        ql::profile::sampler_t sampler("Evaluating CONCAT_MAP elements.", env->trace);
-        try {
-            for (auto it = lst->begin(); it != lst->end(); ++it) {
-                auto ds = f->call(env, *it)->as_seq(env);
-                while (auto v = ds->next_batch(env, bs)) {
-                    new_lst.reserve(new_lst.size() + v.size());
-                    new_lst.insert(new_lst.end(), v.begin(), v.end());
-                    sampler.new_sample();
-                }
-            }
-        } catch (const ql::datum_exc_t &e) {
-            throw ql::exc_t(e, f->backtrace().get(), 1);
-        }
-        lst->swap(new_lst);
-    }
-    ql::env_t *env;
-    counted_t<ql::func_t> f;
-};
-
-class transform_visitor_t : public boost::static_visitor_t<op_t *> {
-    // We need a visitor for the variant, but only `job_data_t` needs to do this.
-    friend class job_data_t;
-    terminal_visitor_t(ql::env_t *_env) : env(_env) { }
-    op_t *operator()(const map_wire_func_t &f) const {
-        return new map_trans_t(env, f);
-    }
-    op_t *operator()(const filter_wire_func_t &f) const {
-        return new filter_trans_t(env, f);
-    }
-    op_t *operator()(const concatmap_wire_func_t &f) const {
-        return new concatmap_trans_t(env, f);
-    }
-    ql::env_t *env;
-};
-
 
 class job_data_t {
 public:
@@ -763,12 +656,13 @@ public:
         : env(_env),
           batcher(batchspec.to_batcher()),
           transformers(_transforms.size()),
-          accumulator(_terminal ? make_terminal(env, *terminal) : make_append()),
+          accumulator(_terminal
+                      ? ql::make_terminal(env, *_terminal)
+                      : ql::make_append(&batcher)),
           sorting(_sorting) {
         guarantee(transformers.size() == _transforms.size());
         for (size_t i = 0; i < _transforms.size(); ++i) {
-            transformers[i].init(
-                boost::apply_visitor(transform_visitor_t(env), _transforms[i]));
+            transformers[i].init(ql::make_op(env, _transforms[i]));
         }
     }
     job_data_t(job_data_t &&other) = default;
@@ -776,9 +670,9 @@ private:
     friend class rget_cb_t;
     ql::env_t *const env;
     ql::batcher_t batcher;
-    const std::vector<scoped_ptr_t<op_t> > transformers;
-    const scoped_ptr_t<accumulator_t> accumulator;
-    const sorting_t sorting;
+    std::vector<scoped_ptr_t<ql::op_t> > transformers;
+    scoped_ptr_t<ql::accumulator_t> accumulator;
+    sorting_t sorting;
 };
 
 class io_data_t {
@@ -805,9 +699,6 @@ public:
     THROWS_ONLY(interrupted_exc_t);
     void finish() THROWS_ONLY(interrupted_exc_t);
 private:
-    counted_t<const ql::datum_t>
-    load_val(const rdb_value_t *valptr, transaction_t *transaction);
-
     const io_data_t io; // How do get data in/out.
     job_data_t job; // What to do next (stateful).
     const boost::optional<sindex_data_t> sindex; // Optional sindex information.
@@ -829,70 +720,40 @@ rget_cb_t::rget_cb_t(io_data_t &&_io,
     io.response->last_considered_key = !reversed(job.sorting)
         ? range.left
         : (!range.right.unbounded ? range.right.key : store_key_t::max());
-
-    try {
-        io.response->result = job.terminal
-            ? ql::shards::terminal_start(*job.terminal)
-            : ql::shards::stream_start();
-    } catch (const ql::exc_t &e) {
-        io.response->result = e;
-        bad_init = true;
-    } catch (const ql::datum_exc_t &e) {
-        io.response->result = ql::shards::terminal_exc(e, *job.terminal);
-        bad_init = true;
-    }
-
-
     disabler.init(new profile::disabler_t(job.env->trace));
     sampler.init(new profile::sampler_t("Range traversal doc evaluation.",
                                         job.env->trace));
 }
 
 void rget_cb_t::finish() THROWS_ONLY(interrupted_exc_t) {
-    job.accumulator->finish(io.response);
-}
-
-counted_t<const ql::datum_t>
-rget_cb_t::load_val(const rdb_value_t *valptr, transaction_t *transaction) {
-    lazy_json_t val(valptr, transaction);
-    counted_t<const ql::datum_t> retval;
-    // When doing "count" queries, we don't want to actually load the json
-    // value. Here we detect up-front whether we will need to load the value.
-    // If something uses the value, we load it here.  Otherwise we never load
-    // it.  The main problem with this code is that we still need a time to
-    // exclusively process each row, in between the call to
-    // waiter.wait_interruptible() and the end of this function.  If we fixed
-    // the design that makes us need to _process_ each row one at a time, we
-    // wouldn't have to guess up front whether the lazy_json_t actually needs to
-    // be loaded, and the code would be safer (and algorithmically more
-    // parallelized).
-    if (sindex || !job.transforms.empty() || !job.terminal
-        || ql::shards::terminal_uses_value(*job.terminal)) {
-        // Force the value to be loaded.
-        retval = val.get();
-        // Increment reads here since the btree doesn't know if we actually do a read
-        io.slice->stats.pm_keys_read.record();
+    job.accumulator->finish(&io.response->result);
+    if (job.accumulator->should_send_batch()) {
+        io.response->truncated = true;
     }
-    return retval;
 }
 
-// Handle a keyvalue pair.  Returns `true` if we should keep going or `false` if
-// we're done (e.g. we finished a batch or there was an error).
+// Handle a keyvalue pair.  Returns whether or not we're done early.
 done_t rget_cb_t::handle_pair(scoped_key_value_t &&keyvalue,
                               concurrent_traversal_fifo_enforcer_signal_t waiter)
 THROWS_ONLY(interrupted_exc_t) {
     sampler->new_sample();
 
-    guarantee(boost::get<ql::exc_t>(io.result) == NULL);
+    guarantee(boost::get<ql::exc_t>(&io.response->result) == NULL);
     if (bad_init) return done_t::YES;
 
-    // Load the key and value (may be empty if we're doing a count query).
+    // Load the key and value.
     store_key_t key(keyvalue.key());
     if (sindex && sindex->pkey_range.contains_key(ql::datum_t::extract_primary(key))) {
         return done_t::NO;
     }
-    counted_t<const ql::datum_t> val = load_val(
-        static_cast<const rdb_value_t *>(keyvalue.value()), io.transaction);
+
+    lazy_json_t row(static_cast<const rdb_value_t *>(keyvalue.value()), io.transaction);
+    counted_t<const ql::datum_t> val;
+    // We only load the value if we actually use it (`count` does not).
+    if (job.accumulator->uses_val()) {
+        val = row.get();
+        io.slice->stats.pm_keys_read.record();
+    }
     keyvalue.reset();
     waiter.wait_interruptible();
 
@@ -920,15 +781,15 @@ THROWS_ONLY(interrupted_exc_t) {
         }
 
         groups_t data;
-        data->insert(std::make_pair<counted_t<const datum_t>(), val);
+        data.insert(std::make_pair(counted_t<const ql::datum_t>(), val));
 
         for (auto it = job.transformers.begin(); it != job.transformers.end(); ++it) {
-            (*it)(&data);
+            (**it)(&data);
         }
         // We need lots of extra data for the accumulation because we might be
         // accumulating `rget_item_t`s for a batch.
-        return (*job.accumulator)(&data, key, sindex_val, job.sorting, &job.batcher);
-        //                                    ^^^^^^^^^^ NULL if no sindex
+        return (*job.accumulator)(&data, std::move(key), std::move(sindex_val));
+        //                                       NULL if no sindex ^^^^^^^^^^
     } catch (const ql::exc_t &e) {
         io.response->result = e;
         return done_t::YES;
@@ -1221,12 +1082,13 @@ void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
     profile::starter_t starter("Do range scan on primary index.", ql_env->trace);
     rget_cb_t callback(
         io_data_t(txn, response, slice),
-        make_scoped<job_t>(ql_env, batchspec, transform, terminal, sorting),
+        job_data_t(ql_env, batchspec, transform, terminal, sorting),
         boost::optional<sindex_data_t>(),
         range);
     btree_concurrent_traversal(slice, txn, superblock, range, &callback,
                                (!reversed(sorting) ? FORWARD : BACKWARD));
 
+    // RSI: kill
     boost::apply_visitor(result_finalizer_visitor_t(), response->result);
 }
 

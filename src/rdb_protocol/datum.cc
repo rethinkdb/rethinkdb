@@ -1099,7 +1099,8 @@ size_t serialized_size(const counted_t<const datum_t> &datum) {
     return sz;
 }
 
-write_message_t &operator<<(write_message_t &wm, const counted_t<const datum_t> &datum) {
+write_message_t &operator<<(write_message_t &wm,
+                            const counted_t<const datum_t> &datum) {
     r_sanity_check(datum.has());
     switch (datum->get_type()) {
     case datum_t::R_ARRAY: {
@@ -1254,7 +1255,8 @@ archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum) 
     return ARCHIVE_SUCCESS;
 }
 
-write_message_t &operator<<(write_message_t &wm, const empty_ok_t<const counted_t<const datum_t> > &datum) {
+write_message_t &operator<<(write_message_t &wm,
+                            const empty_ok_t<const counted_t<const datum_t> > &datum) {
     const counted_t<const datum_t> *pointer = datum.get();
     const bool has = pointer->has();
     wm << has;

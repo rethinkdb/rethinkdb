@@ -116,7 +116,7 @@ public:
         uuid_u _this_machine,
         profile_bool_t _profile);
 
-    env_t(rdb_protocol_t::contex_t *ctx, signal_t *interruptor, uuid_u machine);
+    env_t(rdb_protocol_t::context_t *ctx, signal_t *interruptor, uuid_u machine);
 
     ~env_t();
     void throw_if_interruptor_pulsed() THROWS_ONLY(interrupted_exc_t) {
