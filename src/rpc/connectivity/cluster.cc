@@ -961,8 +961,9 @@ void connectivity_cluster_t::send_message(peer_id_t dest, send_message_write_cal
                 if (conn_structure->conn->is_read_open()) {
                     conn_structure->conn->shutdown_read();
                 }
+            } else {
+                guarantee(res == static_cast<int64_t>(buffer.vector().size()));
             }
-            guarantee(res == static_cast<int64_t>(buffer.vector().size()));
         }
     }
 
