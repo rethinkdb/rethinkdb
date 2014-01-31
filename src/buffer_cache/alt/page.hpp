@@ -222,8 +222,6 @@ public:
     page_acq_t();
     ~page_acq_t();
 
-    // RSI: This doesn't actually try to make the page loaded, if it's not already
-    // loaded.
     void init(page_t *page, page_cache_t *page_cache);
 
     page_cache_t *page_cache() const {

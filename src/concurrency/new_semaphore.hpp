@@ -5,7 +5,7 @@
 #include "concurrency/cond_var.hpp"
 #include "containers/intrusive_list.hpp"
 
-// RSI: This is a horrible name, fix it.
+// KSI: This is a horrible name, fix it.
 
 class new_semaphore_acq_t;
 
