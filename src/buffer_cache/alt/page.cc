@@ -970,10 +970,6 @@ page_ptr_t &page_ptr_t::operator=(page_ptr_t &&movee) {
     return *this;
 }
 
-page_ptr_t page_ptr_t::copy() {
-    return page_ptr_t(page_, page_cache_);
-}
-
 void page_ptr_t::init(page_t *page, page_cache_t *page_cache) {
     rassert(page_ == NULL && page_cache_ == NULL);
     page_ = page;

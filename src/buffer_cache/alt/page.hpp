@@ -28,8 +28,6 @@ class page_cache_t;
 class page_txn_t;
 }  // namespace alt
 
-// RSI: Maybe use home_thread_mixin_debug_only_t.
-
 enum class alt_create_t { create };
 
 class memory_tracker_t {
@@ -140,11 +138,9 @@ private:
 
     void evict_self();
 
-    // RSI: Explain this more.
+    // KSI: Explain this more.
     // One of destroy_ptr_, buf_, or block_token_ is non-null.
     bool *destroy_ptr_;
-    // RSI: Make a block_size_t-like type for holding this value that lets you hold a
-    // zero value.
     uint32_t ser_buf_size_;
     scoped_malloc_t<ser_buffer_t> buf_;
     counted_t<standard_block_token_t> block_token_;
@@ -188,13 +184,11 @@ public:
     page_ptr_t();
 
     // The page must be reset(...) before it is destroyed.
+    // RSI: Not true any more.  Remove the page_cache field?
     ~page_ptr_t();
 
     page_ptr_t(page_ptr_t &&movee);
     page_ptr_t &operator=(page_ptr_t &&movee);
-
-    // RSI: Does anybody use this?
-    page_ptr_t copy();
 
     void init(page_t *page, page_cache_t *page_cache);
 
@@ -317,7 +311,7 @@ private:
 };
 
 class current_page_acq_t : public intrusive_list_node_t<current_page_acq_t>,
-                           public home_thread_mixin_t {
+                           public home_thread_mixin_debug_only_t {
 public:
     // RSI: Right now we support a default constructor but buf_lock_t actually
     // uses a scoped pointer now, because getting this type to be swappable was too
@@ -467,7 +461,7 @@ private:
     DISABLE_COPYING(eviction_bag_t);
 };
 
-class evicter_t : public home_thread_mixin_t {
+class evicter_t : public home_thread_mixin_debug_only_t {
 public:
     void add_not_yet_loaded(page_t *page);
     void add_now_loaded_size(uint32_t ser_buf_size);
@@ -501,7 +495,7 @@ private:
     DISABLE_COPYING(evicter_t);
 };
 
-class page_cache_t : public home_thread_mixin_t {
+class page_cache_t : public home_thread_mixin_debug_only_t {
 public:
     page_cache_t(serializer_t *serializer,
                  const page_cache_config_t &config,
