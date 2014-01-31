@@ -1602,7 +1602,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     void operator()(const sindex_drop_t &d) {
         sindex_drop_response_t res;
         value_sizer_t<rdb_value_t> sizer(btree->cache()->get_block_size());
-        rdb_value_non_deleter_t deleter;
+        rdb_value_detacher_t deleter;
 
         res.success = store->drop_sindex(d.id,
                                          &sindex_block,
@@ -1856,7 +1856,7 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
 
     void operator()(const backfill_chunk_t::sindexes_t &s) {
         value_sizer_t<rdb_value_t> sizer(txn->cache()->get_block_size());
-        rdb_value_non_deleter_t deleter;
+        rdb_value_detacher_t deleter;
         std::set<std::string> created_sindexes;
         store->set_sindexes(s.sindexes, &sindex_block, &sizer, &deleter,
                             &created_sindexes, interruptor);

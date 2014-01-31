@@ -183,7 +183,7 @@ void rdb_delete(const store_key_t &key, btree_slice_t *slice, repli_timestamp_t
 
 /* A deleter that doesn't actually delete the values. Needed for secondary
  * indexes which only have references. */
-class rdb_value_non_deleter_t : public value_deleter_t {
+class rdb_value_detacher_t : public value_deleter_t {
     void delete_value(buf_parent_t parent, void *value);
 };
 

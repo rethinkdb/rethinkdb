@@ -491,7 +491,7 @@ void rdb_value_deleter_t::delete_value(buf_parent_t parent, void *value) {
     actually_delete_rdb_value(parent, value);
 }
 
-void rdb_value_non_deleter_t::delete_value(buf_parent_t parent, void *value) {
+void rdb_value_detacher_t::delete_value(buf_parent_t parent, void *value) {
     detach_rdb_value(parent, value);
 }
 
@@ -520,7 +520,7 @@ void sindex_erase_range(const key_range_t &key_range,
     value_sizer_t<rdb_value_t> rdb_sizer(sindex_access->btree->cache()->get_block_size());
     value_sizer_t<void> *sizer = &rdb_sizer;
 
-    rdb_value_non_deleter_t deleter;
+    rdb_value_detacher_t deleter;
 
     sindex_key_range_tester_t tester(key_range);
 
