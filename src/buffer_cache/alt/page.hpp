@@ -183,8 +183,9 @@ public:
         : page_(NULL), page_cache_(NULL) { init(page, page_cache); }
     page_ptr_t();
 
-    // The page must be reset(...) before it is destroyed.
-    // RSI: Not true any more.  Remove the page_cache field?
+    // The page_ptr_t _should_ be reset ()) before the destructor is called, but
+    // it'll work right now without that.  Eventually, reset() will take a
+    // page_cache_t parameter, and the page_cache_ field will be removed.
     ~page_ptr_t();
 
     page_ptr_t(page_ptr_t &&movee);
@@ -203,7 +204,7 @@ public:
 
 private:
     page_t *page_;
-    // RSI: Get rid of this variable.
+    // KSI: Get rid of this variable.
     page_cache_t *page_cache_;
     DISABLE_COPYING(page_ptr_t);
 };
@@ -278,7 +279,7 @@ private:
     // Returns NULL if the page was deleted.
     page_t *the_page_for_read_or_deleted(current_page_help_t help);
 
-    // Has access to our fields.  RSI: Is this still true?
+    // Has access to our fields.
     friend class page_cache_t;
 
     bool is_deleted() const { return is_deleted_; }
@@ -291,7 +292,7 @@ private:
     // prematurely bother loading the page if it's going to be deleted.
     // the_page_for_write, the_page_for_read, or the_page_for_read_or_deleted should
     // be used to access this variable.
-    // RSI: Could we encapsulate that rule?
+    // KSI: Could we encapsulate that rule?
     page_ptr_t page_;
     // True if the block is in a deleted state.  page_ will be null.
     bool is_deleted_;
@@ -307,13 +308,14 @@ private:
 
     // All list elements have current_page_ != NULL, snapshotted_page_ == NULL.
     intrusive_list_t<current_page_acq_t> acquirers_;
+
     DISABLE_COPYING(current_page_t);
 };
 
 class current_page_acq_t : public intrusive_list_node_t<current_page_acq_t>,
                            public home_thread_mixin_debug_only_t {
 public:
-    // RSI: Right now we support a default constructor but buf_lock_t actually
+    // KSI: Right now we support a default constructor but buf_lock_t actually
     // uses a scoped pointer now, because getting this type to be swappable was too
     // hard.  Make this type be swappable or remove the default constructor.  (Remove
     // the page_cache_ != NULL check in the destructor we remove the default
