@@ -107,6 +107,20 @@ public:
                                a));
     }
 
+    void submit_resize(fd_t fd, int64_t new_size,
+                      void *account, linux_iocallback_t *cb,
+                      bool wrap_in_datasyncs) {
+        threadnum_t calling_thread = get_thread_id();
+
+        action_t *a = new action_t(calling_thread, cb);
+        a->make_resize(fd, new_size, wrap_in_datasyncs);
+        a->account = static_cast<accounting_diskmgr_t::account_t *>(account);
+
+        do_on_thread(home_thread(),
+                     std::bind(&linux_disk_manager_t::submit_action_to_stack_stats, this,
+                               a));
+    }
+
 #ifndef USE_WRITEV
 #error "USE_WRITEV not defined.  Did you include pool.hpp?"
 #elif USE_WRITEV
@@ -211,16 +225,24 @@ int64_t linux_file_t::get_size() {
     return file_size;
 }
 
+/* If you want to use this for downsizing a file, please check the WARNING about
+`set_size()` in disk.hpp */
 void linux_file_t::set_size(int64_t size) {
-    CT_ASSERT(sizeof(off_t) == sizeof(int64_t));
-    int res;
-    do {
-        res = ftruncate(fd.get(), size);
-    } while (res == -1 && get_errno() == EINTR);
-    guarantee_err(res == 0, "Could not ftruncate()");
+    rassert(diskmgr, "No diskmgr has been constructed (are we running without an event queue?)");
 
-    int errcode = perform_datasync(fd.get());
-    guarantee_xerr(errcode == 0, errcode, "Could not sync after ftruncate");
+    struct rs_callback_t : public linux_iocallback_t, cond_t {
+        void on_io_complete() {
+            delete this;
+        }
+
+        virtual void on_io_failure(int errsv, int64_t offset, int64_t) {
+            crash("ftruncate failed.  (%s) (target size = %" PRIi64 ")",
+                  errno_string(errsv).c_str(), offset);
+        }
+    };
+    rs_callback_t *rs_callback = new rs_callback_t();
+    diskmgr->submit_resize(fd.get(), size, default_account->get_account(),
+                           rs_callback, true);
 
     file_size = size;
 }

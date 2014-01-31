@@ -32,7 +32,7 @@ struct pool_diskmgr_action_t
 
     void make_write(fd_t _fd, const void *_buf, size_t _count, int64_t _offset,
                     bool _wrap_in_datasyncs) {
-        is_read = false;
+        type = ACTION_WRITE;
         wrap_in_datasyncs = _wrap_in_datasyncs;
         fd = _fd;
         buf_and_count.iov_base = const_cast<void *>(_buf);
@@ -40,11 +40,21 @@ struct pool_diskmgr_action_t
         offset = _offset;
     }
 
+    void make_resize(fd_t _fd, int64_t _new_size,
+                    bool _wrap_in_datasyncs) {
+        type = ACTION_RESIZE;
+        wrap_in_datasyncs = _wrap_in_datasyncs;
+        fd = _fd;
+        buf_and_count.iov_base = NULL;
+        buf_and_count.iov_len = 0;
+        offset = _new_size;
+    }
+
 #ifndef USE_WRITEV
 #error "USE_WRITEV not defined... but we are in pool.hpp.  Where is it?"
 #elif USE_WRITEV
     void make_writev(fd_t _fd, scoped_array_t<iovec> &&_bufs, size_t _count, int64_t _offset) {
-        is_read = false;
+        type = ACTION_WRITE;
         wrap_in_datasyncs = false;
         fd = _fd;
         iovecs = std::move(_bufs);
@@ -55,7 +65,7 @@ struct pool_diskmgr_action_t
 #endif
 
     void make_read(fd_t _fd, void *_buf, size_t _count, int64_t _offset) {
-        is_read = true;
+        type = ACTION_READ;
         wrap_in_datasyncs = false;
         fd = _fd;
         buf_and_count.iov_base = _buf;
@@ -63,8 +73,9 @@ struct pool_diskmgr_action_t
         offset = _offset;
     }
 
-    bool get_is_write() const { return !is_read; }
-    bool get_is_read() const { return is_read; }
+    bool get_is_write() const { return type == ACTION_WRITE; }
+    bool get_is_resize() const { return type == ACTION_RESIZE; }
+    bool get_is_read() const { return type == ACTION_READ; }
     fd_t get_fd() const { return fd; }
     void get_bufs(iovec **iovecs_out, size_t *iovecs_len_out) {
         if (buf_and_count.iov_base != NULL) {
@@ -89,7 +100,8 @@ private:
     friend class pool_diskmgr_t;
     pool_diskmgr_t *parent;
 
-    bool is_read;
+    enum action_type_t {ACTION_READ, ACTION_WRITE, ACTION_RESIZE};
+    action_type_t type;
     bool wrap_in_datasyncs;
     fd_t fd;
 

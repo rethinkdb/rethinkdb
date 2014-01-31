@@ -3,6 +3,7 @@
 #define ARCH_IO_DISK_CONFLICT_RESOLVING_HPP_
 
 #include <map>
+#include <set>
 #include <deque>
 
 #include "errors.hpp"
@@ -90,6 +91,10 @@ private:
         *end = ceil_aligned(a->get_offset() + a->get_count(), DEVICE_BLOCK_SIZE) / DEVICE_BLOCK_SIZE;
     }
 
+    /* Usually just calls submit_fun. Except for resize actions, in which case
+    is also sets `resize_active`. */
+    void submit_action_downwards(action_t *action);
+
     /* For each chunk B in the file FD: all_chunk_queues[FD][B] contains a deque
     of things that are either (a) waiting to operate on that chunk but cannot
     because something else is currently operating on that chunk, or (b) which
@@ -100,6 +105,12 @@ private:
     properties of multimaps that are not guaranteed by the C++ standard. */
 
     std::map<fd_t, std::map<int64_t, std::deque<action_t *> > > all_chunk_queues;
+
+    /* `resize_waiter_queues` contains actions that are waiting for an ongoing
+    resize to finish. Right now, a resize operation blocks the whole file. */
+    std::map<fd_t, std::deque<action_t *> > resize_waiter_queues;
+    /* Contains an entry for as long as a resize operation is active. */
+    std::set<fd_t> resize_active;
 
     perfmon_sampler_t conflict_sampler;
     perfmon_membership_t conflict_sampler_membership;
