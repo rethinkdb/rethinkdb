@@ -615,13 +615,13 @@ void get_btree_superblock_and_txn_for_backfilling(btree_slice_t *slice,
     txn->set_account(slice->get_backfill_account());
 
     get_btree_superblock(txn, access_t::read, got_superblock_out);
-    // RSI: This is bad -- we want to backfill, we don't want to snapshot from the
+    // KSI: This is bad -- we want to backfill, we don't want to snapshot from the
     // superblock (and therefore secondary indexes)-- we really want to snapshot the
     // subtree underneath the root node.
     (*got_superblock_out)->get()->snapshot_subdag();
 }
 
-// RSI: This function is possibly stupid: it's nonsensical to talk about the entire
+// KSI: This function is possibly stupid: it's nonsensical to talk about the entire
 // cache being snapshotted -- we want some subtree to be snapshotted, at least.
 void get_btree_superblock_and_txn_for_reading(btree_slice_t *slice,
                                               cache_snapshotted_t snapshotted,
@@ -633,7 +633,7 @@ void get_btree_superblock_and_txn_for_reading(btree_slice_t *slice,
 
     get_btree_superblock(txn, access_t::read, got_superblock_out);
 
-    // RSI: As mentioned, snapshotting here is stupid.
+    // KSI: As mentioned, snapshotting here is stupid.
     if (snapshotted == CACHE_SNAPSHOTTED_YES) {
         (*got_superblock_out)->get()->snapshot_subdag();
     }

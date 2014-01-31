@@ -530,10 +530,9 @@ void process_a_leaf_node(traversal_state_t *state, buf_lock_t buf,
         rassert(population_change == 0, "A read only operation claims it change the population of a leaf.\n");
         buf.reset_buf_lock();
     } else if (population_change != 0) {
-        // RSI: Should we _actually_ pass &buf as the parent?
-        // RSI: See operations.tcc for another use of the stat block.
-        // RSI: having buf as the parent doesn't really make sense. The stat block
-        // doesn't really have a parent.
+        // RSI: Should we _actually_ pass &buf as the parent? See operations.tcc for
+        // another use of the stat block.  Having buf as the parent doesn't really
+        // make sense. The stat block doesn't really have a parent.
         buf_lock_t stat_block(&buf, state->stat_block, access_t::write);
         buf.reset_buf_lock();
         buf_write_t stat_block_write(&stat_block);
