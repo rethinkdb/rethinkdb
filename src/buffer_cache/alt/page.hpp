@@ -536,7 +536,7 @@ private:
     static void remove_txn_set_from_graph(page_cache_t *page_cache,
                                           const std::set<page_txn_t *> &txns);
 
-    // RSI: Maybe just have txn_t hold a single list of block_change_t objects.
+    // KSI: Maybe just have txn_t hold a single list of block_change_t objects.
     struct block_change_t {
         block_change_t(block_version_t _version, bool _modified,
                        page_t *_page, repli_timestamp_t _tstamp)
