@@ -14,7 +14,7 @@ class query_http_app_t : public http_app_t {
 public:
     query_http_app_t(const boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > &_semilattice_metadata, namespace_repo_t<rdb_protocol_t> * _ns_repo);
     ~query_http_app_t();
-    http_res_t handle(const http_req_t &, signal_t *interruptor);
+    void handle(const http_req_t &, http_res_t *result, signal_t *interruptor);
 
 private:
     boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > semilattice_metadata;

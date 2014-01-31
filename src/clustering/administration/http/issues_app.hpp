@@ -8,7 +8,7 @@
 class issues_http_app_t : public http_json_app_t {
 public:
     explicit issues_http_app_t(global_issue_tracker_t *_issue_tracker);
-    http_res_t handle(const http_req_t &req, signal_t *interruptor);
+    void handle(const http_req_t &req, http_res_t *result, signal_t *interruptor);
     void get_root(scoped_cJSON_t *json_out);
 
 private:

@@ -12,7 +12,7 @@
 class combining_http_app_t : public http_app_t {
 public:
     explicit combining_http_app_t(std::map<std::string, http_json_app_t *> _components);
-    http_res_t handle(const http_req_t &, signal_t *interruptor);
+    void handle(const http_req_t &, http_res_t *result, signal_t *interruptor);
 
 private:
     std::map<std::string, http_json_app_t *> components;

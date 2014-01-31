@@ -135,9 +135,10 @@ boost::optional<http_res_t> parse_query_params(
     return boost::none;
 }
 
-http_res_t stat_http_app_t::handle(const http_req_t &req, signal_t *interruptor) {
+void stat_http_app_t::handle(const http_req_t &req, http_res_t *result, signal_t *interruptor) {
     if (req.method != GET) {
-        return http_res_t(HTTP_METHOD_NOT_ALLOWED);
+        *result = http_res_t(HTTP_METHOD_NOT_ALLOWED);
+        return;
     }
     std::set<std::string> filter_paths;
     std::set<std::string> machine_whitelist;
@@ -146,10 +147,16 @@ http_res_t stat_http_app_t::handle(const http_req_t &req, signal_t *interruptor)
 #else
     uint64_t timeout = DEFAULT_STAT_REQ_TIMEOUT_MS*10;
 #endif
-    if (req.method != GET) return http_res_t(HTTP_METHOD_NOT_ALLOWED);
+    if (req.method != GET) {
+        *result = http_res_t(HTTP_METHOD_NOT_ALLOWED);
+        return;
+    }
     boost::optional<http_res_t> maybe_error_res =
         parse_query_params(req, &filter_paths, &machine_whitelist, &timeout);
-    if (maybe_error_res) return *maybe_error_res;
+    if (maybe_error_res) {
+        *result = *maybe_error_res;
+        return;
+    }
 
     scoped_cJSON_t body(cJSON_CreateObject());
 
@@ -200,5 +207,5 @@ http_res_t stat_http_app_t::handle(const http_req_t &req, signal_t *interruptor)
 
     cJSON_AddItemToObject(body.get(), "machines", prepare_machine_info(not_replied));
 
-    return http_json_res(body.get());
+    http_json_res(body.get(), result);
 }

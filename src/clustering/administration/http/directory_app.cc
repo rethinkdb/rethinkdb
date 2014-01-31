@@ -61,9 +61,10 @@ void directory_http_app_t::get_root(scoped_cJSON_t *json_out) {
     }
 }
 
-http_res_t directory_http_app_t::handle(const http_req_t &req, signal_t *) {
+void directory_http_app_t::handle(const http_req_t &req, http_res_t *result, signal_t *) {
     if (req.method != GET) {
-        return http_res_t(HTTP_METHOD_NOT_ALLOWED);
+        *result = http_res_t(HTTP_METHOD_NOT_ALLOWED);
+        return;
     }
     try {
         std::map<peer_id_t, cluster_directory_metadata_t> md = directory_metadata->get().get_inner();
@@ -86,26 +87,26 @@ http_res_t directory_http_app_t::handle(const http_req_t &req, signal_t *) {
                 std::string machine_id = uuid_to_str(metadata.machine_id);
                 body.AddItemToObject(machine_id.c_str(), get_metadata_json(&metadata, it, req.resource.end()));
             }
-            return http_json_res(body.get());
+            http_json_res(body.get(), result);
         } else {
             for (std::map<peer_id_t, cluster_directory_metadata_t>::const_iterator i = md.begin(); i != md.end(); ++i) {
                 cluster_directory_metadata_t metadata = i->second;
                 std::string machine_id = uuid_to_str(metadata.machine_id);
                 if (*requested_machine_id == machine_id) {
                     scoped_cJSON_t machine_json(get_metadata_json(&metadata, it, req.resource.end()));
-                    return http_json_res(machine_json.get());
+                    http_json_res(machine_json.get(), result);
+                    return;
                 }
             }
-            return http_error_res("Machine not found", HTTP_NOT_FOUND);
+            *result = http_error_res("Machine not found", HTTP_NOT_FOUND);
         }
-        unreachable();
     } catch (const schema_mismatch_exc_t &e) {
         logINF("HTTP request threw a schema_mismatch_exc_t with what = %s", e.what());
-        return http_error_res(e.what(), HTTP_NOT_FOUND);
+        *result = http_error_res(e.what(), HTTP_NOT_FOUND);
     } catch (const permission_denied_exc_t &e) {
         logINF("HTTP request threw a permission_denied_exc_t with what = %s", e.what());
         // TODO: should that be 405 Method Not Allowed?
-        return http_error_res(e.what(), HTTP_FORBIDDEN);
+        *result = http_error_res(e.what(), HTTP_FORBIDDEN);
     }
 }
 

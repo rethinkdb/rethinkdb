@@ -13,7 +13,7 @@
 class progress_app_t : public http_app_t {
 public:
     progress_app_t(clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > > _directory_metadata, mailbox_manager_t *_mbox_manager);
-    http_res_t handle(const http_req_t &, signal_t *interruptor);
+    void handle(const http_req_t &, http_res_t *result, signal_t *interruptor);
 
 private:
     clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > > directory_metadata;

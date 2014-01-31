@@ -449,12 +449,11 @@ void http_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &nconn
     http_req_t req;
     tcp_http_msg_parser_t http_msg_parser;
 
-    /* parse the request */
+    // Parse the request
     try {
-        // TODO: do this without copying the result
         http_res_t res;
         if (http_msg_parser.parse(conn.get(), &req, keepalive.get_drain_signal())) {
-            res = application->handle(req, keepalive.get_drain_signal());
+            application->handle(req, &res, keepalive.get_drain_signal());
             res.version = req.version;
             maybe_gzip_response(req, &res);
         } else {

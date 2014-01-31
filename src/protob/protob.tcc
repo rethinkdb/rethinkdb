@@ -263,48 +263,44 @@ private:
 };
 
 template <class request_t, class response_t, class context_t>
-http_res_t protob_server_t<request_t, response_t, context_t>::handle(
-    const http_req_t &req, signal_t *interruptor) {
+void protob_server_t<request_t, response_t, context_t>::handle(const http_req_t &req,
+                                                               http_res_t *result,
+                                                               signal_t *interruptor) {
     auto_drainer_t::lock_t auto_drainer_lock(&auto_drainer);
     if (req.method == POST &&
         req.resource.as_string().find("close-connection") != std::string::npos) {
 
         boost::optional<std::string> optional_conn_id = req.find_query_param("conn_id");
         if (!optional_conn_id) {
-            return http_res_t(HTTP_BAD_REQUEST, "application/text",
-                              "Required parameter \"conn_id\" missing\n");
+            *result = http_res_t(HTTP_BAD_REQUEST, "application/text",
+                                 "Required parameter \"conn_id\" missing\n");
         }
 
         std::string string_conn_id = *optional_conn_id;
         int32_t conn_id = boost::lexical_cast<int32_t>(string_conn_id);
         http_conn_cache.erase(conn_id);
 
-        http_res_t res(HTTP_OK);
-        res.version = "HTTP/1.1";
+        result->code = HTTP_OK;
 #ifndef NDEBUG
-        res.add_header_line("Access-Control-Allow-Origin", "*");
+        result->add_header_line("Access-Control-Allow-Origin", "*");
 #endif
-
-        return res;
     } else if (req.method == GET &&
                req.resource.as_string().find("open-new-connection")) {
         int32_t conn_id = http_conn_cache.create();
 
-        http_res_t res(HTTP_OK);
-        res.version = "HTTP/1.1";
-#ifndef NDEBUG
-        res.add_header_line("Access-Control-Allow-Origin", "*");
-#endif
         std::string body_data;
         body_data.assign(reinterpret_cast<char *>(&conn_id), sizeof(conn_id));
-        res.set_body("application/octet-stream", body_data);
-
-        return res;
+        result->set_body("application/octet-stream", body_data);
+        result->code = HTTP_OK;
+#ifndef NDEBUG
+        result->add_header_line("Access-Control-Allow-Origin", "*");
+#endif
     } else {
         boost::optional<std::string> optional_conn_id = req.find_query_param("conn_id");
         if (!optional_conn_id) {
-            return http_res_t(HTTP_BAD_REQUEST, "application/text",
-                              "Required parameter \"conn_id\" missing\n");
+            *result = http_res_t(HTTP_BAD_REQUEST, "application/text",
+                                 "Required parameter \"conn_id\" missing\n");
+            return;
         }
         std::string string_conn_id = *optional_conn_id;
         int32_t conn_id = boost::lexical_cast<int32_t>(string_conn_id);
@@ -336,8 +332,9 @@ http_res_t protob_server_t<request_t, response_t, context_t>::handle(
                 interruptor_mixer_t<context_t> interruptor_mixer(ctx, interruptor);
                 response_needed = f(request, &response, ctx);
                 if (!response_needed) {
-                    return http_res_t(HTTP_BAD_REQUEST, "application/text",
-                                      "Noreply writes unsupported over HTTP\n");
+                    *result = http_res_t(HTTP_BAD_REQUEST, "application/text",
+                                         "Noreply writes unsupported over HTTP\n");
+                    return;
                 }
             }
         } break;
@@ -354,17 +351,13 @@ http_res_t protob_server_t<request_t, response_t, context_t>::handle(
         *reinterpret_cast<int32_t *>(res_data.data()) = res_size;
         response.SerializeToArray(res_data.data() + sizeof(res_size), res_size);
 
-        http_res_t res(HTTP_OK);
-        res.version = "HTTP/1.1";
-#ifndef NDEBUG
-        res.add_header_line("Access-Control-Allow-Origin", "*");
-#endif
-
         std::string body_data;
         body_data.assign(res_data.data(), res_size + sizeof(res_size));
-        res.set_body("application/octet-stream", body_data);
-
-        return res;
+        result->set_body("application/octet-stream", body_data);
+        result->code = HTTP_OK;
+#ifndef NDEBUG
+        result->add_header_line("Access-Control-Allow-Origin", "*");
+#endif
     }
 }
 

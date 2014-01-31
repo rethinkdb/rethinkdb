@@ -9,7 +9,7 @@ query_http_app_t::query_http_app_t(namespace_interface_t<dummy_protocol_t> * _na
     : namespace_if(_namespace_if)
 { }
 
-http_res_t query_http_app_t::handle(const http_req_t &req, signal_t *) {
+void query_http_app_t::handle(const http_req_t &req, http_res_t *result, signal_t *) {
     try {
         switch (req.method) {
             case GET:
@@ -24,14 +24,12 @@ http_res_t query_http_app_t::handle(const http_req_t &req, signal_t *) {
                 dummy_protocol_t::read_response_t read_res;
                 namespace_if->read(read, &read_res, order_source.check_in("dummy parser"), &cond);
 
-                http_res_t res;
                 if (read_res.values.find(*it) != read_res.values.end()) {
-                    res.code = 200;
-                    res.set_body("application/text", read_res.values[*it]);
+                    result->code = 200;
+                    result->set_body("application/text", read_res.values[*it]);
                 } else {
-                    res.code = 404;
+                    result->code = 404;
                 }
-                return res;
             }
             break;
             case PUT:
@@ -47,7 +45,7 @@ http_res_t query_http_app_t::handle(const http_req_t &req, signal_t *) {
                 dummy_protocol_t::write_response_t write_res;
                 namespace_if->write(write, &write_res, order_source.check_in("dummy parser"), &cond);
 
-                return http_res_t(HTTP_NO_CONTENT);
+                *result = http_res_t(HTTP_NO_CONTENT);
             }
             break;
             case HEAD:
@@ -60,9 +58,8 @@ http_res_t query_http_app_t::handle(const http_req_t &req, signal_t *) {
                 crash("Not implemented\n");
                 break;
         }
-        crash("Unreachable\n");
     } catch (const cannot_perform_query_exc_t &) {
-        return http_res_t(HTTP_INTERNAL_SERVER_ERROR);
+        *result = http_res_t(HTTP_INTERNAL_SERVER_ERROR);
     }
 }
 

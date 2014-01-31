@@ -11,7 +11,7 @@ class file_http_app_t : public http_app_t {
 public:
     file_http_app_t(std::set<std::string> _whitelist, std::string _asset_dir);
 
-    http_res_t handle(const http_req_t &, signal_t *interruptor);
+    void handle(const http_req_t &, http_res_t *result, signal_t *interruptor);
 private:
     void handle_blocking(std::string filename, http_res_t *res_out);
 

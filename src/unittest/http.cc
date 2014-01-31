@@ -97,7 +97,7 @@ public:
         return &request_received;
     }
 
-    http_res_t handle(const http_req_t &, signal_t *interruptor) {
+    void handle(const http_req_t &, http_res_t *, signal_t *interruptor) {
         request_received.pulse();
         interruptor->wait();
         throw interrupted_exc_t();

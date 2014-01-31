@@ -17,7 +17,7 @@ class distribution_app_t : public http_app_t {
 public:
     distribution_app_t(boost::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> > > >, namespace_repo_t<memcached_protocol_t> *,
                        boost::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > >, namespace_repo_t<rdb_protocol_t> *);
-    http_res_t handle(const http_req_t &, signal_t *interruptor);
+    void handle(const http_req_t &, http_res_t *result, signal_t *interruptor);
 
 private:
     boost::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> > > > namespaces_sl_metadata;

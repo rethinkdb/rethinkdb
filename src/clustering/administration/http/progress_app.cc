@@ -187,9 +187,10 @@ progress_app_t::progress_app_t(clone_ptr_t<watchable_t<change_tracking_map_t<pee
     : directory_metadata(_directory_metadata), mbox_manager(_mbox_manager)
 { }
 
-http_res_t progress_app_t::handle(const http_req_t &req, signal_t *interruptor) {
+void progress_app_t::handle(const http_req_t &req, http_res_t *result, signal_t *interruptor) {
     if (req.method != GET) {
-        return http_res_t(HTTP_METHOD_NOT_ALLOWED);
+        *result = http_res_t(HTTP_METHOD_NOT_ALLOWED);
+        return;
     }
 
     /* This function is an absolute mess, basically because we need to hack
@@ -311,7 +312,8 @@ http_res_t progress_app_t::handle(const http_req_t &req, signal_t *interruptor) 
     uint64_t timeout = DEFAULT_PROGRESS_REQ_TIMEOUT_MS;
     if (timeout_param) {
         if (!strtou64_strict(timeout_param.get(), 10, &timeout) || timeout == 0 || timeout > MAX_PROGRESS_REQ_TIMEOUT_MS) {
-            return http_error_res("Invalid timeout value.");
+            *result = http_error_res("Invalid timeout value.");
+            return;
         }
     }
 
@@ -381,5 +383,5 @@ http_res_t progress_app_t::handle(const http_req_t &req, signal_t *interruptor) 
         }
     }
 
-    return http_json_res(body.get());
+    http_json_res(body.get(), result);
 }

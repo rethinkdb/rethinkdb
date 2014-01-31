@@ -19,16 +19,17 @@ file_http_app_t::file_http_app_t(std::set<std::string> _whitelist, std::string _
     : whitelist(_whitelist), asset_dir(_asset_dir)
 { }
 
-http_res_t file_http_app_t::handle(const http_req_t &req, signal_t *) {
+void file_http_app_t::handle(const http_req_t &req, http_res_t *result, signal_t *) {
     if (req.method != GET) {
-        /* Method not allowed. */
-        return http_res_t(HTTP_METHOD_NOT_ALLOWED);
+        *result = http_res_t(HTTP_METHOD_NOT_ALLOWED);
+        return;
     }
 
     std::string resource(req.resource.as_string());
     if (resource != "/" && resource != "" && !std_contains(whitelist, resource)) {
         logINF("Someone asked for the nonwhitelisted file %s, if this should be accessible add it to the whitelist.", resource.c_str());
-        return http_res_t(HTTP_FORBIDDEN);
+        *result = http_res_t(HTTP_FORBIDDEN);
+        return;
     }
 
     std::string filename;
@@ -38,8 +39,6 @@ http_res_t file_http_app_t::handle(const http_req_t &req, signal_t *) {
     } else {
         filename = resource;
     }
-
-    http_res_t res;
 
     time_t expires;
 #ifndef NDEBUG
@@ -53,15 +52,13 @@ http_res_t file_http_app_t::handle(const http_req_t &req, signal_t *) {
         expires = get_secs() + 31536000; // One year from now
     }
 #endif
-    res.add_header_line("Expires", http_format_date(expires));
+    result->add_header_line("Expires", http_format_date(expires));
 
-    thread_pool_t::run_in_blocker_pool(boost::bind(&file_http_app_t::handle_blocking, this, filename, &res));
+    thread_pool_t::run_in_blocker_pool(boost::bind(&file_http_app_t::handle_blocking, this, filename, result));
 
-    if (res.code == 404) {
+    if (result->code == 404) {
         logINF("File %s was requested and is on the whitelist but we didn't find it in the directory.", (asset_dir + filename).c_str());
     }
-
-    return res;
 }
 
 bool ends_with(const std::string& str, const std::string& end) {

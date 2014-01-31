@@ -23,15 +23,17 @@ distribution_app_t::distribution_app_t(boost::shared_ptr<semilattice_read_view_t
       rdb_ns_repo(_rdb_ns_repo)
 { }
 
-http_res_t distribution_app_t::handle(const http_req_t &req, signal_t *interruptor) {
+void distribution_app_t::handle(const http_req_t &req, http_res_t *result, signal_t *interruptor) {
     if (req.method != GET) {
-        return http_res_t(HTTP_METHOD_NOT_ALLOWED);
+        *result = http_res_t(HTTP_METHOD_NOT_ALLOWED);
+        return;
     }
 
     boost::optional<std::string> maybe_n_id = req.find_query_param("namespace");
 
     if (!maybe_n_id || !is_uuid(*maybe_n_id)) {
-        return http_error_res("Valid uuid required for query parameter \"namespace\"\n");
+        *result = http_error_res("Valid uuid required for query parameter \"namespace\"\n");
+        return;
     }
     namespace_id_t n_id = str_to_uuid(*maybe_n_id);
 
@@ -43,7 +45,8 @@ http_res_t distribution_app_t::handle(const http_req_t &req, signal_t *interrupt
 
     if (maybe_depth) {
         if (!strtou64_strict(maybe_depth.get(), 10, &depth) || depth == 0 || depth > MAX_DEPTH) {
-            return http_error_res("Invalid depth value.");
+            *result = http_error_res("Invalid depth value.");
+            return;
         }
     }
 
@@ -52,7 +55,8 @@ http_res_t distribution_app_t::handle(const http_req_t &req, signal_t *interrupt
 
     if (maybe_limit) {
         if (!strtou64_strict(maybe_limit.get(), 10, &limit)) {
-            return http_error_res("Invalid limit value.");
+            *result = http_error_res("Invalid limit value.");
+            return;
         }
     }
 
@@ -67,9 +71,9 @@ http_res_t distribution_app_t::handle(const http_req_t &req, signal_t *interrupt
                                                         interruptor);
 
             scoped_cJSON_t data(render_as_json(&boost::get<distribution_result_t>(db_res.result).key_counts));
-            return http_json_res(data.get());
+            http_json_res(data.get(), result);
         } catch (const cannot_perform_query_exc_t &) {
-            return http_res_t(HTTP_INTERNAL_SERVER_ERROR);
+            *result = http_res_t(HTTP_INTERNAL_SERVER_ERROR);
         }
     } else if (std_contains(rdb_ns_snapshot->namespaces, n_id)) {
         try {
@@ -83,11 +87,11 @@ http_res_t distribution_app_t::handle(const http_req_t &req, signal_t *interrupt
                                                             interruptor);
 
             scoped_cJSON_t data(render_as_json(&boost::get<rdb_protocol_t::distribution_read_response_t>(db_res.response).key_counts));
-            return http_json_res(data.get());
+            http_json_res(data.get(), result);
         } catch (const cannot_perform_query_exc_t &) {
-            return http_res_t(HTTP_INTERNAL_SERVER_ERROR);
+            *result = http_res_t(HTTP_INTERNAL_SERVER_ERROR);
         }
     } else {
-        return http_res_t(HTTP_NOT_FOUND);
+        *result = http_res_t(HTTP_NOT_FOUND);
     }
 }
