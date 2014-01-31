@@ -153,7 +153,6 @@ public:
         const secondary_index_t::opaque_definition_t &definition,
         buf_lock_t *sindex_block);
 
-    // RSI: Is interruptor actually used?
     void set_sindexes(
         const std::map<std::string, secondary_index_t> &sindexes,
         buf_lock_t *sindex_block,
@@ -173,7 +172,6 @@ public:
         buf_lock_t *sindex_block)
     THROWS_NOTHING;
 
-    // RSI: Is interruptor actually used?
     bool drop_sindex(
         const std::string &id,
         buf_lock_t *sindex_block,
@@ -186,6 +184,7 @@ public:
     // sindex_block (so that sindex_list_t and sindex_status_t, the queries which use
     // this, don't block other queries).  It would be nice in general if we supported
     // passing the superblock_t in some way by rvalue reference.
+    // RSI: Does anybody actually use this function of the function?
     void get_sindexes(
         superblock_t *super_block,
         std::map<std::string, secondary_index_t> *sindexes_out);
