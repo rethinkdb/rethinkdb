@@ -6,8 +6,8 @@ import time
 import json
 import os
 
-from util import gen_doc
-from queries import constant_queries, table_queries, insert_queries, delete_queries
+from util import gen_doc, gen_num_docs
+from queries import constant_queries, table_queries, write_queries, delete_queries, range_write_queries
 
 import rethinkdb as r
 
@@ -45,8 +45,6 @@ tables = [
     }
 ]
 
-num_writes = 1000000 # How many documents there is per table
-
 # We execute each query for 60 seconds or 1000 times, whatever comes first
 time_per_query = 60 # 1 minute max per query
 executions_per_query = 1000 # 1000 executions max per query
@@ -55,7 +53,7 @@ executions_per_query = 1000 # 1000 executions max per query
 results = {}
 connection = None
 
-def run_tests(build=None):
+def run_tests(build="../../build/release"):
     global connection
     print "Starting cluster...",
     with RethinkDBTestServers(1, server_build_dir=build) as servers:
@@ -111,19 +109,20 @@ def execute_queries():
     # Execute the insert queries
     print "Running inserts...",
     for table in tables:
-        for p in xrange(len(insert_queries)):
+        for p in xrange(len(write_queries)):
             docs = []
+            num_writes = gen_num_docs(table["size_doc"])
             for i in xrange(num_writes):
                 docs.append(gen_doc(table["size_doc"], i))
 
             start = time.time()
 
             for i in xrange(num_writes):
-                result = eval(insert_queries[p]["query"]).run(connection)
+                result = eval(write_queries[p]["query"]).run(connection)
                 if "generated_keys" in result:
                     table["ids"].append(result["generated_keys"][0])
 
-            results[insert_queries[p]["tag"]+"-"+table["name"]] = num_writes/(time.time()-start)
+            results[write_queries[p]["tag"]+"-"+table["name"]] = num_writes/(time.time()-start)
             table["ids"].sort()
 
     print " Done."
@@ -155,7 +154,7 @@ def execute_queries():
 
                 count+=1
 
-            results[table_queries[p]["tag"]+"-"+table["name"]] = num_writes/(time.time()-start)
+            results[table_queries[p]["tag"]+"-"+table["name"]] = count/(time.time()-start)
 
     print " Done."
 
@@ -195,6 +194,7 @@ def execute_queries():
         for p in xrange(len(delete_queries)):
             start = time.time()
 
+            num_writes = gen_num_docs(table["size_doc"])
             for i in xrange(num_writes):
                 result = eval(delete_queries[p]["query"]).run(connection)
 

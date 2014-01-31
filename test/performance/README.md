@@ -9,6 +9,7 @@ Requirements
 ==========
 
 Python driver with the C++ backend.
+Require a release build in ../../build/release/
 
 
 
