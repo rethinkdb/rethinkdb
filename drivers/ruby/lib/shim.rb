@@ -2,9 +2,7 @@ require 'json'
 require 'time'
 
 module RethinkDB
-
   module Shim
-
     def self.is_reql_time(obj)
       obj.is_a? Hash and obj["$reql_type$"] == "TIME"
     end
@@ -121,7 +119,7 @@ module RethinkDB
     @@datum_types = [Fixnum, Float, Bignum, String, Symbol,
                      TrueClass, FalseClass, NilClass]
 
-    def any_to_pb(x, context)
+    def any_to_pb(x)
       return x.to_pb if x.class == RQL
       t = Term.new
       t.type = Term::TermType::JSON
@@ -136,23 +134,23 @@ module RethinkDB
       return (offset < 0 ? "-" : "+") + sprintf("%02d:%02d", raw_hours, raw_minutes);
     end
 
-    def fast_expr(x, context, allow_json)
+    def fast_expr(x, allow_json)
       return x if x.class == RQL
       if @@datum_types.include?(x.class)
         return x if allow_json
-        return RQL.new(Shim.native_to_datum_term(x), nil, context)
+        return RQL.new(Shim.native_to_datum_term(x), nil)
       end
 
       case x
       when Array
-        args = x.map{|y| fast_expr(y, context, allow_json)}
+        args = x.map{|y| fast_expr(y, allow_json)}
         return x if allow_json && args.all?{|y| y.class != RQL}
         t = Term.new
         t.type = Term::TermType::MAKE_ARRAY
-        t.args = args.map{|y| any_to_pb(y, context)}
-        return RQL.new(t, nil, context)
+        t.args = args.map{|y| any_to_pb(y)}
+        return RQL.new(t, nil)
       when Hash
-        kvs = x.map{|k,v| [k, fast_expr(v, context, allow_json)]}
+        kvs = x.map{|k,v| [k, fast_expr(v, allow_json)]}
         return x if allow_json && kvs.all? {|k,v|
           (k.class == String || k.class == Symbol) && v.class != RQL
         }
@@ -166,13 +164,13 @@ module RethinkDB
             raise RqlDriverError, "Object keys must be strings or symbols." +
               "  (Got object `#{k.inspect}` of class `#{k.class}`.)"
           end
-          ap.val = any_to_pb(v, context)
+          ap.val = any_to_pb(v)
           ap
         }
-        return RQL.new(t, nil, context)
+        return RQL.new(t, nil)
       when Proc
-        t = RQL.new(nil, nil, context).new_func(&x).to_pb
-        return RQL.new(t, nil, context)
+        t = RQL.new(nil, nil).new_func(&x).to_pb
+        return RQL.new(t, nil)
       else raise RqlDriverError, "r.expr can't handle #{x.inspect} of type #{x.class}"
       end
     end
@@ -202,10 +200,9 @@ module RethinkDB
     def expr(x, opts={})
       allow_json = opts[:allow_json]
       unbound_if @body
-      context = RPP.sanitize_context(caller)
-      res = fast_expr(reql_typify(x), context, allow_json)
+      res = fast_expr(reql_typify(x), allow_json)
       return res if res.class == RQL
-      return RQL.new(any_to_pb(res, context), nil, context)
+      return RQL.new(any_to_pb(res), nil)
     end
 
     def coerce(other)

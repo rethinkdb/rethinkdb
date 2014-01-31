@@ -199,10 +199,10 @@ module RethinkDB
       begin
         res = nil
         raise RqlRuntimeError, "Connection closed by server!" if not @listener
-        @mutex.synchronize do
+        @mutex.synchronize {
           (@waiters[token] = ConditionVariable.new).wait(@mutex) if not @data[token]
           res = @data.delete token if @data[token]
-        end
+        }
         raise RqlRuntimeError, "Connection closed by server!" if !@listener or !res
         return res
       rescue @abort_module::Abort => e
@@ -309,16 +309,16 @@ module RethinkDB
       end
 
       @listener.terminate if @listener
-      @listener = Thread.new do
-        loop do
+      @listener = Thread.new {
+        loop {
           begin
             response_length = @socket.read_exn(4).unpack('L<')[0]
             response = @socket.read_exn(response_length)
           rescue RqlRuntimeError => e
-            @mutex.synchronize do
+            @mutex.synchronize {
               @listener = nil
               @waiters.each {|kv| kv[1].signal}
-            end
+            }
             Thread.current.terminate
             abort("unreachable")
           end
@@ -329,7 +329,7 @@ module RethinkDB
             raise RqlRuntimeError, "Bad Protobuf #{response}, server is buggy."
           end
           if protob.token == -1
-            @mutex.synchronize do
+            @mutex.synchronize {
               @waiters.keys.each {|k|
                 @data[k] = protob
                 if @waiters[k]
@@ -337,18 +337,18 @@ module RethinkDB
                   cond.signal
                 end
               }
-            end
+            }
           else
-            @mutex.synchronize do
+            @mutex.synchronize {
               @data[protob.token] = protob
               if @waiters[protob.token]
                 cond = @waiters.delete protob.token
                 cond.signal
               end
-            end
+            }
           end
-        end
-      end
+        }
+      }
     end
   end
 end

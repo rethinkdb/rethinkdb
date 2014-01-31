@@ -123,7 +123,7 @@ private:
         }
 
         counted_t<val_t> sindex = optarg(env, "index");
-        std::string sid = (sindex.has() ? sindex->as_str() : tbl->get_pkey());
+        std::string sid = (sindex.has() ? sindex->as_str().to_std() : tbl->get_pkey());
 
         tbl->add_bounds(
             datum_range_t(lb, left_open(env) ? key_range_t::open : key_range_t::closed,

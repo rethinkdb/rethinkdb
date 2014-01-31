@@ -16,6 +16,7 @@
 #include "containers/archive/archive.hpp"
 #include "containers/counted.hpp"
 #include "containers/scoped.hpp"
+#include "containers/wire_string.hpp"
 #include "http/json.hpp"
 #include "rdb_protocol/error.hpp"
 
@@ -66,7 +67,10 @@ public:
     // Need to explicitly ask to construct a bool.
     datum_t(type_t _type, bool _bool);
     explicit datum_t(double _num);
+    // TODO: Eventually get rid of the std::string constructor (in favor of
+    //   wire_string_t *)
     explicit datum_t(std::string &&str);
+    explicit datum_t(wire_string_t *str);
     explicit datum_t(const char *cstr);
     explicit datum_t(std::vector<counted_t<const datum_t> > &&_array);
     explicit datum_t(std::map<std::string, counted_t<const datum_t> > &&object);
@@ -107,7 +111,7 @@ public:
     bool as_bool() const;
     double as_num() const;
     int64_t as_int() const;
-    const std::string &as_str() const;
+    const wire_string_t &as_str() const;
 
     // Use of `size` and `get` is preferred to `as_array` when possible.
     const std::vector<counted_t<const datum_t> > &as_array() const;
@@ -180,11 +184,12 @@ private:
     MUST_USE bool delete_field(const std::string &key);
 
     void init_empty();
-    void init_str();
+    void init_str(size_t size, const char *data);
     void init_array();
     void init_object();
     void init_json(cJSON *json);
 
+    void check_str_validity(const wire_string_t *str);
     void check_str_validity(const std::string &str);
 
     friend void pseudo::time_to_str_key(const datum_t &d, std::string *str_out);
@@ -202,8 +207,7 @@ private:
     union {
         bool r_bool;
         double r_num;
-        // TODO: Make this a char vector
-        std::string *r_str;
+        wire_string_t *r_str;
         std::vector<counted_t<const datum_t> > *r_array;
         std::map<std::string, counted_t<const datum_t> > *r_object;
     };

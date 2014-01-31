@@ -100,6 +100,7 @@ std::string create_sindex(btree_store_t<rdb_protocol_t> *store) {
     wm << multi_bool;
 
     vector_stream_t stream;
+    stream.reserve(wm.size());
     int res = send_write_message(&stream, &wm);
     guarantee(res == 0);
 

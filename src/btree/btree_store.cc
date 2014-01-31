@@ -46,6 +46,7 @@ btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
         write_message_t msg;
         typename protocol_t::region_t kr = protocol_t::region_t::universe();
         msg << kr;
+        key.reserve(msg.size());
         int res = send_write_message(&key, &msg);
         guarantee(!res);
 
@@ -781,6 +782,7 @@ void btree_store_t<protocol_t>::update_metainfo(const metainfo_t &old_metainfo,
         vector_stream_t key;
         write_message_t msg;
         msg << i->first;
+        key.reserve(msg.size());
         DEBUG_VAR int res = send_write_message(&key, &msg);
         rassert(!res);
 
@@ -823,7 +825,7 @@ get_metainfo_internal(buf_lock_t *sb_buf,
 
         typename protocol_t::region_t region;
         {
-            vector_read_stream_t key(&i->first);
+            inplace_vector_read_stream_t key(&i->first);
             archive_result_t res = deserialize(&key, &region);
             guarantee_deserialization(res, "region");
         }

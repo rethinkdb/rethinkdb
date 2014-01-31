@@ -150,7 +150,7 @@ bool bounded_op_term_t::right_open(scope_env_t *env) {
 bool bounded_op_term_t::open_bool(scope_env_t *env, const std::string &key, bool def/*ault*/) {
     counted_t<val_t> v = optarg(env, key);
     if (!v.has()) return def;
-    const std::string &s = v->as_str();
+    const wire_string_t &s = v->as_str();
     if (s == "open") {
         return true;
     } else if (s == "closed") {
