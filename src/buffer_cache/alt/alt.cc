@@ -178,8 +178,7 @@ txn_t::txn_t(cache_t *cache,
              read_access_t,
              txn_t *preceding_txn)
     : access_(access_t::read),
-      // RSI: Why does OvershardedSindexCreateDrop depend on this being SOFT or HARD?
-      durability_(write_durability_t::HARD),
+      durability_(write_durability_t::SOFT),
       // RSI: Fix the semaphore so that we don't have to use 1.
       saved_expected_change_count_(1) {
     help_construct(cache, repli_timestamp_t::invalid, preceding_txn);
