@@ -60,14 +60,12 @@ void find_keyvalue_location_for_write(
         // Check if the node is overfull and proactively split it if it is (since this is an internal node).
         {
             profile::starter_t starter("Perhaps split node.", trace);
-            // RSI: Ugh, we're passing the superblock, buf, and last_buf.  Really?
             check_and_handle_split(&sizer, &buf, &last_buf, superblock, key, static_cast<Value *>(NULL));
         }
 
         // Check if the node is underfull, and merge/level if it is.
         {
             profile::starter_t starter("Perhaps merge nodes.", trace);
-            // RSI: Ugh, we're passing the superblock, buf, last_buf here too.
             check_and_handle_underfull(&sizer, &buf, &last_buf, superblock, key);
         }
 
@@ -120,7 +118,6 @@ void find_keyvalue_location_for_write(
         }
     }
 
-    // RSI: keyvalue_location_out really saves last_buf?  Why??
     keyvalue_location_out->last_buf.swap(last_buf);
     keyvalue_location_out->buf.swap(buf);
 }
@@ -297,9 +294,11 @@ void apply_keyvalue_change(keyvalue_location_t<Value> *kv_loc,
                                kv_loc->superblock, key);
 
     // Modify the stats block.
-    // RSI: Should we _actually_ pass kv_loc->buf as the parent?
-    // RSI: See parallel_traversal.cc for another use of the stat block -- we do the
-    // same thing there.
+
+    // RSI: Should we _actually_ pass kv_loc->buf as the parent?  Readers would
+    // access it via the superblock, so we should acquire it as a child of the
+    // superblock?  Or just acquire it detached.  See parallel_traversal.cc for
+    // another use of the stat block -- we do the same thing there.
     buf_lock_t stat_block(&kv_loc->buf, kv_loc->stat_block, access_t::write);
     buf_write_t stat_block_write(&stat_block);
     auto stat_block_buf
