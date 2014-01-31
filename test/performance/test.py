@@ -244,6 +244,8 @@ def save_compare_results():
     global results, str_date
 
     # Save results
+    if not os.path.exists("results"):
+        os.makedirs("results")
     str_date = time.strftime("%y.%m.%d-%H:%M:%S")
     f = open("results/result_"+str_date+".txt", "w")
     str_res = json.dumps(results, indent=2)
@@ -266,6 +268,8 @@ def save_compare_results():
         previous_results = json.loads(f.read())
         f.close()
 
+        if not os.path.exists("comparisons"):
+            os.makedirs("comparisons")
 
         f = open("comparisons/comparison_"+str_date+".html", "w")
         f.write("<html><head><style>table{padding: 0px; margin: 0px;border-collapse:collapse;}\ntd{border: 1px solid #000; padding: 5px 8px; margin: 0px; text-align: right;}</style></head><body><table>")
