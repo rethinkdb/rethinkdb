@@ -203,6 +203,9 @@ void conflict_resolving_diskmgr_t::done(accounting_diskmgr_action_t *payload) {
         /* Resume all operations that were waiting for us. */
         std::deque<action_t *> &waiter_queue = resize_waiter_queues[action->get_fd()];
         while (!waiter_queue.empty()) {
+            rassert(resize_active.find(action->get_fd()) == resize_active.end());
+
+            /* Decrease the conflict count for the oldest remaining waiter. */
             action_t *waiter = waiter_queue.front();
             waiter_queue.pop_front();
 
@@ -212,6 +215,13 @@ void conflict_resolving_diskmgr_t::done(accounting_diskmgr_action_t *payload) {
             if (waiter->conflict_count == 0) {
                 /* The waiter isn't waiting on anything else. Submit it. */
                 submit_action_downwards(waiter);
+
+                /* If the resumed waiter was a resize, stop resuming waiters
+                for now. Those waiters will have to wait until the new resize
+                operation has completed. */
+                if (resize_active.find(action->get_fd()) != resize_active.end()) {
+                    break;
+                }
             }
         }
     } else {
