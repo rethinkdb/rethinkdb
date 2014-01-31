@@ -528,10 +528,6 @@ public:
     void create_cache_account(int priority, scoped_ptr_t<alt_cache_account_t> *out);
 
 private:
-    static void do_flush_and_destroy_txn(auto_drainer_t::lock_t lock,
-                                         page_txn_t *txn,
-                                         std::function<void()> on_flush_complete);
-
     current_page_t *internal_page_for_new_chosen(block_id_t block_id);
 
     friend class page_t;
@@ -709,7 +705,7 @@ public:
                repli_timestamp_t txn_recency,
                page_txn_t *preceding_txn = NULL);
 
-    // KSI: This is only to be called by the page cache -- should txn_t use a
+    // KSI: This is only to be called by the page cache -- should txn_t really use a
     // scoped_ptr_t?
     ~page_txn_t();
 

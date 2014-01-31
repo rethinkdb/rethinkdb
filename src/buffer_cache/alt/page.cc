@@ -43,14 +43,44 @@ page_cache_t::~page_cache_t() {
     }
 }
 
-void page_cache_t::do_flush_and_destroy_txn(auto_drainer_t::lock_t,
-                                            page_txn_t *txn,
-                                            std::function<void()> on_flush_complete) {
-    txn->flush_complete_cond_.wait();
-    delete txn;
-    on_flush_complete();
-}
+// We go a bit old-school, with a self-destroying callback.
+class flush_and_destroy_t : public signal_t::subscription_t {
+public:
+    flush_and_destroy_t(auto_drainer_t::lock_t &&lock,
+                        page_txn_t *txn,
+                        std::function<void()> on_flush_complete)
+        : lock_(std::move(lock)),
+          txn_(txn),
+          on_flush_complete_(std::move(on_flush_complete)) { }
 
+private:
+    void run() {
+        // Reset our subscription (why can't we have one-shot subscriptions?)
+        // TODO: Refactor the entire signal_t stack.
+        on_flush_complete_();
+        // We have to do this _later_ because of signal_t::subscription_t not
+        // allowing reentrant signal_t::subscription_t::reset() calls, and the like,
+        // even though it would be valid.
+        coro_t::spawn_sometime(std::bind(&flush_and_destroy_t::kill_ourselves,
+                                         this));
+    }
+
+    void kill_ourselves() {
+        // We can't destroy txn_->flush_complete_cond_ until we've reset our
+        // subscription, because computers.
+        reset();
+        delete txn_;
+        delete this;
+    }
+
+    auto_drainer_t::lock_t lock_;
+    page_txn_t *txn_;
+    std::function<void()> on_flush_complete_;
+
+    DISABLE_COPYING(flush_and_destroy_t);
+};
+
+// RSI: Any reason not to use the page cache's drainer here?
 void page_cache_t::flush_and_destroy_txn(auto_drainer_t::lock_t lock,
                                          scoped_ptr_t<page_txn_t> txn,
                                          std::function<void()> on_flush_complete) {
@@ -58,14 +88,18 @@ void page_cache_t::flush_and_destroy_txn(auto_drainer_t::lock_t lock,
             "current_page_acq_t lifespan exceeds its page_txn_t's");
     guarantee(!txn->began_waiting_for_flush_);
 
-    // RSI: Should announce... be in page_txn_t?
     txn->announce_waiting_for_flush_if_we_should();
 
-    // RSI: Obviously, have a better implementation than this.
-    coro_t::spawn_later_ordered(std::bind(do_flush_and_destroy_txn,
-                                          lock,
-                                          txn.release(),
-                                          on_flush_complete));
+    page_txn_t *page_txn = txn.release();
+    flush_and_destroy_t *sub
+        = new flush_and_destroy_t(std::move(lock), page_txn,
+                                  std::move(on_flush_complete));
+
+    sub->reset(&page_txn->flush_complete_cond_);
+
+    // KSI: This is still somewhat ghetto -- why not just give the page_txn_t a
+    // drainer lock, and then move the drainer around?  Or something else that's much
+    // more elegant.
 }
 
 
@@ -1014,8 +1048,13 @@ void page_txn_t::remove_subseqer(page_txn_t *subseqer) {
     subseqers_.erase(it);
 }
 
+void destroy_page_txn(page_txn_t *txn) {
+    delete txn;
+}
 
 page_txn_t::~page_txn_t() {
+    guarantee(flush_complete_cond_.is_pulsed());
+
     guarantee(preceders_.empty());
     guarantee(subseqers_.empty());
 }
