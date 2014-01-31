@@ -7,7 +7,6 @@
 #include "buffer_cache/alt/stats.hpp"
 #include "concurrency/auto_drainer.hpp"
 
-// RSI: Get rid of this.
 #define ALT_DEBUG 0
 
 using alt::current_page_acq_t;
@@ -425,7 +424,7 @@ void buf_lock_t::help_construct(buf_parent_t parent, block_id_t block_id,
     // Makes sure nothing funny can happen in current_page_acq_t constructor.
     // Otherwise, we'd need to make choosing a block id a separate function, and call
     // create_empty_child_snapshot_nodes before constructing the current_page_acq_t.
-    // RSI: Probably we should do that anyway.
+    // KSI: Probably we should do that anyway.
     ASSERT_FINITE_CORO_WAITING;
 
     current_page_acq_.init(new current_page_acq_t(txn_->page_txn(),
@@ -499,7 +498,7 @@ void buf_lock_t::help_construct(buf_parent_t parent, alt_create_t) {
     // Makes sure nothing funny can happen in current_page_acq_t constructor.
     // Otherwise, we'd need to make choosing a block id a separate function, and call
     // create_empty_child_snapshot_nodes before constructing the current_page_acq_t.
-    // RSI: Probably we should do that anyway.
+    // KSI: Probably we should do that anyway.
     ASSERT_FINITE_CORO_WAITING;
 
     current_page_acq_.init(new current_page_acq_t(txn_->page_txn(),
@@ -707,7 +706,7 @@ buf_write_t::~buf_write_t() {
 }
 
 void *buf_write_t::get_data_write(uint32_t block_size) {
-    // RSI: Use block_size somehow.
+    // KSI: Use block_size somehow.
     (void)block_size;
     page_t *page = lock_->get_held_page_for_write();
     if (!page_acq_.has()) {
