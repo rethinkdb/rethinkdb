@@ -1278,9 +1278,6 @@ void page_cache_t::do_flush_txn_set(page_cache_t *page_cache,
                                     fifo_enforcer_write_token_t index_write_token) {
     page_cache->assert_thread();
 
-    // RSI: We need some way to wait for the preceding txns to have their flushes
-    // stay before our txn's.
-
     // We're going to flush these transactions.  First we need to figure out what the
     // set of changes we're actually doing is, since any transaction may have touched
     // the same blocks.
@@ -1505,6 +1502,9 @@ void page_cache_t::im_waiting_for_flush(page_txn_t *txn) {
     // flushing yet).  So we begin flushing this node and all of its preceders
     // (recursively) in one atomic flush.
 
+
+    // RSI: Every transaction is getting its own flush, basically, the way things are
+    // right now.
 
     std::set<page_txn_t *> flush_set;
     if (exists_flushable_txn_set(txn, &flush_set)) {
