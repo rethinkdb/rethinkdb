@@ -200,6 +200,10 @@
 
 #define COROUTINE_STACK_SIZE                      131072
 
+// How many unused coroutine stacks to keep around (maximally), before they are
+// freed.
+#define COROUTINE_FREE_LIST_SIZE                  256
+
 #define MAX_COROS_PER_THREAD                      10000
 
 
