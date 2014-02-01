@@ -810,7 +810,6 @@ void connectivity_cluster_t::run_t::handle(
         try {
             int messages_handled_since_yield = 0;
             while (true) {
-                rassert(message_handler);
                 message_handler->on_message(other_id, conn); // might raise fake_archive_exc_t
 
                 ++messages_handled_since_yield;
