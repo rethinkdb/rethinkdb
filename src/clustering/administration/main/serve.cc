@@ -472,6 +472,9 @@ bool do_serve(
     } catch (const address_in_use_exc_t &ex) {
         logERR("%s.\n", ex.what());
         return false;
+    } catch (const tcp_socket_exc_t &ex) {
+        logERR("%s.\n", ex.what());
+        return false;
     }
 
     return true;

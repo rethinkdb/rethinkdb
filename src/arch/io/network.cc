@@ -77,6 +77,11 @@ int connect_ipv6_internal(fd_t socket, int local_port, const in6_addr &addr, int
 int create_socket_wrapper(int address_family) {
     int res = socket(address_family, SOCK_STREAM, 0);
     if (res == INVALID_FD) {
+        // Let the user know something is wrong - except in the case where
+        // TCP doesn't support AF_INET6, which may be fairly common and spammy
+        if (get_errno() != EAFNOSUPPORT || address_family == AF_INET) {
+            logERR("Failed to create socket: %s", strerror(get_errno()));
+        }
         throw linux_tcp_conn_t::connect_failed_exc_t(get_errno());
     }
     return res;
@@ -679,7 +684,7 @@ int linux_nonthrowing_tcp_listener_t::get_port() const {
     return port;
 }
 
-bool linux_nonthrowing_tcp_listener_t::init_sockets() {
+int linux_nonthrowing_tcp_listener_t::init_sockets() {
     rassert(local_addresses.size() == socks.size());
 
     size_t i = 0;
@@ -690,7 +695,7 @@ bool linux_nonthrowing_tcp_listener_t::init_sockets() {
 
         socks[i].reset(socket(addr->get_address_family(), SOCK_STREAM, 0));
         if (socks[i].get() == INVALID_FD) {
-            return false;
+            return get_errno();
         }
 
         event_watchers[i].init(new linux_event_watcher_t(socks[i].get(), this));
@@ -716,7 +721,7 @@ bool linux_nonthrowing_tcp_listener_t::init_sockets() {
         res = setsockopt(sock_fd, IPPROTO_TCP, TCP_NODELAY, &sockoptval, sizeof(sockoptval));
         guarantee_err(res != -1, "Could not set TCP_NODELAY option");
     }
-    return true;
+    return 0;
 }
 
 bool linux_nonthrowing_tcp_listener_t::bind_sockets() {
@@ -795,7 +800,8 @@ bool bind_ipv6_interface(fd_t sock, int *port_out, const ip_address_t &addr) {
 }
 
 bool linux_nonthrowing_tcp_listener_t::bind_sockets_internal(int *port_out) {
-    if (!init_sockets()) {
+    int socket_res = init_sockets();
+    if (socket_res == EAFNOSUPPORT) {
         logERR("Failed to create sockets for listener on port %d, falling back to IPv4 only", *port_out);
         // Fallback to IPv4 only - remove any IPv6 addresses and resize dependant arrays
         for (auto it = local_addresses.begin(); it != local_addresses.end();) {
@@ -814,7 +820,13 @@ bool linux_nonthrowing_tcp_listener_t::bind_sockets_internal(int *port_out) {
         socks.init(local_addresses.size());
 
         // If this doesn't work, then we have no way to open sockets
-        guarantee(init_sockets());
+        socket_res = init_sockets();
+        if (socket_res != 0) {
+            throw tcp_socket_exc_t(socket_res);
+        }
+    } else if (socket_res != 0) {
+        // Some other error happened on the sockets, not much we can do
+        throw tcp_socket_exc_t(socket_res);
     }
 
     bool result = true;
