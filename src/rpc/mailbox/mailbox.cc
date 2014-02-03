@@ -116,7 +116,9 @@ void mailbox_manager_t::on_message(peer_id_t source_peer, read_stream_t *stream)
     raw_mailbox_t::id_t dest_mailbox_id;
     {
         archive_result_t res = deserialize(stream, &data_length);
-        if (res != 0 || data_length > std::numeric_limits<size_t>::max()) {
+        if (res != ARCHIVE_SUCCESS
+            || data_length > std::numeric_limits<size_t>::max()
+            || data_length > static_cast<uint64_t>(std::numeric_limits<int64_t>::max())) {
             throw fake_archive_exc_t();
         }
 
@@ -137,7 +139,7 @@ void mailbox_manager_t::on_message(peer_id_t source_peer, read_stream_t *stream)
     if (vector_stream != NULL) {
         // Avoid copying the data
         vector_stream->swap(&stream_data, &stream_data_offset);
-        if(stream_data.size() - stream_data_offset != data_length) {
+        if(stream_data.size() - static_cast<uint64_t>(stream_data_offset) != data_length) {
             // Either we go a vector_read_stream_t that contained more data
             // than just ours (which shouldn't happen), or we got a wrong data_length
             // from the network.

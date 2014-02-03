@@ -115,6 +115,7 @@ connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
                                 std::bind(&connectivity_cluster_t::run_t::on_new_connection,
                                           this, ph::_1, auto_drainer_t::lock_t(&drainer))))
 {
+    rassert(message_handler != NULL);
     parent->assert_thread();
 }
 
