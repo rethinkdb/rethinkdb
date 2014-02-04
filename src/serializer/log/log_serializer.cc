@@ -876,12 +876,17 @@ void log_serializer_t::register_read_ahead_cb(serializer_read_ahead_callback_t *
 void log_serializer_t::unregister_read_ahead_cb(serializer_read_ahead_callback_t *cb) {
     assert_thread();
 
+    // KSI: read_ahead_callbacks should be an intrusive list.
+
     for (std::vector<serializer_read_ahead_callback_t*>::iterator cb_it = read_ahead_callbacks.begin(); cb_it != read_ahead_callbacks.end(); ++cb_it) {
         if (*cb_it == cb) {
             read_ahead_callbacks.erase(cb_it);
             break;
         }
     }
+
+    // KSI: This should not allow spurious unregister operations the way it currently
+    // does (it should crash here).
 }
 
 void log_serializer_t::offer_buf_to_read_ahead_callbacks(

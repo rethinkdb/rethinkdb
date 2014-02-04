@@ -299,6 +299,7 @@ void translator_serializer_t::offer_read_ahead_buf(
 }
 
 void translator_serializer_t::register_read_ahead_cb(serializer_read_ahead_callback_t *cb) {
+    // RSI: This on_thread_t is a bad thing.
     on_thread_t t(inner->home_thread());
 
     rassert(!read_ahead_callback);
@@ -306,6 +307,7 @@ void translator_serializer_t::register_read_ahead_cb(serializer_read_ahead_callb
     read_ahead_callback = cb;
 }
 void translator_serializer_t::unregister_read_ahead_cb(DEBUG_VAR serializer_read_ahead_callback_t *cb) {
+    // RSI: This on_thread_t is a bad thing.
     on_thread_t t(inner->home_thread());
 
     rassert(read_ahead_callback == NULL || cb == read_ahead_callback);
