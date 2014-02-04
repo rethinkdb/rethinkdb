@@ -6,6 +6,7 @@
 
 #include "arch/runtime/coroutines.hpp"
 #include "concurrency/auto_drainer.hpp"
+#include "do_on_thread.hpp"
 #include "serializer/serializer.hpp"
 #include "stl_utils.hpp"
 
@@ -18,7 +19,6 @@ page_cache_t::page_cache_t(serializer_t *serializer,
       serializer_(serializer),
       free_list_(serializer),
       evicter_(tracker, config.memory_limit),
-      readahead_cb_(this),
       drainer_(make_scoped<auto_drainer_t>()) {
     {
         on_thread_t thread_switcher(serializer->home_thread());
@@ -26,7 +26,7 @@ page_cache_t::page_cache_t(serializer_t *serializer,
         writes_io_account_.init(serializer->make_io_account(config.io_priority_writes));
         index_write_sink_.init(new fifo_enforcer_sink_t);
         recencies_ = serializer->get_all_recencies();
-        readahead_cb_.register_with_serializer(serializer);
+        serializer->register_read_ahead_cb(this);
     }
 }
 
@@ -44,7 +44,7 @@ page_cache_t::~page_cache_t() {
         // KSI: The only reason we "know" we won't get read ahead callbacks before
         // the page_cache_t is destructed is because of fragile message ordering
         // logic.
-        readahead_cb_.unregister_with_serializer();
+        serializer_->unregister_read_ahead_cb(this);
         index_write_sink_.reset();
         writes_io_account_.reset();
         reads_io_account_.reset();
@@ -199,39 +199,33 @@ void page_cache_t::create_cache_account(int priority,
     out->init(new alt_cache_account_t(serializer_->home_thread(), io_account));
 }
 
-page_readahead_cb_t::page_readahead_cb_t(page_cache_t *cache)
-    : cache_(cache), serializer_(NULL) {
-    (void)cache_; // RSI
-}
-
-page_readahead_cb_t::~page_readahead_cb_t() {
-    rassert(serializer_ == NULL);
-}
-
-
-void page_readahead_cb_t::register_with_serializer(serializer_t *serializer) {
-    rassert(serializer_ == NULL);
-    serializer->assert_thread();
-    serializer_ = serializer;
-    serializer_->register_read_ahead_cb(this);
-}
-void page_readahead_cb_t::unregister_with_serializer() {
-    rassert(serializer_ != NULL);
-    serializer_->assert_thread();
-    serializer_->unregister_read_ahead_cb(this);
-    serializer_ = NULL;
-}
-
-void page_readahead_cb_t::offer_read_ahead_buf(
-        UNUSED block_id_t block_id,
-        UNUSED scoped_malloc_t<ser_buffer_t> *buf,
-        UNUSED const counted_t<standard_block_token_t> &token,
+void page_cache_t::offer_read_ahead_buf(
+        block_id_t block_id,
+        scoped_malloc_t<ser_buffer_t> *buf,
+        const counted_t<standard_block_token_t> &token,
         UNUSED repli_timestamp_t recency) {
+    // RSI: Nobody wants the recency token.
+
     // We are _not_ on the page cache's home thread!
     serializer_->assert_thread();
 
-    // Do nothing.  Reject all blocks.
-    // RSI: Actually do something.
+    // KSI: Fragile liftime ordering logic, dependent on notify_later_ordered (and
+    // such) in move_to_thread, also mentioned in the page_cache_t destructor.
+    do_on_thread(home_thread(),
+                 std::bind(&page_cache_t::receive_read_ahead_buf,
+                           this,
+                           block_id,
+                           buf->release(),
+                           token));
+}
+
+    // Called on the home thread, taking ownership of the ser_buffer_t.
+void page_cache_t::receive_read_ahead_buf(
+        UNUSED block_id_t block_id,
+        UNUSED ser_buffer_t *buf,
+        UNUSED const counted_t<standard_block_token_t> &token) {
+    assert_thread();
+    // RSI: do something.
 }
 
 
