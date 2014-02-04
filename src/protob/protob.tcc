@@ -281,9 +281,6 @@ void protob_server_t<request_t, response_t, context_t>::handle(const http_req_t 
         http_conn_cache.erase(conn_id);
 
         result->code = HTTP_OK;
-#ifndef NDEBUG
-        result->add_header_line("Access-Control-Allow-Origin", "*");
-#endif
     } else if (req.method == GET &&
                req.resource.as_string().find("open-new-connection")) {
         int32_t conn_id = http_conn_cache.create();
@@ -292,9 +289,6 @@ void protob_server_t<request_t, response_t, context_t>::handle(const http_req_t 
         body_data.assign(reinterpret_cast<char *>(&conn_id), sizeof(conn_id));
         result->set_body("application/octet-stream", body_data);
         result->code = HTTP_OK;
-#ifndef NDEBUG
-        result->add_header_line("Access-Control-Allow-Origin", "*");
-#endif
     } else {
         boost::optional<std::string> optional_conn_id = req.find_query_param("conn_id");
         if (!optional_conn_id) {
@@ -355,9 +349,6 @@ void protob_server_t<request_t, response_t, context_t>::handle(const http_req_t 
         body_data.assign(res_data.data(), res_size + sizeof(res_size));
         result->set_body("application/octet-stream", body_data);
         result->code = HTTP_OK;
-#ifndef NDEBUG
-        result->add_header_line("Access-Control-Allow-Origin", "*");
-#endif
     }
 }
 
