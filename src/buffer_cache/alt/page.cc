@@ -19,6 +19,7 @@ page_cache_t::page_cache_t(serializer_t *serializer,
       serializer_(serializer),
       free_list_(serializer),
       evicter_(tracker, config.memory_limit),
+      read_ahead_is_registered_(false),
       drainer_(make_scoped<auto_drainer_t>()) {
     {
         on_thread_t thread_switcher(serializer->home_thread());
@@ -28,10 +29,27 @@ page_cache_t::page_cache_t(serializer_t *serializer,
         recencies_ = serializer->get_all_recencies();
         serializer->register_read_ahead_cb(this);
     }
+
+    read_ahead_is_registered_ = true;
 }
 
 page_cache_t::~page_cache_t() {
     assert_thread();
+
+
+    if (read_ahead_is_registered_) {
+        read_ahead_is_registered_ = false;
+        // Let's unregister our readahead callback before we drain the drainer, so
+        // that receive_read_ahead_buf doesn't have to worry about being called too
+        // late.
+
+        // KSI: The only reason we "know" we won't get read ahead callbacks before
+        // the page_cache_t is destructed is because of fragile message ordering
+        // logic.
+        on_thread_t th(serializer_->home_thread());
+        serializer_->unregister_read_ahead_cb(this);
+    }
+
     drainer_.reset();
     for (auto it = current_pages_.begin(); it != current_pages_.end(); ++it) {
         delete *it;
@@ -41,10 +59,6 @@ page_cache_t::~page_cache_t() {
         /* IO accounts must be destroyed on the thread they were created on */
         on_thread_t thread_switcher(serializer_->home_thread());
 
-        // KSI: The only reason we "know" we won't get read ahead callbacks before
-        // the page_cache_t is destructed is because of fragile message ordering
-        // logic.
-        serializer_->unregister_read_ahead_cb(this);
         index_write_sink_.reset();
         writes_io_account_.reset();
         reads_io_account_.reset();
@@ -219,7 +233,7 @@ void page_cache_t::offer_read_ahead_buf(
                            token));
 }
 
-    // Called on the home thread, taking ownership of the ser_buffer_t.
+// Called on the home thread, taking ownership of the ser_buffer_t.
 void page_cache_t::receive_read_ahead_buf(
         UNUSED block_id_t block_id,
         UNUSED ser_buffer_t *buf,

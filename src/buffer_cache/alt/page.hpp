@@ -615,6 +615,13 @@ private:
 
     evicter_t evicter_;
 
+    // KSI: It would be cleaner if this were tracked in read_ahead_callback_t.
+    // RSI: Remove all strings "readahead".
+
+    // If this is true, then we're registered for read-ahead.  If false, then we
+    // aren't, or soon we won't be.
+    bool read_ahead_is_registered_;
+
     scoped_ptr_t<auto_drainer_t> drainer_;
 
     DISABLE_COPYING(page_cache_t);
