@@ -25,11 +25,10 @@ init () {
     all_libs="$required_libs $optional_libs $other_libs"
     default_static="tcmalloc_minimal"
 
-    web_assets_deps="lessc coffee handlebars browserify proto2js"
-    npm_deps="$web_assets_deps"
-    required_bin_deps="protoc npm"
+    web_assets_deps="lessc coffee handlebars browserify proto2js npm"
+    required_bin_deps="protoc"
     optional_bin_deps="wget curl"
-    bin_deps="cxx $npm_deps $required_bin_deps $optional_bin_deps"
+    bin_deps="cxx $web_assets_deps $required_bin_deps $optional_bin_deps"
     all_deps="$bin_deps $all_libs"
 
     allowed_arg_vars="CXXFLAGS LDFLAGS"
@@ -96,12 +95,14 @@ configure () {
         require_dep $bin
         check_bin $bin
     done
-    if ! $enable_precompiled_web; then
-        for bin in $web_assets_deps; do
+    for bin in $web_assets_deps; do
+        if $enable_precompiled_web; then
+            optional_dep $bin
+        else
             require_dep $bin
-            check_bin $bin
-        done
-    fi
+        fi
+        check_bin $bin
+    done
     for bin in $optional_bin_deps; do
         optional_dep $bin
         check_bin $bin
