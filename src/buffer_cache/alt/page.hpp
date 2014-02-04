@@ -499,31 +499,6 @@ private:
     DISABLE_COPYING(evicter_t);
 };
 
-// This type is isolated from the page_cache_t, because its data lives on the
-// serializer home thread.
-class page_readahead_cb_t : public serializer_read_ahead_callback_t {
-public:
-    page_readahead_cb_t(page_cache_t *cache);
-    ~page_readahead_cb_t();
-
-    void register_with_serializer(serializer_t *serializer);
-    void unregister_with_serializer();
-
-private:
-    // Our serializer_read_ahead_callback_t method.
-    void offer_read_ahead_buf(block_id_t block_id,
-                              scoped_malloc_t<ser_buffer_t> *buf,
-                              const counted_t<standard_block_token_t> &token,
-                              repli_timestamp_t recency);
-
-    page_cache_t *cache_;
-
-    // This is non-NULL if and only if we are registered as a readahead cb with it.
-    serializer_t *serializer_;
-
-    DISABLE_COPYING(page_readahead_cb_t);
-};
-
 class page_cache_t : public home_thread_mixin_debug_only_t {
 public:
     page_cache_t(serializer_t *serializer,
@@ -549,7 +524,6 @@ public:
     void create_cache_account(int priority, scoped_ptr_t<alt_cache_account_t> *out);
 
 private:
-
     current_page_t *internal_page_for_new_chosen(block_id_t block_id);
 
     friend class page_t;
@@ -627,9 +601,6 @@ private:
     free_list_t free_list_;
 
     evicter_t evicter_;
-
-    // This field lives on the serializer thread.
-    page_readahead_cb_t readahead_cb_;
 
     scoped_ptr_t<auto_drainer_t> drainer_;
 
