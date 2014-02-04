@@ -28,7 +28,6 @@
 #include "memcached/tcp_conn.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "mock/dummy_protocol_parser.hpp"
-#include "rdb_protocol/parser.hpp"
 #include "rdb_protocol/pb_server.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rpc/connectivity/cluster.hpp"
@@ -376,8 +375,6 @@ bool do_serve(
                     &memcached_namespace_repo,
                     &local_issue_tracker,
                     &perfmon_repo);
-
-                rdb_protocol::query_http_app_t rdb_parser(semilattice_manager_cluster.get_root_view(), &rdb_namespace_repo);
 
                 query2_server_t rdb_pb2_server(address_ports.local_addresses,
                                                address_ports.reql_port, &rdb_ctx);
