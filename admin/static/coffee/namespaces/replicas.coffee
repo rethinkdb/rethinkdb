@@ -13,12 +13,39 @@ module 'NamespaceView', ->
             'click .nav_datacenter': 'handle_click_datacenter'
             'click .toggle-mdc': 'toggle_mdc'
 
+        check_issues: =>
+            can_change_replicas = true
+            for issue in issues.models
+                if issue.get('type') is 'VCLOCK_CONFLICT' and
+                    issue.get('object_id') is @model.get('id') and
+                    issue.get('object_type') is 'namespace' and
+                    (issue.get('field') is 'replica_affinities' or issue.get('field') is 'ack_expectations')
+                        can_change_replicas = false
+            if can_change_replicas is false
+                @primary_datacenter.is_modifiable false
+                @universe_replicas.is_modifiable false
+                @datacenter_view?.is_modifiable false
+
+                if @can_change_replicas is true
+                    @$('.cannot_change_replicas').slideDown 'fast'
+                    @can_change_replicas = can_change_replicas
+            else if can_change_replicas is true
+                @primary_datacenter.is_modifiable true
+                @universe_replicas.is_modifiable true
+                @datacenter_view?.is_modifiable true
+
+                if @can_change_replicas is false # can_change_replicas is true
+                    @$('.cannot_change_replicas').slideUp 'fast'
+                    @can_change_replicas = can_change_replicas
+
         initialize: =>
+            @can_change_replicas = true
             @progress_bar = new UIComponents.OperationProgressBar @replica_status_template
 
             datacenters.on 'add', @render_list
             datacenters.on 'remove', @render_list
             datacenters.on 'reset', @render_list
+            issues.on 'all', @check_issues
 
             @model.on 'change:primary_uuid', @render_primary_not_found
             @model.on 'change:replica_affinities', @global_trigger_for_replica
@@ -235,6 +262,7 @@ module 'NamespaceView', ->
             @datacenter_view = new NamespaceView.DatacenterReplicas @datacenter_id_shown, @model
 
             @.$('.datacenter_content').html @datacenter_view.render().$el
+            @datacenter_view.is_modifiable @can_change_replicas
 
         render_primary_not_found: =>
             if @model.get('primary_uuid') isnt universe_datacenter.get('id') and not datacenters.get(@model.get('primary_uuid'))?
@@ -285,8 +313,6 @@ module 'NamespaceView', ->
         render_universe: =>
             @.$('.cluster_container').html @universe_replicas.render().$el
 
-
-
         render: =>
             @.$el.html @template()
 
@@ -297,7 +323,6 @@ module 'NamespaceView', ->
             @render_status()
 
             @.$('.primary-dc').html @primary_datacenter.render().$el
-
             if @model.get('primary_uuid') is universe_datacenter.get('id')
                 if @ordered_datacenters.length > 0
                     @datacenter_picked = @ordered_datacenters[0]
@@ -308,6 +333,7 @@ module 'NamespaceView', ->
             else
                 @render_datacenter @model.get('primary_uuid')
 
+            @check_issues()
             return @
 
         destroy: =>
@@ -347,6 +373,14 @@ module 'NamespaceView', ->
             'click .cancel.btn': 'cancel_edit'
             'keyup #replicas_value': 'keypress_replicas_acks'
             'keyup #acks_value': 'keypress_replicas_acks'
+
+        is_modifiable: (is_modifiable) =>
+            if is_modifiable is false
+                @$('.edit').prop 'disabled', true
+                @can_change_replicas = is_modifiable
+            else if is_modifiable is true
+                @$('.edit').prop 'disabled', false
+                @can_change_replicas = is_modifiable
 
         keypress_replicas_acks: (event) =>
             if event.which is 13
@@ -439,6 +473,7 @@ module 'NamespaceView', ->
                 if @current_state is @states[1]
                     @.$('#replicas_value').focus()
 
+            @is_modifiable @can_change_replicas
             return @
 
         # Compute how many replica we can set for @datacenter
@@ -455,13 +490,13 @@ module 'NamespaceView', ->
                 @render()
 
         alert_replicas_acks: (msg_errors) =>
-            @.$('.save_replicas_and_acks').prop 'disabled', 'disabled'
+            @.$('.save_replicas_and_acks').prop 'disabled', true
             @.$('.replicas_acks-alert').html @error_template
                 msg_errors: msg_errors
             @.$('.replicas_acks-alert').slideDown 'fast'
 
         remove_alert_replicas_acks: =>
-            @.$('.save_replicas_and_acks').removeProp 'disabled'
+            @.$('.save_replicas_and_acks').prop 'disabled', false
             @.$('.replicas_acks-alert').slideUp 'fast'
             @.$('.replicas_acks-alert').html ''
 
@@ -518,7 +553,7 @@ module 'NamespaceView', ->
             if @sending? and @sending is true
                 return
             @sending = true
-            @.$('.update-replicas').prop 'disabled', 'disabled'
+            @.$('.update-replicas').prop 'disabled', true
 
             num_replicas = parseInt @.$('#replicas_value').val()
             num_acks = parseInt @.$('#acks_value').val()
@@ -563,7 +598,7 @@ module 'NamespaceView', ->
 
         on_success_replicas_and_acks: =>
             @sending = false
-            @.$('.update-replicas').removeProp 'disabled'
+            @.$('.update-replicas').prop 'disabled', false
             window.collect_progress()
             new_replicas = @model.get 'replica_affinities'
             new_replicas[@datacenter.get('id')] = @data_cached.num_replicas
@@ -597,7 +632,7 @@ module 'NamespaceView', ->
 
         on_error: =>
             @sending = false
-            @.$('.update-replicas').removeProp 'disabled'
+            @.$('.update-replicas').prop 'disabled', false
 
             @.$('.replicas_acks-alert').html @replicas_ajax_error_template()
             @.$('.replicas_acks-alert').slideDown 'fast'
@@ -665,6 +700,14 @@ module 'NamespaceView', ->
         initialize: =>
             @state = 'none'
             @model.on 'change:primary_uuid', @change_pin
+
+        is_modifiable: (is_modifiable) =>
+            if is_modifiable is false
+                @$('.edit').prop 'disabled', true
+                @$('.switch-input, .primary-off, .primary-on').prop 'disabled', true
+            else
+                @$('.edit').prop 'disabled', false
+                @$('.switch-input, .primary-off, .primary-on').prop 'disabled', false
 
         events: ->
             'click label[for=primary-on]': 'turn_primary_on'
@@ -783,18 +826,20 @@ module 'NamespaceView', ->
 
         # Event handlers that change state
         turn_primary_off: =>
-            if @model.get('primary_uuid') is universe_datacenter.get('id') # Universe is being used so no need to confirm
-                @state = 'none'
-            else
-                @state = 'confirm_off'
-            @render_content()
+            if @$('.switch-input').prop('disabled') isnt true
+                if @model.get('primary_uuid') is universe_datacenter.get('id') # Universe is being used so no need to confirm
+                    @state = 'none'
+                else
+                    @state = 'confirm_off'
+                @render_content()
 
         turn_primary_on: (force_choose) =>
-            if @model.get('primary_uuid') is universe_datacenter.get('id') or force_choose is true
-                @state = 'choose_primary'
-            else
-                @state = 'show_primary'
-            @render_content()
+            if @$('.switch-input').prop('disabled') isnt true
+                if @model.get('primary_uuid') is universe_datacenter.get('id') or force_choose is true
+                    @state = 'choose_primary'
+                else
+                    @state = 'show_primary'
+                @render_content()
 
         change_primary: =>
             @state = 'choose_primary'

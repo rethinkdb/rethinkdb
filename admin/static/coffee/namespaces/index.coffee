@@ -33,10 +33,10 @@ module 'NamespaceView', ->
 
         update_button_create_namespace: =>
             if databases.length is 0 and @can_create_namespace is true
-                @.$('.add-namespace').prop 'disabled', 'disabled'
+                @.$('.add-namespace').prop 'disabled', true
                 @.$('.user_alert_space-cannot_create_namespace').show()
             else if databases.length > 0 and @can_create_namespace is false
-                @.$('.add-namespace').removeProp 'disabled'
+                @.$('.add-namespace').prop 'disabled', false
                 @.$('.user_alert_space-cannot_create_namespace').hide()
 
         render: (message) =>
@@ -95,7 +95,7 @@ module 'NamespaceView', ->
         # Callback that will be registered: updates the toolbar buttons based on how many namespaces have been selected
         update_toolbar_buttons: =>
             if @get_selected_namespaces().length < 1
-                @.$('.btn.remove-namespace').attr 'disabled', 'disabled'
+                @.$('.btn.remove-namespace').attr 'disabled', true
             else
                 @.$('.btn.remove-namespace').removeAttr 'disabled'
             #@.$('.btn.remove-namespace').is ':disabled', @get_selected_namespaces().length < 1
@@ -333,12 +333,12 @@ module 'NamespaceView', ->
         check_if_can_create_table: =>
             if databases.length is 0
                 if @can_create_table_status
-                    @.$('.btn-primary').prop 'disabled', 'disabled'
+                    @.$('.btn-primary').prop 'disabled', true
                     @.$('.alert_modal').html 'You need to create a database before creating a table.'
             else
                 if @can_create_table_status is false
                     @.$('.alert_modal').empty()
-                    @.$('.btn-primary').removeProp 'disabled'
+                    @.$('.btn-primary').prop 'disabled', false
 
 
         render: ->

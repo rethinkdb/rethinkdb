@@ -83,6 +83,11 @@ module 'UIComponents', ->
                         @timeout = null
                     , 2000
             
+            # Check for NaN values
+            if data.current_value isnt data.current_value
+                data.current_value = "Unknown"
+            if data.max_value isnt data.max_value
+                data.max_value = "Unknown"
             @.$el.html @template data
 
             return @
