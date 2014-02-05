@@ -294,12 +294,8 @@ void apply_keyvalue_change(keyvalue_location_t<Value> *kv_loc,
                                kv_loc->superblock, key);
 
     // Modify the stats block.
-
-    // RSI: Should we _actually_ pass kv_loc->buf as the parent?  Readers would
-    // access it via the superblock, so we should acquire it as a child of the
-    // superblock?  Or just acquire it detached.  See parallel_traversal.cc for
-    // another use of the stat block -- we do the same thing there.
-    buf_lock_t stat_block(&kv_loc->buf, kv_loc->stat_block, access_t::write);
+    buf_lock_t stat_block(buf_parent_t(&kv_loc->buf.txn()),
+                          kv_loc->stat_block, access_t::write);
     buf_write_t stat_block_write(&stat_block);
     auto stat_block_buf
         = static_cast<btree_statblock_t *>(stat_block_write.get_data_write());

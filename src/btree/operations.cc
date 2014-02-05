@@ -338,7 +338,8 @@ void ensure_stat_block(superblock_t *sb) {
 
     if (node_id == NULL_BLOCK_ID) {
         //Create a block
-        buf_lock_t temp_lock(sb->expose_buf(), alt_create_t::create);
+        buf_lock_t temp_lock(buf_parent_t(sb->expose_buf().txn()),
+                             alt_create_t::create);
         buf_write_t write(&temp_lock);
         //Make the stat block be the default constructed statblock
         *static_cast<btree_statblock_t *>(write.get_data_write())

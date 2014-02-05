@@ -358,7 +358,7 @@ void btree_parallel_traversal(superblock_t *superblock, btree_slice_t *slice,
 
     if (state.stat_block != NULL_BLOCK_ID) {
         /* Give the helper a look at the stat block */
-        buf_lock_t stat_block(superblock->expose_buf(),
+        buf_lock_t stat_block(buf_parent_t(superblock->expose_buf().txn()),
                               state.stat_block, access_t::read);
         helper->read_stat_block(&stat_block);
     } else {
@@ -526,21 +526,21 @@ void process_a_leaf_node(traversal_state_t *state, buf_lock_t buf,
         `interruptor` has been pulsed */
     }
 
+    txn_t *txn = buf.txn();
+    buf.reset_buf_lock();
+
     if (state->helper->btree_node_mode() != access_t::write) {
         rassert(population_change == 0, "A read only operation claims it change the population of a leaf.\n");
-        buf.reset_buf_lock();
     } else if (population_change != 0) {
-        // RSI: Should we _actually_ pass &buf as the parent? See operations.tcc for
-        // another use of the stat block.  Having buf as the parent doesn't really
-        // make sense. The stat block doesn't really have a parent.
-        buf_lock_t stat_block(&buf, state->stat_block, access_t::write);
+        // The stat block has no parent, our changes to it are commutative and
+        // readers expect out-of-date values.
+        buf_lock_t stat_block(buf_parent_t(txn), state->stat_block, access_t::write);
         buf.reset_buf_lock();
         buf_write_t stat_block_write(&stat_block);
         auto stat_block_buf =
             static_cast<btree_statblock_t *>(stat_block_write.get_data_write());
         stat_block_buf->population += population_change;
     } else {
-        buf.reset_buf_lock();
         // Don't acquire the block to not change the value.
     }
 
