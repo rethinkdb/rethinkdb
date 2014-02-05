@@ -431,12 +431,11 @@ void run_sindex_oversized_keys_test(namespace_interface_t<rdb_protocol_t> *nsi, 
 
 }
 
-# These two tests keep failing. See issue #1883
-TEST(RDBProtocol, DISABLED_OverSizedKeys) {
+TEST(RDBProtocol, OverSizedKeys) {
     run_in_thread_pool_with_namespace_interface(&run_sindex_oversized_keys_test, false);
 }
 
-TEST(RDBProtocol, DISABLED_OvershardedOverSizedKeys) {
+TEST(RDBProtocol, OvershardedOverSizedKeys) {
     run_in_thread_pool_with_namespace_interface(&run_sindex_oversized_keys_test, true);
 }
 
