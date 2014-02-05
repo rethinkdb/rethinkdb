@@ -180,15 +180,7 @@ public:
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t);
 
-    // RSI: This should release the superblock internally after getting its
-    // sindex_block (so that sindex_list_t and sindex_status_t, the queries which use
-    // this, don't block other queries).  It would be nice in general if we supported
-    // passing the superblock_t in some way by rvalue reference.
-    // RSI: Does anybody actually use this function of the function?
-    void get_sindexes(
-        superblock_t *super_block,
-        std::map<std::string, secondary_index_t> *sindexes_out);
-
+    // RSI: Does anybody use this?  This could just be get_secondary_indexes.
     void get_sindexes(
         buf_lock_t *sindex_block,
         std::map<std::string, secondary_index_t> *sindexes_out);

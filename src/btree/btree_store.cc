@@ -544,18 +544,6 @@ MUST_USE bool btree_store_t<protocol_t>::drop_sindex(
     return true;
 }
 
-
-template <class protocol_t>
-void btree_store_t<protocol_t>::get_sindexes(
-        superblock_t *super_block,
-        std::map<std::string, secondary_index_t> *sindexes_out) {
-    buf_lock_t sindex_block
-        = acquire_sindex_block_for_read(super_block->expose_buf(),
-                                        super_block->get_sindex_block_id());
-
-    return get_secondary_indexes(&sindex_block, sindexes_out);
-}
-
 template <class protocol_t>
 void btree_store_t<protocol_t>::get_sindexes(
         buf_lock_t *sindex_block,

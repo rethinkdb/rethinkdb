@@ -1366,8 +1366,14 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         response->response = sindex_list_response_t();
         sindex_list_response_t *res = &boost::get<sindex_list_response_t>(response->response);
 
+        buf_lock_t sindex_block
+            = store->acquire_sindex_block_for_read(superblock->expose_buf(),
+                                                   superblock->get_sindex_block_id());
+        superblock->release();
+
         std::map<std::string, secondary_index_t> sindexes;
-        store->get_sindexes(superblock, &sindexes);
+        get_secondary_indexes(&sindex_block, &sindexes);
+        sindex_block.reset_buf_lock();
 
         res->sindexes.reserve(sindexes.size());
         for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
@@ -1379,8 +1385,14 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         response->response = sindex_status_response_t();
         auto res = &boost::get<sindex_status_response_t>(response->response);
 
+        buf_lock_t sindex_block
+            = store->acquire_sindex_block_for_read(superblock->expose_buf(),
+                                                   superblock->get_sindex_block_id());
+        superblock->release();
+
         std::map<std::string, secondary_index_t> sindexes;
-        store->get_sindexes(superblock, &sindexes);
+        get_secondary_indexes(&sindex_block, &sindexes);
+        sindex_block.reset_buf_lock();
 
         for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
             if (std_contains(sindex_status.sindexes, it->first) ||
