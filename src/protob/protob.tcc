@@ -20,6 +20,7 @@
 #include "containers/auth_key.hpp"
 #include "rpc/semilattice/joins/vclock.hpp"
 #include "rpc/semilattice/view.hpp"
+#include "rdb_protocol/env.hpp"
 #include "utils.hpp"
 
 template <class request_t, class response_t, class context_t>
@@ -309,7 +310,6 @@ void protob_server_t<request_t, response_t, context_t>::handle(const http_req_t 
         const bool parseSucceeded
             = underlying_protob_value(&request)->ParseFromArray(data, req_size);
 
-        bool response_needed;
         response_t response;
         switch (cb_mode) {
         case INLINE: {
@@ -322,14 +322,23 @@ void protob_server_t<request_t, response_t, context_t>::handle(const http_req_t 
                 std::string err = "This HTTP connection not open.";
                 response = on_unparsable_query(request, err);
             } else {
-                context_t *ctx = conn->get_ctx();
-                interruptor_mixer_t<context_t> interruptor_mixer(ctx, interruptor);
-                response_needed = f(request, &response, ctx);
+                // Check for noreply, which we don't support here, as it causes
+                // problems with interruption
+                counted_t<const ql::datum_t> noreply = static_optarg("noreply", request);
+                bool response_needed = !(noreply.has() &&
+                     noreply->get_type() == ql::datum_t::type_t::R_BOOL &&
+                     noreply->as_bool());
+
                 if (!response_needed) {
                     *result = http_res_t(HTTP_BAD_REQUEST, "application/text",
                                          "Noreply writes unsupported over HTTP\n");
                     return;
                 }
+
+                context_t *ctx = conn->get_ctx();
+                interruptor_mixer_t<context_t> interruptor_mixer(ctx, interruptor);
+                response_needed = f(request, &response, ctx);
+                guarantee(response_needed);
             }
         } break;
         case CORO_ORDERED:
