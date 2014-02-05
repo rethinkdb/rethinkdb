@@ -158,7 +158,7 @@ class buf_lock_t {
 public:
     buf_lock_t();
 
-    // alt_buf_parent_t is a type that either points at a buf_lock_t (its parent) or
+    // buf_parent_t is a type that either points at a buf_lock_t (its parent) or
     // merely at a txn_t (e.g. for acquiring the superblock, which has no parent).
     // If acquiring the child for read, the constructor will wait for the parent to
     // be acquired for read.  Similarly, if acquiring the child for write, the
