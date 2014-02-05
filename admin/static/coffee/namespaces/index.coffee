@@ -387,13 +387,7 @@ module 'NamespaceView', ->
                 id: d.get('id')
                 name: d.get('name')
 
-            ordered_databases.sort (a, b) ->
-                if b.name < a.name
-                    return 1
-                else if b.name > a.name
-                    return -1
-                return 0
-
+            ordered_databases = _.sortBy ordered_databases, (d) -> d.name
 
             super
                 modal_title: 'Add table'
