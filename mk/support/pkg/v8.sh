@@ -1,8 +1,12 @@
 
-# version=3.17.4.1
-# version=3.19.18.4
 version=3.22.24.17
 
+# Other versions of v8 to test against:
+# version=3.7.12.22 # Ubuntu Lucid
+# version=3.17.4.1  # A pre-3.19 version
+# version=3.19.18.4 # A post-3.19 version
+# version=3.24.30.1 # A future version, with incompatible API changes
+# See http://omahaproxy.appspot.com/ for the current stable/beta/dev versions of v8
 
 src_url=https://commondatastorage.googleapis.com/chromium-browser-official/v8-$version.tar.bz2
 
