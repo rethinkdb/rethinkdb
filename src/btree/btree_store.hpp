@@ -195,8 +195,7 @@ public:
 
     MUST_USE bool acquire_sindex_superblock_for_read(
             const std::string &id,
-            block_id_t sindex_block_id,
-            buf_parent_t parent,
+            superblock_t *superblock,
             scoped_ptr_t<real_superblock_t> *sindex_sb_out,
             std::vector<char> *opaque_definition_out) // Optional, may be NULL
         THROWS_ONLY(sindex_not_post_constructed_exc_t);
