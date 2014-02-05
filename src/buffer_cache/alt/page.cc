@@ -81,10 +81,11 @@ void page_cache_t::resize_current_pages_to_id(block_id_t block_id) {
     }
 }
 
+// RSI: recency unused.
 void page_cache_t::supply_read_ahead_buf(block_id_t block_id,
                                          ser_buffer_t *buf_ptr,
                                          const counted_t<standard_block_token_t> &token,
-                                         repli_timestamp_t recency) {
+                                         UNUSED repli_timestamp_t recency) {
     assert_thread();
 
     scoped_malloc_t<ser_buffer_t> buf(buf_ptr);
@@ -98,10 +99,6 @@ void page_cache_t::supply_read_ahead_buf(block_id_t block_id,
     if (current_pages_[block_id] != NULL) {
         return;
     }
-
-    // RSI: Are we sure this is the right page?  Should we check serializer version
-    // information or some other crazy thing?  (See what the code does.)
-    guarantee(recency_for_block_id(block_id) == recency);
 
     // RSI: read ahead bufs will need to be created with the appropriate
     // (bottom-tier) eviction priority.
