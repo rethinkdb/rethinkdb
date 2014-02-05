@@ -8,12 +8,12 @@
 #include "utils.hpp"
 #include <boost/shared_ptr.hpp>
 
+#include "concurrency/access.hpp"
 #include "backfill_progress.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/signal.hpp"
 #include "containers/scoped.hpp"
 
-enum class access_t;
 class buf_lock_t;
 class buf_parent_t;
 struct btree_superblock_t;

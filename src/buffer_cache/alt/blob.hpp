@@ -10,6 +10,7 @@
 #include <utility>
 
 #include "buffer_cache/types.hpp"
+#include "concurrency/access.hpp"
 #include "containers/buffer_group.hpp"
 #include "errors.hpp"
 #include "serializer/types.hpp"
@@ -57,7 +58,6 @@ write_blob_ref_to_something(tmp, blob::ref_size(bs, ref, mrl));
 
  */
 
-enum class access_t;
 class buf_lock_t;
 class buf_parent_t;
 class buf_read_t;
