@@ -19,8 +19,6 @@
 #include "repli_timestamp.hpp"
 #include "serializer/types.hpp"
 
-// RSI: Readahead.
-
 class auto_drainer_t;
 class file_account_t;
 
