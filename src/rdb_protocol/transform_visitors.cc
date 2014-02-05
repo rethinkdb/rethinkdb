@@ -1,5 +1,10 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
+
+#include "boost/variant.hpp"
+
+#include "rdb_protocol/func.hpp"
 #include "rdb_protocol/transform_visitors.hpp"
+#include "rdb_protocol/profile.hpp"
 
 namespace ql {
 
@@ -11,7 +16,7 @@ typedef rdb_protocol_details::rget_item_t rget_item_t;
 
 void accumulator_t::finish(result_t *out) {
     // We fill in the result if there have been no errors.
-    if (boost::get<ql::exc_t>(out) == NULL) {
+    if (boost::get<exc_t>(out) == NULL) {
         finish_impl(out);
     }
     finished = true;
@@ -26,39 +31,28 @@ private:
     virtual done_t operator()(groups_t *groups,
                               store_key_t &&key,
                               // sindex_val may be NULL
-                              const counted_t<const datum_t> &sindex_val) {
+                              counted_t<const datum_t> &&sindex_val) {
         for (auto it = groups->begin(); it != groups->end(); ++it) {
             // If there's already an entry, this insert won't do anything.
             auto t_it = acc.insert(std::make_pair(it->first, default_t)).first;
             for (auto el = it->second.begin(); el != it->second.end(); ++el) {
-                accumulate(*el, &*t_it, key, sindex_val);
+                accumulate(*el, &t_it->second, std::move(key), std::move(sindex_val));
             }
         }
         return should_send_batch() ? done_t::YES : done_t::NO;
     }
     virtual bool should_send_batch() = 0;
     virtual void finish_impl(result_t *out) {
-        if (T *t = get_ungrouped_val()) {
-            *out = res_t(default_t);
-            T *t_out = boost::get<T>(boost::get<res_t>(out));
-            *t_out = std::move(*t);
-        } else {
-            *out = res_groups_t();
-            for (auto it = acc.begin(); it != acc.end(); ++it) {
-                r_sanity_check(it->first.has());
-                T *t_out = boost::get<T>(&(*boost::get<res_groups_t>(out))[it->first]);
-                *t_out = std::move(it.second);
-            }
+        *out = res_groups_t();
+        for (auto it = acc.begin(); it != acc.end(); ++it) {
+            r_sanity_check(it->first.has());
+            T *t_out = boost::get<T>(&(*boost::get<res_groups_t>(out))[it->first]);
+            *t_out = std::move(it->second);
         }
         acc.clear();
     }
-    T *get_ungrouped_val() {
-        return (acc.size() == 1 && !acc.begin().first.has())
-            ? acc.begin().first.get()
-            : NULL;
-    }
 
-    virtual void accumulate(const counted_t<const ql::datum_t> &el,
+    virtual void accumulate(const counted_t<const datum_t> &el,
                             T *t,
                             store_key_t &&key,
                             // sindex_val may be NULL
@@ -73,8 +67,8 @@ private:
             }
         }
         for (auto kv = vecs.begin(); kv != vecs.end(); ++kv) {
-            auto t_it = acc.insert(std::make_pair(kv->first, default_t)).second;
-            unshard_impl(&*t_it, last_key, kv->second);
+            auto t_it = acc.insert(std::make_pair(kv->first, default_t)).first;
+            unshard_impl(&t_it->second, last_key, kv->second);
         }
     }
     virtual void unshard_impl(T *acc,
@@ -82,19 +76,19 @@ private:
                               const std::vector<T *> &ts) = 0;
 
     const T default_t;
-    std::map<counted_t<const ql::datum_t>, T> acc;
+    std::map<counted_t<const datum_t>, T> acc;
 };
 
 class append_t : public grouped_accumulator_t<stream_t> {
 public:
     append_t(sorting_t _sorting, batcher_t *_batcher)
-        : grouped_accumulator_t(stream_t()),
+        : grouped_accumulator_t<stream_t>(stream_t()),
           sorting(_sorting), key_le(sorting), batcher(_batcher) { }
 private:
     virtual bool should_send_batch() {
         return batcher != NULL && batcher->should_send_batch();
     }
-    virtual void accumulate(const counted_t<const ql::datum_t> &el,
+    virtual void accumulate(const counted_t<const datum_t> &el,
                             stream_t *stream,
                             store_key_t &&key,
                             // sindex_val may be NULL
@@ -112,7 +106,7 @@ private:
                               const std::vector<stream_t *> &streams) {
         size_t sz = 0;
         for (auto it = streams.begin(); it != streams.end(); ++it) {
-            sz += it->size();
+            sz += (*it)->size();
         }
         out->reserve(sz);
         if (sorting == sorting_t::UNORDERED) {
@@ -126,21 +120,22 @@ private:
         } else {
             // We do a merge sort to preserve sorting.
             std::vector<std::pair<stream_t::iterator, stream_t::iterator> > v;
-            v.reserve(streams.size);
+            v.reserve(streams.size());
             for (auto it = streams.begin(); it != streams.end(); ++it) {
-                v.push_back(std::make_pair(it->begin(), it->end()));
+                v.push_back(std::make_pair((*it)->begin(), (*it)->end()));
             }
             for (;;) {
                 stream_t::iterator *best = NULL;
                 for (auto it = v.begin(); it != v.end(); ++it) {
                     if (it->first != it->second) {
                         if (best == NULL || key_le(it->first->key, (*best)->key)) {
-                            best = &it;
+                            best = &it->first;
                         }
                     }
                 }
-                if (best == NULL || !key_le(best, last_key)) break;
-                out->push_back(std::move(*(*best)++));
+                if (best == NULL || !key_le((*best)->key, last_key)) break;
+                out->push_back(std::move(**best));
+                ++(*best);
             }
         }
     }
@@ -150,21 +145,21 @@ private:
     batcher_t *const batcher;
 };
 
-accumulator_t *new_append_t() {
-    return new append_t();
+accumulator_t *make_append(sorting_t sorting, batcher_t *batcher) {
+    return new append_t(sorting, batcher);
 }
 
 template<class T>
 class terminal_t : public grouped_accumulator_t<T> {
 protected:
-    terminal_t(T &&t) : grouped_accumulator_t(std::move(t)) { }
+    terminal_t(T &&t) : grouped_accumulator_t<T>(std::move(t)) { }
 private:
     virtual void accumulate(
-        const counted_t<const ql::datum_t> &el, T *t,
+        const counted_t<const datum_t> &el, T *t,
         store_key_t &&, counted_t<const datum_t> &&) {
         accumulate(el, t);
     }
-    virtual void accumulate(const counted_t<const ql::datum_t> &el, T *t) = 0;
+    virtual void accumulate(const counted_t<const datum_t> &el, T *t) = 0;
     virtual void unshard_impl(T *out, const store_key_t &, const std::vector<T *> &ts) {
         unshard_impl(out, ts);
     }
@@ -174,10 +169,11 @@ private:
 
 class count_terminal_t : public terminal_t<size_t> {
 public:
-    count_terminal_t(ql::env_t *, const count_wire_func_t &) : terminal_t(0) { }
+    count_terminal_t(env_t *, const count_wire_func_t &) : terminal_t(0) { }
 private:
     virtual bool uses_val() { return false; }
-    virtual void accumulate(const counted_t<const ql::datum_t> &el, size_t *out) {
+    virtual void accumulate(const counted_t<const datum_t> &el, size_t *out) {
+        guarantee(!el.has()); // To prevent silent performance regressions.
         *out += 1;
     }
     virtual void unshard_impl(size_t *out, const std::vector<size_t *> &sizes) {
@@ -187,46 +183,46 @@ private:
     }
 };
 
-class reduce_terminal_t : public terminal_t<counted_t<const ql::datum_t> > {
+class reduce_terminal_t : public terminal_t<counted_t<const datum_t> > {
 public:
-    reduce_terminal_t(ql::env_t *env, const reduce_wire_func_t &_f)
-        : terminal_t(counted_t<const ql::datum_t>()),
+    reduce_terminal_t(env_t *_env, const reduce_wire_func_t &_f)
+        : terminal_t(counted_t<const datum_t>()),
           env(_env),
           f(_f.compile_wire_func()) { }
 private:
-    virtual void accumulate(const counted_t<const ql::datum_t> &el,
-                            counted_t<const ql::datum_t> *out) {
+    virtual void accumulate(const counted_t<const datum_t> &el,
+                            counted_t<const datum_t> *out) {
         try {
-            *out = out->has() ? f->call(env, *out, el) : el;
-        } catch (const ql::datum_exc_t &e) {
-            throw ql::exc_t(e, f->backtrace().get(), 1);
+            *out = out->has() ? f->call(env, *out, el)->as_datum() : el;
+        } catch (const datum_exc_t &e) {
+            throw exc_t(e, f->backtrace().get(), 1);
         }
     }
-    virtual void unshard_impl(counted_t<const ql::datum_t> *out,
-                              const std::vector<counted_t<const ql::datum_t> *> &ds) {
+    virtual void unshard_impl(counted_t<const datum_t> *out,
+                              const std::vector<counted_t<const datum_t> *> &ds) {
         for (auto it = ds.begin(); it != ds.end(); ++it) {
-            if (it->has()) accumulate(**it, out);
+            if ((*it)->has()) accumulate(**it, out);
         }
     }
 
-    ql::env_t *env;
-    counted_t<ql::func_t> f;
+    env_t *env;
+    counted_t<func_t> f;
 };
 
 class terminal_visitor_t : public boost::static_visitor<accumulator_t *> {
 public:
-    terminal_visitor_t(ql::env_t *_env) : env(_env) { }
+    terminal_visitor_t(env_t *_env) : env(_env) { }
     accumulator_t *operator()(const count_wire_func_t &f) const {
         return new count_terminal_t(env, f);
     }
     accumulator_t *operator()(const reduce_wire_func_t &f) const {
         return new reduce_terminal_t(env, f);
     }
-    ql::env_t *env;
+    env_t *env;
 };
 
-accumulator_t *make_terminal(const terminal_t &t) {
-    boost::apply_visitor(terminal_visitor_t(env), t);
+accumulator_t *make_terminal(env_t *env, const terminal_variant_t &t) {
+    return boost::apply_visitor(terminal_visitor_t(env), t);
 }
 
 class ungrouped_op_t : public op_t {
@@ -242,7 +238,7 @@ private:
 
 class map_trans_t : public ungrouped_op_t {
 public:
-    map_trans_t(ql::env_t *_env, const ql::map_wire_func_t &_f)
+    map_trans_t(env_t *_env, const map_wire_func_t &_f)
         : env(_env), f(_f.compile_wire_func()) { }
 private:
     virtual void lst_transform(lst_t *lst) {
@@ -250,19 +246,19 @@ private:
             for (auto it = lst->begin(); it != lst->end(); ++it) {
                 *it = f->call(env, *it)->as_datum();
             }
-        } catch (const ql::datum_exc_t &e) {
-            throw ql::exc_t(e, f->backtrace().get(), 1);
+        } catch (const datum_exc_t &e) {
+            throw exc_t(e, f->backtrace().get(), 1);
         }
     }
-    ql::env_t *env;
-    counted_t<ql::func_t> f;
+    env_t *env;
+    counted_t<func_t> f;
 };
 
 class filter_trans_t : public ungrouped_op_t {
 public:
-    filter_trans_t(ql::env_t *_env, const filter_wire_func_t &_f)
+    filter_trans_t(env_t *_env, const filter_wire_func_t &_f)
         : env(_env),
-          f(_f.compile_wire_func()),
+          f(_f.filter_func.compile_wire_func()),
           default_val(_f.default_filter_val
                       ? _f.default_filter_val->compile_wire_func()
                       : counted_t<func_t>()) { }
@@ -277,46 +273,47 @@ private:
                     ++loc;
                 }
             }
-        } catch (const ql::datum_exc_t &e) {
-            throw ql::exc_t(e, f->backtrace().get(), 1);
+        } catch (const datum_exc_t &e) {
+            throw exc_t(e, f->backtrace().get(), 1);
         }
         lst->erase(loc, lst->end());
     }
-    ql::env_t *env;
-    counted_t<ql::func_t> f, default_val;
+    env_t *env;
+    counted_t<func_t> f, default_val;
 };
 
 class concatmap_trans_t : public ungrouped_op_t {
 public:
-    concatmap_trans_t(ql::env_t *_env, const concatmap_wire_func_t &_f)
+    concatmap_trans_t(env_t *_env, const concatmap_wire_func_t &_f)
         : env(_env), f(_f.compile_wire_func()) { }
 private:
     virtual void lst_transform(lst_t *lst) {
         lst_t new_lst;
-        ql::batchspec_t bs = ql::batchspec_t::user(ql::batch_type_t::TERMINAL, env);
-        ql::profile::sampler_t sampler("Evaluating CONCAT_MAP elements.", env->trace);
+        batchspec_t bs = batchspec_t::user(batch_type_t::TERMINAL, env);
+        profile::sampler_t sampler("Evaluating CONCAT_MAP elements.", env->trace);
         try {
             for (auto it = lst->begin(); it != lst->end(); ++it) {
                 auto ds = f->call(env, *it)->as_seq(env);
-                while (auto v = ds->next_batch(env, bs)) {
+                for (;;) {
+                    auto v = ds->next_batch(env, bs);
+                    if (v.size() == 0) break;
                     new_lst.reserve(new_lst.size() + v.size());
                     new_lst.insert(new_lst.end(), v.begin(), v.end());
                     sampler.new_sample();
                 }
             }
-        } catch (const ql::datum_exc_t &e) {
-            throw ql::exc_t(e, f->backtrace().get(), 1);
+        } catch (const datum_exc_t &e) {
+            throw exc_t(e, f->backtrace().get(), 1);
         }
         lst->swap(new_lst);
     }
-    ql::env_t *env;
-    counted_t<ql::func_t> f;
+    env_t *env;
+    counted_t<func_t> f;
 };
 
-class transform_visitor_t : public boost::static_visitor_t<op_t *> {
-    // We need a visitor for the variant, but only `job_data_t` needs to do this.
-    friend class job_data_t;
-    terminal_visitor_t(ql::env_t *_env) : env(_env) { }
+class transform_visitor_t : public boost::static_visitor<op_t *> {
+public:
+    transform_visitor_t(env_t *_env) : env(_env) { }
     op_t *operator()(const map_wire_func_t &f) const {
         return new map_trans_t(env, f);
     }
@@ -326,7 +323,8 @@ class transform_visitor_t : public boost::static_visitor_t<op_t *> {
     op_t *operator()(const concatmap_wire_func_t &f) const {
         return new concatmap_trans_t(env, f);
     }
-    ql::env_t *env;
+private:
+    env_t *env;
 };
 
 op_t *make_op(env_t *env, const transform_variant_t &tv) {

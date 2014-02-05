@@ -72,10 +72,8 @@ counted_t<term_t> compile_term(compile_env_t *env, protob_t<const Term> t) {
     case Term::COUNT:              return make_count_term(env, t);
     case Term::UNION:              return make_union_term(env, t);
     case Term::NTH:                return make_nth_term(env, t);
-    case Term::GROUPED_MAP_REDUCE: return make_gmr_term(env, t);
     case Term::LIMIT:              return make_limit_term(env, t);
     case Term::SKIP:               return make_skip_term(env, t);
-    case Term::GROUPBY:            return make_groupby_term(env, t);
     case Term::INNER_JOIN:         return make_inner_join_term(env, t);
     case Term::OUTER_JOIN:         return make_outer_join_term(env, t);
     case Term::EQ_JOIN:            return make_eq_join_term(env, t);

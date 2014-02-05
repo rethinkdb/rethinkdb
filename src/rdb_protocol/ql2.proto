@@ -358,11 +358,13 @@ message Term {
         UNION     = 44; // Sequence... -> Sequence
         // Get the Nth element of a sequence.
         NTH       = 45; // Sequence, NUMBER -> DATUM
+
+        // RSI: GROUP
         // Takes a sequence, and three functions:
         // - A function to group the sequence by.
         // - A function to map over the groups.
         // - A reduction to apply to each of the groups.
-        GROUPED_MAP_REDUCE = 46; // Sequence, Function(1), Function(1), Function(2) -> ARRAY
+        // GROUPED_MAP_REDUCE = 46; // Sequence, Function(1), Function(1), Function(2) -> ARRAY
         // Groups a sequence by one or more attributes, and then applies a reduction.
         // The third argument is a special object literal giving the kind of operation to be
         // performed and any necessary arguments.
@@ -370,7 +372,8 @@ message Term {
         // * {'COUNT': <ignored>} - count the size of the group
         // * {'SUM': attr} - sum the values of the given attribute across the group
         // * {'AVG': attr} - average the values of the given attribute across the group
-        GROUPBY            = 47; // Sequence, ARRAY, !GROUP_BY_OBJECT -> Sequence
+        // GROUPBY            = 47; // Sequence, ARRAY, !GROUP_BY_OBJECT -> Sequence
+
         INNER_JOIN         = 48; // Sequence, Sequence, Function(2) -> Sequence
         OUTER_JOIN         = 49; // Sequence, Sequence, Function(2) -> Sequence
         // An inner-join that does an equality comparison on two attributes.

@@ -26,8 +26,8 @@ struct make_sindex_read_t {
                 std::map<std::string, ql::wire_func_t>(),
                 ql::batchspec_t::user(ql::batch_type_t::NORMAL,
                                       counted_t<const ql::datum_t>()),
-                rdb_protocol_details::transform_t(),
-                boost::optional<rdb_protocol_details::terminal_t>(),
+                std::vector<rdb_protocol_details::transform_variant_t>(),
+                boost::optional<rdb_protocol_details::terminal_variant_t>(),
                 rdb_protocol_t::sindex_rangespec_t(
                     id,
                     rdb_protocol_t::region_t(rng.to_sindex_keyrange()),

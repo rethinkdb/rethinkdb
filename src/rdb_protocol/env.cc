@@ -3,6 +3,7 @@
 
 #include "clustering/administration/database_metadata.hpp"
 #include "clustering/administration/metadata.hpp"
+#include "concurrency/cross_thread_watchable.hpp"
 #include "extproc/js_runner.hpp"
 #include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/func.hpp"
@@ -161,53 +162,18 @@ js_runner_t *env_t::get_js_runner() {
     return &js_runner;
 }
 
-env_t::env_t(
-    extproc_pool_t *_extproc_pool,
-    base_namespace_repo_t<rdb_protocol_t> *_ns_repo,
-
-    clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t> > >
-    _namespaces_semilattice_metadata,
-
-    clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >
-    _databases_semilattice_metadata,
-    boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
-    _semilattice_metadata,
-    directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
-    signal_t *_interruptor,
-    uuid_u _this_machine,
-    protob_t<Query> query)
-  : global_optargs(query),
-    extproc_pool(_extproc_pool),
-    cluster_access(_ns_repo,
-                   _namespaces_semilattice_metadata,
-                   _databases_semilattice_metadata,
-                   _semilattice_metadata,
-                   _directory_read_manager,
-                   _this_machine),
-    interruptor(_interruptor),
-    eval_callback(NULL)
-{
-    if (query.has()) {
-        counted_t<const datum_t> profile_arg = static_optarg("profile", query);
-        if (profile_arg.has() && profile_arg->get_type() == datum_t::type_t::R_BOOL &&
-            profile_arg->as_bool()) {
-            trace.init(new profile::trace_t());
-        }
-    }
-}
-
-env_t::env_t(rdb_protocol_t::contex_t *ctx, signal_t *interruptor)
+env_t::env_t(rdb_protocol_t::context_t *ctx, signal_t *_interruptor)
     : global_optargs(protob_t<Query>()),
       extproc_pool(ctx ? ctx->extproc_pool : NULL),
       cluster_access(
           ctx ? ctx->ns_repo : NULL,
           ctx ? ctx->cross_thread_namespace_watchables[get_thread_id().threadnum].get()
-                ->get_watchable(),
+                  ->get_watchable()
               : clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t> > >(),
           ctx ? ctx->cross_thread_database_watchables[get_thread_id().threadnum].get()
-                ->get_watchable(),
+                  ->get_watchable()
               : clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >(),
-          ctx ? ctx->cluster_metadata,
+          ctx ? ctx->cluster_metadata
               : boost::shared_ptr<
                     semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >(),
           NULL,
@@ -218,14 +184,12 @@ env_t::env_t(rdb_protocol_t::contex_t *ctx, signal_t *interruptor)
 env_t::env_t(
     extproc_pool_t *_extproc_pool,
     base_namespace_repo_t<rdb_protocol_t> *_ns_repo,
-
     clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t> > >
-    _namespaces_semilattice_metadata,
-
+        _namespaces_semilattice_metadata,
     clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >
-    _databases_semilattice_metadata,
+        _databases_semilattice_metadata,
     boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
-    _semilattice_metadata,
+        _semilattice_metadata,
     directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
     signal_t *_interruptor,
     uuid_u _this_machine,

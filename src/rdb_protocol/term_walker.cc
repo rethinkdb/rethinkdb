@@ -157,10 +157,8 @@ private:
         case Term::COUNT:
         case Term::UNION:
         case Term::NTH:
-        case Term::GROUPED_MAP_REDUCE:
         case Term::LIMIT:
         case Term::SKIP:
-        case Term::GROUPBY:
         case Term::INNER_JOIN:
         case Term::OUTER_JOIN:
         case Term::EQ_JOIN:
@@ -258,8 +256,6 @@ private:
         case Term::MAP:
         case Term::FILTER:
         case Term::CONCATMAP:
-        case Term::GROUPED_MAP_REDUCE:
-        case Term::GROUPBY:
         case Term::INNER_JOIN:
         case Term::OUTER_JOIN:
         case Term::EQ_JOIN:

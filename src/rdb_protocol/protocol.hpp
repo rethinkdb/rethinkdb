@@ -86,15 +86,14 @@ class key_le_t {
 public:
     key_le_t(sorting_t _sorting) : sorting(_sorting) { }
     bool operator()(const store_key_t &key1, const store_key_t &key2) const {
-        return (!reversed(sorting) && key1 <= key2) || (reversed(sorting) && key2 <= key1);
+        return (!reversed(sorting) && key1 <= key2)
+            || (reversed(sorting) && key2 <= key1);
     }
 private:
     sorting_t sorting;
 };
 
-store_key_t key_max(sorting_t sorting) {
-    return !reversed(sorting) ? store_key_t::max() : store_key_t::min();
-}
+store_key_t key_max(sorting_t sorting);
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
         sorting_t, int8_t,
@@ -140,19 +139,6 @@ private:
     key_range_t::bound_t left_bound_type, right_bound_type;
 };
 
-struct filter_transform_t {
-    filter_transform_t() { }
-    filter_transform_t(const ql::wire_func_t &_filter_func,
-                       const boost::optional<ql::wire_func_t> &_default_filter_val)
-        : filter_func(_filter_func),
-          default_filter_val(_default_filter_val) { }
-
-    ql::wire_func_t filter_func;
-    boost::optional<ql::wire_func_t> default_filter_val;
-};
-
-RDB_DECLARE_SERIALIZABLE(filter_transform_t);
-
 namespace rdb_protocol_details {
 
 struct backfill_atom_t {
@@ -173,14 +159,13 @@ struct backfill_atom_t {
 RDB_DECLARE_SERIALIZABLE(backfill_atom_t);
 
 typedef boost::variant<ql::map_wire_func_t,
-                       filter_transform_t,
+                       ql::filter_wire_func_t,
                        ql::concatmap_wire_func_t> transform_variant_t;
-typedef std::list<transform_variant_t> transform_t;
+// RSI typedef std::vector<transform_variant_t> transform_t;
 
-typedef boost::variant<ql::gmr_wire_func_t,
-                       ql::count_wire_func_t,
+typedef boost::variant<ql::count_wire_func_t,
                        ql::reduce_wire_func_t> terminal_variant_t;
-typedef terminal_variant_t terminal_t;
+// RSI typedef terminal_variant_t terminal_t;
 
 void bring_sindexes_up_to_date(
         const std::set<std::string> &sindexes_to_bring_up_to_date,
@@ -299,7 +284,6 @@ struct rdb_protocol_t {
         typedef boost::variant<
             size_t, // count
             counted_t<const ql::datum_t>, // reduce
-            ql::wire_datum_map_t, // gmr
             stream_t // no terminal
             > res_t;
         typedef std::map<counted_t<const ql::datum_t>, res_t> res_groups_t;
@@ -308,14 +292,14 @@ struct rdb_protocol_t {
         key_range_t key_range;
         result_t result;
         bool truncated;
-        store_key_t last_considered_key;
+        store_key_t last_key;
 
         rget_read_response_t() : result(res_groups_t()), truncated(false) { }
         rget_read_response_t(
             const key_range_t &_key_range, const result_t _result,
-            bool _truncated, const store_key_t &_last_considered_key)
+            bool _truncated, const store_key_t &_last_key)
             : key_range(_key_range), result(_result),
-              truncated(_truncated), last_considered_key(_last_considered_key) { }
+              truncated(_truncated), last_key(_last_key) { }
 
         RDB_DECLARE_ME_SERIALIZABLE;
     };
@@ -391,20 +375,22 @@ struct rdb_protocol_t {
     };
 
     class rget_read_t {
+        typedef rdb_protocol_details::transform_variant_t transform_variant_t;
+        typedef rdb_protocol_details::terminal_variant_t terminal_variant_t;
     public:
         rget_read_t() : batchspec(ql::batchspec_t::empty()) { }
 
         rget_read_t(const region_t &_region,
                     const std::map<std::string, ql::wire_func_t> &_optargs,
                     const ql::batchspec_t &_batchspec,
-                    const rdb_protocol_details::transform_t &_transform,
-                    boost::optional<rdb_protocol_details::terminal_t> &&_terminal,
+                    const std::vector<transform_variant_t> &_transforms,
+                    boost::optional<terminal_variant_t> &&_terminal,
                     boost::optional<sindex_rangespec_t> &&_sindex,
                     sorting_t _sorting)
             : region(_region),
               optargs(_optargs),
               batchspec(_batchspec),
-              transform(_transform),
+              transforms(_transforms),
               terminal(std::move(_terminal)),
               sindex(std::move(_sindex)),
               sorting(_sorting) { }
@@ -414,8 +400,8 @@ struct rdb_protocol_t {
         ql::batchspec_t batchspec; // used to size batches
 
         // We use these two for lazy maps, reductions, etc.
-        rdb_protocol_details::transform_t transform;
-        boost::optional<rdb_protocol_details::terminal_t> terminal;
+        std::vector<rdb_protocol_details::transform_variant_t> transforms;
+        boost::optional<rdb_protocol_details::terminal_variant_t> terminal;
 
         // This is non-empty if we're doing an sindex read.
         // TODO: `read_t` should maybe be multiple types.  Determining the type
@@ -662,7 +648,7 @@ struct rdb_protocol_t {
 
         RDB_DECLARE_ME_SERIALIZABLE;
     };
-    
+
     class sync_t {
     public:
         sync_t()

@@ -48,6 +48,8 @@ typedef rdb_protocol_t::point_read_response_t point_read_response_t;
 
 typedef rdb_protocol_t::rget_read_t rget_read_t;
 typedef rdb_protocol_t::rget_read_response_t rget_read_response_t;
+typedef rget_read_response_t::res_t res_t;
+typedef rget_read_response_t::result_t result_t;
 
 typedef rdb_protocol_t::distribution_read_t distribution_read_t;
 typedef rdb_protocol_t::distribution_read_response_t distribution_read_response_t;
@@ -90,13 +92,13 @@ typedef btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindex_access_vect
 const std::string rdb_protocol_t::protocol_name("rdb");
 
 bool reversed(sorting_t sorting) { return sorting == sorting_t::DESCENDING; }
+store_key_t key_max(sorting_t sorting) {
+    return !reversed(sorting) ? store_key_t::max() : store_key_t::min();
+}
 
 RDB_IMPL_PROTOB_SERIALIZABLE(Term);
 RDB_IMPL_PROTOB_SERIALIZABLE(Datum);
 RDB_IMPL_PROTOB_SERIALIZABLE(Backtrace);
-
-
-RDB_IMPL_SERIALIZABLE_2(filter_transform_t, filter_func, default_filter_val);
 
 datum_range_t::datum_range_t()
     : left_bound_type(key_range_t::none), right_bound_type(key_range_t::none) { }
@@ -601,9 +603,10 @@ void scale_down_distribution(size_t result_limit, std::map<store_key_t, int64_t>
     }
 }
 
+typedef rget_read_response_t::res_t res_t;
 class rdb_r_unshard_visitor_t : public boost::static_visitor<void> {
 public:
-    rdb_r_unshard_visitor_t(const read_response_t *_responses,
+    rdb_r_unshard_visitor_t(read_response_t *_responses,
                             size_t _count,
                             read_response_t *_response_out,
                             rdb_protocol_t::context_t *ctx,
@@ -621,7 +624,7 @@ public:
     void operator()(const sindex_status_t &rg);
 
 private:
-    const read_response_t *responses;
+    read_response_t *responses; // Cannibalized for efficiency.
     size_t count;
     read_response_t *response_out;
     ql::env_t env;
@@ -634,45 +637,47 @@ void rdb_r_unshard_visitor_t::operator()(const point_read_t &) {
 }
 
 typedef rget_read_response_t::res_t res_t;
-typedef rget_read_response_t::grouped_res_t grouped_res_t;
+typedef rget_read_response_t::res_groups_t res_groups_t;
 void rdb_r_unshard_visitor_t::operator()(const rget_read_t &rg) {
     // Initialize response.
     response_out->response = rget_read_response_t();
-    out->truncated = false;
     auto out = boost::get<rget_read_response_t>(&response_out->response);
+    out->truncated = false;
     out->key_range = read_t(rg, profile_bool_t::DONT_PROFILE).get_region().inner;
     // RSI: safe to kill? (out->last_key = out->key_range.left;)
 
     // Fill in `truncated` and `last_key`, get vector of groups to unshard
     // (or abort early if there's an error).
-    std::vector<res_groups_t *> rgs;
-    rgs.reserve(count);
+    std::vector<res_groups_t *> res_groups;
+    res_groups.reserve(count);
     store_key_t *best = NULL;
-    key_le_t ke_le(rg.sorting);
+    key_le_t key_le(rg.sorting);
     for (size_t i = 0; i < count; ++i) {
-        auto resp = responses + i;
+        auto resp = boost::get<rget_read_response_t>(&responses[i].response);
+        guarantee(resp);
         if (resp->truncated) {
             out->truncated = true;
             if (best == NULL || key_le(resp->last_key, *best)) {
                 best = &resp->last_key;
             }
         }
-        if (auto e = boost::get<ql::exc_t>(&resp->response)) {
-            out->result = e;
+        if (boost::get<ql::exc_t>(&resp->result) != NULL) {
+            out->result = std::move(resp->result);
             return;
-        } else if (auto rg = boost::get<res_groups_t>(&resp->response)) {
-            rgs.push_back(rg);
+        } else if (auto rg = boost::get<res_groups_t>(&resp->result)) {
+            res_groups.push_back(rg);
         } else {
             unreachable();
         }
     }
-    out->last_key = (best != NULL) ? std::move(*best) : key_max(sorting);
+    out->last_key = (best != NULL) ? std::move(*best) : key_max(rg.sorting);
 
     // Unshard and finish up.
-    scoped_ptr_t<accumulator_t> acc(
-        rg.terminal ? make_terminal(env, *rg.terminal) : make_append(NULL));
-    acc->unshard(rgs);
-    acc->finish(out);
+    scoped_ptr_t<ql::accumulator_t> acc(rg.terminal
+        ? ql::make_terminal(&env, *rg.terminal)
+        : ql::make_append(rg.sorting, NULL));
+    acc->unshard(out->last_key, res_groups);
+    acc->finish(&out->result);
 }
 
 void rdb_r_unshard_visitor_t::operator()(const distribution_read_t &dg) {
@@ -764,13 +769,8 @@ void read_t::unshard(read_response_t *responses, size_t count,
                      read_response_t *response_out, context_t *ctx,
                      signal_t *interruptor) const
     THROWS_ONLY(interrupted_exc_t) {
-    if (ctx != NULL) {
-        rdb_r_unshard_visitor_t v(responses, count, response_out, ctx, interruptor);
-        boost::apply_visitor(v, read);
-    } else {
-        rdb_r_unshard_visitor_t v(responses, count, response_out, interruptor);
-        boost::apply_visitor(v, read);
-    }
+    rdb_r_unshard_visitor_t v(responses, count, response_out, ctx, interruptor);
+    boost::apply_visitor(v, read);
 
     /* We've got some profiling to do. */
     /* This is a tad hacky, some of the methods in rdb_r_unshard_visitor_t set
@@ -1124,7 +1124,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const rget_read_t &rget) {
-        if (rget.transform.size() != 0 || rget.terminal) {
+        if (rget.transforms.size() != 0 || rget.terminal) {
             rassert(rget.optargs.size() != 0);
         }
         ql_env.global_optargs.init_optargs(rget.optargs);
@@ -1135,7 +1135,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         if (!rget.sindex) {
             // Normal rget
             rdb_rget_slice(btree, rget.region.inner, txn, superblock,
-                           &ql_env, rget.batchspec, rget.transform, rget.terminal,
+                           &ql_env, rget.batchspec, rget.transforms, rget.terminal,
                            rget.sorting, res);
         } else {
             scoped_ptr_t<real_superblock_t> sindex_sb;
@@ -1147,18 +1147,16 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                         txn, &sindex_sb, &sindex_mapping_data, &interruptor);
 
                 if (!found) {
-                    res->result = ql::datum_exc_t(
-                        ql::base_exc_t::GENERIC,
-                        strprintf("Index `%s` was not found.",
-                                  rget.sindex->id.c_str()));
+                    rfail_toplevel(ql::base_exc_t::GENERIC,
+                                   "Index `%s` was not found.",
+                                   rget.sindex->id.c_str());
                     return;
                 }
             } catch (const sindex_not_post_constructed_exc_t &) {
-                res->result = ql::datum_exc_t(
-                    ql::base_exc_t::GENERIC,
-                    strprintf("Index `%s` was accessed before "
-                              "its construction was finished.",
-                              rget.sindex->id.c_str()));
+                rfail_toplevel(ql::base_exc_t::GENERIC,
+                               "Index `%s` was accessed before "
+                               "its construction was finished.",
+                               rget.sindex->id.c_str());
                 return;
             }
 
@@ -1178,7 +1176,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             rdb_rget_secondary_slice(
                 store->get_sindex_slice(rget.sindex->id),
                 rget.sindex->original_range, rget.sindex->region,
-                txn, sindex_sb.get(), &ql_env, rget.batchspec, rget.transform,
+                txn, sindex_sb.get(), &ql_env, rget.batchspec, rget.transforms,
                 rget.terminal, rget.region.inner, rget.sorting,
                 sindex_mapping, multi_bool, res);
         }
@@ -1813,7 +1811,7 @@ RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_details::single_sindex_status_t,
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_read_response_t, data);
 RDB_IMPL_ME_SERIALIZABLE_4(rdb_protocol_t::rget_read_response_t,
-                           result, key_range, truncated, last_considered_key);
+                           result, key_range, truncated, last_key);
 RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::distribution_read_response_t,
                            region, key_counts);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::sindex_list_response_t, sindexes);
@@ -1832,7 +1830,7 @@ RDB_IMPL_ME_SERIALIZABLE_4(datum_range_t,
                            left_bound_type, right_bound_type);
 RDB_IMPL_ME_SERIALIZABLE_7(rdb_protocol_t::rget_read_t,
                            region, optargs, batchspec,
-                           transform, terminal, sindex, sorting);
+                           transforms, terminal, sindex, sorting);
 
 RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::distribution_read_t,
                            max_depth, result_limit, region);

@@ -103,7 +103,7 @@ reader_t::reader_t(
 
 void reader_t::add_transformation(transform_variant_t &&tv) {
     r_sanity_check(!started);
-    transform.push_back(std::move(tv));
+    transforms.push_back(std::move(tv));
 }
 
 rget_read_response_t::result_t
@@ -112,7 +112,7 @@ reader_t::run_terminal(env_t *env, terminal_variant_t &&tv) {
     started = shards_exhausted = true;
     batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env);
     rget_read_response_t res
-        = do_read(env, readgen->terminal_read(transform, std::move(tv), batchspec));
+        = do_read(env, readgen->terminal_read(transforms, std::move(tv), batchspec));
     return std::move(res.result);
 }
 
@@ -152,7 +152,7 @@ std::vector<rget_item_t> reader_t::do_range_read(env_t *env, const read_t &read)
     // We need to do some adjustments to the last considered key so that we
     // update the range correctly in the case where we're reading a subportion
     // of the total range.
-    store_key_t *key = &res.last_considered_key;
+    store_key_t *key = &res.last_key;
     if (*key == store_key_t::max() && !reversed(rr->sorting)) {
         if (!rng.right.unbounded) {
             *key = rng.right.key;
@@ -163,7 +163,7 @@ std::vector<rget_item_t> reader_t::do_range_read(env_t *env, const read_t &read)
         *key = rng.left;
     }
 
-    shards_exhausted = readgen->update_range(&active_range, res.last_considered_key);
+    shards_exhausted = readgen->update_range(&active_range, res.last_key);
     auto v = boost::get<std::vector<rget_item_t> >(&res.result);
     r_sanity_check(v);
     return std::move(*v);
@@ -174,11 +174,11 @@ bool reader_t::load_items(env_t *env, const batchspec_t &batchspec) {
     if (items_index >= items.size() && !shards_exhausted) { // read some more
         items_index = 0;
         items = do_range_read(
-            env, readgen->next_read(active_range, transform, batchspec));
+            env, readgen->next_read(active_range, transforms, batchspec));
         // Everything below this point can handle `items` being empty (this is
         // good hygiene anyway).
-        while (boost::optional<read_t> read
-               = readgen->sindex_sort_read(active_range, items, transform, batchspec)) {
+        while (boost::optional<read_t> read = readgen->sindex_sort_read(
+                   active_range, items, transforms, batchspec)) {
             std::vector<rget_item_t> new_items = do_range_read(env, *read);
             if (new_items.size() == 0) {
                 break;
@@ -193,7 +193,7 @@ bool reader_t::load_items(env_t *env, const batchspec_t &batchspec) {
                           "Truncated key:\n%s",
                           array_size_limit(),
                           readgen->sindex_name().c_str(),
-                          (*items[items.size() - 1].sindex_key)->trunc_print().c_str(),
+                          items[items.size() - 1].sindex_key->trunc_print().c_str(),
                           key_to_debug_str(items[items.size() - 1].key).c_str()));
 
             items.reserve(items.size() + new_items.size());
@@ -225,8 +225,7 @@ reader_t::next_batch(env_t *env, const batchspec_t &batchspec) {
         }
     } break;
     case batch_type_t::SINDEX_CONSTANT: {
-        boost::optional<counted_t<const ql::datum_t> > sindex
-            = std::move(items[items_index].sindex_key);
+        counted_t<const ql::datum_t> sindex = std::move(items[items_index].sindex_key);
         store_key_t key = std::move(items[items_index].key);
         res.push_back(std::move(items[items_index].data));
         items_index += 1;
@@ -234,13 +233,13 @@ reader_t::next_batch(env_t *env, const batchspec_t &batchspec) {
         bool maybe_more_with_sindex = true;
         while (maybe_more_with_sindex) {
             for (; items_index < items.size(); ++items_index) {
-                if (sindex) {
-                    r_sanity_check(items[items_index].sindex_key);
-                    if (**items[items_index].sindex_key != **sindex) {
+                if (sindex.has()) {
+                    r_sanity_check(items[items_index].sindex_key.has());
+                    if (*items[items_index].sindex_key != *sindex) {
                         break; // batch is done
                     }
                 } else {
-                    r_sanity_check(!items[items_index].sindex_key);
+                    r_sanity_check(!items[items_index].sindex_key.has());
                     if (items[items_index].key != key) {
                         break;
                     }
@@ -256,7 +255,7 @@ reader_t::next_batch(env_t *env, const batchspec_t &batchspec) {
                               // This is safe because you can't have duplicate
                               // primary keys, so they will never exceed the
                               // array limit.
-                              (*sindex)->trunc_print().c_str()));
+                              sindex->trunc_print().c_str()));
             }
             if (items_index >= items.size()) {
                 // If we consumed the whole batch without finding a new sindex,
@@ -296,11 +295,11 @@ readgen_t::readgen_t(
       sorting(_sorting) { }
 
 bool readgen_t::update_range(key_range_t *active_range,
-                             const store_key_t &last_considered_key) const {
+                             const store_key_t &last_key) const {
     if (!reversed(sorting)) {
-        active_range->left = last_considered_key;
+        active_range->left = last_key;
     } else {
-        active_range->right = key_range_t::right_bound_t(last_considered_key);
+        active_range->right = key_range_t::right_bound_t(last_key);
     }
 
     // TODO: mixing these non-const operations INTO THE CONDITIONAL is bad, and
@@ -323,17 +322,17 @@ bool readgen_t::update_range(key_range_t *active_range,
 
 read_t readgen_t::next_read(
     const key_range_t &active_range,
-    const transform_t &transform,
+    const std::vector<transform_variant_t> &transforms,
     const batchspec_t &batchspec) const {
-    return read_t(next_read_impl(active_range, transform, batchspec), profile);
+    return read_t(next_read_impl(active_range, transforms, batchspec), profile);
 }
 
 // TODO: this is how we did it before, but it sucks.
 read_t readgen_t::terminal_read(
-    const transform_t &transform,
-    terminal_t &&_terminal,
+    const std::vector<transform_variant_t> &transforms,
+    terminal_variant_t &&_terminal,
     const batchspec_t &batchspec) const {
-    rget_read_t read = next_read_impl(original_keyrange(), transform, batchspec);
+    rget_read_t read = next_read_impl(original_keyrange(), transforms, batchspec);
     read.terminal = std::move(_terminal);
     return read_t(read, profile);
 }
@@ -354,14 +353,14 @@ scoped_ptr_t<readgen_t> primary_readgen_t::make(
 
 rget_read_t primary_readgen_t::next_read_impl(
     const key_range_t &active_range,
-    const transform_t &transform,
+    const std::vector<transform_variant_t> &transforms,
     const batchspec_t &batchspec) const {
     return rget_read_t(
         region_t(active_range),
         global_optargs,
         batchspec,
-        transform,
-        boost::optional<terminal_t>(),
+        transforms,
+        boost::optional<terminal_variant_t>(),
         boost::optional<sindex_rangespec_t>(),
         sorting);
 }
@@ -370,7 +369,7 @@ rget_read_t primary_readgen_t::next_read_impl(
 boost::optional<read_t> primary_readgen_t::sindex_sort_read(
     UNUSED const key_range_t &active_range,
     UNUSED const std::vector<rget_item_t> &items,
-    UNUSED const transform_t &transform,
+    UNUSED const std::vector<transform_variant_t> &transforms,
     UNUSED const batchspec_t &batchspec) const {
     return boost::optional<read_t>();
 }
@@ -406,10 +405,10 @@ class sindex_compare_t {
 public:
     explicit sindex_compare_t(sorting_t _sorting) : sorting(_sorting) { }
     bool operator()(const rget_item_t &l, const rget_item_t &r) {
-        r_sanity_check(l.sindex_key && r.sindex_key);
+        r_sanity_check(l.sindex_key.has() && r.sindex_key.has());
         return reversed(sorting)
-            ? (**l.sindex_key > **r.sindex_key)
-            : (**l.sindex_key < **r.sindex_key);
+            ? (*l.sindex_key > *r.sindex_key)
+            : (*l.sindex_key < *r.sindex_key);
     }
 private:
     sorting_t sorting;
@@ -426,14 +425,14 @@ void sindex_readgen_t::sindex_sort(std::vector<rget_item_t> *vec) const {
 
 rget_read_t sindex_readgen_t::next_read_impl(
     const key_range_t &active_range,
-    const transform_t &transform,
+    const std::vector<transform_variant_t> &transforms,
     const batchspec_t &batchspec) const {
     return rget_read_t(
         region_t::universe(),
         global_optargs,
         batchspec,
-        transform,
-        boost::optional<terminal_t>(),
+        transforms,
+        boost::optional<terminal_variant_t>(),
         sindex_rangespec_t(sindex, region_t(active_range), original_datum_range),
         sorting);
 }
@@ -441,7 +440,7 @@ rget_read_t sindex_readgen_t::next_read_impl(
 boost::optional<read_t> sindex_readgen_t::sindex_sort_read(
     const key_range_t &active_range,
     const std::vector<rget_item_t> &items,
-    const transform_t &transform,
+    const std::vector<transform_variant_t> &transforms,
     const batchspec_t &batchspec) const {
     if (sorting != sorting_t::UNORDERED && items.size() > 0) {
         const store_key_t &key = items[items.size() - 1].key;
@@ -466,8 +465,8 @@ boost::optional<read_t> sindex_readgen_t::sindex_sort_read(
                         region_t::universe(),
                         global_optargs,
                         batchspec.with_new_batch_type(batch_type_t::SINDEX_CONSTANT),
-                        transform,
-                        boost::optional<terminal_t>(),
+                        transforms,
+                        boost::optional<terminal_variant_t>(),
                         sindex_rangespec_t(
                             sindex,
                             region_t(key_range_t(rng)),
@@ -575,34 +574,6 @@ counted_t<const datum_t> eager_datum_stream_t::reduce(env_t *env,
     return base;
 }
 
-counted_t<const datum_t> eager_datum_stream_t::gmr(env_t *env,
-                                                   counted_t<func_t> group,
-                                                   counted_t<func_t> map,
-                                                   counted_t<const datum_t> base,
-                                                   counted_t<func_t> reduce) {
-    wire_datum_map_t wd_map;
-    batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env);
-    {
-        profile::sampler_t sampler(
-            "Grouping, mapping, and reducing eagerly.", env->trace);
-        while (counted_t<const datum_t> el = next(env, batchspec)) {
-            counted_t<const datum_t> el_group = group->call(env, el)->as_datum();
-            counted_t<const datum_t> el_map = map->call(env, el)->as_datum();
-            if (!wd_map.has(el_group)) {
-                wd_map.set(el_group,
-                           base.has()
-                           ? reduce->call(env, base, el_map)->as_datum()
-                           : el_map);
-            } else {
-                wd_map.set(el_group,
-                           reduce->call(env, wd_map.get(el_group), el_map)->as_datum());
-            }
-            sampler.new_sample();
-        }
-    }
-    return wd_map.to_arr();
-}
-
 counted_t<datum_stream_t> eager_datum_stream_t::filter(
     counted_t<func_t> f,
     counted_t<func_t> default_filter_val) {
@@ -652,7 +623,7 @@ counted_t<datum_stream_t> lazy_datum_stream_t::concatmap(counted_t<func_t> f) {
 counted_t<datum_stream_t> lazy_datum_stream_t::filter(
     counted_t<func_t> f, counted_t<func_t> default_filter_val) {
     reader.add_transformation(
-        filter_transform_t(
+        filter_wire_func_t(
             wire_func_t(f),
             default_filter_val.has()
                 ? boost::make_optional(wire_func_t(default_filter_val))
@@ -684,35 +655,6 @@ counted_t<const datum_t> lazy_datum_stream_t::reduce(
         } else {
             rfail(base_exc_t::NON_EXISTENCE, empty_stream_msg);
         }
-    }
-}
-
-counted_t<const datum_t> lazy_datum_stream_t::gmr(
-    env_t *env, counted_t<func_t> g, counted_t<func_t> m,
-    counted_t<const datum_t> base, counted_t<func_t> r) {
-    rget_read_response_t::result_t res =
-        reader.run_terminal(env, gmr_wire_func_t(g, m, r));
-    wire_datum_map_t *dm = boost::get<wire_datum_map_t>(&res);
-    r_sanity_check(dm);
-    dm->compile();
-    counted_t<const datum_t> dm_arr = dm->to_arr();
-    if (!base.has()) {
-        return dm_arr;
-    } else {
-        wire_datum_map_t map;
-
-        {
-            profile::sampler_t sampler(
-                "Applying base to distributed grouped map reduce.", env->trace);
-            for (size_t f = 0; f < dm_arr->size(); ++f) {
-                counted_t<const datum_t> key = dm_arr->get(f)->get("group");
-                counted_t<const datum_t> val = dm_arr->get(f)->get("reduction");
-                r_sanity_check(!map.has(key));
-                map.set(key, r->call(env, base, val)->as_datum());
-                sampler.new_sample();
-            }
-        }
-        return map.to_arr();
     }
 }
 
@@ -1040,31 +982,6 @@ counted_t<const datum_t> union_datum_stream_t::reduce(env_t *env,
         }
         return d;
     }
-}
-
-counted_t<const datum_t> union_datum_stream_t::gmr(
-        env_t *env,
-        counted_t<func_t> g, counted_t<func_t> m,
-        counted_t<const datum_t> base, counted_t<func_t> r) {
-    wire_datum_map_t dm;
-    profile::sampler_t sampler(
-        "Grouping, mapping, and reducing eagerly in union.", env->trace);
-    for (auto it = streams.begin(); it != streams.end(); ++it) {
-        counted_t<const datum_t> d = (*it)->gmr(env, g, m, base, r);
-        for (size_t i = 0; i < d->size(); ++i) {
-            counted_t<const datum_t> el = d->get(i);
-            counted_t<const datum_t> el_group = el->get("group");
-            counted_t<const datum_t> el_reduction = el->get("reduction");
-            if (!dm.has(el_group)) {
-                dm.set(el_group, el_reduction);
-            } else {
-                dm.set(el_group,
-                       r->call(env, dm.get(el_group), el_reduction)->as_datum());
-            }
-            sampler.new_sample();
-        }
-    }
-    return dm.to_arr();
 }
 
 bool union_datum_stream_t::is_array() {

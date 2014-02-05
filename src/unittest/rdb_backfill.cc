@@ -329,7 +329,7 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
     nap(100000);
 
     cond_t dummy_interruptor;
-    ql::env_t dummy_env(&dummy_interruptor);
+    ql::env_t dummy_env(NULL, &dummy_interruptor);
 
     for (std::map<std::string, std::string>::iterator it = inserter_state.begin();
             it != inserter_state.end(); it++) {

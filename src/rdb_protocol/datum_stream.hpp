@@ -76,8 +76,8 @@ private:
 };
 
 // This is a more selective subset of the list at the top of protocol.cc.
-typedef rdb_protocol_details::transform_t transform_t;
-typedef rdb_protocol_details::terminal_t terminal_t;
+// RSI typedef rdb_protocol_details::transform_t transform_t;
+// RSI typedef rdb_protocol_details::terminal_t terminal_t;
 typedef rdb_protocol_details::rget_item_t rget_item_t;
 typedef rdb_protocol_details::transform_variant_t transform_variant_t;
 typedef rdb_protocol_details::terminal_variant_t terminal_variant_t;
@@ -105,11 +105,6 @@ public:
     virtual counted_t<const datum_t> reduce(env_t *env,
                                             counted_t<val_t> base_val,
                                             counted_t<func_t> f) = 0;
-    virtual counted_t<const datum_t> gmr(env_t *env,
-                                         counted_t<func_t> g,
-                                         counted_t<func_t> m,
-                                         counted_t<const datum_t> d,
-                                         counted_t<func_t> r) = 0;
 
     // stream -> stream (always eager)
     counted_t<datum_stream_t> slice(size_t l, size_t r);
@@ -154,11 +149,6 @@ protected:
     virtual counted_t<const datum_t> reduce(env_t *env,
                                             counted_t<val_t> base_val,
                                             counted_t<func_t> f);
-    virtual counted_t<const datum_t> gmr(env_t *env,
-                                         counted_t<func_t> g,
-                                         counted_t<func_t> m,
-                                         counted_t<const datum_t> d,
-                                         counted_t<func_t> r);
 
     virtual bool is_array() = 0;
     virtual counted_t<const datum_t> as_array(env_t *env);
@@ -247,8 +237,8 @@ public:
         sorting_t sorting);
     virtual ~readgen_t() { }
     read_t terminal_read(
-        const transform_t &transform,
-        terminal_t &&_terminal,
+        const std::vector<transform_variant_t> &transform,
+        terminal_variant_t &&_terminal,
         const batchspec_t &batchspec) const;
     // This has to be on `readgen_t` because we sort differently depending on
     // the kinds of reads we're doing.
@@ -256,7 +246,7 @@ public:
 
     virtual read_t next_read(
         const key_range_t &active_range,
-        const transform_t &transform,
+        const std::vector<transform_variant_t> &transform,
         const batchspec_t &batchspec) const;
     // This generates a read that will read as many rows as we need to be able
     // to do an sindex sort, or nothing if no such read is necessary.  Such a
@@ -265,7 +255,7 @@ public:
     virtual boost::optional<read_t> sindex_sort_read(
         const key_range_t &active_range,
         const std::vector<rget_item_t> &items,
-        const transform_t &transform,
+        const std::vector<transform_variant_t> &transform,
         const batchspec_t &batchspec) const = 0;
 
     virtual key_range_t original_keyrange() const = 0;
@@ -273,7 +263,7 @@ public:
 
     // Returns `true` if there is no more to read.
     bool update_range(key_range_t *active_range,
-                      const store_key_t &last_considered_key) const;
+                      const store_key_t &last_key) const;
 protected:
     const std::map<std::string, wire_func_t> global_optargs;
     const datum_range_t original_datum_range;
@@ -283,7 +273,7 @@ protected:
 private:
     virtual rget_read_t next_read_impl(
         const key_range_t &active_range,
-        const transform_t &transform,
+        const std::vector<transform_variant_t> &transform,
         const batchspec_t &batchspec) const = 0;
 };
 
@@ -298,12 +288,12 @@ private:
                       datum_range_t range, profile_bool_t profile, sorting_t sorting);
     virtual rget_read_t next_read_impl(
         const key_range_t &active_range,
-        const transform_t &transform,
+        const std::vector<transform_variant_t> &transform,
         const batchspec_t &batchspec) const;
     virtual boost::optional<read_t> sindex_sort_read(
         const key_range_t &active_range,
         const std::vector<rget_item_t> &items,
-        const transform_t &transform,
+        const std::vector<transform_variant_t> &transform,
         const batchspec_t &batchspec) const;
     virtual void sindex_sort(std::vector<rget_item_t> *vec) const;
     virtual key_range_t original_keyrange() const;
@@ -324,12 +314,12 @@ private:
         profile_bool_t profile, sorting_t sorting);
     virtual rget_read_t next_read_impl(
         const key_range_t &active_range,
-        const transform_t &transform,
+        const std::vector<transform_variant_t> &transform,
         const batchspec_t &batchspec) const;
     virtual boost::optional<read_t> sindex_sort_read(
         const key_range_t &active_range,
         const std::vector<rget_item_t> &items,
-        const transform_t &transform,
+        const std::vector<transform_variant_t> &transform,
         const batchspec_t &batchspec) const;
     virtual void sindex_sort(std::vector<rget_item_t> *vec) const;
     virtual key_range_t original_keyrange() const;
@@ -357,7 +347,7 @@ private:
 
     rdb_namespace_access_t ns_access;
     const bool use_outdated;
-    transform_t transform;
+    std::vector<transform_variant_t> transforms;
 
     bool started, shards_exhausted;
     const scoped_ptr_t<const readgen_t> readgen;
@@ -384,11 +374,6 @@ public:
     virtual counted_t<const datum_t> reduce(env_t *env,
                                             counted_t<val_t> base_val,
                                             counted_t<func_t> f);
-    virtual counted_t<const datum_t> gmr(env_t *env,
-                                         counted_t<func_t> g,
-                                         counted_t<func_t> m,
-                                         counted_t<const datum_t> base,
-                                         counted_t<func_t> r);
     virtual bool is_array() { return false; }
     virtual counted_t<const datum_t> as_array(UNUSED env_t *env) {
         return counted_t<const datum_t>();  // Cannot be converted implicitly.
@@ -482,11 +467,6 @@ public:
     virtual counted_t<const datum_t> reduce(env_t *env,
                                             counted_t<val_t> base_val,
                                             counted_t<func_t> f);
-    virtual counted_t<const datum_t> gmr(env_t *env,
-                                         counted_t<func_t> g,
-                                         counted_t<func_t> m,
-                                         counted_t<const datum_t> base,
-                                         counted_t<func_t> r);
     virtual bool is_array();
     virtual counted_t<const datum_t> as_array(env_t *env);
     virtual bool is_exhausted() const;

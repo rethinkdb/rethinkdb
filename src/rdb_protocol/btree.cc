@@ -627,7 +627,7 @@ size_t estimate_rget_response_size(const counted_t<const ql::datum_t> &datum) {
 
 
 typedef rdb_protocol_details::transform_variant_t transform_variant_t;
-typedef rdb_protocol_details::terminal_t terminal_t;
+typedef rdb_protocol_details::terminal_variant_t terminal_variant_t;
 
 class sindex_data_t {
 public:
@@ -646,20 +646,19 @@ private:
 typedef std::vector<counted_t<const ql::datum_t> > lst_t;
 typedef std::map<counted_t<const ql::datum_t>, lst_t> groups_t;
 
-
 class job_data_t {
 public:
     job_data_t(ql::env_t *_env, const ql::batchspec_t &batchspec,
                const std::vector<transform_variant_t> &_transforms,
-               const boost::optional<terminal_t> &_terminal,
+               const boost::optional<terminal_variant_t> &_terminal,
                sorting_t _sorting)
         : env(_env),
           batcher(batchspec.to_batcher()),
           transformers(_transforms.size()),
+          sorting(_sorting),
           accumulator(_terminal
                       ? ql::make_terminal(env, *_terminal)
-                      : ql::make_append(&batcher)),
-          sorting(_sorting) {
+                      : ql::make_append(sorting, &batcher)) {
         guarantee(transformers.size() == _transforms.size());
         for (size_t i = 0; i < _transforms.size(); ++i) {
             transformers[i].init(ql::make_op(env, _transforms[i]));
@@ -671,8 +670,8 @@ private:
     ql::env_t *const env;
     ql::batcher_t batcher;
     std::vector<scoped_ptr_t<ql::op_t> > transformers;
-    scoped_ptr_t<ql::accumulator_t> accumulator;
     sorting_t sorting;
+    scoped_ptr_t<ql::accumulator_t> accumulator;
 };
 
 class io_data_t {
@@ -717,7 +716,7 @@ rget_cb_t::rget_cb_t(io_data_t &&_io,
       job(std::move(_job)),
       sindex(std::move(_sindex)),
       bad_init(false) {
-    io.response->last_considered_key = !reversed(job.sorting)
+    io.response->last_key = !reversed(job.sorting)
         ? range.left
         : (!range.right.unbounded ? range.right.key : store_key_t::max());
     disabler.init(new profile::disabler_t(job.env->trace));
@@ -759,9 +758,9 @@ THROWS_ONLY(interrupted_exc_t) {
 
     try {
         // Update the last considered key.
-        if ((io.response->last_considered_key < key && !reversed(job.sorting)) ||
-            (io.response->last_considered_key > key && reversed(job.sorting))) {
-            io.response->last_considered_key = key;
+        if ((io.response->last_key < key && !reversed(job.sorting)) ||
+            (io.response->last_key > key && reversed(job.sorting))) {
+            io.response->last_key = key;
         }
 
         // Check whether we're out of sindex range.
@@ -780,8 +779,7 @@ THROWS_ONLY(interrupted_exc_t) {
             }
         }
 
-        groups_t data;
-        data.insert(std::make_pair(counted_t<const ql::datum_t>(), val));
+        groups_t data{{counted_t<const ql::datum_t>(), lst_t{val}}};
 
         for (auto it = job.transformers.begin(); it != job.transformers.end(); ++it) {
             (**it)(&data);
@@ -1058,38 +1056,41 @@ THROWS_ONLY(interrupted_exc_t) {
 //     btree_slice_t *slice;
 // };
 
-class result_finalizer_visitor_t : public boost::static_visitor<void> {
-public:
-    void operator()(const rget_read_response_t::stream_t &) const { }
-    void operator()(const ql::exc_t &) const { }
-    void operator()(const ql::datum_exc_t &) const { }
-    void operator()(const std::vector<ql::wire_datum_map_t> &) const { }
-    void operator()(const rget_read_response_t::empty_t &) const { }
-    void operator()(const counted_t<const ql::datum_t> &) const { }
+// class result_finalizer_visitor_t : public boost::static_visitor<void> {
+// public:
+//     void operator()(const rget_read_response_t::stream_t &) const { }
+//     void operator()(const ql::exc_t &) const { }
+//     void operator()(const ql::datum_exc_t &) const { }
+//     void operator()(const std::vector<ql::wire_datum_map_t> &) const { }
+//     void operator()(const rget_read_response_t::empty_t &) const { }
+//     void operator()(const counted_t<const ql::datum_t> &) const { }
 
-    void operator()(ql::wire_datum_map_t &dm) const {  // NOLINT(runtime/references)
-        dm.finalize();
-    }
-};
+//     void operator()(ql::wire_datum_map_t &dm) const {  // NOLINT(runtime/references)
+//         dm.finalize();
+//     }
+// };
 
-void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
-                    transaction_t *txn, superblock_t *superblock,
-                    ql::env_t *ql_env, const ql::batchspec_t &batchspec,
-                    const rdb_protocol_details::transform_t &transform,
-                    const boost::optional<rdb_protocol_details::terminal_t> &terminal,
-                    sorting_t sorting,
-                    rget_read_response_t *response) {
+// TODO: Having two functions which are 99% the same sucks.
+void rdb_rget_slice(
+    btree_slice_t *slice,
+    const key_range_t &range,
+    transaction_t *txn,
+    superblock_t *superblock,
+    ql::env_t *ql_env,
+    const ql::batchspec_t &batchspec,
+    const std::vector<transform_variant_t> &transforms,
+    const boost::optional<terminal_variant_t> &terminal,
+    sorting_t sorting,
+    rget_read_response_t *response) {
     profile::starter_t starter("Do range scan on primary index.", ql_env->trace);
     rget_cb_t callback(
         io_data_t(txn, response, slice),
-        job_data_t(ql_env, batchspec, transform, terminal, sorting),
+        job_data_t(ql_env, batchspec, transforms, terminal, sorting),
         boost::optional<sindex_data_t>(),
         range);
     btree_concurrent_traversal(slice, txn, superblock, range, &callback,
                                (!reversed(sorting) ? FORWARD : BACKWARD));
-
-    // RSI: kill
-    boost::apply_visitor(result_finalizer_visitor_t(), response->result);
+    callback.finish();
 }
 
 void rdb_rget_secondary_slice(
@@ -1100,8 +1101,8 @@ void rdb_rget_secondary_slice(
     superblock_t *superblock,
     ql::env_t *ql_env,
     const ql::batchspec_t &batchspec,
-    const rdb_protocol_details::transform_t &transform,
-    const boost::optional<rdb_protocol_details::terminal_t> &terminal,
+    const std::vector<transform_variant_t> &transforms,
+    const boost::optional<terminal_variant_t> &terminal,
     const key_range_t &pk_range,
     sorting_t sorting,
     const ql::map_wire_func_t &sindex_func,
@@ -1110,14 +1111,13 @@ void rdb_rget_secondary_slice(
     profile::starter_t starter("Do range scan on secondary index.", ql_env->trace);
     rget_cb_t callback(
         io_data_t(txn, response, slice),
-        job_data_t(ql_env, batchspec, transform, terminal, sorting),
+        job_data_t(ql_env, batchspec, transforms, terminal, sorting),
         sindex_data_t(pk_range, sindex_range, sindex_func, sindex_multi),
         sindex_region.inner);
     btree_concurrent_traversal(
         slice, txn, superblock, sindex_region.inner, &callback,
         (!reversed(sorting) ? FORWARD : BACKWARD));
-
-    boost::apply_visitor(result_finalizer_visitor_t(), response->result);
+    callback.finish();
 }
 
 void rdb_distribution_get(btree_slice_t *slice, int max_depth, const store_key_t &left_key,
@@ -1272,7 +1272,7 @@ void rdb_update_single_sindex(
     // for now we pass null and it will segfault if an illegal sindex
     // mapping is passed.
     cond_t non_interruptor;
-    ql::env_t env(&non_interruptor);
+    ql::env_t env(NULL, &non_interruptor);
 
     superblock_t *super_block = sindex->super_block.get();
 
