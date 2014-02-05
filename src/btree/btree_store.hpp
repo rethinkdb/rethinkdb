@@ -180,11 +180,6 @@ public:
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t);
 
-    // RSI: Does anybody use this?  This could just be get_secondary_indexes.
-    void get_sindexes(
-        buf_lock_t *sindex_block,
-        std::map<std::string, secondary_index_t> *sindexes_out);
-
     MUST_USE bool acquire_sindex_superblock_for_read(
             const std::string &id,
             superblock_t *superblock,  // releases this.

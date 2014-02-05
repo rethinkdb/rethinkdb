@@ -194,7 +194,7 @@ void bring_sindexes_up_to_date(
     }
 
     std::map<std::string, secondary_index_t> sindexes;
-    store->get_sindexes(sindex_block, &sindexes);
+    get_secondary_indexes(sindex_block, &sindexes);
     std::set<uuid_u> sindexes_to_bring_up_to_date_uuid;
 
     for (auto it = sindexes_to_bring_up_to_date.begin();
