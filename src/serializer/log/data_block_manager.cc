@@ -653,8 +653,7 @@ public:
                 parent->serializer->offer_buf_to_read_ahead_callbacks(
                         block_id,
                         std::move(data),
-                        token,
-                        info.recency);
+                        token);
             }
         }
 

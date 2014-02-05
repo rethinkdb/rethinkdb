@@ -23,12 +23,10 @@ page_read_ahead_cb_t::page_read_ahead_cb_t(serializer_t *serializer,
 
 page_read_ahead_cb_t::~page_read_ahead_cb_t() { }
 
-// RSI: recency unused.
 void page_read_ahead_cb_t::offer_read_ahead_buf(
         block_id_t block_id,
         scoped_malloc_t<ser_buffer_t> *buf_ptr,
-        const counted_t<standard_block_token_t> &token,
-        UNUSED repli_timestamp_t recency) {
+        const counted_t<standard_block_token_t> &token) {
     assert_thread();
     scoped_malloc_t<ser_buffer_t> buf = std::move(*buf_ptr);
 

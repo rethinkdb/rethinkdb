@@ -270,8 +270,7 @@ bool translator_serializer_t::get_delete_bit(block_id_t id) {
 void translator_serializer_t::offer_read_ahead_buf(
         block_id_t block_id,
         scoped_malloc_t<ser_buffer_t> *buf,
-        const counted_t<standard_block_token_t> &token,
-        repli_timestamp_t recency_timestamp) {
+        const counted_t<standard_block_token_t> &token) {
     inner->assert_thread();
 
     if (block_id <= CONFIG_BLOCK_ID.ser_id) {
@@ -294,7 +293,7 @@ void translator_serializer_t::offer_read_ahead_buf(
     if (read_ahead_callback != NULL) {
         const block_id_t inner_block_id = untranslate_block_id_to_id(block_id, mod_count, mod_id, cfgid);
         read_ahead_callback->offer_read_ahead_buf(inner_block_id, buf,
-                                                  token, recency_timestamp);
+                                                  token);
     }
 }
 

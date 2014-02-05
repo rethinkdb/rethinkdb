@@ -517,8 +517,7 @@ public:
 
     void offer_read_ahead_buf(block_id_t block_id,
                               scoped_malloc_t<ser_buffer_t> *buf,
-                              const counted_t<standard_block_token_t> &token,
-                              repli_timestamp_t recency);
+                              const counted_t<standard_block_token_t> &token);
 
     void destroy_self();
 
