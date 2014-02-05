@@ -23,11 +23,12 @@ page_read_ahead_cb_t::page_read_ahead_cb_t(serializer_t *serializer,
 
 page_read_ahead_cb_t::~page_read_ahead_cb_t() { }
 
+// RSI: recency unused.
 void page_read_ahead_cb_t::offer_read_ahead_buf(
         block_id_t block_id,
         scoped_malloc_t<ser_buffer_t> *buf_ptr,
         const counted_t<standard_block_token_t> &token,
-        repli_timestamp_t recency) {
+        UNUSED repli_timestamp_t recency) {
     assert_thread();
     scoped_malloc_t<ser_buffer_t> buf = std::move(*buf_ptr);
 
@@ -44,12 +45,11 @@ void page_read_ahead_cb_t::offer_read_ahead_buf(
     } else {
         bytes_remaining_ -= size;
         do_on_thread(page_cache_->home_thread(),
-                     std::bind(&page_cache_t::supply_read_ahead_buf,
+                     std::bind(&page_cache_t::add_read_ahead_buf,
                                page_cache_,
                                block_id,
                                buf.release(),
-                               token,
-                               recency));
+                               token));
     }
 
     if (bytes_remaining_ == 0) {
@@ -81,11 +81,9 @@ void page_cache_t::resize_current_pages_to_id(block_id_t block_id) {
     }
 }
 
-// RSI: recency unused.
-void page_cache_t::supply_read_ahead_buf(block_id_t block_id,
-                                         ser_buffer_t *buf_ptr,
-                                         const counted_t<standard_block_token_t> &token,
-                                         UNUSED repli_timestamp_t recency) {
+void page_cache_t::add_read_ahead_buf(block_id_t block_id,
+                                      ser_buffer_t *buf_ptr,
+                                      const counted_t<standard_block_token_t> &token) {
     assert_thread();
 
     scoped_malloc_t<ser_buffer_t> buf(buf_ptr);

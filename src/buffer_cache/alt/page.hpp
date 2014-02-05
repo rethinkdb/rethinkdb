@@ -558,10 +558,9 @@ public:
 
 private:
     friend class page_read_ahead_cb_t;
-    void supply_read_ahead_buf(block_id_t block_id,
-                               ser_buffer_t *buf,
-                               const counted_t<standard_block_token_t> &token,
-                               repli_timestamp_t recency);
+    void add_read_ahead_buf(block_id_t block_id,
+                            ser_buffer_t *buf,
+                            const counted_t<standard_block_token_t> &token);
 
     void have_read_ahead_cb_destroyed();
 
@@ -621,6 +620,8 @@ private:
     friend class current_page_t;
     serializer_t *serializer() { return serializer_; }
     free_list_t *free_list() { return &free_list_; }
+
+    void resize_current_pages_to_id(block_id_t block_id);
 
     const page_cache_config_t dynamic_config_;
 
