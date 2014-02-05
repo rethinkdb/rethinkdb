@@ -25,7 +25,7 @@ init () {
     all_libs="$required_libs $optional_libs $other_libs"
     default_static="tcmalloc_minimal"
 
-    web_assets_deps="lessc coffee handlebars browserify proto2js npm"
+    web_assets_deps="npm lessc coffee handlebars browserify proto2js"
     required_bin_deps="protoc"
     optional_bin_deps="wget curl"
     bin_deps="cxx $web_assets_deps $required_bin_deps $optional_bin_deps"

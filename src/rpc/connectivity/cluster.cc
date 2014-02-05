@@ -75,7 +75,8 @@ connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
                                      int port,
                                      message_handler_t *mh,
                                      int client_port,
-                                     heartbeat_manager_t *_heartbeat_manager) THROWS_ONLY(address_in_use_exc_t) :
+                                     heartbeat_manager_t *_heartbeat_manager)
+        THROWS_ONLY(address_in_use_exc_t, tcp_socket_exc_t) :
     parent(p),
     message_handler(mh),
     heartbeat_manager(_heartbeat_manager),
