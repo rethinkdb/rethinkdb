@@ -75,6 +75,12 @@ void page_read_ahead_cb_t::destroy_self() {
     delete this;
 }
 
+void page_cache_t::resize_current_pages_to_id(block_id_t block_id) {
+    if (current_pages_.size() <= block_id) {
+        current_pages_.resize(block_id + 1, NULL);
+    }
+}
+
 void page_cache_t::supply_read_ahead_buf(block_id_t block_id,
                                          ser_buffer_t *buf_ptr,
                                          const counted_t<standard_block_token_t> &token,
@@ -88,11 +94,7 @@ void page_cache_t::supply_read_ahead_buf(block_id_t block_id,
         return;
     }
 
-    // RSI: Duplicated resizing code.
-    if (current_pages_.size() <= block_id) {
-        current_pages_.resize(block_id + 1, NULL);
-    }
-
+    resize_current_pages_to_id(block_id);
     if (current_pages_[block_id] != NULL) {
         return;
     }
@@ -229,10 +231,8 @@ void page_cache_t::flush_and_destroy_txn(scoped_ptr_t<page_txn_t> txn,
 
 current_page_t *page_cache_t::page_for_block_id(block_id_t block_id) {
     assert_thread();
-    if (current_pages_.size() <= block_id) {
-        current_pages_.resize(block_id + 1, NULL);
-    }
 
+    resize_current_pages_to_id(block_id);
     if (current_pages_[block_id] == NULL) {
         // KSI: This code is never hit by the unit tests.
         rassert(recency_for_block_id(block_id) != repli_timestamp_t::invalid,
@@ -264,9 +264,6 @@ current_page_t *page_cache_t::internal_page_for_new_chosen(block_id_t block_id) 
     assert_thread();
     rassert(recency_for_block_id(block_id) == repli_timestamp_t::invalid,
             "expected chosen block %" PR_BLOCK_ID "to be deleted", block_id);
-    if (current_pages_.size() <= block_id) {
-        current_pages_.resize(block_id + 1, NULL);
-    }
 
     scoped_malloc_t<ser_buffer_t> buf = serializer_->malloc();
 
@@ -277,6 +274,7 @@ current_page_t *page_cache_t::internal_page_for_new_chosen(block_id_t block_id) 
 #endif
 
     set_recency_for_block_id(block_id, repli_timestamp_t::distant_past);
+    resize_current_pages_to_id(block_id);
     if (current_pages_[block_id] == NULL) {
         current_pages_[block_id] =
             new current_page_t(serializer_->max_block_size(),

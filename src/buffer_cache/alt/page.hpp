@@ -711,8 +711,6 @@ public:
     repli_timestamp_t tstamp;
 };
 
-// RSI: Remove or update this comment.
-
 // page_txn_t's exist for the purpose of writing to disk.  The rules are as follows:
 //
 //  - When a page_txn_t gets "committed" (written to disk), all blocks modified with
@@ -725,20 +723,18 @@ public:
 //  - For all page_txn_t S and T, if S is the preceding_txn of T then S must be
 //    committed to disk before or at the same time as T.
 //
-// As a result, we form a directed graph of txns, which gets modified on the fly, and
-// we commit them in topological order.  (_Cycles_ cannot happen (edit: nope,
-// see[1]), because we do not have row-level locking -- write transactions can't pass
-// each other.  If there was a cycle, then the txn's would have had an inconsistent
-// view of the cache.  So transactions must form a DAG.  However, if two txns modify
-// the same block (without the first txn saving a snapshot), then they both must be
-// committed at the same time.)  HOWEVER, FOR NOW, TRANSACTIONS SNAPSHOT ALL BLOCKS
-// THEY CHANGED, SO THAT THEY CAN BE WRITTEN WITHOUT WAITING FOR SUBSEQUENT
-// TRANSACTIONS THAT HAVE MODIFIED THE BLOCK.  RSP: THIS IS WASTEFUL (WHEN MANY
-// TRANSACTIONS MODIFY THE SAME BLOCK IN A ROW).
+// As a result, we form a graph of txns, which gets modified on the fly, and we
+// commit them in topological order.  Cycles can happen (for example, if (a) two
+// transactions modify the same physical memory, or (b) they modify blocks in
+// opposite orders), and transactions that depend on one another (forming a cycle)
+// must get flushed simultaneously (in the same serializer->index_write operation).
+// Situation '(a)' can happen as a matter of course, assuming transactions don't
+// greedily save their modified copy of a page.  Situation '(b)' can happen if
+// transactions apply a commutative operation on a block, like with the stats block.
+// Right now, situation '(a)' doesn't happen because transactions do greedily keep
+// their copies of the block.
 //
-// Update: Cycles _can_ happen thanks to the stats block.  The rule therefore is that
-// you _can_ have cycles, as long as you don't mind things having inconsistent views
-// of the cache.
+// RSI: Make situation '(a)' happenable.
 class page_txn_t {
 public:
     // Our transaction has to get committed to disk _after_ or at the same time as
