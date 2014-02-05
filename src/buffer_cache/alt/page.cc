@@ -83,11 +83,27 @@ void page_cache_t::supply_read_ahead_buf(block_id_t block_id,
 
     scoped_malloc_t<ser_buffer_t> buf(buf_ptr);
 
-    (void)block_id;
-    (void)token;
-    (void)recency;
+    if (!evicter_.interested_in_read_ahead_block(token->block_size().ser_value())) {
+        have_read_ahead_cb_destroyed();
+        return;
+    }
 
-    // RSI: Implement this.
+    // RSI: Duplicated resizing code.
+    if (current_pages_.size() <= block_id) {
+        current_pages_.resize(block_id + 1, NULL);
+    }
+
+    if (current_pages_[block_id] != NULL) {
+        return;
+    }
+
+    // RSI: Are we sure this is the right page?  Should we check serializer version
+    // information or some other crazy thing?  (See what the code does.)
+    guarantee(recency_for_block_id(block_id) == recency);
+
+    // RSI: read ahead bufs will need to be created with the appropriate
+    // (bottom-tier) eviction priority.
+    current_pages_[block_id] = new current_page_t(std::move(buf), token, this);
 }
 
 void page_cache_t::have_read_ahead_cb_destroyed() {
@@ -528,6 +544,18 @@ current_page_t::current_page_t(block_size_t block_size,
     block_version_ = block_version_.subsequent();
 }
 
+current_page_t::current_page_t(scoped_malloc_t<ser_buffer_t> buf,
+                               const counted_t<standard_block_token_t> &token,
+                               page_cache_t *page_cache)
+    : page_(new page_t(std::move(buf), token, page_cache), page_cache),
+      is_deleted_(false),
+      last_modifier_(NULL) {
+    // Increment the block version so that we can distinguish between unassigned
+    // current_page_acq_t::block_version_ values (which are 0) and assigned ones.
+    rassert(block_version_.debug_value() == 0);
+    block_version_ = block_version_.subsequent();
+}
+
 current_page_t::~current_page_t() {
     rassert(acquirers_.empty());
     rassert(last_modifier_ == NULL);
@@ -728,6 +756,18 @@ page_t::page_t(block_size_t block_size, scoped_malloc_t<ser_buffer_t> buf,
       snapshot_refcount_(0) {
     rassert(buf_.has());
     page_cache->evicter().add_to_evictable_unbacked(this);
+}
+
+page_t::page_t(scoped_malloc_t<ser_buffer_t> buf,
+               const counted_t<standard_block_token_t> &block_token,
+               page_cache_t *page_cache)
+    : destroy_ptr_(NULL),
+      ser_buf_size_(block_token->block_size().ser_value()),
+      buf_(std::move(buf)),
+      block_token_(block_token),
+      snapshot_refcount_(0) {
+    rassert(buf_.has());
+    page_cache->evicter().add_to_evictable_disk_backed(this);
 }
 
 page_t::page_t(page_t *copyee, page_cache_t *page_cache)
@@ -1713,6 +1753,13 @@ void evicter_t::add_to_evictable_unbacked(page_t *page) {
     evict_if_necessary();
 }
 
+void evicter_t::add_to_evictable_disk_backed(page_t *page) {
+    assert_thread();
+    evictable_disk_backed_.add(page, page->ser_buf_size_);
+    inform_tracker();
+    evict_if_necessary();
+}
+
 void evicter_t::move_unevictable_to_evictable(page_t *page) {
     assert_thread();
     rassert(unevictable_.has_page(page));
@@ -1764,6 +1811,10 @@ uint64_t evicter_t::in_memory_size() const {
     return unevictable_.size()
         + evictable_disk_backed_.size()
         + evictable_unbacked_.size();
+}
+
+bool evicter_t::interested_in_read_ahead_block(uint32_t ser_block_size) const {
+    return in_memory_size() + ser_block_size < memory_limit_;
 }
 
 void evicter_t::evict_if_necessary() {

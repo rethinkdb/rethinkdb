@@ -102,6 +102,9 @@ class page_t {
 public:
     page_t(block_size_t block_size, scoped_malloc_t<ser_buffer_t> buf,
            page_cache_t *page_cache);
+    page_t(scoped_malloc_t<ser_buffer_t> buf,
+           const counted_t<standard_block_token_t> &token,
+           page_cache_t *page_cache);
     page_t(block_id_t block_id, page_cache_t *page_cache);
     page_t(page_t *copyee, page_cache_t *page_cache);
     ~page_t();
@@ -254,6 +257,9 @@ class current_page_t {
 public:
     // Constructs a fresh, empty page.
     current_page_t(block_size_t block_size, scoped_malloc_t<ser_buffer_t> buf,
+                   page_cache_t *page_cache);
+    current_page_t(scoped_malloc_t<ser_buffer_t> buf,
+                   const counted_t<standard_block_token_t> &token,
                    page_cache_t *page_cache);
     // Constructs a page to be loaded from the serializer.
     current_page_t();
@@ -470,6 +476,7 @@ public:
     void add_not_yet_loaded(page_t *page);
     void add_now_loaded_size(uint32_t ser_buf_size);
     void add_to_evictable_unbacked(page_t *page);
+    void add_to_evictable_disk_backed(page_t *page);
     bool page_is_in_unevictable_bag(page_t *page) const;
     void move_unevictable_to_evictable(page_t *page);
     void change_eviction_bag(eviction_bag_t *current_bag, page_t *page);
@@ -479,6 +486,8 @@ public:
     explicit evicter_t(memory_tracker_t *tracker,
                        uint64_t memory_limit);
     ~evicter_t();
+
+    bool interested_in_read_ahead_block(uint32_t ser_block_size) const;
 
 private:
     void evict_if_necessary();
