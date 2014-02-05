@@ -591,11 +591,7 @@ service_address_ports_t get_service_address_ports(const std::map<std::string, op
     return service_address_ports_t(get_local_addresses(all_options(opts, "--bind")),
                                    get_canonical_addresses(opts, cluster_port),
                                    cluster_port,
-#ifndef NDEBUG
                                    get_single_int(opts, "--client-port"),
-#else
-                                   port_defaults::client_port,
-#endif
                                    exists_option(opts, "--no-http-admin"),
                                    offseted_port(get_single_int(opts, "--http-port"), port_offset),
                                    offseted_port(get_single_int(opts, "--driver-port"), port_offset),
@@ -927,10 +923,10 @@ options::help_section_t get_network_options(const bool join_required, std::vecto
                                              strprintf("%d", port_defaults::peer_port)));
     help.add("--cluster-port port", "port for receiving connections from other nodes");
 
-#ifndef NDEBUG
     options_out->push_back(options::option_t(options::names_t("--client-port"),
                                              options::OPTIONAL,
                                              strprintf("%d", port_defaults::client_port)));
+#ifndef NDEBUG
     help.add("--client-port port", "port to use when connecting to other nodes (for development)");
 #endif  // NDEBUG
 
@@ -1047,10 +1043,10 @@ void get_rethinkdb_admin_options(std::vector<options::help_section_t> *help_out,
                                  std::vector<options::option_t> *options_out) {
     options::help_section_t help("Allowed options");
 
-#ifndef NDEBUG
     options_out->push_back(options::option_t(options::names_t("--client-port"),
                                              options::OPTIONAL,
                                              strprintf("%d", port_defaults::client_port)));
+#ifndef NDEBUG
     help.add("--client-port port", "port to use when connecting to other nodes (for development)");
 #endif  // NDEBUG
 
@@ -1369,11 +1365,8 @@ int main_rethinkdb_admin(int argc, char *argv[]) {
 
         peer_address_t canonical_addresses = get_canonical_addresses(opts, 0);
 
-#ifndef NDEBUG
         const int client_port = get_single_int(opts, "--client-port");
-#else
-        const int client_port = port_defaults::client_port;
-#endif
+
         const bool exit_on_failure = exists_option(opts, "--exit-failure");
 
         const int num_workers = get_cpu_count();
