@@ -209,8 +209,7 @@ void _check_keys_are_present(btree_store_t<rdb_protocol_t> *store,
 
         bool sindex_exists = store->acquire_sindex_superblock_for_read(
                 sindex_id,
-                super_block->get_sindex_block_id(),
-                super_block->expose_buf(),
+                super_block.get(),
                 &sindex_sb,
                 static_cast<std::vector<char>*>(NULL));
         ASSERT_TRUE(sindex_exists);
@@ -277,8 +276,7 @@ void _check_keys_are_NOT_present(btree_store_t<rdb_protocol_t> *store,
 
         bool sindex_exists = store->acquire_sindex_superblock_for_read(
                 sindex_id,
-                super_block->get_sindex_block_id(),
-                super_block->expose_buf(),
+                super_block.get(),
                 &sindex_sb,
                 static_cast<std::vector<char>*>(NULL));
         ASSERT_TRUE(sindex_exists);
