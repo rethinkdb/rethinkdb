@@ -563,8 +563,6 @@ void btree_store_t<protocol_t>::get_sindexes(
     return get_secondary_indexes(sindex_block, sindexes_out);
 }
 
-// RSI: Should anybody really rightfully use this?  The caller wants us to be the
-// sindex_block constructor?
 template <class protocol_t>
 MUST_USE bool btree_store_t<protocol_t>::acquire_sindex_superblock_for_read(
         const std::string &id,
@@ -600,8 +598,6 @@ MUST_USE bool btree_store_t<protocol_t>::acquire_sindex_superblock_for_read(
     return true;
 }
 
-// RSI: Should anybody really rightfully use this?  The caller wants us to be the
-// sindex_block constructor?
 template <class protocol_t>
 MUST_USE bool btree_store_t<protocol_t>::acquire_sindex_superblock_for_write(
         const std::string &id,
