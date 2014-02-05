@@ -605,14 +605,16 @@ MUST_USE bool btree_store_t<protocol_t>::acquire_sindex_superblock_for_read(
 template <class protocol_t>
 MUST_USE bool btree_store_t<protocol_t>::acquire_sindex_superblock_for_write(
         const std::string &id,
-        block_id_t sindex_block_id,
-        buf_parent_t parent,
+        superblock_t *superblock,
         scoped_ptr_t<real_superblock_t> *sindex_sb_out)
     THROWS_ONLY(sindex_not_post_constructed_exc_t) {
     assert_thread();
 
     /* Get the sindex block. */
-    buf_lock_t sindex_block = acquire_sindex_block_for_write(parent, sindex_block_id);
+    buf_lock_t sindex_block
+        = acquire_sindex_block_for_write(superblock->expose_buf(),
+                                         superblock->get_sindex_block_id());
+    superblock->release();
 
     /* Figure out what the superblock for this index is. */
     secondary_index_t sindex;

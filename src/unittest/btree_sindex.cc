@@ -193,9 +193,9 @@ void run_sindex_btree_store_api_test() {
 
             scoped_ptr_t<real_superblock_t> sindex_super_block;
 
-            bool sindex_exists = store.acquire_sindex_superblock_for_write(id,
-                    super_block->get_sindex_block_id(),
-                    super_block->expose_buf(),
+            bool sindex_exists = store.acquire_sindex_superblock_for_write(
+                    id,
+                    super_block.get(),
                     &sindex_super_block);
             ASSERT_TRUE(sindex_exists);
 
