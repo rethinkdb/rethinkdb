@@ -242,7 +242,7 @@ template <class protocol_t>
 void btree_store_t<protocol_t>::lock_sindex_queue(buf_lock_t *sindex_block,
                                                   mutex_t::acq_t *acq) {
     assert_thread();
-    // RSI: Prove that we can remove this "lock_sindex_queue" stuff
+    // KSI: Prove that we can remove this "lock_sindex_queue" stuff
     // (probably).
 
     // SRH: WTF should we do here?  Why is there a mutex?
