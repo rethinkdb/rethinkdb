@@ -921,10 +921,65 @@ module 'DataUtils', ->
 
         json.nmachines = _.uniq(_machines).length
         json.ndatacenters = _.uniq(_datacenters).length
-        if json.nshards is json.nashards
-            json.reachability = 'Live'
-        else
-            json.reachability = 'Down'
+
+        json.reachability = 'Live'
+        directory_by_namespaces = DataUtils.get_directory_activities_by_namespaces()
+
+        _shard_required = {} # -> datacenter -> count
+        _shard_has_master = {}
+
+        for shard in namespace.get('shards')
+            _shard_required[shard] = {}
+            _shard_has_master[shard] = false
+
+        for datacenter, value of namespace.get('ack_expectations')
+            for shard of _shard_required
+                _shard_required[shard][datacenter] = value.expectation
+
+        # New check -- We still have to check the blueprints in case the directory and blueprint don't match
+        blueprint = namespace.get('blueprint').peers_roles
+        for machine_id of blueprint
+            if json.reachability isnt 'Live'
+                break
+
+            machine = machines.get(machine_id)
+            if not machine?
+                continue
+
+            datacenter_id = machine.get('datacenter_uuid')
+            machine_name = machine.get('name')
+
+            for shard, role of blueprint[machine_id]
+                if json.reachability isnt 'Live'
+                    break
+
+                if role is "role_primary"
+                    if directory_by_namespaces?[namespace.get('id')]?[machine_id]?[shard] is "primary"
+                        _shard_has_master[shard] = true
+                        
+                        if not _shard_required[shard]?[datacenter_id]?
+                            _shard_required[shard]?[datacenter_id] = 0
+                        _shard_required[shard]?[datacenter_id] -= 1
+                    else
+                        json.reachability = 'Down'
+                else if role is "role_secondary"
+                    if directory_by_namespaces?[namespace.get('id')]?[machine_id]?[shard] is "secondary_up_to_date"
+                        # The shard can be defined in shards but not in the blueprint if there were not yet reprinted
+                        if not _shard_required[shard]?[datacenter_id]?
+                            _shard_required[shard]?[datacenter_id] = 0
+                        _shard_required[shard]?[datacenter_id] -= 1
+
+        for shard of _shard_required
+            for datacenter of _shard_required[shard]
+                if _shard_required[shard][datacenter] < 0
+                    _shard_required[shard][universe_datacenter.get('id')] += _shard_required[shard][datacenter]
+                    _shard_required[shard][datacenter] = 0
+
+        for shard of _shard_required
+            for datacenter of _shard_required[shard]
+                if _shard_required[shard][datacenter] > 0
+                    json.reachability = 'Down'
+                    break
 
         return json
 
