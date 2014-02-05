@@ -6,10 +6,109 @@
 
 #include "arch/runtime/coroutines.hpp"
 #include "concurrency/auto_drainer.hpp"
+#include "do_on_thread.hpp"
 #include "serializer/serializer.hpp"
 #include "stl_utils.hpp"
 
 namespace alt {
+
+page_read_ahead_cb_t::page_read_ahead_cb_t(serializer_t *serializer,
+                                           page_cache_t *page_cache,
+                                           int64_t bytes_to_send)
+    : serializer_(serializer), page_cache_(page_cache),
+      bytes_remaining_(bytes_to_send) {
+    guarantee(bytes_to_send > 0);
+    serializer_->register_read_ahead_cb(this);
+}
+
+page_read_ahead_cb_t::~page_read_ahead_cb_t() { }
+
+void page_read_ahead_cb_t::offer_read_ahead_buf(
+        block_id_t block_id,
+        scoped_malloc_t<ser_buffer_t> *buf_ptr,
+        const counted_t<standard_block_token_t> &token,
+        repli_timestamp_t recency) {
+    assert_thread();
+    scoped_malloc_t<ser_buffer_t> buf = std::move(*buf_ptr);
+
+    if (bytes_remaining_ == 0) {
+        return;
+    }
+
+    // Notably, this code relies on do_on_thread to preserve callback order (which it
+    // does do).
+
+    uint32_t size = token->block_size().ser_value();
+    if (bytes_remaining_ < size) {
+        bytes_remaining_ = 0;
+    } else {
+        bytes_remaining_ -= size;
+        do_on_thread(page_cache_->home_thread(),
+                     std::bind(&page_cache_t::supply_read_ahead_buf,
+                               page_cache_,
+                               block_id,
+                               buf.release(),
+                               token,
+                               recency));
+    }
+
+    if (bytes_remaining_ == 0) {
+        // We know bytes_remaining_ was just set to 0, so this is the only time we
+        // call destroy_read_ahead_cb.
+        do_on_thread(page_cache_->home_thread(),
+                     std::bind(&page_cache_t::have_read_ahead_cb_destroyed,
+                               page_cache_));
+    }
+}
+
+void page_read_ahead_cb_t::destroy_self() {
+    serializer_->unregister_read_ahead_cb(this);
+    serializer_ = NULL;
+
+    page_cache_t *page_cache = page_cache_;
+    page_cache_ = NULL;
+
+    do_on_thread(page_cache->home_thread(),
+                 std::bind(&page_cache_t::read_ahead_cb_is_destroyed, page_cache));
+
+    // Self-deletion.  Old-school.
+    delete this;
+}
+
+void page_cache_t::supply_read_ahead_buf(block_id_t block_id,
+                                         ser_buffer_t *buf_ptr,
+                                         const counted_t<standard_block_token_t> &token,
+                                         repli_timestamp_t recency) {
+    assert_thread();
+
+    scoped_malloc_t<ser_buffer_t> buf(buf_ptr);
+
+    (void)block_id;
+    (void)token;
+    (void)recency;
+
+    // RSI: Implement this.
+}
+
+void page_cache_t::have_read_ahead_cb_destroyed() {
+    assert_thread();
+
+    if (read_ahead_cb_ != NULL) {
+        // By setting read_ahead_cb_ to NULL, we make sure we only tell the read
+        // ahead cb to destroy itself exactly once.
+        page_read_ahead_cb_t *cb = read_ahead_cb_;
+        read_ahead_cb_ = NULL;
+
+        do_on_thread(cb->home_thread(),
+                     std::bind(&page_read_ahead_cb_t::destroy_self, cb));
+    }
+}
+
+void page_cache_t::read_ahead_cb_is_destroyed() {
+    assert_thread();
+    read_ahead_cb_existence_.reset();
+}
+
 
 page_cache_t::page_cache_t(serializer_t *serializer,
                            const page_cache_config_t &config,
@@ -18,9 +117,20 @@ page_cache_t::page_cache_t(serializer_t *serializer,
       serializer_(serializer),
       free_list_(serializer),
       evicter_(tracker, config.memory_limit),
+      read_ahead_cb_(NULL),
       drainer_(make_scoped<auto_drainer_t>()) {
+
+    const bool start_read_ahead = config.memory_limit > 0;
+    if (start_read_ahead) {
+        read_ahead_cb_existence_ = drainer_->lock();
+    }
+
     {
         on_thread_t thread_switcher(serializer->home_thread());
+        if (start_read_ahead) {
+            read_ahead_cb_ = new page_read_ahead_cb_t(serializer, this,
+                                                      config.memory_limit);
+        }
         reads_io_account_.init(serializer->make_io_account(config.io_priority_reads));
         writes_io_account_.init(serializer->make_io_account(config.io_priority_writes));
         index_write_sink_.init(new fifo_enforcer_sink_t);
@@ -30,6 +140,9 @@ page_cache_t::page_cache_t(serializer_t *serializer,
 
 page_cache_t::~page_cache_t() {
     assert_thread();
+
+    have_read_ahead_cb_destroyed();
+
     drainer_.reset();
     for (auto it = current_pages_.begin(); it != current_pages_.end(); ++it) {
         delete *it;

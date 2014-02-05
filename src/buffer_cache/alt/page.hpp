@@ -499,7 +499,33 @@ private:
     DISABLE_COPYING(evicter_t);
 };
 
-class page_cache_t : public home_thread_mixin_debug_only_t {
+// This object lives on the serializer thread.
+class page_read_ahead_cb_t : public home_thread_mixin_t,
+                             public serializer_read_ahead_callback_t {
+public:
+    page_read_ahead_cb_t(serializer_t *serializer,
+                         page_cache_t *cache,
+                         int64_t bytes_to_send);
+    ~page_read_ahead_cb_t();
+
+    void offer_read_ahead_buf(block_id_t block_id,
+                              scoped_malloc_t<ser_buffer_t> *buf,
+                              const counted_t<standard_block_token_t> &token,
+                              repli_timestamp_t recency);
+
+    void destroy_self();
+
+private:
+    serializer_t *serializer_;
+    page_cache_t *page_cache_;
+
+    // How many more bytes of data can we send?
+    int64_t bytes_remaining_;
+
+    DISABLE_COPYING(page_read_ahead_cb_t);
+};
+
+class page_cache_t : public home_thread_mixin_t {
 public:
     page_cache_t(serializer_t *serializer,
                  const page_cache_config_t &config,
@@ -524,6 +550,17 @@ public:
     void create_cache_account(int priority, scoped_ptr_t<alt_cache_account_t> *out);
 
 private:
+    friend class page_read_ahead_cb_t;
+    void supply_read_ahead_buf(block_id_t block_id,
+                               ser_buffer_t *buf,
+                               const counted_t<standard_block_token_t> &token,
+                               repli_timestamp_t recency);
+
+    void have_read_ahead_cb_destroyed();
+
+    void read_ahead_cb_is_destroyed();
+
+
     current_page_t *internal_page_for_new_chosen(block_id_t block_id);
 
     friend class page_t;
@@ -601,6 +638,14 @@ private:
     free_list_t free_list_;
 
     evicter_t evicter_;
+
+    // KSI: I bet this read_ahead_cb_ and read_ahead_cb_existence_ type could be
+    // packaged in some new cross_thread_ptr type.
+    page_read_ahead_cb_t *read_ahead_cb_;
+
+    // Holds a lock on *drainer_ is until shortly after the page_read_ahead_cb_t is
+    // destroyed and all possible read-ahead operations have completed.
+    auto_drainer_t::lock_t read_ahead_cb_existence_;
 
     scoped_ptr_t<auto_drainer_t> drainer_;
 
