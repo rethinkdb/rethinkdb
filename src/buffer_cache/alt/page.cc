@@ -12,6 +12,11 @@
 
 namespace alt {
 
+// We pick a weird that forces the logic to not spaz out if the access time counter
+// overflows.
+static const uint64_t INITIAL_ACCESS_TIME = UINT64_MAX - 200;
+static const uint64_t READ_AHEAD_ACCESS_TIME = INITIAL_ACCESS_TIME - 1;
+
 page_read_ahead_cb_t::page_read_ahead_cb_t(serializer_t *serializer,
                                            page_cache_t *page_cache,
                                            uint64_t bytes_to_send)
@@ -731,6 +736,7 @@ page_txn_t *current_page_t::change_last_modifier(page_txn_t *new_last_modifier) 
 page_t::page_t(block_id_t block_id, page_cache_t *page_cache)
     : destroy_ptr_(NULL),
       ser_buf_size_(0),
+      access_time_(page_cache->evicter().next_access_time()),
       snapshot_refcount_(0) {
     page_cache->evicter().add_not_yet_loaded(this);
     coro_t::spawn_now_dangerously(std::bind(&page_t::load_with_block_id,
@@ -744,6 +750,7 @@ page_t::page_t(block_size_t block_size, scoped_malloc_t<ser_buffer_t> buf,
     : destroy_ptr_(NULL),
       ser_buf_size_(block_size.ser_value()),
       buf_(std::move(buf)),
+      access_time_(page_cache->evicter().next_access_time()),
       snapshot_refcount_(0) {
     rassert(buf_.has());
     page_cache->evicter().add_to_evictable_unbacked(this);
@@ -756,6 +763,7 @@ page_t::page_t(scoped_malloc_t<ser_buffer_t> buf,
       ser_buf_size_(block_token->block_size().ser_value()),
       buf_(std::move(buf)),
       block_token_(block_token),
+      access_time_(READ_AHEAD_ACCESS_TIME),
       snapshot_refcount_(0) {
     rassert(buf_.has());
     page_cache->evicter().add_to_evictable_disk_backed(this);
@@ -764,6 +772,7 @@ page_t::page_t(scoped_malloc_t<ser_buffer_t> buf,
 page_t::page_t(page_t *copyee, page_cache_t *page_cache)
     : destroy_ptr_(NULL),
       ser_buf_size_(0),
+      access_time_(page_cache->evicter().next_access_time()),
       snapshot_refcount_(0) {
     page_cache->evicter().add_not_yet_loaded(this);
     coro_t::spawn_now_dangerously(std::bind(&page_t::load_from_copyee,
@@ -965,8 +974,9 @@ uint32_t page_t::get_page_buf_size() {
     return block_size_t::unsafe_make(ser_buf_size_).value();
 }
 
-void *page_t::get_page_buf() {
+void *page_t::get_page_buf(page_cache_t *page_cache) {
     rassert(buf_.has());
+    access_time_ = page_cache->evicter().next_access_time();
     return buf_->cache_data;
 }
 
@@ -1033,12 +1043,12 @@ uint32_t page_acq_t::get_buf_size() {
 void *page_acq_t::get_buf_write() {
     buf_ready_signal_.wait();
     page_->reset_block_token();
-    return page_->get_page_buf();
+    return page_->get_page_buf(page_cache_);
 }
 
 const void *page_acq_t::get_buf_read() {
     buf_ready_signal_.wait();
-    return page_->get_page_buf();
+    return page_->get_page_buf(page_cache_);
 }
 
 free_list_t::free_list_t(serializer_t *serializer) {
@@ -1712,7 +1722,8 @@ bool eviction_bag_t::remove_random(page_t **page_out) {
 }
 
 evicter_t::evicter_t(memory_tracker_t *tracker, uint64_t memory_limit)
-    : tracker_(tracker), memory_limit_(memory_limit) { }
+    : tracker_(tracker), memory_limit_(memory_limit),
+      access_time_counter_(INITIAL_ACCESS_TIME) { }
 
 evicter_t::~evicter_t() {
     assert_thread();

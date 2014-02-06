@@ -115,7 +115,7 @@ public:
 private:
     friend class page_acq_t;
     // These may not be called until the page_acq_t's buf_ready_signal is pulsed.
-    void *get_page_buf();
+    void *get_page_buf(page_cache_t *page_cache);
     void reset_block_token();
     uint32_t get_page_buf_size();
 
@@ -151,6 +151,8 @@ private:
     uint32_t ser_buf_size_;
     scoped_malloc_t<ser_buffer_t> buf_;
     counted_t<standard_block_token_t> block_token_;
+
+    uint64_t access_time_;
 
     // How many page_ptr_t's point at this page, expecting nothing to modify it,
     // other than themselves.
@@ -487,6 +489,10 @@ public:
 
     bool interested_in_read_ahead_block(uint32_t ser_block_size) const;
 
+    uint64_t next_access_time() {
+        return ++access_time_counter_;
+    }
+
 private:
     void evict_if_necessary();
     uint64_t in_memory_size() const;
@@ -496,6 +502,9 @@ private:
     // RSI: Implement issue 97.
     memory_tracker_t *const tracker_;
     uint64_t memory_limit_;
+
+    // This gets incremented every time a page is accessed.
+    uint64_t access_time_counter_;
 
     // These track whether every page's eviction status.
     eviction_bag_t unevictable_;
