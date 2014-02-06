@@ -12,9 +12,11 @@
 
 namespace alt {
 
-// We pick a weird that forces the logic to not spaz out if the access time counter
-// overflows.
-static const uint64_t INITIAL_ACCESS_TIME = UINT64_MAX - 200;
+// We pick a weird that forces the logic and performance to not spaz out if the
+// access time counter overflows.  Performance degradation is "smooth" if
+// access_time_counter_ loops around past INITIAL_ACCESS_TIME -- which shouldn't be a
+// problem for now, as long as we increment it one value at a time.
+static const uint64_t INITIAL_ACCESS_TIME = UINT64_MAX - 100;
 static const uint64_t READ_AHEAD_ACCESS_TIME = INITIAL_ACCESS_TIME - 1;
 
 page_read_ahead_cb_t::page_read_ahead_cb_t(serializer_t *serializer,
@@ -101,8 +103,6 @@ void page_cache_t::add_read_ahead_buf(block_id_t block_id,
         return;
     }
 
-    // RSI: read ahead bufs will need to be created with the appropriate
-    // (bottom-tier) eviction priority.
     current_pages_[block_id] = new current_page_t(std::move(buf), token, this);
 }
 
@@ -1710,13 +1710,24 @@ bool eviction_bag_t::has_page(page_t *page) const {
     return bag_.has_element(page);
 }
 
-bool eviction_bag_t::remove_random(page_t **page_out) {
+bool eviction_bag_t::remove_oldish(page_t **page_out, uint64_t access_time_offset) {
     if (bag_.size() == 0) {
         return false;
     } else {
-        page_t *page = bag_.access_random(randsize(bag_.size()));
-        remove(page, page->ser_buf_size_);
-        *page_out = page;
+        const int num_randoms = 5;
+        page_t *oldest = bag_.access_random(randsize(bag_.size()));
+        for (size_t i = 1; i < num_randoms; ++i) {
+            page_t *page = bag_.access_random(randsize(bag_.size()));
+            // We compare relative to the access time offset, so that in the unlikely
+            // event of a 64-bit overflow, performance degradation is "smooth".
+            if (access_time_offset - page->access_time_ >
+                access_time_offset - oldest->access_time_) {
+                oldest = page;
+            }
+        }
+
+        remove(oldest, oldest->ser_buf_size_);
+        *page_out = oldest;
         return true;
     }
 }
@@ -1828,7 +1839,7 @@ void evicter_t::evict_if_necessary() {
 
     page_t *page;
     while (in_memory_size() > memory_limit_
-           && evictable_disk_backed_.remove_random(&page)) {
+           && evictable_disk_backed_.remove_oldish(&page, access_time_counter_)) {
         evicted_.add(page, page->ser_buf_size_);
         page->evict_self();
     }

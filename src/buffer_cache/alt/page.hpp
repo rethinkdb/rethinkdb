@@ -461,7 +461,7 @@ public:
 
     uint64_t size() const { return size_; }
 
-    bool remove_random(page_t **page_out);
+    bool remove_oldish(page_t **page_out, uint64_t access_time_offset);
 
 private:
     backindex_bag_t<page_t *> bag_;
