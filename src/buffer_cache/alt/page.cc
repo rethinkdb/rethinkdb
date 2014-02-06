@@ -14,7 +14,7 @@ namespace alt {
 
 page_read_ahead_cb_t::page_read_ahead_cb_t(serializer_t *serializer,
                                            page_cache_t *page_cache,
-                                           int64_t bytes_to_send)
+                                           uint64_t bytes_to_send)
     : serializer_(serializer), page_cache_(page_cache),
       bytes_remaining_(bytes_to_send) {
     guarantee(bytes_to_send > 0);

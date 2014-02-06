@@ -512,7 +512,7 @@ class page_read_ahead_cb_t : public home_thread_mixin_t,
 public:
     page_read_ahead_cb_t(serializer_t *serializer,
                          page_cache_t *cache,
-                         int64_t bytes_to_send);
+                         uint64_t bytes_to_send);
     ~page_read_ahead_cb_t();
 
     void offer_read_ahead_buf(block_id_t block_id,
@@ -526,7 +526,7 @@ private:
     page_cache_t *page_cache_;
 
     // How many more bytes of data can we send?
-    int64_t bytes_remaining_;
+    uint64_t bytes_remaining_;
 
     DISABLE_COPYING(page_read_ahead_cb_t);
 };
