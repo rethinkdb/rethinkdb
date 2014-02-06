@@ -113,8 +113,53 @@ def execute_queries():
     """
     global results, connection, time_per_query, executions_per_query, constant_queries
 
-    # Execute the insert queries
     print "Running inserts...",
+    sys.stdout.flush()
+    for table in tables:
+        docs = []
+        num_writes = gen_num_docs(table["size_doc"])
+        for i in xrange(num_writes):
+            docs.append(gen_doc(table["size_doc"], i))
+
+        start = time.time()
+        
+        i = 0
+        while (time.time()-start < time_per_query) & (i < num_writes):
+            result = r.db('test').table(table['name']).insert(docs[i]).run(connection)
+            if "generated_keys" in result:
+                table["ids"].append(result["generated_keys"][0])
+            i += 1
+
+        results["single-inserts-"+table["name"]] = i/(time.time()-start)
+
+        # Save it to know how many batch inserts we did
+        single_inserts = i
+
+        # Finish inserting the remaining data
+        size_batch = 500
+        if i < num_writes:
+            while i+size_batch < num_writes:
+                print i
+                sys.stdout.flush()
+
+                resutl = r.db('test').table(table['name']).insert(docs[i:i+size_batch]).run(connection)
+                table["ids"] += result["generated_keys"]
+                i += size_batch
+
+            if i < num_writes:
+                result = r.db('test').table(table['name']).insert(docs[i:len(docs)]).run(connection)
+                table["ids"] += result["generated_keys"]
+
+        results["batch-inserts-"+table["name"]] = (len(docs)-single_inserts)/(time.time()-start)
+    
+        table["ids"].sort()
+        
+    print " Done."
+    sys.stdout.flush()
+
+
+    # Execute the insert queries
+    print "Running update/replace...",
     sys.stdout.flush()
     for table in tables:
         for p in xrange(len(write_queries)):
@@ -125,13 +170,13 @@ def execute_queries():
 
             start = time.time()
 
-            for i in xrange(num_writes):
-                result = eval(write_queries[p]["query"]).run(connection)
-                if "generated_keys" in result:
-                    table["ids"].append(result["generated_keys"][0])
+            i = 0
+            while (time.time()-start < time_per_query) & (i < write_queries):
+                eval(write_queries[p]["query"]).run(connection)
+                results[write_queries[p]["tag"]+"-"+table["name"]] = i/(time.time()-start)
 
-            results[write_queries[p]["tag"]+"-"+table["name"]] = num_writes/(time.time()-start)
-            table["ids"].sort()
+            # Clean the update
+            eval(write_queries[p]["clean"]).run(connection)
 
     print " Done."
     sys.stdout.flush()

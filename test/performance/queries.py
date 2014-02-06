@@ -1,15 +1,13 @@
 write_queries = [
     {
-        "query": "r.db('test').table(table['name']).insert(docs[i])",
-        "tag": "single_insert"
-    },
-    {
         "query": "r.db('test').table(table['name']).get(table['ids'][i]).update({'update_field': 'value'})",
-        "tag": "single_update"
+        "tag": "single_update",
+        "clean": "r.db('test').table(table['name']).replace(r.row.without('update_field'))",
     },
     {
         "query": "r.db('test').table(table['name']).get(table['ids'][i]).replace(r.row.merge({'replace_field': 'value'}))",
-        "tag": "single_replace"
+        "tag": "single_replace",
+        "clean": "r.db('test').table(table['name']).replace(r.row.without('replace_field'))",
     }
 ]
 
