@@ -29,7 +29,7 @@ class env_t;
  * profiling information from them. It acheives this by doing the following in
  * its methods:
  * - Set the explain field in the read_t/write_t object so that the shards know
-     whether or not to do profiling
+ whether or not to do profiling
  * - Construct a splitter_t
  * - Call the corresponding method on internal_
  * - splitter_t::give_splits with the event logs from the shards
@@ -37,7 +37,7 @@ class env_t;
 class rdb_namespace_interface_t {
 public:
     rdb_namespace_interface_t(
-            namespace_interface_t<rdb_protocol_t> *internal, env_t *env);
+        namespace_interface_t<rdb_protocol_t> *internal, env_t *env);
 
     void read(const rdb_protocol_t::read_t &,
               rdb_protocol_t::read_response_t *response,
@@ -55,7 +55,7 @@ public:
         THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
 
     /* These calls are for the sole purpose of optimizing queries; don't rely
-    on them for correctness. They should not block. */
+       on them for correctness. They should not block. */
     std::set<rdb_protocol_t::region_t> get_sharding_scheme()
         THROWS_ONLY(cannot_perform_query_exc_t);
     signal_t *get_initial_ready_signal();
@@ -78,9 +78,6 @@ private:
 // This is a more selective subset of the list at the top of protocol.cc.
 // RSI typedef rdb_protocol_details::transform_t transform_t;
 // RSI typedef rdb_protocol_details::terminal_t terminal_t;
-typedef rdb_protocol_details::rget_item_t rget_item_t;
-typedef rdb_protocol_details::transform_variant_t transform_variant_t;
-typedef rdb_protocol_details::terminal_variant_t terminal_variant_t;
 typedef rdb_protocol_t::read_t read_t;
 typedef rdb_protocol_t::sindex_rangespec_t sindex_rangespec_t;
 typedef rdb_protocol_t::rget_read_t rget_read_t;
@@ -94,6 +91,7 @@ class datum_stream_t : public single_threaded_countable_t<datum_stream_t>,
 public:
     virtual ~datum_stream_t() { }
 
+    // RSI: dedup.
     // stream -> stream
     virtual counted_t<datum_stream_t> filter(counted_t<func_t> f,
                                              counted_t<func_t> default_filter_val) = 0;
@@ -101,10 +99,10 @@ public:
     virtual counted_t<datum_stream_t> concatmap(counted_t<func_t> f) = 0;
 
     // stream -> atom
-    virtual counted_t<const datum_t> count(env_t *env) = 0;
-    virtual counted_t<const datum_t> reduce(env_t *env,
-                                            counted_t<val_t> base_val,
-                                            counted_t<func_t> f) = 0;
+    virtual counted_t<val_t> count(env_t *env) = 0;
+    virtual counted_t<val_t> reduce(env_t *env,
+                                    counted_t<val_t> base_val,
+                                    counted_t<func_t> f) = 0;
 
     // stream -> stream (always eager)
     counted_t<datum_stream_t> slice(size_t l, size_t r);
@@ -145,10 +143,10 @@ protected:
     virtual counted_t<datum_stream_t> map(counted_t<func_t> f);
     virtual counted_t<datum_stream_t> concatmap(counted_t<func_t> f);
 
-    virtual counted_t<const datum_t> count(env_t *env);
-    virtual counted_t<const datum_t> reduce(env_t *env,
-                                            counted_t<val_t> base_val,
-                                            counted_t<func_t> f);
+    virtual counted_t<val_t> count(env_t *env);
+    virtual counted_t<val_t> reduce(env_t *env,
+                                    counted_t<val_t> base_val,
+                                    counted_t<func_t> f);
 
     virtual bool is_array() = 0;
     virtual counted_t<const datum_t> as_array(env_t *env);
@@ -335,7 +333,9 @@ public:
         bool use_outdated,
         scoped_ptr_t<readgen_t> &&readgen);
     void add_transformation(transform_variant_t &&tv);
-    rget_read_response_t::result_t run_terminal(env_t *env, terminal_variant_t &&tv);
+    // RSI: make work (also: rename transform_visitors.*)
+    counted_t<val_t> run_terminal(
+        env_t *env, terminal_variant_t &&tv, const protob_t<const Backtrace> &bt);
     std::vector<counted_t<const datum_t> >
     next_batch(env_t *env, const batchspec_t &batchspec);
     bool is_finished() const;
@@ -370,10 +370,10 @@ public:
     virtual counted_t<datum_stream_t> map(counted_t<func_t> f);
     virtual counted_t<datum_stream_t> concatmap(counted_t<func_t> f);
 
-    virtual counted_t<const datum_t> count(env_t *env);
-    virtual counted_t<const datum_t> reduce(env_t *env,
-                                            counted_t<val_t> base_val,
-                                            counted_t<func_t> f);
+    virtual counted_t<val_t> count(env_t *env);
+    virtual counted_t<val_t> reduce(env_t *env,
+                                    counted_t<val_t> base_val,
+                                    counted_t<func_t> f);
     virtual bool is_array() { return false; }
     virtual counted_t<const datum_t> as_array(UNUSED env_t *env) {
         return counted_t<const datum_t>();  // Cannot be converted implicitly.
@@ -384,8 +384,7 @@ private:
     std::vector<counted_t<const datum_t> >
     next_batch_impl(env_t *env, const batchspec_t &batchspec);
 
-    rdb_protocol_t::rget_read_response_t::result_t run_terminal(
-        env_t *env, const rdb_protocol_details::terminal_variant_t &t);
+    counted_t<val_t> run_terminal(env_t *env, const terminal_variant_t &t);
 
     // We use these to cache a batch so that `next` works.  There are a lot of
     // things that are most easily written in terms of `next` that would
@@ -439,15 +438,15 @@ public:
                            const counted_t<const datum_t> &,
                            const counted_t<const datum_t> &)> lt_cmp);
 private:
-    virtual std::vector<counted_t<const datum_t> >
-    next_batch_impl(env_t *env, const batchspec_t &batchspec);
+virtual std::vector<counted_t<const datum_t> >
+next_batch_impl(env_t *env, const batchspec_t &batchspec);
 
-    std::function<bool(env_t *,  // NOLINT(readability/casting)
-                       profile::sampler_t *,
-                       const counted_t<const datum_t> &,
-                       const counted_t<const datum_t> &)> lt_cmp;
-    size_t index;
-    std::vector<counted_t<const datum_t> > data;
+std::function<bool(env_t *,  // NOLINT(readability/casting)
+                   profile::sampler_t *,
+                   const counted_t<const datum_t> &,
+                   const counted_t<const datum_t> &)> lt_cmp;
+size_t index;
+std::vector<counted_t<const datum_t> > data;
 };
 
 class union_datum_stream_t : public datum_stream_t {
@@ -463,10 +462,10 @@ public:
     virtual counted_t<datum_stream_t> concatmap(counted_t<func_t> f);
 
     // stream -> atom
-    virtual counted_t<const datum_t> count(env_t *env);
-    virtual counted_t<const datum_t> reduce(env_t *env,
-                                            counted_t<val_t> base_val,
-                                            counted_t<func_t> f);
+    virtual counted_t<val_t> count(env_t *env);
+    virtual counted_t<val_t> reduce(env_t *env,
+                                    counted_t<val_t> base_val,
+                                    counted_t<func_t> f);
     virtual bool is_array();
     virtual counted_t<const datum_t> as_array(env_t *env);
     virtual bool is_exhausted() const;

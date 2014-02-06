@@ -22,7 +22,7 @@
 #include "rdb_protocol/blob_wrapper.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/lazy_json.hpp"
-#include "rdb_protocol/transform_visitors.hpp"
+#include "rdb_protocol/shards.hpp"
 
 value_sizer_t<rdb_value_t>::value_sizer_t(block_size_t bs) : block_size_(bs) { }
 

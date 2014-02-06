@@ -106,14 +106,14 @@ void reader_t::add_transformation(transform_variant_t &&tv) {
     transforms.push_back(std::move(tv));
 }
 
-rget_read_response_t::result_t
-reader_t::run_terminal(env_t *env, terminal_variant_t &&tv) {
+counted_t<val_t> reader_t::run_terminal(
+    env_t *env, terminal_variant_t &&tv, const protob_t<const Backtrace> &bt) {
     r_sanity_check(!started);
     started = shards_exhausted = true;
     batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env);
-    rget_read_response_t res
-        = do_read(env, readgen->terminal_read(transforms, std::move(tv), batchspec));
-    return std::move(res.result);
+    scoped_ptr_t<accumulator_t> acc(make_terminal(env, tv));
+    read_t read = readgen->terminal_read(transforms, std::move(tv), batchspec);
+    return acc->unpack(do_read(env, std::move(read)), bt);
 }
 
 rget_read_response_t reader_t::do_read(env_t *env, const read_t &read) {
@@ -631,31 +631,13 @@ counted_t<datum_stream_t> lazy_datum_stream_t::filter(
     return counted_from_this();
 }
 
-counted_t<const datum_t> lazy_datum_stream_t::count(env_t *env) {
-    rget_read_response_t::result_t res = reader.run_terminal(env, count_wire_func_t());
-    return boost::get<counted_t<const datum_t> >(res);
+counted_t<val_t> lazy_datum_stream_t::count(env_t *env) {
+    return reader.run_terminal(env, count_wire_func_t(), backtrace());
 }
 
-counted_t<const datum_t> lazy_datum_stream_t::reduce(
+counted_t<val_t> lazy_datum_stream_t::reduce(
     env_t *env, counted_t<val_t> base_val, counted_t<func_t> f) {
-    rget_read_response_t::result_t res
-        = reader.run_terminal(env, reduce_wire_func_t(f));
-
-    if (counted_t<const datum_t> *d = boost::get<counted_t<const datum_t> >(&res)) {
-        counted_t<const datum_t> datum = *d;
-        if (base_val.has()) {
-            return f->call(env, base_val->as_datum(), datum)->as_datum();
-        } else {
-            return datum;
-        }
-    } else {
-        r_sanity_check(boost::get<rdb_protocol_t::rget_read_response_t::empty_t>(&res));
-        if (base_val.has()) {
-            return base_val->as_datum();
-        } else {
-            rfail(base_exc_t::NON_EXISTENCE, empty_stream_msg);
-        }
-    }
+    return reader.run_terminal(env, reduce_wire_func_t(f), backtrace());
 }
 
 std::vector<counted_t<const datum_t> >

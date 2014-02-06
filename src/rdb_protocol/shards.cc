@@ -3,16 +3,14 @@
 #include "boost/variant.hpp"
 
 #include "rdb_protocol/func.hpp"
-#include "rdb_protocol/transform_visitors.hpp"
 #include "rdb_protocol/profile.hpp"
+#include "rdb_protocol/protocol.hpp"
+#include "rdb_protocol/shards.hpp"
 
 namespace ql {
 
-typedef rdb_protocol_t::rget_read_response_t::result_t result_t;
-typedef rdb_protocol_t::rget_read_response_t::res_t res_t;
-typedef rdb_protocol_t::rget_read_response_t::res_groups_t res_groups_t;
-typedef rdb_protocol_t::rget_read_response_t::stream_t stream_t;
-typedef rdb_protocol_details::rget_item_t rget_item_t;
+bool reversed(sorting_t sorting) { return sorting == sorting_t::DESCENDING; }
+
 
 void accumulator_t::finish(result_t *out) {
     // We fill in the result if there have been no errors.
@@ -43,13 +41,9 @@ private:
     }
     virtual bool should_send_batch() = 0;
     virtual void finish_impl(result_t *out) {
-        *out = res_groups_t();
-        for (auto it = acc.begin(); it != acc.end(); ++it) {
-            r_sanity_check(it->first.has());
-            T *t_out = boost::get<T>(&(*boost::get<res_groups_t>(out))[it->first]);
-            *t_out = std::move(it->second);
-        }
-        acc.clear();
+        *out = grouped<T>();
+        boost::get<grouped<T> >(*out).swap(acc);
+        guarantee(acc.size() == 0);
     }
 
     virtual void accumulate(const counted_t<const datum_t> &el,
@@ -58,12 +52,36 @@ private:
                             // sindex_val may be NULL
                             counted_t<const datum_t> &&sindex_val) = 0;
 
+    virtual counted_t<val_t> unpack(result_t &&res, protob_t<const Backtrace> bt) {
+        if (auto e = boost::get<exc_t>(&res)) {
+            throw *e;
+        }
+        acc.swap(boost::get<decltype(acc)>(res));
+        if (T *t = get_single()) {
+            return make_counted<val_t>(unpack(t), bt);
+        } else {
+            std::map<counted_t<const datum_t>, counted_t<const datum_t> > ret;
+            for (auto kv = acc.begin(); kv != acc.end(); ++kv) {
+                ret.insert(std::make_pair(kv->first, unpack(&kv->second)));
+            }
+            return make_counted<val_t>(std::move(ret), bt);
+        }
+    }
+    T *get_single() {
+        return acc.size() == 1 && !acc.begin()->first.has()
+            ? &acc.begin()->second
+            : NULL;
+    }
+    virtual counted_t<const datum_t> unpack(T *t) = 0;
+
     virtual void unshard(const store_key_t &last_key,
-                         const std::vector<res_groups_t *> &rgs) {
+                         const std::vector<result_t *> &results) {
+        guarantee(acc.size() == 0);
         std::map<counted_t<const datum_t>, std::vector<T *> > vecs;
-        for (auto it = rgs.begin(); it != rgs.end(); ++it) {
-            for (auto kv = (*it)->begin(); kv != (*it)->end(); ++kv) {
-                vecs[kv->first].push_back(boost::get<T>(&kv->second));
+        for (auto res = results.begin(); res != results.end(); ++res) {
+            grouped<T> *gres = boost::get<grouped<T> >(*res);
+            for (auto kv = gres->begin(); kv != gres->end(); ++kv) {
+                vecs[kv->first].push_back(&kv->second);
             }
         }
         for (auto kv = vecs.begin(); kv != vecs.end(); ++kv) {
@@ -76,7 +94,7 @@ private:
                               const std::vector<T *> &ts) = 0;
 
     const T default_t;
-    std::map<counted_t<const datum_t>, T> acc;
+    grouped<T> acc;
 };
 
 class append_t : public grouped_accumulator_t<stream_t> {
@@ -101,6 +119,12 @@ private:
             : std::move(sindex_val);
         stream->push_back(rget_item_t(std::move(key), rget_sindex_val, el));
     }
+
+    virtual counted_t<const datum_t> unpack(stream_t *) {
+        r_sanity_check(false); // We never unpack a stream.
+        unreachable();
+    }
+
     virtual void unshard_impl(stream_t *out,
                               const store_key_t &last_key,
                               const std::vector<stream_t *> &streams) {
@@ -145,7 +169,7 @@ private:
     batcher_t *const batcher;
 };
 
-accumulator_t *make_append(sorting_t sorting, batcher_t *batcher) {
+accumulator_t *make_append(const sorting_t &sorting, batcher_t *batcher) {
     return new append_t(sorting, batcher);
 }
 
@@ -160,6 +184,7 @@ private:
         accumulate(el, t);
     }
     virtual void accumulate(const counted_t<const datum_t> &el, T *t) = 0;
+
     virtual void unshard_impl(T *out, const store_key_t &, const std::vector<T *> &ts) {
         unshard_impl(out, ts);
     }
@@ -176,12 +201,18 @@ private:
         guarantee(!el.has()); // To prevent silent performance regressions.
         *out += 1;
     }
+    virtual counted_t<const datum_t> unpack(size_t *sz) {
+        return make_counted<const datum_t>(double(*sz));
+    }
     virtual void unshard_impl(size_t *out, const std::vector<size_t *> &sizes) {
         for (auto it = sizes.begin(); it != sizes.end(); ++it) {
             *out += **it;
         }
     }
 };
+
+const char *const empty_stream_msg =
+    "Cannot reduce over an empty stream with no base.";
 
 class reduce_terminal_t : public terminal_t<counted_t<const datum_t> > {
 public:
@@ -197,6 +228,10 @@ private:
         } catch (const datum_exc_t &e) {
             throw exc_t(e, f->backtrace().get(), 1);
         }
+    }
+    virtual counted_t<const datum_t> unpack(counted_t<const datum_t> *el) {
+        rcheck_target(f, base_exc_t::NON_EXISTENCE, el->has(), empty_stream_msg);
+        return std::move(*el);
     }
     virtual void unshard_impl(counted_t<const datum_t> *out,
                               const std::vector<counted_t<const datum_t> *> &ds) {
@@ -330,5 +365,7 @@ private:
 op_t *make_op(env_t *env, const transform_variant_t &tv) {
     return boost::apply_visitor(transform_visitor_t(env), tv);
 }
+
+RDB_IMPL_ME_SERIALIZABLE_3(rget_item_t, key, empty_ok(sindex_key), data);
 
 } // namespace ql

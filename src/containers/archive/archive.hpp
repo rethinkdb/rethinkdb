@@ -187,8 +187,6 @@ empty_ok_t<T> empty_ok(T &field) {  // NOLINT(runtime/references)
 template <class T>
 struct serialized_size_t;
 
-
-
 // Keep in sync with serialized_size_t defined below.
 #define ARCHIVE_PRIM_MAKE_WRITE_SERIALIZABLE(typ1, typ2)                \
     inline write_message_t &operator<<(write_message_t &msg, typ1 x) {  \

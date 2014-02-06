@@ -22,7 +22,7 @@
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
-#include "rdb_protocol/transform_visitors.hpp"
+#include "rdb_protocol/shards.hpp"
 #include "rdb_protocol/minidriver.hpp"
 #include "rdb_protocol/term_walker.hpp"
 #include "rpc/semilattice/view/field.hpp"
@@ -48,8 +48,6 @@ typedef rdb_protocol_t::point_read_response_t point_read_response_t;
 
 typedef rdb_protocol_t::rget_read_t rget_read_t;
 typedef rdb_protocol_t::rget_read_response_t rget_read_response_t;
-typedef rget_read_response_t::res_t res_t;
-typedef rget_read_response_t::result_t result_t;
 
 typedef rdb_protocol_t::distribution_read_t distribution_read_t;
 typedef rdb_protocol_t::distribution_read_response_t distribution_read_response_t;
@@ -85,13 +83,10 @@ typedef rdb_protocol_t::backfill_chunk_t backfill_chunk_t;
 
 typedef rdb_protocol_t::backfill_progress_t backfill_progress_t;
 
-typedef rdb_protocol_t::rget_read_response_t::stream_t stream_t;
-
 typedef btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindex_access_vector_t;
 
 const std::string rdb_protocol_t::protocol_name("rdb");
 
-bool reversed(sorting_t sorting) { return sorting == sorting_t::DESCENDING; }
 store_key_t key_max(sorting_t sorting) {
     return !reversed(sorting) ? store_key_t::max() : store_key_t::min();
 }
@@ -603,7 +598,6 @@ void scale_down_distribution(size_t result_limit, std::map<store_key_t, int64_t>
     }
 }
 
-typedef rget_read_response_t::res_t res_t;
 class rdb_r_unshard_visitor_t : public boost::static_visitor<void> {
 public:
     rdb_r_unshard_visitor_t(read_response_t *_responses,
@@ -616,8 +610,6 @@ public:
 
     void operator()(const point_read_t &);
 
-    void combine(const std::vector<res_t *> &results,
-                 rget_read_response_t *out, res_t *res_out);
     void operator()(const rget_read_t &rg);
     void operator()(const distribution_read_t &rg);
     void operator()(const sindex_list_t &rg);
@@ -636,8 +628,6 @@ void rdb_r_unshard_visitor_t::operator()(const point_read_t &) {
     *response_out = responses[0];
 }
 
-typedef rget_read_response_t::res_t res_t;
-typedef rget_read_response_t::res_groups_t res_groups_t;
 void rdb_r_unshard_visitor_t::operator()(const rget_read_t &rg) {
     // Initialize response.
     response_out->response = rget_read_response_t();
@@ -646,10 +636,8 @@ void rdb_r_unshard_visitor_t::operator()(const rget_read_t &rg) {
     out->key_range = read_t(rg, profile_bool_t::DONT_PROFILE).get_region().inner;
     // RSI: safe to kill? (out->last_key = out->key_range.left;)
 
-    // Fill in `truncated` and `last_key`, get vector of groups to unshard
-    // (or abort early if there's an error).
-    std::vector<res_groups_t *> res_groups;
-    res_groups.reserve(count);
+    // Fill in `truncated` and `last_key`, get responses, abort if there's an error.
+    std::vector<ql::result_t *> results(count);
     store_key_t *best = NULL;
     key_le_t key_le(rg.sorting);
     for (size_t i = 0; i < count; ++i) {
@@ -664,11 +652,8 @@ void rdb_r_unshard_visitor_t::operator()(const rget_read_t &rg) {
         if (boost::get<ql::exc_t>(&resp->result) != NULL) {
             out->result = std::move(resp->result);
             return;
-        } else if (auto rg = boost::get<res_groups_t>(&resp->result)) {
-            res_groups.push_back(rg);
-        } else {
-            unreachable();
         }
+        results.push_back(&resp->result);
     }
     out->last_key = (best != NULL) ? std::move(*best) : key_max(rg.sorting);
 
@@ -676,7 +661,7 @@ void rdb_r_unshard_visitor_t::operator()(const rget_read_t &rg) {
     scoped_ptr_t<ql::accumulator_t> acc(rg.terminal
         ? ql::make_terminal(&env, *rg.terminal)
         : ql::make_append(rg.sorting, NULL));
-    acc->unshard(out->last_key, res_groups);
+    acc->unshard(out->last_key, results);
     acc->finish(&out->result);
 }
 
@@ -1802,10 +1787,6 @@ region_t rdb_protocol_t::cpu_sharding_subspace(int subregion_number,
     return region_t(beg, end, key_range_t::universe());
 }
 
-RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_details::rget_item_t,
-                           key,
-                           empty_ok(sindex_key),
-                           data);
 RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_details::single_sindex_status_t,
                            blocks_total, blocks_processed, ready);
 

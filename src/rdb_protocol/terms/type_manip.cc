@@ -29,6 +29,7 @@ static const int SEQUENCE_TYPE = val_t::type_t::SEQUENCE * MAX_TYPE;
 static const int SINGLE_SELECTION_TYPE = val_t::type_t::SINGLE_SELECTION * MAX_TYPE;
 static const int DATUM_TYPE = val_t::type_t::DATUM * MAX_TYPE;
 static const int FUNC_TYPE = val_t::type_t::FUNC * MAX_TYPE;
+static const int GROUPED_DATA_TYPE = val_t::type_t::GROUPED_DATA * MAX_TYPE;
 
 static const int R_NULL_TYPE = val_t::type_t::DATUM * MAX_TYPE + datum_t::R_NULL;
 static const int R_BOOL_TYPE = val_t::type_t::DATUM * MAX_TYPE + datum_t::R_BOOL;
@@ -48,7 +49,8 @@ public:
         map["SELECTION<OBJECT>"] = SINGLE_SELECTION_TYPE;
         map["DATUM"] = DATUM_TYPE;
         map["FUNCTION"] = FUNC_TYPE;
-        CT_ASSERT(val_t::type_t::FUNC < MAX_TYPE);
+        map["GROUPED_DATA"] = GROUPED_DATA_TYPE;
+        CT_ASSERT(val_t::type_t::GROUPED_DATA < MAX_TYPE);
 
         map["NULL"] = R_NULL_TYPE;
         map["BOOL"] = R_BOOL_TYPE;
@@ -94,6 +96,7 @@ private:
         case val_t::type_t::SINGLE_SELECTION:
         case val_t::type_t::DATUM:
         case val_t::type_t::FUNC:
+        case val_t::type_t::GROUPED_DATA:
         default: break;
         }
         switch (t2) {

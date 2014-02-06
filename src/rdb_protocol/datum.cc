@@ -810,9 +810,9 @@ counted_t<const datum_t> datum_t::merge(counted_t<const datum_t> rhs) const {
             UNUSED bool b = d.add(it->first, sub_lhs->merge(it->second), CLOBBER);
         } else {
             if (is_literal) {
-                counted_t<const datum_t> value = it->second->get(pseudo::value_key, NOTHROW);
-                if (value) {
-                    UNUSED bool b = d.add(it->first, value, CLOBBER);
+                counted_t<const datum_t> val = it->second->get(pseudo::value_key, NOTHROW);
+                if (val) {
+                    UNUSED bool b = d.add(it->first, val, CLOBBER);
                 } else {
                     UNUSED bool b = d.delete_field(it->first);
                 }

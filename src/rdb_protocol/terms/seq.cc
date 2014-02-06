@@ -19,14 +19,21 @@ public:
         : op_term_t(env, term, argspec_t(1, 2)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+        counted_t<val_t> v0 = arg(env, 0);
         if (num_args() == 1) {
-            return new_val(arg(env, 0)->as_seq(env->env)->count(env->env));
-        } else if (arg(env, 1)->get_type().is_convertible(val_t::type_t::FUNC)) {
-            return new_val(arg(env, 0)->as_seq(env->env)->filter(arg(env, 1)->as_func(), counted_t<func_t>())->count(env->env));
+            return v0->as_seq(env->env)->count(env->env);
         } else {
-            counted_t<func_t> f =
-                new_eq_comparison_func(arg(env, 1)->as_datum(), backtrace());
-            return new_val(arg(env, 0)->as_seq(env->env)->filter(f, counted_t<func_t>())->count(env->env));
+            counted_t<val_t> v1 = arg(env, 1);
+            if (v1->get_type().is_convertible(val_t::type_t::FUNC)) {
+                return v0->as_seq(env->env)
+                     ->filter(v1->as_func(), counted_t<func_t>())
+                     ->count(env->env);
+            } else {
+                counted_t<func_t> f =
+                    new_eq_comparison_func(v1->as_datum(), backtrace());
+                return v0->as_seq(env->env)
+                     ->filter(f, counted_t<func_t>())->count(env->env);
+            }
         }
     }
     virtual const char *name() const { return "count"; }
@@ -38,7 +45,8 @@ public:
         : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
-        return new_val(env->env, arg(env, 0)->as_seq(env->env)->map(arg(env, 1)->as_func()));
+        return new_val(env->env,
+                       arg(env, 0)->as_seq(env->env)->map(arg(env, 1)->as_func()));
     }
     virtual const char *name() const { return "map"; }
 };
@@ -89,9 +97,8 @@ public:
         op_term_t(env, term, argspec_t(2), optargspec_t({ "base" })) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
-        return new_val(arg(env, 0)->as_seq(env->env)->reduce(env->env,
-                                                        optarg(env, "base"),
-                                                        arg(env, 1)->as_func()));
+        return arg(env, 0)->as_seq(env->env)
+             ->reduce(env->env, optarg(env, "base"), arg(env, 1)->as_func());
     }
     virtual const char *name() const { return "reduce"; }
 };

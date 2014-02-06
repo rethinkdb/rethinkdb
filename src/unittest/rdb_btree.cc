@@ -240,8 +240,7 @@ void _check_keys_are_present(btree_store_t<rdb_protocol_t> *store,
             sorting_t::ASCENDING,
             &res);
 
-        rdb_protocol_t::rget_read_response_t::stream_t *stream
-            = boost::get<rdb_protocol_t::rget_read_response_t::stream_t>(&res.result);
+        ql::stream_t *stream = boost::get<ql::stream_t>(&res.result);
         ASSERT_TRUE(stream != NULL);
         ASSERT_EQ(1ul, stream->size());
 
@@ -307,8 +306,7 @@ void _check_keys_are_NOT_present(btree_store_t<rdb_protocol_t> *store,
             sorting_t::ASCENDING,
             &res);
 
-        rdb_protocol_t::rget_read_response_t::stream_t *stream
-            = boost::get<rdb_protocol_t::rget_read_response_t::stream_t>(&res.result);
+        ql::stream_t *stream = boost::get<ql::stream_t>(&res.result);
         ASSERT_TRUE(stream != NULL);
         ASSERT_EQ(0ul, stream->size());
     }

@@ -134,7 +134,8 @@ public:
             SEQUENCE         = 4, // sequence
             SINGLE_SELECTION = 5, // table, datum (object)
             DATUM            = 6, // datum
-            FUNC             = 7  // func
+            FUNC             = 7, // func
+            GROUPED_DATA     = 8  // grouped_data
         };
         type_t(raw_type_t _raw_type); // NOLINT
         bool is_convertible(type_t rhs) const;
@@ -152,6 +153,8 @@ public:
     const char *get_type_name() const;
 
     val_t(counted_t<const datum_t> _datum, protob_t<const Backtrace> backtrace);
+    val_t(std::map<counted_t<const datum_t>, counted_t<const datum_t> > &&m,
+          protob_t<const Backtrace> bt);
     val_t(counted_t<const datum_t> _datum, counted_t<table_t> _table,
           protob_t<const Backtrace> backtrace);
     val_t(counted_t<const datum_t> _datum,

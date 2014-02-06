@@ -415,6 +415,7 @@ const char *val_t::type_t::name() const {
     case SINGLE_SELECTION: return "SINGLE_SELECTION";
     case DATUM: return "DATUM";
     case FUNC: return "FUNCTION";
+    case GROUPED_DATA: return "GROUPED_DATA";
     default: unreachable();
     }
 }
@@ -424,6 +425,15 @@ val_t::val_t(counted_t<const datum_t> _datum, protob_t<const Backtrace> backtrac
       type(type_t::DATUM),
       u(_datum) {
     guarantee(datum().has());
+}
+
+val_t::val_t(std::map<counted_t<const datum_t>, counted_t<const datum_t> > &&m,
+             protob_t<const Backtrace> bt)
+    : pb_rcheckable_t(bt),
+      type(type_t::GROUPED_DATA),
+      u(std::map<counted_t<const datum_t>, counted_t<const datum_t> >()) {
+    boost::get<std::map<counted_t<const datum_t>,
+                        counted_t<const datum_t> >>(&u)->swap(m);
 }
 
 val_t::val_t(counted_t<const datum_t> _datum, counted_t<table_t> _table,

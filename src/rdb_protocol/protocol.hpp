@@ -25,11 +25,7 @@
 #include "http/json/cJSON.hpp"
 #include "memcached/region.hpp"
 #include "protocol_api.hpp"
-#include "rdb_protocol/datum.hpp"
-#include "rdb_protocol/profile.hpp"
-#include "rdb_protocol/rdb_protocol_json.hpp"
-#include "rdb_protocol/wire_func.hpp"
-#include "rdb_protocol/batching.hpp"
+#include "rdb_protocol/shards.hpp"
 #include "utils.hpp"
 
 class extproc_pool_t;
@@ -74,13 +70,7 @@ RDB_DECLARE_SERIALIZABLE(Term);
 RDB_DECLARE_SERIALIZABLE(Datum);
 RDB_DECLARE_SERIALIZABLE(Backtrace);
 
-enum class sorting_t {
-    UNORDERED,
-    ASCENDING,
-    DESCENDING
-};
-// UNORDERED sortings aren't reversed
-bool reversed(sorting_t sorting);
+typedef ql::sorting_t sorting_t;
 
 class key_le_t {
 public:
@@ -141,6 +131,9 @@ private:
 
 namespace rdb_protocol_details {
 
+typedef ql::transform_variant_t transform_variant_t;
+typedef ql::terminal_variant_t terminal_variant_t;
+
 struct backfill_atom_t {
     store_key_t key;
     counted_t<const ql::datum_t> value;
@@ -158,34 +151,12 @@ struct backfill_atom_t {
 
 RDB_DECLARE_SERIALIZABLE(backfill_atom_t);
 
-typedef boost::variant<ql::map_wire_func_t,
-                       ql::filter_wire_func_t,
-                       ql::concatmap_wire_func_t> transform_variant_t;
-// RSI typedef std::vector<transform_variant_t> transform_t;
-
-typedef boost::variant<ql::count_wire_func_t,
-                       ql::reduce_wire_func_t> terminal_variant_t;
-// RSI typedef terminal_variant_t terminal_t;
-
 void bring_sindexes_up_to_date(
         const std::set<std::string> &sindexes_to_bring_up_to_date,
         btree_store_t<rdb_protocol_t> *store,
         buf_lock_t *sindex_block,
         transaction_t *txn)
     THROWS_NOTHING;
-
-struct rget_item_t {
-    rget_item_t() { }
-    // Works for both rvalue and lvalue references.
-    template<class T>
-    rget_item_t(T &&_key,
-                const counted_t<const ql::datum_t> &_sindex_key,
-                const counted_t<const ql::datum_t> &_data)
-        : key(std::forward<T>(_key)), sindex_key(_sindex_key), data(_data) { }
-    store_key_t key;
-    counted_t<const ql::datum_t> sindex_key, data;
-    RDB_DECLARE_ME_SERIALIZABLE;
-};
 
 struct single_sindex_status_t {
     single_sindex_status_t()
@@ -276,27 +247,17 @@ struct rdb_protocol_t {
 
     // RSI: fix res/result bullshit
     struct rget_read_response_t {
-         // Present if there was no terminal
-        typedef std::vector<rdb_protocol_details::rget_item_t> stream_t;
 
         class empty_t { RDB_MAKE_ME_SERIALIZABLE_0() };
 
-        typedef boost::variant<
-            size_t, // count
-            counted_t<const ql::datum_t>, // reduce
-            stream_t // no terminal
-            > res_t;
-        typedef std::map<counted_t<const ql::datum_t>, res_t> res_groups_t;
-        typedef boost::variant<ql::exc_t, res_groups_t> result_t;
-
         key_range_t key_range;
-        result_t result;
+        ql::result_t result;
         bool truncated;
         store_key_t last_key;
 
-        rget_read_response_t() : result(res_groups_t()), truncated(false) { }
+        rget_read_response_t() : truncated(false) { }
         rget_read_response_t(
-            const key_range_t &_key_range, const result_t _result,
+            const key_range_t &_key_range, const ql::result_t &_result,
             bool _truncated, const store_key_t &_last_key)
             : key_range(_key_range), result(_result),
               truncated(_truncated), last_key(_last_key) { }
