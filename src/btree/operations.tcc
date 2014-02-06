@@ -294,7 +294,7 @@ void apply_keyvalue_change(keyvalue_location_t<Value> *kv_loc,
                                kv_loc->superblock, key);
 
     // Modify the stats block.
-    buf_lock_t stat_block(buf_parent_t(&kv_loc->buf.txn()),
+    buf_lock_t stat_block(buf_parent_t(kv_loc->buf.txn()),
                           kv_loc->stat_block, access_t::write);
     buf_write_t stat_block_write(&stat_block);
     auto stat_block_buf
