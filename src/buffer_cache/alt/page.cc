@@ -178,7 +178,7 @@ class flush_and_destroy_t : public signal_t::subscription_t {
 public:
     flush_and_destroy_t(auto_drainer_t::lock_t &&lock,
                         page_txn_t *txn,
-                        std::function<void(tracker_acq_t &&)> on_flush_complete)
+                        std::function<void(tracker_acq_t)> on_flush_complete)
         : lock_(std::move(lock)),
           txn_(txn),
           on_flush_complete_(std::move(on_flush_complete)) { }
@@ -205,14 +205,14 @@ private:
 
     auto_drainer_t::lock_t lock_;
     page_txn_t *txn_;
-    std::function<void(tracker_acq_t &&)> on_flush_complete_;
+    std::function<void(tracker_acq_t)> on_flush_complete_;
 
     DISABLE_COPYING(flush_and_destroy_t);
 };
 
 void page_cache_t::flush_and_destroy_txn(
         scoped_ptr_t<page_txn_t> txn,
-        std::function<void(tracker_acq_t &&)> on_flush_complete) {
+        std::function<void(tracker_acq_t)> on_flush_complete) {
     rassert(txn->live_acqs_.empty(),
             "current_page_acq_t lifespan exceeds its page_txn_t's");
     guarantee(!txn->began_waiting_for_flush_);
@@ -1155,7 +1155,7 @@ page_t *page_ptr_t::get_page_for_write(page_cache_t *page_cache) {
 
 page_txn_t::page_txn_t(page_cache_t *page_cache,
                        repli_timestamp_t txn_recency,
-                       tracker_acq_t &&tracker_acq,
+                       tracker_acq_t tracker_acq,
                        page_txn_t *preceding_txn_or_null)
     : page_cache_(page_cache),
       tracker_acq_(std::move(tracker_acq)),
