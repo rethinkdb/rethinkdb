@@ -81,16 +81,16 @@ private:
 };
 
 class alt_inner_txn_t {
-public:
-    // This is public because scoped_ptr_t needs to call it.
-    ~alt_inner_txn_t();
-
 private:
     friend class txn_t;
-    alt_inner_txn_t(cache_t *cache,
-                    // Unused for read transactions, pass repli_timestamp_t::invalid.
-                    repli_timestamp_t txn_recency,
-                    alt_inner_txn_t *preceding_txn_or_null);
+
+    ~alt_inner_txn_t();
+
+    alt_inner_txn_t();
+    void init(cache_t *cache,
+              // Unused for read transactions, pass repli_timestamp_t::invalid.
+              repli_timestamp_t txn_recency,
+              alt_inner_txn_t *preceding_txn_or_null);
 
     cache_t *cache() { return cache_; }
 
@@ -122,8 +122,8 @@ public:
 
     ~txn_t();
 
-    cache_t *cache() { return inner_->cache(); }
-    alt::page_txn_t *page_txn() { return inner_->page_txn(); }
+    cache_t *cache() { return inner_.cache(); }
+    alt::page_txn_t *page_txn() { return inner_.page_txn(); }
     access_t access() const { return access_; }
 
     void set_account(alt_cache_account_t *cache_account);
@@ -148,7 +148,7 @@ private:
     const int64_t saved_expected_change_count_;  // RSI: A fugly relationship with
                                                  // the tracker.
 
-    scoped_ptr_t<alt_inner_txn_t> inner_;
+    alt_inner_txn_t inner_;
     DISABLE_COPYING(txn_t);
 };
 
