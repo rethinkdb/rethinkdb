@@ -257,11 +257,6 @@ const char *show(access_t access) {
 }
 #endif
 
-// RSI: Add general explanation of correctness of snapshotting logic.  Explain why
-// it's correct for making a child snapshot node to just construct a
-// current_page_acq_t, and how there could not possibly be an intervening write
-// transaction that we need to jump ahead of.
-
 alt_snapshot_node_t *
 buf_lock_t::get_or_create_child_snapshot_node(cache_t *cache,
                                               alt_snapshot_node_t *parent,
