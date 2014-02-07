@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 import sys
-from sys import stdout, exit
+from sys import stdout, exit, path
 import time
 import json
 import os
@@ -9,6 +9,9 @@ import os
 from util import gen_doc, gen_num_docs
 from queries import constant_queries, table_queries, write_queries, delete_queries
 
+path.insert(0, "../../drivers/python")
+
+from os import environ
 import rethinkdb as r
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'rql_test')))
@@ -139,9 +142,6 @@ def execute_queries():
         size_batch = 500
         if i < num_writes:
             while i+size_batch < num_writes:
-                print i
-                sys.stdout.flush()
-
                 resutl = r.db('test').table(table['name']).insert(docs[i:i+size_batch]).run(connection)
                 table["ids"] += result["generated_keys"]
                 i += size_batch
