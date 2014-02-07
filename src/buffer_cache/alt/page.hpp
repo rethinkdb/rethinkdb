@@ -543,9 +543,17 @@ private:
 };
 
 class tracker_acq_t {
+public:
+    tracker_acq_t() { }
+    ~tracker_acq_t() { }
+    tracker_acq_t(tracker_acq_t &&movee)
+        : semaphore_acq(std::move(movee.semaphore_acq)) { }
+
 private:
     friend class alt_memory_tracker_t;
     new_semaphore_acq_t semaphore_acq;
+
+    DISABLE_COPYING(tracker_acq_t);
 };
 
 class page_cache_t : public home_thread_mixin_t {
