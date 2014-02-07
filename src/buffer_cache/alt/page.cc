@@ -1211,9 +1211,14 @@ void page_txn_t::set_account(alt_cache_account_t *cache_account) {
     guarantee(cache_account_ == NULL, "Tried to set already-set cache account.");
     cache_account_ = cache_account;
 
-    // RSI: We don't actually _use_ cache_account -- right now read operations don't
-    // have a page_txn_t kept around, you see.
-    (void)cache_account_;
+    // KSI: We don't actually _use_ cache_account -- right now read operations don't
+    // have a page_txn_t kept around, you see.  Generally speaking, snapshotted
+    // operations don't have a particular page_txn_t associated with them, and,
+    // generally speaking, the account we want to use to unevict a page would be the
+    // maximum (or "sum"?) of the accounts currently waiting on the page.  So, right
+    // now, backfilling operations don't get to read with a higher priority than
+    // other things.  It would be interesting to reexamine whether this is a bad
+    // thing.
 }
 
 void page_txn_t::add_acquirer(current_page_acq_t *acq) {
