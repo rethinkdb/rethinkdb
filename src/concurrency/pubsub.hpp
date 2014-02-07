@@ -27,7 +27,7 @@ delivering a notification. */
 template<class subscriber_t>
 class publisher_t : public home_thread_mixin_t {
 public:
-    class subscription_t : public intrusive_list_node_t<subscription_t>, public home_thread_mixin_debug_only_t {
+    class subscription_t : public intrusive_list_node_t<subscription_t> {
     public:
         /* Construct a `subscription_t` that is not subscribed to any publisher.
         */
