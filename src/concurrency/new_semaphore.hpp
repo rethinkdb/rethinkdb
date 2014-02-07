@@ -41,8 +41,12 @@ public:
     ~new_semaphore_acq_t();
     new_semaphore_acq_t();
     new_semaphore_acq_t(new_semaphore_t *semaphore, int64_t count);
+    new_semaphore_acq_t(new_semaphore_acq_t &&movee);
 
+    // Initializes the object.
     void init(new_semaphore_t *semaphore, int64_t count);
+
+    void reset();
 
     // Returns a signal that gets pulsed when this has successfully acquired the
     // semaphore.
@@ -53,9 +57,11 @@ private:
 
     // The semaphore this acquires (or NULL if this hasn't acquired a semaphore yet).
     new_semaphore_t *semaphore_;
+
     // The count of "how much" of the semaphore we've acquired (if semaphore_ is
     // non-NULL).
     int64_t count_;
+
     // Gets pulsed when we have successfully acquired the semaphore.
     cond_t cond_;
     DISABLE_COPYING(new_semaphore_acq_t);

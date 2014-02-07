@@ -13,6 +13,7 @@
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/cond_var.hpp"
 #include "concurrency/fifo_enforcer.hpp"
+#include "concurrency/new_semaphore.hpp"
 #include "containers/backindex_bag.hpp"
 #include "containers/intrusive_list.hpp"
 #include "containers/segmented_vector.hpp"
@@ -548,8 +549,9 @@ public:
     ~page_cache_t();
 
     // Takes a txn to be flushed.  Calls on_flush_complete() when done.
-    void flush_and_destroy_txn(scoped_ptr_t<page_txn_t> txn,
-                               std::function<void()> on_flush_complete);
+    void flush_and_destroy_txn(
+            scoped_ptr_t<page_txn_t> txn,
+            std::function<void(new_semaphore_acq_t &&)> on_flush_complete);
 
     current_page_t *page_for_block_id(block_id_t block_id);
     current_page_t *page_for_new_block_id(block_id_t *block_id_out);
@@ -751,6 +753,7 @@ public:
     page_txn_t(page_cache_t *page_cache,
                // Unused for read transactions, pass repli_timestamp_t::invalid.
                repli_timestamp_t txn_recency,
+               new_semaphore_acq_t &&tracker_acq,
                page_txn_t *preceding_txn = NULL);
 
     // KSI: This is only to be called by the page cache -- should txn_t really use a
@@ -762,6 +765,9 @@ public:
     void set_account(alt_cache_account_t *cache_account);
 
 private:
+    // To access tracker_acq_.
+    friend class flush_and_destroy_t;
+
     // page cache has access to all of this type's innards, including fields.
     friend class page_cache_t;
 
@@ -785,6 +791,9 @@ private:
     void announce_waiting_for_flush_if_we_should();
 
     page_cache_t *page_cache_;
+
+    // An acquisition object for the memory tracker.
+    new_semaphore_acq_t tracker_acq_;
 
     repli_timestamp_t this_txn_recency_;
 

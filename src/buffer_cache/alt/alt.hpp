@@ -8,7 +8,6 @@
 
 #include "buffer_cache/alt/page.hpp"
 #include "buffer_cache/types.hpp"
-#include "concurrency/semaphore.hpp"
 #include "containers/two_level_array.hpp"
 #include "repli_timestamp.hpp"
 #include "utils.hpp"
@@ -26,10 +25,11 @@ public:
     ~alt_memory_tracker_t();
     void inform_memory_change(uint64_t in_memory_size,
                               uint64_t memory_limit);
-    void begin_txn_or_throttle(int64_t expected_change_count);
-    void end_txn(int64_t saved_expected_change_count);
+    void begin_txn_or_throttle(int64_t expected_change_count,
+                               new_semaphore_acq_t *acq);
+    void end_txn(new_semaphore_acq_t &&acq);
 private:
-    adjustable_semaphore_t semaphore_;
+    new_semaphore_t semaphore_;
     DISABLE_COPYING(alt_memory_tracker_t);
 };
 
@@ -104,14 +104,15 @@ public:
 
 private:
     static void inform_tracker(cache_t *cache,
-                               int64_t saved_expected_change_count);
+                               new_semaphore_acq_t &&tracker_acq);
 
     static void pulse_and_inform_tracker(cache_t *cache,
-                                         int64_t saved_expected_change_count,
+                                         new_semaphore_acq_t &&tracker_acq,
                                          cond_t *pulsee);
 
 
     void help_construct(repli_timestamp_t txn_timestamp,
+                        int64_t expected_change_count,
                         txn_t *preceding_txn);
 
     cache_t *const cache_;
@@ -120,8 +121,6 @@ private:
 
     // Only applicable if access_ == write.
     const write_durability_t durability_;
-    const int64_t saved_expected_change_count_;  // RSI: A fugly relationship with
-                                                 // the tracker.
 
     scoped_ptr_t<alt::page_txn_t> page_txn_;
 

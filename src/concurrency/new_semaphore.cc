@@ -34,8 +34,15 @@ void new_semaphore_t::pulse_waiters() {
 }
 
 new_semaphore_acq_t::~new_semaphore_acq_t() {
-    if (semaphore_) {
+    reset();
+}
+
+void new_semaphore_acq_t::reset() {
+    if (semaphore_ != NULL) {
         semaphore_->remove_acquirer(this);
+        semaphore_ = NULL;
+        count_ = 0;
+        cond_.reset();
     }
 }
 
@@ -56,4 +63,9 @@ void new_semaphore_acq_t::init(new_semaphore_t *semaphore, int64_t count) {
     semaphore_->add_acquirer(this);
 }
 
-
+new_semaphore_acq_t::new_semaphore_acq_t(new_semaphore_acq_t &&movee)
+    : semaphore_(movee.semaphore_), count_(movee.count_), cond_(std::move(movee.cond_)) {
+    movee.semaphore_ = NULL;
+    movee.count_ = 0;
+    movee.cond_.reset();
+}

@@ -17,6 +17,7 @@ public:
     void pulse_if_not_already_pulsed();
 
     using signal_t::pulse;
+    using signal_t::reset;
 
 private:
     DISABLE_COPYING(cond_t);

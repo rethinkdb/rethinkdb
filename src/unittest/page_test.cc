@@ -40,11 +40,16 @@ struct mock_ser_t {
 
 class test_txn_t : public page_txn_t {
 public:
+    // KSI: We could make these tests better by varying expected change count given
+    // by new_semaphore_acq_t.
     explicit test_txn_t(page_cache_t *cache, page_txn_t *preceding_txn = NULL)
-        : page_txn_t(cache, repli_timestamp_t::distant_past, preceding_txn) { }
+        : page_txn_t(cache,
+                     repli_timestamp_t::distant_past,
+                     new_semaphore_acq_t(),
+                     preceding_txn) { }
 };
 
-void nop() { }
+void nop(new_semaphore_acq_t &&) { }
 
 class test_cache_t : public page_cache_t {
 public:

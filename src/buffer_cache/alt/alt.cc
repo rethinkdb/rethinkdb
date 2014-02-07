@@ -60,14 +60,14 @@ void alt_memory_tracker_t::inform_memory_change(UNUSED uint64_t in_memory_size,
 
 // RSI: An interface problem here is that this is measured in blocks while
 // inform_memory_change is measured in bytes.
-void alt_memory_tracker_t::begin_txn_or_throttle(int64_t expected_change_count) {
-    semaphore_.co_lock(expected_change_count);
+void alt_memory_tracker_t::begin_txn_or_throttle(int64_t expected_change_count,
+                                                 new_semaphore_acq_t *acq) {
+    acq->init(&semaphore_, expected_change_count);
     // RSI: _Really_ implement this.
 }
 
-void alt_memory_tracker_t::end_txn(int64_t saved_expected_change_count) {
-    // RSI: _Really_ implement this.
-    semaphore_.unlock(saved_expected_change_count);
+void alt_memory_tracker_t::end_txn(new_semaphore_acq_t &&acq) {
+    acq.reset();
 }
 
 cache_t::cache_t(serializer_t *serializer, const alt_cache_config_t &config,
@@ -163,10 +163,8 @@ txn_t::txn_t(cache_t *cache,
              txn_t *preceding_txn)
     : cache_(cache),
       access_(access_t::read),
-      durability_(write_durability_t::SOFT),
-      // RSI: Fix the semaphore so that we don't have to use 1.
-      saved_expected_change_count_(1) {
-    help_construct(repli_timestamp_t::invalid, preceding_txn);
+      durability_(write_durability_t::SOFT) {
+    help_construct(repli_timestamp_t::invalid, 0, preceding_txn);
 }
 
 txn_t::txn_t(cache_t *cache,
@@ -176,20 +174,22 @@ txn_t::txn_t(cache_t *cache,
              txn_t *preceding_txn)
     : cache_(cache),
       access_(access_t::write),
-      durability_(durability),
-      // RSI: Fix the semaphore so that we don't have to use 1.
-      saved_expected_change_count_(std::max<int64_t>(expected_change_count, 1)) {
-    help_construct(txn_timestamp, preceding_txn);
+      durability_(durability) {
+    help_construct(txn_timestamp, expected_change_count, preceding_txn);
 }
 
 void txn_t::help_construct(repli_timestamp_t txn_timestamp,
+                           int64_t expected_change_count,
                            txn_t *preceding_txn) {
     cache_->assert_thread();
-    cache_->tracker_.begin_txn_or_throttle(saved_expected_change_count_);
+    new_semaphore_acq_t tracker_acq;
+    cache_->tracker_.begin_txn_or_throttle(std::max<int64_t>(expected_change_count, 0),
+                                           &tracker_acq);
     ASSERT_FINITE_CORO_WAITING;
 
     page_txn_.init(new page_txn_t(&cache_->page_cache_,
                                   txn_timestamp,
+                                  std::move(tracker_acq),
                                   // Notably, preceding_txn->page_txn_.get() could be
                                   // NULL, if preceding_txn is already in the process of
                                   // being flushed.  (In which case that's fine.)
@@ -197,15 +197,14 @@ void txn_t::help_construct(repli_timestamp_t txn_timestamp,
                                   : preceding_txn->page_txn_.get()));
 }
 
-void txn_t::inform_tracker(cache_t *cache,
-                           int64_t saved_expected_change_count) {
-    cache->tracker_.end_txn(saved_expected_change_count);
+void txn_t::inform_tracker(cache_t *cache, new_semaphore_acq_t &&tracker_acq) {
+    cache->tracker_.end_txn(std::move(tracker_acq));
 }
 
 void txn_t::pulse_and_inform_tracker(cache_t *cache,
-                                     int64_t saved_expected_change_count,
+                                     new_semaphore_acq_t &&tracker_acq,
                                      cond_t *pulsee) {
-    inform_tracker(cache, saved_expected_change_count);
+    inform_tracker(cache, std::move(tracker_acq));
     pulsee->pulse();
 }
 
@@ -216,13 +215,13 @@ txn_t::~txn_t() {
         cache_->page_cache_.flush_and_destroy_txn(std::move(page_txn_),
                                                   std::bind(&txn_t::inform_tracker,
                                                             cache_,
-                                                            saved_expected_change_count_));
+                                                            ph::_1));
     } else {
         cond_t cond;
         cache_->page_cache_.flush_and_destroy_txn(
                 std::move(page_txn_),
                 std::bind(&txn_t::pulse_and_inform_tracker,
-                          cache_, saved_expected_change_count_, &cond));
+                          cache_, ph::_1, &cond));
         cond.wait();
     }
 }

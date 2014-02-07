@@ -87,15 +87,8 @@ public:
 
 protected:
     signal_t() : pulsed(false) { }
-
-    signal_t(signal_t &&movee)
-        : home_thread_mixin_t(std::move(movee)),
-          pulsed(movee.pulsed),
-          publisher_controller(std::move(movee.publisher_controller)),
-          lock(std::move(movee.lock)) {
-        movee.pulsed = false;
-    }
-    ~signal_t() { }
+    signal_t(signal_t &&movee);
+    ~signal_t() { reset(); }
 
     void pulse() THROWS_NOTHING {
         assert_thread();
@@ -104,6 +97,8 @@ protected:
         pulsed = true;
         publisher_controller.publish(&signal_t::call);
     }
+
+    void reset();
 
 private:
     static void call(subscription_t *subscription) THROWS_NOTHING {

@@ -53,9 +53,9 @@ struct mutex_assertion_t : public home_thread_mixin_t {
     // Unimplemented because nobody uses this yet.
     void operator=(mutex_assertion_t &&movee) = delete;
 
-    ~mutex_assertion_t() {
-        rassert(!locked);
-    }
+    ~mutex_assertion_t() { reset(); }
+    void reset() { rassert(!locked); }
+
     void rethread(threadnum_t new_thread) {
         rassert(!locked);
         real_home_thread = new_thread;
@@ -190,6 +190,7 @@ struct mutex_assertion_t {
     explicit mutex_assertion_t(int) { }
     mutex_assertion_t() { }
     mutex_assertion_t(mutex_assertion_t &&) { }
+    void reset() { }
     void rethread(threadnum_t) { }
 private:
     DISABLE_COPYING(mutex_assertion_t);

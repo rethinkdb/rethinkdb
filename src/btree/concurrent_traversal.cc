@@ -2,6 +2,7 @@
 
 #include "arch/runtime/coroutines.hpp"
 #include "concurrency/auto_drainer.hpp"
+#include "concurrency/semaphore.hpp"
 #include "concurrency/fifo_enforcer.hpp"
 
 class incr_decr_t {

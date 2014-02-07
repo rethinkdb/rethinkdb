@@ -76,6 +76,8 @@ public:
     };
 
     void rethread(threadnum_t new_thread) {
+        rassert(subscriptions.empty(),
+                "Cannot rethread a `publisher_t` that has subscribers.");
         mutex.rethread(new_thread);
     }
 
@@ -84,7 +86,9 @@ private:
     friend class publisher_controller_t<subscriber_t>;
 
     publisher_t() { }
-    ~publisher_t() {
+    ~publisher_t() { reset(); }
+
+    void reset() {
         rassert(subscriptions.empty());
     }
 
@@ -140,6 +144,10 @@ public:
         rassert(publisher.subscriptions.empty(),
                 "Cannot rethread a `publisher_t` that has subscribers.");
         publisher.rethread(new_thread);
+    }
+
+    void reset() {
+        publisher.reset();
     }
 
 private:
