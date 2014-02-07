@@ -11,7 +11,7 @@
 class directory_http_app_t : public http_json_app_t {
 public:
     explicit directory_http_app_t(const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > >& _directory_metadata);
-    http_res_t handle(const http_req_t &);
+    void handle(const http_req_t &, http_res_t *result, signal_t *interruptor);
 
 protected:
     void get_root(scoped_cJSON_t *json_out);

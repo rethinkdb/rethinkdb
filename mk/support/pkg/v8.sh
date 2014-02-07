@@ -5,7 +5,7 @@ src_git_repo=git://github.com/v8/v8
 
 pkg_fetch () {
     pkg_make_tmp_fetch_dir
-    git_clone_tag "$src_git_repo" "${src_git_ref:-$version}" "$tmp_dir"
+    git_clone_tag "$src_git_repo" "$version" "$tmp_dir"
     make -C "$tmp_dir" dependencies
     pkg_move_tmp_to_src
 }

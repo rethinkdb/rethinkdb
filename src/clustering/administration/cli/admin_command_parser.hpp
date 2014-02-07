@@ -45,7 +45,11 @@ private:
             name(_name), count(_count), required(_required), hidden(_hidden) { }
 
         void add_option(const char *term);
-        void add_options(const char *term, ...);
+
+        template <class... Args>
+        void add_options(Args... args) {
+            UNUSED int _[] = { (add_option(args), 0)... };
+        }
 
         const std::string name;
         const size_t count; // -1: unlimited, 0: flag only, n: n params expected

@@ -18,9 +18,9 @@ private:
         counted_t<val_t> v = arg(env, 0);
         std::string tz = "";
         if (counted_t<val_t> vtz = optarg(env, "default_timezone")) {
-            tz = vtz->as_str();
+            tz = vtz->as_str().to_std();
         }
-        return new_val(pseudo::iso8601_to_time(v->as_str(), tz, v.get()));
+        return new_val(pseudo::iso8601_to_time(v->as_str().to_std(), tz, v.get()));
     }
     virtual const char *name() const { return "iso8601"; }
 };
@@ -196,7 +196,7 @@ private:
     }
     std::string parse_tz(counted_t<val_t> v) {
         counted_t<const datum_t> d = v->as_datum();
-        return d->as_str();
+        return d->as_str().to_std();
     }
     virtual const char *name() const { return "time"; }
 };
