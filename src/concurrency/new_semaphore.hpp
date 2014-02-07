@@ -14,6 +14,9 @@ public:
     explicit new_semaphore_t(int64_t capacity);
     ~new_semaphore_t();
 
+    int64_t capacity() const { return capacity_; }
+    int64_t current() const { return current_; }
+
 private:
     friend class new_semaphore_acq_t;
     void add_acquirer(new_semaphore_acq_t *acq);
