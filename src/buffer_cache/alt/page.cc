@@ -1215,9 +1215,10 @@ void page_txn_t::set_account(alt_cache_account_t *cache_account) {
     // have a page_txn_t kept around, you see.  Generally speaking, snapshotted
     // operations don't have a particular page_txn_t associated with them, and,
     // generally speaking, the account we want to use to unevict a page would be the
-    // maximum (or "sum"?) of the accounts currently waiting on the page.  So, right
-    // now, backfilling operations don't get to read with a higher priority than
-    // other things.  It would be interesting to reexamine whether this is a bad
+    // maximum (or "sum"?) of the accounts currently waiting on the page (but it
+    // would probably be fine to use whatever txn wants to unevict the page first).
+    // So, right now, backfilling operations don't get to read with a higher priority
+    // than other things.  It would be interesting to reexamine whether this is a bad
     // thing.
 }
 
