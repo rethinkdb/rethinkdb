@@ -12,6 +12,13 @@ src_url=https://commondatastorage.googleapis.com/chromium-browser-official/v8-$v
 
 pkg_install () {
     pkg_copy_src_to_build
+    if ! python --version 2>&1  | grep --quiet 'Python 2'; then
+        pybin=$build_dir/pybin
+        mkdir -p "$pybin"
+        rm -f "$pybin/python"
+        ln -s "$(which python2)" "$pybin/python"
+        export PATH=$pybin:$PATH
+    fi
     mkdir -p "$install_dir/lib"
     pkg_make native CXXFLAGS="${CXXFLAGS:-} -Wno-error"
     find "$build_dir" -iname "*.o" | grep -v '\/preparser_lib\/' | xargs ar cqs "$install_dir/lib/libv8.a"
