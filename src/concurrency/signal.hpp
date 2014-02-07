@@ -37,7 +37,7 @@ public:
     /* Wrapper around a `publisher_t<signal_t::subscription_t>::subscription_t`
     */
 
-    class subscription_t : public home_thread_mixin_t {
+    class subscription_t {
     public:
         subscription_t() : subs(this) { }
         virtual ~subscription_t() { }
