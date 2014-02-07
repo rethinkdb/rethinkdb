@@ -301,6 +301,7 @@ bool maybe_gzip_response(const http_req_t &req, http_res_t *res) {
 
     zres = deflate(&zstream, Z_FINISH);
     if (zres != Z_STREAM_END) {
+        deflateEnd(&zstream);
         return false;
     }
 
