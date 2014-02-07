@@ -49,7 +49,7 @@ public:
                      preceding_txn) { }
 };
 
-void nop(new_semaphore_acq_t &&) { }
+void nop(alt::tracker_acq_t &&) { }
 
 class test_cache_t : public page_cache_t {
 public:

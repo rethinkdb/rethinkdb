@@ -63,12 +63,12 @@ void alt_memory_tracker_t::inform_memory_change(UNUSED uint64_t in_memory_size,
 // inform_memory_change is measured in bytes.
 void alt_memory_tracker_t::begin_txn_or_throttle(int64_t expected_change_count,
                                                  tracker_acq_t *acq) {
-    acq->init(&semaphore_, expected_change_count);
+    acq->semaphore_acq.init(&semaphore_, expected_change_count);
     // RSI: _Really_ implement this.
 }
 
 void alt_memory_tracker_t::end_txn(tracker_acq_t &&acq) {
-    acq.reset();
+    acq.semaphore_acq.reset();
 }
 
 cache_t::cache_t(serializer_t *serializer, const alt_cache_config_t &config,

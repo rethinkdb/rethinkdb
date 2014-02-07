@@ -541,7 +541,10 @@ private:
     DISABLE_COPYING(page_read_ahead_cb_t);
 };
 
-class tracker_acq_t : public new_semaphore_acq_t { };
+class tracker_acq_t {
+public:
+    new_semaphore_acq_t semaphore_acq;
+};
 
 class page_cache_t : public home_thread_mixin_t {
 public:
