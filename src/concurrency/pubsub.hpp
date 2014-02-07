@@ -25,7 +25,7 @@ you add or remove subscribers or destroy the publisher while in the middle of
 delivering a notification. */
 
 template<class subscriber_t>
-class publisher_t : public home_thread_mixin_t {
+class publisher_t {
 public:
     class subscription_t : public intrusive_list_node_t<subscription_t> {
     public:
@@ -68,7 +68,6 @@ public:
     };
 
     void rethread(threadnum_t new_thread) {
-        real_home_thread = new_thread;
         mutex.rethread(new_thread);
     }
 
