@@ -20,6 +20,7 @@
 #include "repli_timestamp.hpp"
 #include "serializer/types.hpp"
 
+class alt_memory_tracker_t;
 class auto_drainer_t;
 class file_account_t;
 
@@ -542,7 +543,8 @@ private:
 };
 
 class tracker_acq_t {
-public:
+private:
+    friend class alt_memory_tracker_t;
     new_semaphore_acq_t semaphore_acq;
 };
 
