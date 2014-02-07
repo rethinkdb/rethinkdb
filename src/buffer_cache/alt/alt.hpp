@@ -52,13 +52,10 @@ public:
     void create_cache_account(int priority, scoped_ptr_t<alt_cache_account_t> *out);
 
 private:
-    friend class txn_t;  // for tracker_ and &page_cache_
-    friend class alt_inner_txn_t;  // for &page_cache_
-    friend class buf_read_t;  // for &page_cache_
-    friend class buf_write_t;  // for &page_cache_
-
-    friend class buf_lock_t;  // for latest_snapshot_node and
-                              // push_latest_snapshot_node
+    friend class txn_t;
+    friend class buf_read_t;
+    friend class buf_write_t;
+    friend class buf_lock_t;
 
     alt_snapshot_node_t *matching_snapshot_node_or_null(block_id_t block_id,
                                                         block_version_t block_version);
@@ -80,29 +77,6 @@ private:
     DISABLE_COPYING(cache_t);
 };
 
-class alt_inner_txn_t {
-private:
-    friend class txn_t;
-
-    ~alt_inner_txn_t();
-
-    alt_inner_txn_t();
-    void init(cache_t *cache,
-              // Unused for read transactions, pass repli_timestamp_t::invalid.
-              repli_timestamp_t txn_recency,
-              alt_inner_txn_t *preceding_txn_or_null);
-
-    cache_t *cache() { return cache_; }
-
-    alt::page_txn_t *page_txn() { return page_txn_.get(); }
-
-    cache_t *cache_;
-    // KSI: Get rid of alt_inner_txn_t now that page_txn_ is in a scoped_ptr_t.
-    scoped_ptr_t<alt::page_txn_t> page_txn_;
-
-    DISABLE_COPYING(alt_inner_txn_t);
-};
-
 class txn_t {
 public:
     // Constructor for read-only transactions.
@@ -122,8 +96,8 @@ public:
 
     ~txn_t();
 
-    cache_t *cache() { return inner_.cache(); }
-    alt::page_txn_t *page_txn() { return inner_.page_txn(); }
+    cache_t *cache() { return cache_; }
+    alt::page_txn_t *page_txn() { return page_txn_.get(); }
     access_t access() const { return access_; }
 
     void set_account(alt_cache_account_t *cache_account);
@@ -137,9 +111,10 @@ private:
                                          cond_t *pulsee);
 
 
-    void help_construct(cache_t *cache,
-                        repli_timestamp_t txn_timestamp,
+    void help_construct(repli_timestamp_t txn_timestamp,
                         txn_t *preceding_txn);
+
+    cache_t *const cache_;
 
     const access_t access_;
 
@@ -148,7 +123,8 @@ private:
     const int64_t saved_expected_change_count_;  // RSI: A fugly relationship with
                                                  // the tracker.
 
-    alt_inner_txn_t inner_;
+    scoped_ptr_t<alt::page_txn_t> page_txn_;
+
     DISABLE_COPYING(txn_t);
 };
 

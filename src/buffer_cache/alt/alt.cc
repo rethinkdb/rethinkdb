@@ -150,26 +150,6 @@ void cache_t::remove_snapshot_node(block_id_t block_id, alt_snapshot_node_t *nod
     }
 }
 
-alt_inner_txn_t::alt_inner_txn_t() : cache_(NULL) { }
-
-
-void alt_inner_txn_t::init(cache_t *cache,
-                           repli_timestamp_t txn_recency,
-                           alt_inner_txn_t *preceding_txn) {
-    cache_ = cache;
-    page_txn_.init(new page_txn_t(&cache->page_cache_,
-                                  txn_recency,
-                                  // Notably, preceding_txn->page_txn_.get() could be
-                                  // NULL, if preceding_txn is already in the process of
-                                  // being flushed.  (In which case that's fine.)
-                                  preceding_txn == NULL ? NULL
-                                  : preceding_txn->page_txn_.get()));
-}
-
-alt_inner_txn_t::~alt_inner_txn_t() {
-    rassert(!page_txn_.has());
-}
-
 alt_cache_account_t::alt_cache_account_t(threadnum_t thread, file_account_t *io_account)
     : thread_(thread), io_account_(io_account) { }
 
@@ -181,11 +161,12 @@ alt_cache_account_t::~alt_cache_account_t() {
 txn_t::txn_t(cache_t *cache,
              read_access_t,
              txn_t *preceding_txn)
-    : access_(access_t::read),
+    : cache_(cache),
+      access_(access_t::read),
       durability_(write_durability_t::SOFT),
       // RSI: Fix the semaphore so that we don't have to use 1.
       saved_expected_change_count_(1) {
-    help_construct(cache, repli_timestamp_t::invalid, preceding_txn);
+    help_construct(repli_timestamp_t::invalid, preceding_txn);
 }
 
 txn_t::txn_t(cache_t *cache,
@@ -193,21 +174,27 @@ txn_t::txn_t(cache_t *cache,
              repli_timestamp_t txn_timestamp,
              int64_t expected_change_count,
              txn_t *preceding_txn)
-    : access_(access_t::write),
+    : cache_(cache),
+      access_(access_t::write),
       durability_(durability),
       // RSI: Fix the semaphore so that we don't have to use 1.
       saved_expected_change_count_(std::max<int64_t>(expected_change_count, 1)) {
-    help_construct(cache, txn_timestamp, preceding_txn);
+    help_construct(txn_timestamp, preceding_txn);
 }
 
-void txn_t::help_construct(cache_t *cache,
-                           repli_timestamp_t txn_timestamp,
+void txn_t::help_construct(repli_timestamp_t txn_timestamp,
                            txn_t *preceding_txn) {
-    cache->assert_thread();
-    cache->tracker_.begin_txn_or_throttle(saved_expected_change_count_);
+    cache_->assert_thread();
+    cache_->tracker_.begin_txn_or_throttle(saved_expected_change_count_);
     ASSERT_FINITE_CORO_WAITING;
-    inner_.init(cache, txn_timestamp,
-                preceding_txn == NULL ? NULL : &preceding_txn->inner_);
+
+    page_txn_.init(new page_txn_t(&cache_->page_cache_,
+                                  txn_timestamp,
+                                  // Notably, preceding_txn->page_txn_.get() could be
+                                  // NULL, if preceding_txn is already in the process of
+                                  // being flushed.  (In which case that's fine.)
+                                  preceding_txn == NULL ? NULL
+                                  : preceding_txn->page_txn_.get()));
 }
 
 void txn_t::inform_tracker(cache_t *cache,
@@ -223,31 +210,25 @@ void txn_t::pulse_and_inform_tracker(cache_t *cache,
 }
 
 txn_t::~txn_t() {
-    cache_t *cache = inner_.cache();
-    cache->assert_thread();
-
-    // Get the inner_txn's page_txn_t (at which point we don't need the inner any
-    // more).
-    scoped_ptr_t<page_txn_t> page_txn = std::move(inner_.page_txn_);
-    inner_.cache_ = NULL;
+    cache_->assert_thread();
 
     if (durability_ == write_durability_t::SOFT) {
-        cache->page_cache_.flush_and_destroy_txn(std::move(page_txn),
-                                                 std::bind(&txn_t::inform_tracker,
-                                                           cache,
-                                                           saved_expected_change_count_));
+        cache_->page_cache_.flush_and_destroy_txn(std::move(page_txn_),
+                                                  std::bind(&txn_t::inform_tracker,
+                                                            cache_,
+                                                            saved_expected_change_count_));
     } else {
         cond_t cond;
-        cache->page_cache_.flush_and_destroy_txn(
-                std::move(page_txn),
+        cache_->page_cache_.flush_and_destroy_txn(
+                std::move(page_txn_),
                 std::bind(&txn_t::pulse_and_inform_tracker,
-                          cache, saved_expected_change_count_, &cond));
+                          cache_, saved_expected_change_count_, &cond));
         cond.wait();
     }
 }
 
 void txn_t::set_account(alt_cache_account_t *cache_account) {
-    inner_.page_txn()->set_account(cache_account);
+    page_txn_->set_account(cache_account);
 }
 
 
