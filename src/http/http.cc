@@ -241,6 +241,7 @@ bool maybe_gzip_response(const http_req_t &req, http_res_t *res) {
         double val = 1.0;
         char *endptr;
         if (it->second.length() != 0) {
+            set_errno(0); // Clear errno because strtod doesn't
             val = strtod(it->second.c_str(), &endptr);
             if (endptr == it->second.c_str() ||
                 (get_errno() == ERANGE &&
