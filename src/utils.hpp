@@ -270,7 +270,11 @@ public:
 protected:
     explicit home_thread_mixin_t(threadnum_t specified_home_thread);
     home_thread_mixin_t();
+    home_thread_mixin_t(home_thread_mixin_t &&movee)
+        : real_home_thread(movee.real_home_thread) { }
     ~home_thread_mixin_t() { }
+
+    void operator=(home_thread_mixin_t &&) = delete;
 
     threadnum_t real_home_thread;
 

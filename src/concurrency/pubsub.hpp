@@ -38,6 +38,13 @@ public:
             reset(pub);
         }
 
+        subscription_t(subscription_t &&movee)
+            : intrusive_list_node_t<subscription_t>(std::move(movee)),
+              subscriber(std::move(movee.subscriber)),
+              publisher(movee.publisher) {
+            movee.publisher = NULL;
+        }
+
         /* Cause us to be subscribed to the given publisher (if any) and not to
         any other publisher. */
         void reset(publisher_t *pub = NULL) {
@@ -61,6 +68,7 @@ public:
 
     private:
         friend class publisher_controller_t<subscriber_t>;
+        friend class publisher_t<subscriber_t>;
 
         publisher_t *publisher;
 
@@ -78,6 +86,16 @@ private:
     publisher_t() { }
     ~publisher_t() {
         rassert(subscriptions.empty());
+    }
+
+    publisher_t(publisher_t &&movee)
+        : subscriptions(std::move(movee.subscriptions)),
+          mutex(std::move(movee.mutex)) {
+        for (subscription_t *p = subscriptions.head(); p != NULL;
+             p = subscriptions.next(p)) {
+            rassert(p->publisher == &movee);
+            p->publisher = this;
+        }
     }
 
     intrusive_list_t<subscription_t> subscriptions;
@@ -99,6 +117,8 @@ template<class subscriber_t>
 class publisher_controller_t {
 public:
     publisher_controller_t() { }
+    publisher_controller_t(publisher_controller_t &&movee)
+        : publisher(std::move(movee.publisher)) { }
 
     publisher_t<subscriber_t> *get_publisher() {
         return &publisher;

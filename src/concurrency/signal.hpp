@@ -40,6 +40,9 @@ public:
     class subscription_t {
     public:
         subscription_t() : subs(this) { }
+        subscription_t(subscription_t &&movee)
+            : subs(std::move(movee.subs)) { }
+
         virtual ~subscription_t() { }
 
         void reset(signal_t *s = NULL) {
@@ -84,6 +87,14 @@ public:
 
 protected:
     signal_t() : pulsed(false) { }
+
+    signal_t(signal_t &&movee)
+        : home_thread_mixin_t(std::move(movee)),
+          pulsed(movee.pulsed),
+          publisher_controller(std::move(movee.publisher_controller)),
+          lock(std::move(movee.lock)) {
+        movee.pulsed = false;
+    }
     ~signal_t() { }
 
     void pulse() THROWS_NOTHING {

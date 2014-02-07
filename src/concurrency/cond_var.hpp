@@ -13,13 +13,14 @@ class coro_t;
 class cond_t : public signal_t {
 public:
     cond_t() { }
+    cond_t(cond_t &&movee) : signal_t(std::move(movee)) { }
     void pulse();
     void pulse_if_not_already_pulsed();
 
     // Pulses, but you have to be on the cond_t's home thread to call this.
     void do_pulse();
-private:
 
+private:
     DISABLE_COPYING(cond_t);
 };
 

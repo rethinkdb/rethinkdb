@@ -41,9 +41,18 @@ struct mutex_assertion_t : public home_thread_mixin_t {
         mutex_assertion_t *mutex;
         DISABLE_COPYING(acq_t);
     };
+
     explicit mutex_assertion_t(threadnum_t explicit_home_thread) :
         home_thread_mixin_t(explicit_home_thread), locked(false) { }
+
     mutex_assertion_t() : locked(false) { }
+    mutex_assertion_t(mutex_assertion_t &&movee) : locked(movee.locked) {
+        rassert(!locked);
+    }
+
+    // Unimplemented because nobody uses this yet.
+    void operator=(mutex_assertion_t &&movee) = delete;
+
     ~mutex_assertion_t() {
         rassert(!locked);
     }
@@ -57,6 +66,7 @@ private:
     DISABLE_COPYING(mutex_assertion_t);
 };
 
+// RSI: Does anybody use this?
 inline void swap(mutex_assertion_t::acq_t &a, mutex_assertion_t::acq_t &b) {
     std::swap(a.mutex, b.mutex);
 }
@@ -179,6 +189,7 @@ struct mutex_assertion_t {
     };
     explicit mutex_assertion_t(int) { }
     mutex_assertion_t() { }
+    mutex_assertion_t(mutex_assertion_t &&) { }
     void rethread(threadnum_t) { }
 private:
     DISABLE_COPYING(mutex_assertion_t);
