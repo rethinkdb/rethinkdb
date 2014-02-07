@@ -541,6 +541,8 @@ private:
     DISABLE_COPYING(page_read_ahead_cb_t);
 };
 
+class tracker_acq_t : public new_semaphore_acq_t { };
+
 class page_cache_t : public home_thread_mixin_t {
 public:
     page_cache_t(serializer_t *serializer,
@@ -551,7 +553,7 @@ public:
     // Takes a txn to be flushed.  Calls on_flush_complete() when done.
     void flush_and_destroy_txn(
             scoped_ptr_t<page_txn_t> txn,
-            std::function<void(new_semaphore_acq_t &&)> on_flush_complete);
+            std::function<void(tracker_acq_t &&)> on_flush_complete);
 
     current_page_t *page_for_block_id(block_id_t block_id);
     current_page_t *page_for_new_block_id(block_id_t *block_id_out);
@@ -753,7 +755,7 @@ public:
     page_txn_t(page_cache_t *page_cache,
                // Unused for read transactions, pass repli_timestamp_t::invalid.
                repli_timestamp_t txn_recency,
-               new_semaphore_acq_t &&tracker_acq,
+               tracker_acq_t &&tracker_acq,
                page_txn_t *preceding_txn = NULL);
 
     // KSI: This is only to be called by the page cache -- should txn_t really use a
@@ -793,7 +795,7 @@ private:
     page_cache_t *page_cache_;
 
     // An acquisition object for the memory tracker.
-    new_semaphore_acq_t tracker_acq_;
+    tracker_acq_t tracker_acq_;
 
     repli_timestamp_t this_txn_recency_;
 

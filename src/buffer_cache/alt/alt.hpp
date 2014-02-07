@@ -23,12 +23,16 @@ class alt_memory_tracker_t : public memory_tracker_t {
 public:
     alt_memory_tracker_t();
     ~alt_memory_tracker_t();
+
+private:
+    friend class txn_t;
+
     void inform_memory_change(uint64_t in_memory_size,
                               uint64_t memory_limit);
     void begin_txn_or_throttle(int64_t expected_change_count,
-                               new_semaphore_acq_t *acq);
-    void end_txn(new_semaphore_acq_t &&acq);
-private:
+                               alt::tracker_acq_t *acq);
+    void end_txn(alt::tracker_acq_t &&acq);
+
     new_semaphore_t semaphore_;
     DISABLE_COPYING(alt_memory_tracker_t);
 };
@@ -104,10 +108,10 @@ public:
 
 private:
     static void inform_tracker(cache_t *cache,
-                               new_semaphore_acq_t &&tracker_acq);
+                               alt::tracker_acq_t &&tracker_acq);
 
     static void pulse_and_inform_tracker(cache_t *cache,
-                                         new_semaphore_acq_t &&tracker_acq,
+                                         alt::tracker_acq_t &&tracker_acq,
                                          cond_t *pulsee);
 
 

@@ -14,6 +14,7 @@ using alt::page_acq_t;
 using alt::page_cache_t;
 using alt::page_t;
 using alt::page_txn_t;
+using alt::tracker_acq_t;
 
 // There are very few ASSERT_NO_CORO_WAITING calls (instead we have
 // ASSERT_FINITE_CORO_WAITING) because most of the time we're at the mercy of the
@@ -61,12 +62,12 @@ void alt_memory_tracker_t::inform_memory_change(UNUSED uint64_t in_memory_size,
 // RSI: An interface problem here is that this is measured in blocks while
 // inform_memory_change is measured in bytes.
 void alt_memory_tracker_t::begin_txn_or_throttle(int64_t expected_change_count,
-                                                 new_semaphore_acq_t *acq) {
+                                                 tracker_acq_t *acq) {
     acq->init(&semaphore_, expected_change_count);
     // RSI: _Really_ implement this.
 }
 
-void alt_memory_tracker_t::end_txn(new_semaphore_acq_t &&acq) {
+void alt_memory_tracker_t::end_txn(tracker_acq_t &&acq) {
     acq.reset();
 }
 
@@ -182,7 +183,7 @@ void txn_t::help_construct(repli_timestamp_t txn_timestamp,
                            int64_t expected_change_count,
                            txn_t *preceding_txn) {
     cache_->assert_thread();
-    new_semaphore_acq_t tracker_acq;
+    tracker_acq_t tracker_acq;
     cache_->tracker_.begin_txn_or_throttle(std::max<int64_t>(expected_change_count, 0),
                                            &tracker_acq);
     ASSERT_FINITE_CORO_WAITING;
@@ -197,12 +198,12 @@ void txn_t::help_construct(repli_timestamp_t txn_timestamp,
                                   : preceding_txn->page_txn_.get()));
 }
 
-void txn_t::inform_tracker(cache_t *cache, new_semaphore_acq_t &&tracker_acq) {
+void txn_t::inform_tracker(cache_t *cache, tracker_acq_t &&tracker_acq) {
     cache->tracker_.end_txn(std::move(tracker_acq));
 }
 
 void txn_t::pulse_and_inform_tracker(cache_t *cache,
-                                     new_semaphore_acq_t &&tracker_acq,
+                                     tracker_acq_t &&tracker_acq,
                                      cond_t *pulsee) {
     inform_tracker(cache, std::move(tracker_acq));
     pulsee->pulse();
