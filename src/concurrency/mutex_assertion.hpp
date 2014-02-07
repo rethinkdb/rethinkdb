@@ -66,11 +66,6 @@ private:
     DISABLE_COPYING(mutex_assertion_t);
 };
 
-// RSI: Does anybody use this?
-inline void swap(mutex_assertion_t::acq_t &a, mutex_assertion_t::acq_t &b) {
-    std::swap(a.mutex, b.mutex);
-}
-
 struct rwi_lock_assertion_t : public home_thread_mixin_t {
     struct read_acq_t {
         read_acq_t() : lock(NULL) { }
