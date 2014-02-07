@@ -39,7 +39,7 @@ void rwlock_t::pulse_pulsables(rwlock_in_line_t *p) {
             rwlock_in_line_t *prev = acqs_.prev(p);
             // Should we pulse p for read?
             if (prev == NULL || prev->read_cond_.is_pulsed()) {
-                p->read_cond_.do_pulse();
+                p->read_cond_.pulse();
             } else {
                 // Stop pulsing, p doesn't even get read access.
                 return;
@@ -47,7 +47,7 @@ void rwlock_t::pulse_pulsables(rwlock_in_line_t *p) {
             // Should we stop pulsing (and maybe pulse p for write)?
             if (p->access_ == access_t::write) {
                 if (prev == NULL) {
-                    p->write_cond_.do_pulse();
+                    p->write_cond_.pulse();
                 }
                 return;
             }
