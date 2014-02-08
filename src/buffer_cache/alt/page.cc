@@ -1376,6 +1376,11 @@ void page_cache_t::remove_txn_set_from_graph(page_cache_t *page_cache,
                                              const std::set<page_txn_t *> &txns) {
     page_cache->assert_thread();
     for (auto it = txns.begin(); it != txns.end(); ++it) {
+        // ASSERT_FINITE_CORO_WAITING would be okay.  We want detaching the
+        // subsequers and preceders to happen at the same time that the
+        // flush_complete_cond_ is pulsed.  That way connect_preceder can check if
+        // flush_complete_cond_ has been pulsed.
+        ASSERT_NO_CORO_WAITING;
         page_txn_t *txn = *it;
         for (auto jt = txn->subseqers_.begin(); jt != txn->subseqers_.end(); ++jt) {
             (*jt)->remove_preceder(txn);
