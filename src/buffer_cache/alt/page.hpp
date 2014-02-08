@@ -20,6 +20,10 @@
 #include "repli_timestamp.hpp"
 #include "serializer/types.hpp"
 
+// RSI: If you acquire a block for write, its recency and block version need to be
+// updated no matter what -- don't let readers see difference recencies just by
+// removing a write txn before acquisition.  A test should be written for this too.
+
 class alt_memory_tracker_t;
 class auto_drainer_t;
 class file_account_t;
