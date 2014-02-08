@@ -17,6 +17,8 @@ void new_semaphore_t::remove_acquirer(new_semaphore_acq_t *acq) {
     rassert(acq->semaphore_ == this);
     if (acq->cond_.is_pulsed()) {
         current_ -= acq->count_;
+    } else {
+        waiters_.remove(acq);
     }
     pulse_waiters();
 }
@@ -64,7 +66,10 @@ void new_semaphore_acq_t::init(new_semaphore_t *semaphore, int64_t count) {
 }
 
 new_semaphore_acq_t::new_semaphore_acq_t(new_semaphore_acq_t &&movee)
-    : semaphore_(movee.semaphore_), count_(movee.count_), cond_(std::move(movee.cond_)) {
+    : intrusive_list_node_t<new_semaphore_acq_t>(std::move(movee)),
+      semaphore_(movee.semaphore_),
+      count_(movee.count_),
+      cond_(std::move(movee.cond_)) {
     movee.semaphore_ = NULL;
     movee.count_ = 0;
     movee.cond_.reset();

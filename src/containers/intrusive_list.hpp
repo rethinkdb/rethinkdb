@@ -33,6 +33,8 @@ protected:
             prev_->next_ = this;
             next_->prev_ = this;
         }
+        movee.prev_ = NULL;
+        movee.next_ = NULL;
     }
 
     // Don't implement this.  _Maybe_ you won't fuck it up.  Just use the
