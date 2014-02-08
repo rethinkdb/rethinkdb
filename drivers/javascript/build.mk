@@ -62,11 +62,13 @@ js-dependencies: $(JS_PKG_DIR)/node_modules
 PROTOBUFJS_MODULE_DIR := $(SUPPORT_BUILD_DIR)/protobufjs_$(protobufjs_VERSION)/node_modules/packed-protobufjs/node_modules/protobufjs
 
 $(PROTOBUFJS_MODULE_DIR): $(SUPPORT_BUILD_DIR)/protobufjs_$(protobufjs_VERSION)/install.witness
+	touch $@
 
 $(JS_PKG_DIR)/node_modules: $(PROTOBUFJS_MODULE_DIR) $(JS_PKG_DIR) | $(NPM_BIN_DEP)
 	$P CP $@/protobufjs
 	mkdir -p $@/protobufjs
 	cp -a $(PROTOBUFJS_MODULE_DIR)/. $@/protobufjs
+	touch $@
 
 $(JS_BUILD_DIR)/rethinkdb.js: $(JS_PKG_DIR) $(JS_PKG_DIR)/node_modules | $(BROWSERIFY_BIN_DEP)
 	$P BROWSERIFY
