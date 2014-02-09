@@ -8,7 +8,7 @@ version=3.22.24.17
 # version=3.24.30.1 # A future version, with incompatible API changes
 # See http://omahaproxy.appspot.com/ for the current stable/beta/dev versions of v8
 
-src_url=https://commondatastorage.googleapis.com/chromium-browser-official/v8-$version.tar.bz2
+src_url=http://commondatastorage.googleapis.com/chromium-browser-official/v8-$version.tar.bz2
 
 pkg_install () {
     pkg_copy_src_to_build
