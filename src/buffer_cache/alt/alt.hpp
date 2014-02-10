@@ -92,11 +92,6 @@ public:
           repli_timestamp_t txn_timestamp,
           int64_t expected_change_count = 2);
 
-    txn_t(cache_t *cache,
-          write_durability_t durability,
-          repli_timestamp_t txn_timestamp,
-          int64_t expected_change_count = 2);
-
     ~txn_t();
 
     cache_t *cache() { return cache_; }

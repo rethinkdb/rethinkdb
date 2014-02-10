@@ -182,16 +182,6 @@ txn_t::txn_t(cache_conn_t *cache_conn,
     help_construct(txn_timestamp, expected_change_count, cache_conn);
 }
 
-txn_t::txn_t(cache_t *cache,
-             write_durability_t durability,
-             repli_timestamp_t txn_timestamp,
-             int64_t expected_change_count)
-    : cache_(cache),
-      access_(access_t::write),
-      durability_(durability) {
-    help_construct(txn_timestamp, expected_change_count, NULL);
-}
-
 void txn_t::help_construct(repli_timestamp_t txn_timestamp,
                            int64_t expected_change_count,
                            cache_conn_t *cache_conn) {
