@@ -222,6 +222,8 @@ private:
     static alt_snapshot_node_t *
     find_matching_version(intrusive_list_t<alt_snapshot_node_t> *list,
                           block_version_t version);
+    static alt_snapshot_node_t *help_make_child(cache_t *cache, block_id_t child_id);
+
 
     static void wait_for_parent(buf_parent_t parent, access_t access);
     static alt_snapshot_node_t *

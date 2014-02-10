@@ -266,6 +266,25 @@ buf_lock_t::find_matching_version(intrusive_list_t<alt_snapshot_node_t> *list,
     return NULL;
 }
 
+alt_snapshot_node_t *buf_lock_t::help_make_child(cache_t *cache,
+                                                 block_id_t child_id) {
+    auto acq = make_scoped<current_page_acq_t>(&cache->page_cache_, child_id,
+                                               read_access_t::read);
+
+    alt_snapshot_node_t *child
+        = find_matching_version(&cache->snapshot_nodes_by_block_id_[child_id],
+                                acq->block_version());
+
+    if (child != NULL) {
+        acq.reset();
+    } else {
+        acq->declare_snapshotted();
+        child = new alt_snapshot_node_t(std::move(acq));
+        cache->add_snapshot_node(child_id, child);
+    }
+    return child;
+}
+
 alt_snapshot_node_t *
 buf_lock_t::get_or_create_child_snapshot_node(cache_t *cache,
                                               alt_snapshot_node_t *parent,
@@ -273,20 +292,7 @@ buf_lock_t::get_or_create_child_snapshot_node(cache_t *cache,
     ASSERT_FINITE_CORO_WAITING;
     auto it = parent->children_.find(child_id);
     if (it == parent->children_.end()) {
-        auto acq = make_scoped<current_page_acq_t>(&cache->page_cache_,
-                                                   child_id,
-                                                   read_access_t::read);
-        alt_snapshot_node_t *child
-            = find_matching_version(&cache->snapshot_nodes_by_block_id_[child_id],
-                                    acq->block_version());
-
-        if (child != NULL) {
-            acq.reset();
-        } else {
-            acq->declare_snapshotted();
-            child = new alt_snapshot_node_t(std::move(acq));
-            cache->add_snapshot_node(child_id, child);
-        }
+        alt_snapshot_node_t *child = help_make_child(cache, child_id);
 
         child->ref_count_++;
         parent->children_.insert(std::make_pair(child_id, child));
@@ -318,13 +324,7 @@ void buf_lock_t::create_child_snapshot_nodes(cache_t *cache,
         }
 
         if (child == NULL) {
-            // RSI: We could check snapshot_nodes_by_block_id_[child_id] here?
-            // Dedup with get_or_create_child_snapshot_node, too.
-            auto acq = make_scoped<current_page_acq_t>(&cache->page_cache_, child_id,
-                                                       read_access_t::read);
-            acq->declare_snapshotted();
-            child = new alt_snapshot_node_t(std::move(acq));
-            cache->add_snapshot_node(child_id, child);
+            child = help_make_child(cache, child_id);
         }
 
         child->ref_count_++;
