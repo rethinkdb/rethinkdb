@@ -86,7 +86,6 @@ public:
     txn_t(cache_conn_t *cache_conn, read_access_t read_access);
 
     // KSI: Remove default parameter for expected_change_count.
-    // RSI: Generally speaking I don't think we use preceding_txn and we should.
     txn_t(cache_conn_t *cache_conn,
           write_durability_t durability,
           repli_timestamp_t txn_timestamp,
