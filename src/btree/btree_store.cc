@@ -51,7 +51,7 @@ btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
         int res = send_write_message(&key, &msg);
         guarantee(!res);
 
-        txn_t txn(cache.get(), write_durability_t::HARD,
+        txn_t txn(general_cache_conn.get(), write_durability_t::HARD,
                   repli_timestamp_t::distant_past, 1);
         buf_lock_t superblock(&txn, SUPERBLOCK_ID, alt_create_t::create);
         btree_slice_t::init_superblock(&superblock, key.vector(), std::vector<char>());
