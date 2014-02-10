@@ -635,20 +635,3 @@ void get_btree_superblock_and_txn_for_reading(cache_conn_t *cache_conn,
         (*got_superblock_out)->get()->snapshot_subdag();
     }
 }
-
-// KSI: This function is possibly stupid: it's nonsensical to talk about the entire
-// cache being snapshotted -- we want some subtree to be snapshotted, at least.
-void get_btree_superblock_and_txn_for_reading(cache_t *cache,
-                                              cache_snapshotted_t snapshotted,
-                                              scoped_ptr_t<real_superblock_t> *got_superblock_out,
-                                              scoped_ptr_t<txn_t> *txn_out) {
-    txn_t *txn = new txn_t(cache, read_access_t::read);
-    txn_out->init(txn);
-
-    get_btree_superblock(txn, access_t::read, got_superblock_out);
-
-    // KSI: As mentioned, snapshotting here is stupid.
-    if (snapshotted == CACHE_SNAPSHOTTED_YES) {
-        (*got_superblock_out)->get()->snapshot_subdag();
-    }
-}
