@@ -589,17 +589,15 @@ void get_btree_superblock(txn_t *txn, access_t access,
     *got_superblock_out = std::move(tmp_sb);
 }
 
-void get_btree_superblock_and_txn(btree_slice_t *slice,
+void get_btree_superblock_and_txn(cache_t *cache,
                                   access_t superblock_access,
                                   int expected_change_count,
                                   repli_timestamp_t tstamp,
                                   write_durability_t durability,
                                   scoped_ptr_t<real_superblock_t> *got_superblock_out,
                                   scoped_ptr_t<txn_t> *txn_out) {
-    slice->assert_thread();
-
     // RSI: We should pass a preceding_txn here or something.
-    txn_t *txn = new txn_t(slice->cache(), durability, tstamp, expected_change_count);
+    txn_t *txn = new txn_t(cache, durability, tstamp, expected_change_count);
 
     txn_out->init(txn);
 

@@ -67,8 +67,6 @@ void run_metainfo_test() {
     std::map<std::string, std::string> mirror;
     mirror[""] = "";
 
-    btree_slice_t btree(&cache, &get_global_perfmon_collection(), "unittest");
-
     order_source_t order_source;
 
 
@@ -78,7 +76,7 @@ void run_metainfo_test() {
 
         scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
-        get_btree_superblock_and_txn(&btree, access_t::write, 1,
+        get_btree_superblock_and_txn(&cache, access_t::write, 1,
                                      repli_timestamp_t::invalid,
                                      write_durability_t::SOFT,
                                      &superblock, &txn);

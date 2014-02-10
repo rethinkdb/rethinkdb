@@ -244,7 +244,7 @@ void ensure_stat_block(superblock_t *sb);
 void get_btree_superblock(txn_t *txn, access_t access,
                           scoped_ptr_t<real_superblock_t> *got_superblock_out);
 
-void get_btree_superblock_and_txn(btree_slice_t *slice,
+void get_btree_superblock_and_txn(cache_t *cache,
                                   access_t superblock_access,
                                   int expected_change_count,
                                   repli_timestamp_t tstamp,
