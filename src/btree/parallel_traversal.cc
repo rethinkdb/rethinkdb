@@ -79,7 +79,7 @@ class traversal_state_t : public coro_pool_callback_t<acquisition_waiter_callbac
 public:
     traversal_state_t(btree_slice_t *_slice, btree_traversal_helper_t *_helper,
                       signal_t *_interruptor)
-        : slice(_slice),
+        : max_block_size(_slice->cache()->max_block_size()),
           stat_block(NULL_BLOCK_ID),
           helper(_helper),
           interruptor(_interruptor),
@@ -100,8 +100,7 @@ public:
         }
     }
 
-    // The slice whose btree we're traversing
-    btree_slice_t *const slice;
+    const block_size_t max_block_size;
 
     /* The block id where we can find the stat block, we need this at the end
      * to update population counts. */
@@ -128,7 +127,7 @@ public:
     int64_t& level_count(int level) {
         rassert(level >= 0);
         if (size_t(level) >= level_counts.size()) {
-            rassert(size_t(level) == level_counts.size(), "Somehow we skipped a level! (level = %d, slice = %p)", level, slice);
+            rassert(size_t(level) == level_counts.size(), "Somehow we skipped a level! (level = %d)", level);
             level_counts.resize(level + 1, 0);
         }
         return level_counts[level];
@@ -217,8 +216,8 @@ public:
         rassert(level >= 0);
         if (level >= static_cast<int>(acquisition_waiter_stacks.size())) {
             rassert(level == static_cast<int>(acquisition_waiter_stacks.size()),
-                    "Somehow we skipped a level! (level = %d, stacks.size() = %d, slice = %p)",
-                    level, static_cast<int>(acquisition_waiter_stacks.size()), slice);
+                    "Somehow we skipped a level! (level = %d, stacks.size() = %d)",
+                    level, static_cast<int>(acquisition_waiter_stacks.size()));
             acquisition_waiter_stacks.resize(level + 1);
         }
         return acquisition_waiter_stacks[level];
@@ -500,7 +499,7 @@ void process_a_internal_node(traversal_state_t *state,
             = static_cast<const internal_node_t *>(read.get_data_read());
 
         ids_source = make_counted<ranged_block_ids_t>(
-                    state->slice->cache()->get_block_size(), node,
+                    state->max_block_size, node,
                     left_exclusive_or_null, right_inclusive_or_null, level);
     }
 
