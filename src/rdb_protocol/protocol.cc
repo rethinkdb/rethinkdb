@@ -1847,7 +1847,7 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
 
     void operator()(const backfill_chunk_t::delete_range_t &delete_range) {
         range_key_tester_t tester(&delete_range.range);
-        rdb_erase_range(btree, &tester, delete_range.range.inner,
+        rdb_erase_range(&tester, delete_range.range.inner,
                         &sindex_block,
                         superblock, store,
                         interruptor);
@@ -1932,7 +1932,7 @@ void store_t::protocol_reset_data(const region_t& subregion,
     buf_lock_t sindex_block
         = acquire_sindex_block_for_write(superblock->expose_buf(),
                                          superblock->get_sindex_block_id());
-    rdb_erase_range(btree, &key_tester, subregion.inner,
+    rdb_erase_range(&key_tester, subregion.inner,
                     &sindex_block,
                     superblock, this,
                     interruptor);

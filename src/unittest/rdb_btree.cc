@@ -423,7 +423,7 @@ void run_erase_range_test() {
         buf_lock_t sindex_block
             = store.acquire_sindex_block_for_write(super_block->expose_buf(),
                                                    super_block->get_sindex_block_id());
-        rdb_erase_range(store.btree.get(), &tester,
+        rdb_erase_range(&tester,
                         key_range_t::universe(),
                         &sindex_block,
                         super_block.get(), &store,

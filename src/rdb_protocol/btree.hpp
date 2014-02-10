@@ -187,7 +187,7 @@ class rdb_value_detacher_t : public value_deleter_t {
     void delete_value(buf_parent_t parent, void *value);
 };
 
-void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
+void rdb_erase_range(key_tester_t *tester,
                      const key_range_t &keys,
                      buf_lock_t *sindex_block,
                      superblock_t *superblock,

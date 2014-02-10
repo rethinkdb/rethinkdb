@@ -550,8 +550,7 @@ void spawn_sindex_erase_ranges(
     }
 }
 
-// RSI: Remove slice param.
-void rdb_erase_range(UNUSED btree_slice_t *slice, key_tester_t *tester,
+void rdb_erase_range(key_tester_t *tester,
                      const key_range_t &key_range,
                      buf_lock_t *sindex_block,
                      superblock_t *superblock,
