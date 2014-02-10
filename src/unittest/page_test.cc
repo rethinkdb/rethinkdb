@@ -42,11 +42,11 @@ class test_txn_t : public page_txn_t {
 public:
     // KSI: We could make these tests better by varying the expected change count given
     // by an actual tracker_acq_t.
-    explicit test_txn_t(page_cache_t *cache, page_txn_t *preceding_txn = NULL)
+    explicit test_txn_t(page_cache_t *cache)
         : page_txn_t(cache,
                      repli_timestamp_t::distant_past,
                      alt::tracker_acq_t(),
-                     preceding_txn) { }
+                     NULL) { }
 };
 
 void nop(alt::tracker_acq_t &&) { }
@@ -129,7 +129,7 @@ void run_TwoSequentialTxnSwitch() {
     mock_ser_t mock;
     test_cache_t page_cache(mock.ser.get(), mock.tracker.get());
     auto txn1 = make_scoped<test_txn_t>(&page_cache);
-    auto txn2 = make_scoped<test_txn_t>(&page_cache, txn1.get());
+    auto txn2 = make_scoped<test_txn_t>(&page_cache);
     page_cache.flush(std::move(txn1));
     page_cache.flush(std::move(txn2));
 }
@@ -322,7 +322,7 @@ private:
     void run_txn2(auto_drainer_t::lock_t) {
         condA.wait();
         ASSERT_TRUE(txn1_ptr != NULL);
-        auto txn2 = make_scoped<test_txn_t>(c, txn1_ptr);;
+        auto txn2 = make_scoped<test_txn_t>(c);
         {
             txn2_ptr = txn2.get();
 
