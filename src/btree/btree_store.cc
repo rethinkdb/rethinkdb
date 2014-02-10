@@ -852,7 +852,6 @@ void btree_store_t<protocol_t>::acquire_superblock_for_read(
         bool use_snapshot)
         THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
-    btree->assert_thread();
 
     object_buffer_t<fifo_enforcer_sink_t::exit_read_t>::destruction_sentinel_t destroyer(token);
     wait_interruptible(token->get(), interruptor);
@@ -860,7 +859,7 @@ void btree_store_t<protocol_t>::acquire_superblock_for_read(
     cache_snapshotted_t cache_snapshotted =
         use_snapshot ? CACHE_SNAPSHOTTED_YES : CACHE_SNAPSHOTTED_NO;
     get_btree_superblock_and_txn_for_reading(
-        btree->cache(), cache_snapshotted, sb_out, txn_out);
+        cache.get(), cache_snapshotted, sb_out, txn_out);
 }
 
 template <class protocol_t>
@@ -870,14 +869,12 @@ void btree_store_t<protocol_t>::acquire_superblock_for_backfill(
         scoped_ptr_t<real_superblock_t> *sb_out,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
-
     assert_thread();
-    btree->assert_thread();
 
     object_buffer_t<fifo_enforcer_sink_t::exit_read_t>::destruction_sentinel_t destroyer(token);
     wait_interruptible(token->get(), interruptor);
 
-    get_btree_superblock_and_txn_for_backfilling(btree->cache(),
+    get_btree_superblock_and_txn_for_backfilling(cache.get(),
                                                  btree->get_backfill_account(),
                                                  sb_out, txn_out);
 }
@@ -908,14 +905,12 @@ void btree_store_t<protocol_t>::acquire_superblock_for_write(
         scoped_ptr_t<real_superblock_t> *sb_out,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
-
     assert_thread();
-    btree->assert_thread();
 
     object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer(token);
     wait_interruptible(token->get(), interruptor);
 
-    get_btree_superblock_and_txn(btree->cache(), access_t::write,
+    get_btree_superblock_and_txn(cache.get(), access_t::write,
                                  expected_change_count, timestamp,
                                  durability, sb_out, txn_out);
 }
