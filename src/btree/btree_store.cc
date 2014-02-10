@@ -911,7 +911,7 @@ void btree_store_t<protocol_t>::acquire_superblock_for_write(
     object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer(token);
     wait_interruptible(token->get(), interruptor);
 
-    get_btree_superblock_and_txn(cache.get(), access_t::write,
+    get_btree_superblock_and_txn(general_cache_conn.get(), access_t::write,
                                  expected_change_count, timestamp,
                                  durability, sb_out, txn_out);
 }
