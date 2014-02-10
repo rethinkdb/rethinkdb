@@ -199,8 +199,8 @@ txn_t::txn_t(cache_t *cache,
 void txn_t::help_construct(repli_timestamp_t txn_timestamp,
                            int64_t expected_change_count,
                            cache_conn_t *cache_conn) {
-    guarantee(expected_change_count >= 0);
     cache_->assert_thread();
+    guarantee(expected_change_count >= 0);
     tracker_acq_t tracker_acq
         = cache_->tracker_.begin_txn_or_throttle(expected_change_count);
 
