@@ -1324,11 +1324,10 @@ void page_txn_t::remove_acquirer(current_page_acq_t *acq) {
 }
 
 void page_txn_t::announce_waiting_for_flush_if_we_should() {
-    if (live_acqs_.empty()) {
-        rassert(!began_waiting_for_flush_);
-        began_waiting_for_flush_ = true;
-        page_cache_->im_waiting_for_flush(this);
-    }
+    rassert(live_acqs_.empty());
+    rassert(!began_waiting_for_flush_);
+    began_waiting_for_flush_ = true;
+    page_cache_->im_waiting_for_flush(this);
 }
 
 std::map<block_id_t, page_cache_t::block_change_t>
