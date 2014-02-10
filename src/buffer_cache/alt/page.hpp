@@ -102,6 +102,7 @@ public:
     cache_conn_t(cache_t *cache)
         : cache_(cache),
           newest_txn_(NULL) { }
+    ~cache_conn_t();
 
     cache_t *cache() const { return cache_; }
 private:
@@ -112,7 +113,9 @@ private:
     cache_t *cache_;
 
     // The most recent unflushed txn, or NULL.  This gets set back to NULL when
-    // newest_txn_ pulses its flush_complete_cond_.
+    // newest_txn_ pulses its flush_complete_cond_.  It's a bidirectional pointer
+    // pair with the newest txn's cache_conn_ pointer -- either both point at each
+    // other or neither do.
     alt::page_txn_t *newest_txn_;
 
     DISABLE_COPYING(cache_conn_t);
@@ -807,6 +810,9 @@ public:
     void set_account(alt_cache_account_t *cache_account);
 
 private:
+    // To set cache_conn_ to NULL.
+    friend class cache_conn_t;
+
     // To access tracker_acq_.
     friend class flush_and_destroy_t;
 

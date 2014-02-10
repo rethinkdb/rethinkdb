@@ -10,6 +10,18 @@
 #include "serializer/serializer.hpp"
 #include "stl_utils.hpp"
 
+cache_conn_t::~cache_conn_t() {
+    // The user could only be expected to make sure that txn_t objects don't have
+    // their lifetime exceed the cache_conn_t's.  Soft durability makes it possible
+    // that the inner page_txn_t's lifetime would exceed the cache_conn_t's.  So we
+    // need to tell the page_txn_t that we don't exist -- we do so by nullating its
+    // cache_conn_ pointer (which it's capable of handling).
+    if (newest_txn_ != NULL) {
+        newest_txn_->cache_conn_ = NULL;
+        newest_txn_ = NULL;
+    }
+}
+
 namespace alt {
 
 // We pick a weird that forces the logic and performance to not spaz out if the
@@ -1168,6 +1180,8 @@ page_txn_t::page_txn_t(page_cache_t *page_cache,
         page_txn_t *old_newest_txn = cache_conn->newest_txn_;
         cache_conn->newest_txn_ = this;
         if (old_newest_txn != NULL) {
+            rassert(old_newest_txn->cache_conn_ == cache_conn);
+            old_newest_txn->cache_conn_ = NULL;
             connect_preceder(old_newest_txn);
         }
     }
@@ -1414,8 +1428,10 @@ void page_cache_t::remove_txn_set_from_graph(page_cache_t *page_cache,
         }
         txn->pages_modified_last_.clear();
 
-        if (txn->cache_conn_ != NULL && txn->cache_conn_->newest_txn_ == txn) {
+        if (txn->cache_conn_ != NULL) {
+            rassert(txn->cache_conn_->newest_txn_ == txn);
             txn->cache_conn_->newest_txn_ = NULL;
+            txn->cache_conn_ = NULL;
         }
 
         txn->flush_complete_cond_.pulse();
