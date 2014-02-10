@@ -211,6 +211,9 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
     /* Create a secondary index. */
     std::string id = create_sindex(nsi, osource);
 
+    // KSI: Ugh, why is sindex creation so slow that we need a nap?
+    nap(100);
+
     std::shared_ptr<const scoped_cJSON_t> data(
         new scoped_cJSON_t(cJSON_Parse("{\"id\" : 0, \"sid\" : 1}")));
     counted_t<const ql::datum_t> d(
@@ -360,6 +363,9 @@ TEST(RDBProtocol, OvershardedSindexList) {
 
 void run_sindex_oversized_keys_test(namespace_interface_t<rdb_protocol_t> *nsi, order_source_t *osource) {
     std::string sindex_id = create_sindex(nsi, osource);
+
+    // KSI: Ugh, why is sindex creation so slow that we need a nap?
+    nap(100);
 
     for (size_t i = 0; i < 20; ++i) {
         for (size_t j = 100; j < 200; j += 5) {
