@@ -793,10 +793,8 @@ public:
 class page_txn_t {
 public:
     // Our transaction has to get committed to disk _after_ or at the same time as
-    // preceding transactions on cache_conn, if that parameter is not NULL.
-
-    // RSI: It should never be null, all page txn's should exist on a cache conn for
-    // some period of time, just to make the caller think.
+    // preceding transactions on cache_conn, if that parameter is not NULL.  (The
+    // parameter's NULL for read txns, for now.)
     page_txn_t(page_cache_t *page_cache,
                // Unused for read transactions, pass repli_timestamp_t::invalid.
                repli_timestamp_t txn_recency,

@@ -165,7 +165,11 @@ txn_t::txn_t(cache_conn_t *cache_conn,
     : cache_(cache_conn->cache()),
       access_(access_t::read),
       durability_(write_durability_t::SOFT) {
-    help_construct(repli_timestamp_t::invalid, 0, cache_conn);
+    // Right now, cache_conn is only used to control flushing of write txns.  When we
+    // need to support other cache_conn_t related features (like read operations
+    // magically passing write operations), we'll need to do something fancier with
+    // read txns on cache conns.
+    help_construct(repli_timestamp_t::invalid, 0, NULL);
 }
 
 txn_t::txn_t(cache_t *cache,
