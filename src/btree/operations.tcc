@@ -26,7 +26,7 @@ void find_keyvalue_location_for_write(
         btree_stats_t *stats,
         profile::trace_t *trace,
         promise_t<superblock_t *> *pass_back_superblock = NULL) {
-    value_sizer_t<Value> sizer(superblock->expose_buf().cache()->max_block_size());
+    value_sizer_t<Value> sizer(superblock->cache()->max_block_size());
 
     keyvalue_location_out->superblock = superblock;
     keyvalue_location_out->pass_back_superblock = pass_back_superblock;
@@ -128,7 +128,7 @@ void find_keyvalue_location_for_read(
         keyvalue_location_t<Value> *keyvalue_location_out,
         btree_stats_t *stats, profile::trace_t *trace) {
     stats->pm_keys_read.record();
-    value_sizer_t<Value> sizer(superblock->expose_buf().cache()->max_block_size());
+    value_sizer_t<Value> sizer(superblock->cache()->max_block_size());
 
     const block_id_t root_id = superblock->get_root_block_id();
     rassert(root_id != SUPERBLOCK_ID);

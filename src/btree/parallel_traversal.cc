@@ -345,7 +345,7 @@ void btree_parallel_traversal(superblock_t *superblock,
                               signal_t *interruptor,
                               bool release_superblock)
     THROWS_ONLY(interrupted_exc_t) {
-    traversal_state_t state(superblock->expose_buf().cache()->max_block_size(),
+    traversal_state_t state(superblock->cache()->max_block_size(),
                             helper, interruptor);
 
     /* Make sure there's a stat block*/

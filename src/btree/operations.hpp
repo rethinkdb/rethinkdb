@@ -41,7 +41,6 @@ public:
 
     virtual buf_parent_t expose_buf() = 0;
 
-    // RSI: Replace all expose_buf().cache() with cache();
     cache_t *cache() { return expose_buf().cache(); }
 
 private:
