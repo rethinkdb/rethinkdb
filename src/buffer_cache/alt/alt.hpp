@@ -83,11 +83,7 @@ private:
 class txn_t {
 public:
     // Constructor for read-only transactions.
-    // RSI: Generally speaking I don't think we use preceding_txn.
     txn_t(cache_conn_t *cache_conn, read_access_t read_access);
-
-    explicit txn_t(cache_t *cache,
-                   read_access_t read_access);
 
     // KSI: Remove default parameter for expected_change_count.
     // RSI: Generally speaking I don't think we use preceding_txn and we should.

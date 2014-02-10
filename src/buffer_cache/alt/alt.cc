@@ -172,14 +172,6 @@ txn_t::txn_t(cache_conn_t *cache_conn,
     help_construct(repli_timestamp_t::invalid, 0, NULL);
 }
 
-txn_t::txn_t(cache_t *cache,
-             read_access_t)
-    : cache_(cache),
-      access_(access_t::read),
-      durability_(write_durability_t::SOFT) {
-    help_construct(repli_timestamp_t::invalid, 0, NULL);
-}
-
 txn_t::txn_t(cache_conn_t *cache_conn,
              write_durability_t durability,
              repli_timestamp_t txn_timestamp,
