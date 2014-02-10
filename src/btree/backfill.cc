@@ -12,7 +12,6 @@
 #include "btree/leaf_node.hpp"
 #include "btree/parallel_traversal.hpp"
 #include "btree/secondary_operations.hpp"
-#include "btree/slice.hpp"
 #include "buffer_cache/alt/alt.hpp"
 #include "protocol_api.hpp"
 
@@ -139,7 +138,7 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
 };
 
 void do_agnostic_btree_backfill(value_sizer_t<void> *sizer,
-                                btree_slice_t *slice, const key_range_t& key_range,
+                                const key_range_t &key_range,
                                 repli_timestamp_t since_when,
                                 agnostic_backfill_callback_t *callback,
                                 superblock_t *superblock,
@@ -155,5 +154,5 @@ void do_agnostic_btree_backfill(value_sizer_t<void> *sizer,
 
     backfill_traversal_helper_t helper(callback, since_when, sizer, key_range);
     helper.progress = p;
-    btree_parallel_traversal(superblock, slice, &helper, interruptor);
+    btree_parallel_traversal(superblock, &helper, interruptor);
 }

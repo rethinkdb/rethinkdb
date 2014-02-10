@@ -396,11 +396,13 @@ bool btree_store_t<protocol_t>::add_sindex(
     }
 }
 
+// RSI: Remove slice parameter.
+
 // KSI: There's no reason why this should work with detached sindexes.  Make this
 // just take the buf_parent_t.  (The reason might be that it's interruptible?)
 void clear_sindex(
         txn_t *txn, block_id_t superblock_id,
-        btree_slice_t *slice, value_sizer_t<void> *sizer,
+        UNUSED btree_slice_t *slice, value_sizer_t<void> *sizer,
         value_deleter_t *deleter, signal_t *interruptor) {
     /* Notice we're acquire sindex.superblock twice below which seems odd,
      * the reason for this is that erase_all releases the sindex_superblock
@@ -413,8 +415,8 @@ void clear_sindex(
                 buf_parent_t(txn), superblock_id, access_t::write);
         real_superblock_t sindex_superblock(std::move(sindex_superblock_lock));
 
-        erase_all(sizer, slice,
-                deleter, &sindex_superblock, interruptor);
+        erase_all(sizer,
+                  deleter, &sindex_superblock, interruptor);
     }
 
     {

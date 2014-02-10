@@ -147,7 +147,6 @@ struct btree_traversal_helper_t {
 
 void btree_parallel_traversal(
         superblock_t *superblock,
-        btree_slice_t *slice,
         btree_traversal_helper_t *helper,
         signal_t *interruptor,
         bool release_superblock = true)

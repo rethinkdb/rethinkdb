@@ -1,20 +1,20 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "memcached/memcached_btree/erase_range.hpp"
 
-#include "btree/slice.hpp"
+#include "btree/operations.hpp"
 #include "buffer_cache/alt/alt.hpp"
 #include "buffer_cache/alt/blob.hpp"
 #include "memcached/memcached_btree/node.hpp"
 #include "memcached/memcached_btree/value.hpp"
 
-void memcached_erase_range(btree_slice_t *slice, key_tester_t *tester,
+// RSI: Remove slice.
+void memcached_erase_range(UNUSED btree_slice_t *slice, key_tester_t *tester,
                            bool left_key_supplied,
                            const store_key_t& left_key_exclusive,
                            bool right_key_supplied,
                            const store_key_t& right_key_inclusive,
                            superblock_t *superblock, signal_t *interruptor) {
-
-    value_sizer_t<memcached_value_t> mc_sizer(slice->cache()->get_block_size());
+    value_sizer_t<memcached_value_t> mc_sizer(superblock->cache()->get_block_size());
     value_sizer_t<void> *sizer = &mc_sizer;
 
     struct : public value_deleter_t {
@@ -26,7 +26,7 @@ void memcached_erase_range(btree_slice_t *slice, key_tester_t *tester,
         }
     } deleter;
 
-    btree_erase_range_generic(sizer, slice, tester, &deleter,
+    btree_erase_range_generic(sizer, tester, &deleter,
         left_key_supplied ? left_key_exclusive.btree_key() : NULL,
         right_key_supplied ? right_key_inclusive.btree_key() : NULL,
         superblock, interruptor);

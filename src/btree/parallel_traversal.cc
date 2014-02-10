@@ -340,8 +340,7 @@ struct internal_node_releaser_t : public parent_releaser_t {
     virtual ~internal_node_releaser_t() { }
 };
 
-// RSI: Remove slice parameter.
-void btree_parallel_traversal(superblock_t *superblock, UNUSED btree_slice_t *slice,
+void btree_parallel_traversal(superblock_t *superblock,
                               btree_traversal_helper_t *helper,
                               signal_t *interruptor,
                               bool release_superblock)

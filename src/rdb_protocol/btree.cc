@@ -462,8 +462,8 @@ void rdb_backfill(btree_slice_t *slice, const key_range_t& key_range,
                   parallel_traversal_progress_t *p, signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t) {
     agnostic_rdb_backfill_callback_t agnostic_cb(callback, key_range, slice);
-    value_sizer_t<rdb_value_t> sizer(slice->cache()->get_block_size());
-    do_agnostic_btree_backfill(&sizer, slice, key_range, since_when, &agnostic_cb,
+    value_sizer_t<rdb_value_t> sizer(superblock->cache()->get_block_size());
+    do_agnostic_btree_backfill(&sizer, key_range, since_when, &agnostic_cb,
                                superblock, sindex_block, p, interruptor);
 }
 
@@ -513,6 +513,7 @@ private:
 typedef btree_store_t<rdb_protocol_t>::sindex_access_t sindex_access_t;
 typedef btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindex_access_vector_t;
 
+// RSI: Pass a superblock instead of sindex_access_t.
 void sindex_erase_range(const key_range_t &key_range,
         const sindex_access_t *sindex_access, auto_drainer_t::lock_t,
         signal_t *interruptor, bool release_superblock) THROWS_NOTHING {
@@ -525,7 +526,7 @@ void sindex_erase_range(const key_range_t &key_range,
     sindex_key_range_tester_t tester(key_range);
 
     try {
-        btree_erase_range_generic(sizer, sindex_access->btree, &tester,
+        btree_erase_range_generic(sizer, &tester,
                                   &deleter, NULL, NULL,
                                   sindex_access->super_block.get(), interruptor,
                                   release_superblock);
@@ -550,7 +551,8 @@ void spawn_sindex_erase_ranges(
     }
 }
 
-void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
+// RSI: Remove slice param.
+void rdb_erase_range(UNUSED btree_slice_t *slice, key_tester_t *tester,
                      const key_range_t &key_range,
                      buf_lock_t *sindex_block,
                      superblock_t *superblock,
@@ -610,12 +612,12 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
      * names. */
 
     /* We need these structures to perform the erase range. */
-    value_sizer_t<rdb_value_t> rdb_sizer(slice->cache()->get_block_size());
+    value_sizer_t<rdb_value_t> rdb_sizer(superblock->cache()->get_block_size());
     value_sizer_t<void> *sizer = &rdb_sizer;
 
     rdb_value_deleter_t deleter;
 
-    btree_erase_range_generic(sizer, slice, tester, &deleter,
+    btree_erase_range_generic(sizer, tester, &deleter,
         left_key_supplied ? left_key_exclusive.btree_key() : NULL,
         right_key_supplied ? right_key_inclusive.btree_key() : NULL,
         superblock, interruptor);
@@ -943,13 +945,14 @@ void rdb_rget_secondary_slice(
     boost::apply_visitor(result_finalizer_visitor_t(), response->result);
 }
 
-void rdb_distribution_get(btree_slice_t *slice, int max_depth,
+// RSI: Remove slice param.
+void rdb_distribution_get(UNUSED btree_slice_t *slice, int max_depth,
                           const store_key_t &left_key,
                           superblock_t *superblock,
                           distribution_read_response_t *response) {
     int64_t key_count_out;
     std::vector<store_key_t> key_splits;
-    get_btree_key_distribution(slice, superblock, max_depth,
+    get_btree_key_distribution(superblock, max_depth,
                                &key_count_out, &key_splits);
 
     int64_t keys_per_bucket;
@@ -1348,6 +1351,5 @@ void post_construct_secondary_indexes(
                                        &cache_account);
     txn->set_account(cache_account.get());
 
-    btree_parallel_traversal(superblock.get(),
-                             store->btree.get(), &helper, &wait_any);
+    btree_parallel_traversal(superblock.get(), &helper, &wait_any);
 }
