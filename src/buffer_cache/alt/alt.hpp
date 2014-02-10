@@ -84,8 +84,7 @@ class txn_t {
 public:
     // Constructor for read-only transactions.
     // RSI: Generally speaking I don't think we use preceding_txn.
-    explicit txn_t(cache_conn_t *cache_conn,
-                   read_access_t read_access);
+    txn_t(cache_conn_t *cache_conn, read_access_t read_access);
 
     explicit txn_t(cache_t *cache,
                    read_access_t read_access);
