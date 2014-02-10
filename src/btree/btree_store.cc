@@ -396,13 +396,11 @@ bool btree_store_t<protocol_t>::add_sindex(
     }
 }
 
-// RSI: Remove slice parameter.
-
 // KSI: There's no reason why this should work with detached sindexes.  Make this
 // just take the buf_parent_t.  (The reason might be that it's interruptible?)
 void clear_sindex(
         txn_t *txn, block_id_t superblock_id,
-        UNUSED btree_slice_t *slice, value_sizer_t<void> *sizer,
+        value_sizer_t<void> *sizer,
         value_deleter_t *deleter, signal_t *interruptor) {
     /* Notice we're acquire sindex.superblock twice below which seems odd,
      * the reason for this is that erase_all releases the sindex_superblock
@@ -452,9 +450,8 @@ void btree_store_t<protocol_t>::set_sindexes(
             sindex_block->detach_child(it->second.superblock);
 
             guarantee(std_contains(secondary_index_slices, it->first));
-            btree_slice_t *sindex_slice = &(secondary_index_slices.at(it->first));
             clear_sindex(sindex_block->txn(), it->second.superblock,
-                    sindex_slice, sizer, deleter, interruptor);
+                         sizer, deleter, interruptor);
             secondary_index_slices.erase(it->first);
         }
     }
@@ -539,9 +536,8 @@ MUST_USE bool btree_store_t<protocol_t>::drop_sindex(
 
         /* Make sure we have a record of the slice. */
         guarantee(std_contains(secondary_index_slices, id));
-        btree_slice_t *sindex_slice = &(secondary_index_slices.at(id));
         clear_sindex(txn, sindex.superblock,
-                sindex_slice, sizer, deleter, interruptor);
+                     sizer, deleter, interruptor);
         secondary_index_slices.erase(id);
     }
     return true;
