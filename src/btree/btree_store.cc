@@ -860,7 +860,7 @@ void btree_store_t<protocol_t>::acquire_superblock_for_read(
     cache_snapshotted_t cache_snapshotted =
         use_snapshot ? CACHE_SNAPSHOTTED_YES : CACHE_SNAPSHOTTED_NO;
     get_btree_superblock_and_txn_for_reading(
-        cache.get(), cache_snapshotted, sb_out, txn_out);
+        general_cache_conn.get(), cache_snapshotted, sb_out, txn_out);
 }
 
 template <class protocol_t>
