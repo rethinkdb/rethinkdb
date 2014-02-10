@@ -604,14 +604,14 @@ void get_btree_superblock_and_txn(cache_t *cache,
     get_btree_superblock(txn, superblock_access, got_superblock_out);
 }
 
-void get_btree_superblock_and_txn_for_backfilling(btree_slice_t *slice,
+void get_btree_superblock_and_txn_for_backfilling(cache_t *cache,
+                                                  alt_cache_account_t *backfill_account,
                                                   scoped_ptr_t<real_superblock_t> *got_superblock_out,
                                                   scoped_ptr_t<txn_t> *txn_out) {
-    slice->assert_thread();
-    txn_t *txn = new txn_t(slice->cache(), read_access_t::read);
+    txn_t *txn = new txn_t(cache, read_access_t::read);
     txn_out->init(txn);
     // KSI: Does using a backfill account needlessly slow other operations down?
-    txn->set_account(slice->get_backfill_account());
+    txn->set_account(backfill_account);
 
     get_btree_superblock(txn, access_t::read, got_superblock_out);
     // KSI: This is bad -- we want to backfill, we don't want to snapshot from the
