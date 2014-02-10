@@ -124,6 +124,8 @@ private:
 
 namespace alt {
 
+enum class page_load_defer_t { not_deferred, deferred };
+
 // A page_t represents a page (a byte buffer of a specific size), having a definite
 // value known at the construction of the page_t (and possibly later modified
 // in-place, but still a definite known value).
@@ -134,7 +136,8 @@ public:
     page_t(scoped_malloc_t<ser_buffer_t> buf,
            const counted_t<standard_block_token_t> &token,
            page_cache_t *page_cache);
-    page_t(block_id_t block_id, page_cache_t *page_cache);
+    page_t(block_id_t block_id, page_cache_t *page_cache,
+           page_load_defer_t deferred = page_load_defer_t::not_deferred);
     page_t(page_t *copyee, page_cache_t *page_cache);
     ~page_t();
 
@@ -163,11 +166,16 @@ private:
     static void load_with_block_id(page_t *page,
                                    block_id_t block_id,
                                    page_cache_t *page_cache);
+    static void deferred_with_block_id(page_t *page,
+                                       block_id_t block_id,
+                                       page_cache_t *page_cache);
 
     static void load_from_copyee(page_t *page, page_t *copyee,
                                  page_cache_t *page_cache);
 
     static void load_using_block_token(page_t *page, page_cache_t *page_cache);
+    static void do_load_using_block_token(page_t *page, page_cache_t *page_cache,
+                                          const bool *page_destroyed_ptr);
 
     friend class page_cache_t;
     friend class evicter_t;
@@ -510,6 +518,7 @@ public:
     void add_to_evictable_disk_backed(page_t *page);
     bool page_is_in_unevictable_bag(page_t *page) const;
     void move_unevictable_to_evictable(page_t *page);
+    void move_unevictable_deferred_to_evicted(page_t *page);
     void change_eviction_bag(eviction_bag_t *current_bag, page_t *page);
     eviction_bag_t *correct_eviction_category(page_t *page);
     void remove_page(page_t *page);
