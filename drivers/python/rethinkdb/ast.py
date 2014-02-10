@@ -319,6 +319,9 @@ class RqlQuery(object):
                 "To iterate over the results of a query, call run first.\n"+
                 "To iterate inside a query, use map or for_each.")
 
+    def get_field(self, index):
+        return GetField(self, index)
+
     def nth(self, index):
         return Nth(self, index)
 
