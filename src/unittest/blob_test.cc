@@ -178,7 +178,9 @@ void small_value_test(cache_t *cache) {
     SCOPED_TRACE("small_value_test");
     UNUSED block_size_t block_size = cache->get_block_size();
 
-    txn_t txn(cache, write_durability_t::SOFT, repli_timestamp_t::distant_past, 0);
+    cache_conn_t cache_conn(cache);
+    txn_t txn(&cache_conn, write_durability_t::SOFT,
+              repli_timestamp_t::distant_past, 0);
 
     blob_tracker_t tk(251);
 
@@ -211,7 +213,9 @@ void small_value_boundary_test(cache_t *cache) {
     SCOPED_TRACE("small_value_boundary_test");
     block_size_t block_size = cache->get_block_size();
 
-    txn_t txn(cache, write_durability_t::SOFT, repli_timestamp_t::distant_past, 0);
+    cache_conn_t cache_conn(cache);
+    txn_t txn(&cache_conn, write_durability_t::SOFT,
+              repli_timestamp_t::distant_past, 0);
 
     blob_tracker_t tk(251);
 
@@ -265,7 +269,9 @@ void special_4080_prepend_4081_test(cache_t *cache) {
 
     ASSERT_EQ(static_cast<size_t>(size_after_magic), block_size.value() - sizeof(block_magic_t));
 
-    txn_t txn(cache, write_durability_t::SOFT, repli_timestamp_t::distant_past, 0);
+    cache_conn_t cache_conn(cache);
+    txn_t txn(&cache_conn, write_durability_t::SOFT,
+              repli_timestamp_t::distant_past, 0);
 
     blob_tracker_t tk(251);
 
@@ -277,7 +283,9 @@ void special_4080_prepend_4081_test(cache_t *cache) {
 // Regression test - these magic numbers caused failures previously.
 void special_4161600_prepend_12484801_test(cache_t *cache) {
     SCOPED_TRACE("special_4080_prepend_4081_test");
-    txn_t txn(cache, write_durability_t::SOFT, repli_timestamp_t::distant_past, 0);
+    cache_conn_t cache_conn(cache);
+    txn_t txn(&cache_conn, write_durability_t::SOFT,
+              repli_timestamp_t::distant_past, 0);
 
     blob_tracker_t tk(251);
 
@@ -297,7 +305,9 @@ struct step_t {
 void general_journey_test(cache_t *cache, const std::vector<step_t>& steps) {
     UNUSED block_size_t block_size = cache->get_block_size();
 
-    txn_t txn(cache, write_durability_t::SOFT, repli_timestamp_t::distant_past, 0);
+    cache_conn_t cache_conn(cache);
+    txn_t txn(&cache_conn, write_durability_t::SOFT,
+              repli_timestamp_t::distant_past, 0);
     blob_tracker_t tk(251);
 
     char v = 'A';
