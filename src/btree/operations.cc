@@ -603,21 +603,6 @@ void get_btree_superblock_and_txn(cache_conn_t *cache_conn,
     get_btree_superblock(txn, superblock_access, got_superblock_out);
 }
 
-void get_btree_superblock_and_txn(cache_t *cache,
-                                  access_t superblock_access,
-                                  int expected_change_count,
-                                  repli_timestamp_t tstamp,
-                                  write_durability_t durability,
-                                  scoped_ptr_t<real_superblock_t> *got_superblock_out,
-                                  scoped_ptr_t<txn_t> *txn_out) {
-    // RSI: We should pass a preceding_txn here or something.
-    txn_t *txn = new txn_t(cache, durability, tstamp, expected_change_count);
-
-    txn_out->init(txn);
-
-    get_btree_superblock(txn, superblock_access, got_superblock_out);
-}
-
 void get_btree_superblock_and_txn_for_backfilling(cache_t *cache,
                                                   alt_cache_account_t *backfill_account,
                                                   scoped_ptr_t<real_superblock_t> *got_superblock_out,
