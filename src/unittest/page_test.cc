@@ -42,6 +42,9 @@ class test_txn_t : public page_txn_t {
 public:
     // KSI: We could make these tests better by varying the expected change count given
     // by an actual tracker_acq_t.
+
+    // KSI: It would be nice if this test covered the use of cache_conn_t (it used to
+    // check that preceding_txns worked).'
     explicit test_txn_t(page_cache_t *cache)
         : page_txn_t(cache,
                      repli_timestamp_t::distant_past,

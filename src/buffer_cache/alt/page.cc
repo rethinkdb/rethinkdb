@@ -1156,19 +1156,25 @@ page_t *page_ptr_t::get_page_for_write(page_cache_t *page_cache) {
 page_txn_t::page_txn_t(page_cache_t *page_cache,
                        repli_timestamp_t txn_recency,
                        tracker_acq_t tracker_acq,
-                       page_txn_t *preceding_txn_or_null)
+                       cache_conn_t *cache_conn)
     : page_cache_(page_cache),
+      cache_conn_(cache_conn),
       tracker_acq_(std::move(tracker_acq)),
       this_txn_recency_(txn_recency),
       cache_account_(NULL),
       began_waiting_for_flush_(false),
       spawned_flush_(false) {
-    if (preceding_txn_or_null != NULL) {
-        connect_preceder(preceding_txn_or_null);
+    if (cache_conn != NULL) {
+        page_txn_t *old_newest_txn = cache_conn->newest_txn_;
+        cache_conn->newest_txn_ = this;
+        if (old_newest_txn != NULL) {
+            connect_preceder(old_newest_txn);
+        }
     }
 }
 
 void page_txn_t::connect_preceder(page_txn_t *preceder) {
+    // RSI: Both these conditions could be assertions.
     if (preceder != this) {
         // RSI: Is this the right condition to check?
         if (!preceder->flush_complete_cond_.is_pulsed()) {
@@ -1408,8 +1414,10 @@ void page_cache_t::remove_txn_set_from_graph(page_cache_t *page_cache,
         }
         txn->pages_modified_last_.clear();
 
-        // RSI: Is this the right place?  I guess -- since we remove each txn
-        // from the graph individually.  Maybe rename this function?
+        if (txn->cache_conn_ != NULL && txn->cache_conn_->newest_txn_ == txn) {
+            txn->cache_conn_->newest_txn_ = NULL;
+        }
+
         txn->flush_complete_cond_.pulse();
     }
 }

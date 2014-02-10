@@ -26,6 +26,7 @@
 
 class alt_memory_tracker_t;
 class auto_drainer_t;
+class cache_t;
 class file_account_t;
 
 namespace alt {
@@ -94,6 +95,27 @@ public:
 
 private:
     uint64_t value_;
+};
+
+class cache_conn_t {
+public:
+    cache_conn_t(cache_t *cache)
+        : cache_(cache),
+          newest_txn_(NULL) { }
+
+    cache_t *cache() const { return cache_; }
+private:
+    friend class alt::page_cache_t;
+    friend class alt::page_txn_t;
+    // Here for convenience, because otherwise you'd be passing around a cache_t with
+    // every cache_conn_t parameter.
+    cache_t *cache_;
+
+    // The most recent unflushed txn, or NULL.  This gets set back to NULL when
+    // newest_txn_ pulses its flush_complete_cond_.
+    alt::page_txn_t *newest_txn_;
+
+    DISABLE_COPYING(cache_conn_t);
 };
 
 
@@ -768,12 +790,13 @@ public:
 class page_txn_t {
 public:
     // Our transaction has to get committed to disk _after_ or at the same time as
-    // preceding_txn, if it's not NULL.
+    // preceding transactions on cache_conn, if that parameter is not NULL.
+    // RSI: It should never be null, all page txn's should exist on a cache conn.
     page_txn_t(page_cache_t *page_cache,
                // Unused for read transactions, pass repli_timestamp_t::invalid.
                repli_timestamp_t txn_recency,
                tracker_acq_t tracker_acq,
-               page_txn_t *preceding_txn = NULL);
+               cache_conn_t *cache_conn);
 
     // KSI: This is only to be called by the page cache -- should txn_t really use a
     // scoped_ptr_t?
@@ -810,6 +833,9 @@ private:
     void announce_waiting_for_flush_if_we_should();
 
     page_cache_t *page_cache_;
+    // This can be NULL, if the txn is not part of some cache conn.
+    // RSI: This is purely some boring refactoring away from being fixable.
+    cache_conn_t *cache_conn_;
 
     // An acquisition object for the memory tracker.
     tracker_acq_t tracker_acq_;

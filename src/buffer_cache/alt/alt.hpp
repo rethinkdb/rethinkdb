@@ -84,18 +84,24 @@ class txn_t {
 public:
     // Constructor for read-only transactions.
     // RSI: Generally speaking I don't think we use preceding_txn.
+    explicit txn_t(cache_conn_t *cache_conn,
+                   read_access_t read_access);
+
     explicit txn_t(cache_t *cache,
-                   read_access_t read_access,
-                   txn_t *preceding_txn = NULL);
+                   read_access_t read_access);
 
 
     // KSI: Remove default parameter for expected_change_count.
     // RSI: Generally speaking I don't think we use preceding_txn and we should.
+    txn_t(cache_conn_t *cache_conn,
+          write_durability_t durability,
+          repli_timestamp_t txn_timestamp,
+          int64_t expected_change_count = 2);
+
     txn_t(cache_t *cache,
           write_durability_t durability,
           repli_timestamp_t txn_timestamp,
-          int64_t expected_change_count = 2,
-          txn_t *preceding_txn = NULL);
+          int64_t expected_change_count = 2);
 
     ~txn_t();
 
@@ -116,7 +122,7 @@ private:
 
     void help_construct(repli_timestamp_t txn_timestamp,
                         int64_t expected_change_count,
-                        txn_t *preceding_txn);
+                        cache_conn_t *cache_conn);
 
     cache_t *const cache_;
 

@@ -160,29 +160,45 @@ alt_cache_account_t::~alt_cache_account_t() {
     delete io_account_;
 }
 
+txn_t::txn_t(cache_conn_t *cache_conn,
+             read_access_t)
+    : cache_(cache_conn->cache()),
+      access_(access_t::read),
+      durability_(write_durability_t::SOFT) {
+    help_construct(repli_timestamp_t::invalid, 0, cache_conn);
+}
+
 txn_t::txn_t(cache_t *cache,
-             read_access_t,
-             txn_t *preceding_txn)
+             read_access_t)
     : cache_(cache),
       access_(access_t::read),
       durability_(write_durability_t::SOFT) {
-    help_construct(repli_timestamp_t::invalid, 0, preceding_txn);
+    help_construct(repli_timestamp_t::invalid, 0, NULL);
+}
+
+txn_t::txn_t(cache_conn_t *cache_conn,
+             write_durability_t durability,
+             repli_timestamp_t txn_timestamp,
+             int64_t expected_change_count)
+    : cache_(cache_conn->cache()),
+      access_(access_t::write),
+      durability_(durability) {
+    help_construct(txn_timestamp, expected_change_count, cache_conn);
 }
 
 txn_t::txn_t(cache_t *cache,
              write_durability_t durability,
              repli_timestamp_t txn_timestamp,
-             int64_t expected_change_count,
-             txn_t *preceding_txn)
+             int64_t expected_change_count)
     : cache_(cache),
       access_(access_t::write),
       durability_(durability) {
-    help_construct(txn_timestamp, expected_change_count, preceding_txn);
+    help_construct(txn_timestamp, expected_change_count, NULL);
 }
 
 void txn_t::help_construct(repli_timestamp_t txn_timestamp,
                            int64_t expected_change_count,
-                           txn_t *preceding_txn) {
+                           cache_conn_t *cache_conn) {
     guarantee(expected_change_count >= 0);
     cache_->assert_thread();
     tracker_acq_t tracker_acq
@@ -193,11 +209,7 @@ void txn_t::help_construct(repli_timestamp_t txn_timestamp,
     page_txn_.init(new page_txn_t(&cache_->page_cache_,
                                   txn_timestamp,
                                   std::move(tracker_acq),
-                                  // Notably, preceding_txn->page_txn_.get() could be
-                                  // NULL, if preceding_txn is already in the process of
-                                  // being flushed.  (In which case that's fine.)
-                                  preceding_txn == NULL ? NULL
-                                  : preceding_txn->page_txn_.get()));
+                                  cache_conn));
 }
 
 void txn_t::inform_tracker(cache_t *cache, tracker_acq_t tracker_acq) {
