@@ -77,9 +77,9 @@ protected:
 
 class traversal_state_t : public coro_pool_callback_t<acquisition_waiter_callback_t *> {
 public:
-    traversal_state_t(btree_slice_t *_slice, btree_traversal_helper_t *_helper,
+    traversal_state_t(block_size_t _max_block_size, btree_traversal_helper_t *_helper,
                       signal_t *_interruptor)
-        : max_block_size(_slice->cache()->max_block_size()),
+        : max_block_size(_max_block_size),
           stat_block(NULL_BLOCK_ID),
           helper(_helper),
           interruptor(_interruptor),
@@ -340,12 +340,14 @@ struct internal_node_releaser_t : public parent_releaser_t {
     virtual ~internal_node_releaser_t() { }
 };
 
-void btree_parallel_traversal(superblock_t *superblock, btree_slice_t *slice,
+// RSI: Remove slice parameter.
+void btree_parallel_traversal(superblock_t *superblock, UNUSED btree_slice_t *slice,
                               btree_traversal_helper_t *helper,
                               signal_t *interruptor,
                               bool release_superblock)
     THROWS_ONLY(interrupted_exc_t) {
-    traversal_state_t state(slice, helper, interruptor);
+    traversal_state_t state(superblock->expose_buf().cache()->max_block_size(),
+                            helper, interruptor);
 
     /* Make sure there's a stat block*/
     if (helper->btree_node_mode() == access_t::write) {
