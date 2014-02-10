@@ -1188,17 +1188,17 @@ page_txn_t::page_txn_t(page_cache_t *page_cache,
 }
 
 void page_txn_t::connect_preceder(page_txn_t *preceder) {
-    // RSI: Both these conditions could be assertions.
-    if (preceder != this) {
-        // RSI: Is this the right condition to check?
-        if (!preceder->flush_complete_cond_.is_pulsed()) {
-            // RSP: performance
-            if (std::find(preceders_.begin(), preceders_.end(), preceder)
-                == preceders_.end()) {
-                preceders_.push_back(preceder);
-                preceder->subseqers_.push_back(this);
-            }
-        }
+    // We can't add ourselves as a preceder, we have to avoid that.
+    rassert(preceder != this);
+    // The flush_complete_cond_ is pulsed at the same time that this txn is removed
+    // entirely from the txn graph, so we can't be adding preceders after that point.
+    rassert(!preceder->flush_complete_cond_.is_pulsed());
+
+    // RSP: performance
+    if (std::find(preceders_.begin(), preceders_.end(), preceder)
+        == preceders_.end()) {
+        preceders_.push_back(preceder);
+        preceder->subseqers_.push_back(this);
     }
 }
 

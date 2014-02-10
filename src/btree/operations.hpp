@@ -16,8 +16,6 @@
 #include "repli_timestamp.hpp"
 #include "utils.hpp"
 
-// RSI: This code doesn't use the notion of "parent transaction" at all, and it must.
-
 class btree_slice_t;
 
 template <class> class promise_t;
