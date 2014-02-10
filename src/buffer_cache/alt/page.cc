@@ -746,24 +746,16 @@ page_txn_t *current_page_t::change_last_modifier(page_txn_t *new_last_modifier) 
     return ret;
 }
 
-page_t::page_t(block_id_t block_id, page_cache_t *page_cache,
-               page_load_defer_t deferred)
+page_t::page_t(block_id_t block_id, page_cache_t *page_cache)
     : destroy_ptr_(NULL),
       ser_buf_size_(0),
       access_time_(page_cache->evicter().next_access_time()),
       snapshot_refcount_(0) {
     page_cache->evicter().add_not_yet_loaded(this);
-    if (deferred == page_load_defer_t::not_deferred) {
-        coro_t::spawn_now_dangerously(std::bind(&page_t::load_with_block_id,
-                                                this,
-                                                block_id,
-                                                page_cache));
-    } else {
-        coro_t::spawn_now_dangerously(std::bind(&page_t::deferred_with_block_id,
-                                                this,
-                                                block_id,
-                                                page_cache));
-    }
+    coro_t::spawn_now_dangerously(std::bind(&page_t::load_with_block_id,
+                                            this,
+                                            block_id,
+                                            page_cache));
 }
 
 page_t::page_t(block_size_t block_size, scoped_malloc_t<ser_buffer_t> buf,
@@ -892,52 +884,6 @@ void page_t::load_with_block_id(page_t *page, block_id_t block_id,
     page->pulse_waiters_or_make_evictable(page_cache);
 }
 
-void page_t::deferred_with_block_id(page_t *page, block_id_t block_id,
-                                    page_cache_t *page_cache) {
-    // This is called using spawn_now_dangerously.  We need to set destroy_ptr_
-    // before blocking the coroutine.
-    bool page_destroyed = false;
-    rassert(page->destroy_ptr_ == NULL);
-    page->destroy_ptr_ = &page_destroyed;
-
-    auto_drainer_t::lock_t lock(page_cache->drainer_.get());
-
-    // Since we were told to defer loading, the first thing we do is merely try to
-    // get the block token.
-    counted_t<standard_block_token_t> block_token;
-    {
-        serializer_t *const serializer = page_cache->serializer_;
-        on_thread_t th(serializer->home_thread());
-        block_token = serializer->index_read(block_id);
-        rassert(block_token.has());
-    }
-
-    if (page_destroyed) {
-        return;
-    }
-
-    page->ser_buf_size_ = block_token->block_size().ser_value();
-    page->block_token_ = std::move(block_token);
-    // Just say we're loaded, it makes the code simpler.
-    page_cache->evicter().add_now_loaded_size(page->ser_buf_size_);
-
-    if (page->waiters_.empty()) {
-        // There are no waiters, as expected (since deferred loading usually means
-        // they want deletion).
-
-        page->destroy_ptr_ = NULL;
-
-        rassert(page_cache->evicter().page_is_in_unevictable_bag(page));
-        page_cache->evicter().move_unevictable_deferred_to_evicted(page);
-    } else {
-        // Crap!  Now there are waiters, which means we need to truly load the
-        // page.
-
-        // RSI: But we're not loaded, so what is going on here?
-        page_t::do_load_using_block_token(page, page_cache, &page_destroyed);
-    }
-}
-
 void page_t::add_snapshotter() {
     // This may not block, because it's called at the beginning of
     // page_t::load_from_copyee.
@@ -989,7 +935,7 @@ void page_t::add_waiter(page_acq_t *acq) {
         acq->buf_ready_signal_.pulse();
     } else if (destroy_ptr_ != NULL) {
         // Do nothing, the page is currently being loaded.
-    } else if (block_token_.has()) {
+    } else if (block_token.has()) {
         coro_t::spawn_now_dangerously(std::bind(&page_t::load_using_block_token,
                                                 this,
                                                 acq->page_cache()));
@@ -1008,11 +954,6 @@ void page_t::load_using_block_token(page_t *page, page_cache_t *page_cache) {
 
     auto_drainer_t::lock_t lock(page_cache->drainer_.get());
 
-    page_t::do_load_using_block_token(page, page_cache, &page_destroyed);
-}
-
-void page_t::do_load_using_block_token(page_t *page, page_cache_t *page_cache,
-                                       const bool *page_destroyed_ptr) {
     counted_t<standard_block_token_t> block_token = page->block_token_;
     rassert(block_token.has());
 
@@ -1029,7 +970,7 @@ void page_t::do_load_using_block_token(page_t *page, page_cache_t *page_cache,
     }
 
     ASSERT_FINITE_CORO_WAITING;
-    if (*page_destroyed_ptr) {
+    if (page_destroyed) {
         return;
     }
 
@@ -1879,17 +1820,6 @@ void evicter_t::move_unevictable_to_evictable(page_t *page) {
     eviction_bag_t *new_bag = correct_eviction_category(page);
     rassert(new_bag == &evictable_disk_backed_
             || new_bag == &evictable_unbacked_);
-    new_bag->add(page, page->ser_buf_size_);
-    inform_tracker();
-    evict_if_necessary();
-}
-
-void evicter_t::move_unevictable_deferred_to_evicted(page_t *page) {
-    assert_thread();
-    rassert(unevictable_.has_page(page));
-    unevictable_.remove(page, page->ser_buf_size_);
-    eviction_bag_t *new_bag = correct_eviction_category(page);
-    rassert(new_bag == &evicted_);
     new_bag->add(page, page->ser_buf_size_);
     inform_tracker();
     evict_if_necessary();
