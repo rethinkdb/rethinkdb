@@ -48,7 +48,7 @@ void run_sindex_low_level_operations_test() {
         order_token_t otok = order_source.check_in("sindex unittest");
         scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
-        get_btree_superblock_and_txn(&cache_conn, access_t::write, 1,
+        get_btree_superblock_and_txn(&cache_conn, write_access_t::write, 1,
                                      repli_timestamp_t::invalid,
                                      write_durability_t::SOFT,
                                      &superblock, &txn);
@@ -74,7 +74,7 @@ void run_sindex_low_level_operations_test() {
         order_token_t otok = order_source.check_in("sindex unittest");
         scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
-        get_btree_superblock_and_txn(&cache_conn, access_t::write, 1,
+        get_btree_superblock_and_txn(&cache_conn, write_access_t::write, 1,
                                      repli_timestamp_t::invalid,
                                      write_durability_t::SOFT,
                                      &superblock, &txn);
@@ -89,7 +89,7 @@ void run_sindex_low_level_operations_test() {
         order_token_t otok = order_source.check_in("sindex unittest");
         scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
-        get_btree_superblock_and_txn(&cache_conn, access_t::write, 1,
+        get_btree_superblock_and_txn(&cache_conn, write_access_t::write, 1,
                                      repli_timestamp_t::invalid,
                                      write_durability_t::SOFT,
                                      &superblock, &txn);

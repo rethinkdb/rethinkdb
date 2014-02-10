@@ -590,7 +590,7 @@ void get_btree_superblock(txn_t *txn, access_t access,
 }
 
 void get_btree_superblock_and_txn(cache_conn_t *cache_conn,
-                                  access_t superblock_access,
+                                  UNUSED write_access_t superblock_access,
                                   int expected_change_count,
                                   repli_timestamp_t tstamp,
                                   write_durability_t durability,
@@ -600,7 +600,7 @@ void get_btree_superblock_and_txn(cache_conn_t *cache_conn,
 
     txn_out->init(txn);
 
-    get_btree_superblock(txn, superblock_access, got_superblock_out);
+    get_btree_superblock(txn, access_t::write, got_superblock_out);
 }
 
 void get_btree_superblock_and_txn_for_backfilling(cache_t *cache,
