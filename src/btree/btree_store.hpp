@@ -334,6 +334,7 @@ public:
     // Mind the constructor ordering. We must destruct the cache and btree
     // before we destruct perfmon_collection
     scoped_ptr_t<cache_t> cache;
+    scoped_ptr_t<cache_conn_t> general_cache_conn;
     scoped_ptr_t<btree_slice_t> btree;
     io_backender_t *io_backender_;
     base_path_t base_path_;
