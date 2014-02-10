@@ -589,7 +589,7 @@ void get_btree_superblock(txn_t *txn, access_t access,
     *got_superblock_out = std::move(tmp_sb);
 }
 
-void get_btree_superblock_and_txn(cache_t *cache,
+void get_btree_superblock_and_txn(cache_conn_t *cache_conn,
                                   access_t superblock_access,
                                   int expected_change_count,
                                   repli_timestamp_t tstamp,
@@ -597,18 +597,18 @@ void get_btree_superblock_and_txn(cache_t *cache,
                                   scoped_ptr_t<real_superblock_t> *got_superblock_out,
                                   scoped_ptr_t<txn_t> *txn_out) {
     // RSI: We should pass a preceding_txn here or something.
-    txn_t *txn = new txn_t(cache, durability, tstamp, expected_change_count);
+    txn_t *txn = new txn_t(cache_conn, durability, tstamp, expected_change_count);
 
     txn_out->init(txn);
 
     get_btree_superblock(txn, superblock_access, got_superblock_out);
 }
 
-void get_btree_superblock_and_txn_for_backfilling(cache_t *cache,
+void get_btree_superblock_and_txn_for_backfilling(cache_conn_t *cache_conn,
                                                   alt_cache_account_t *backfill_account,
                                                   scoped_ptr_t<real_superblock_t> *got_superblock_out,
                                                   scoped_ptr_t<txn_t> *txn_out) {
-    txn_t *txn = new txn_t(cache, read_access_t::read);
+    txn_t *txn = new txn_t(cache_conn, read_access_t::read);
     txn_out->init(txn);
     // KSI: Does using a backfill account needlessly slow other operations down?
     txn->set_account(backfill_account);
@@ -622,11 +622,11 @@ void get_btree_superblock_and_txn_for_backfilling(cache_t *cache,
 
 // KSI: This function is possibly stupid: it's nonsensical to talk about the entire
 // cache being snapshotted -- we want some subtree to be snapshotted, at least.
-void get_btree_superblock_and_txn_for_reading(cache_t *cache,
+void get_btree_superblock_and_txn_for_reading(cache_conn_t *cache_conn,
                                               cache_snapshotted_t snapshotted,
                                               scoped_ptr_t<real_superblock_t> *got_superblock_out,
                                               scoped_ptr_t<txn_t> *txn_out) {
-    txn_t *txn = new txn_t(cache, read_access_t::read);
+    txn_t *txn = new txn_t(cache_conn, read_access_t::read);
     txn_out->init(txn);
 
     get_btree_superblock(txn, access_t::read, got_superblock_out);

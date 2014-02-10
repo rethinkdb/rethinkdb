@@ -39,6 +39,7 @@ btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
         alt_cache_config_t config;
         config.page_config.memory_limit = cache_target;
         cache.init(new cache_t(serializer, config, &perfmon_collection));
+        cache_conn.init(new cache_conn_t(cache.get()));
     }
 
     if (create) {
@@ -50,7 +51,7 @@ btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
         int res = send_write_message(&key, &msg);
         guarantee(!res);
 
-        txn_t txn(cache.get(), write_durability_t::HARD,
+        txn_t txn(cache_conn.get(), write_durability_t::HARD,
                   repli_timestamp_t::distant_past, 1);
         buf_lock_t superblock(&txn, SUPERBLOCK_ID, alt_create_t::create);
         btree_slice_t::init_superblock(&superblock, key.vector(), std::vector<char>());
@@ -859,7 +860,7 @@ void btree_store_t<protocol_t>::acquire_superblock_for_read(
     cache_snapshotted_t cache_snapshotted =
         use_snapshot ? CACHE_SNAPSHOTTED_YES : CACHE_SNAPSHOTTED_NO;
     get_btree_superblock_and_txn_for_reading(
-        cache.get(), cache_snapshotted, sb_out, txn_out);
+        cache_conn.get(), cache_snapshotted, sb_out, txn_out);
 }
 
 template <class protocol_t>
@@ -874,7 +875,7 @@ void btree_store_t<protocol_t>::acquire_superblock_for_backfill(
     object_buffer_t<fifo_enforcer_sink_t::exit_read_t>::destruction_sentinel_t destroyer(token);
     wait_interruptible(token->get(), interruptor);
 
-    get_btree_superblock_and_txn_for_backfilling(cache.get(),
+    get_btree_superblock_and_txn_for_backfilling(cache_conn.get(),
                                                  btree->get_backfill_account(),
                                                  sb_out, txn_out);
 }
@@ -910,7 +911,7 @@ void btree_store_t<protocol_t>::acquire_superblock_for_write(
     object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer(token);
     wait_interruptible(token->get(), interruptor);
 
-    get_btree_superblock_and_txn(cache.get(), access_t::write,
+    get_btree_superblock_and_txn(cache_conn.get(), access_t::write,
                                  expected_change_count, timestamp,
                                  durability, sb_out, txn_out);
 }
