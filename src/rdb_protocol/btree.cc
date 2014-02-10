@@ -943,8 +943,7 @@ void rdb_rget_secondary_slice(
     boost::apply_visitor(result_finalizer_visitor_t(), response->result);
 }
 
-// RSI: Remove slice param.
-void rdb_distribution_get(UNUSED btree_slice_t *slice, int max_depth,
+void rdb_distribution_get(int max_depth,
                           const store_key_t &left_key,
                           superblock_t *superblock,
                           distribution_read_response_t *response) {

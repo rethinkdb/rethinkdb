@@ -220,7 +220,7 @@ void rdb_rget_secondary_slice(
     sindex_multi_bool_t sindex_multi,
     rget_read_response_t *response);
 
-void rdb_distribution_get(btree_slice_t *slice, int max_depth,
+void rdb_distribution_get(int max_depth,
                           const store_key_t &left_key,
                           superblock_t *superblock,
                           distribution_read_response_t *response);

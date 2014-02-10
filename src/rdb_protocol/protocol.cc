@@ -1342,7 +1342,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     void operator()(const distribution_read_t &dg) {
         response->response = distribution_read_response_t();
         distribution_read_response_t *res = boost::get<distribution_read_response_t>(&response->response);
-        rdb_distribution_get(btree, dg.max_depth, dg.region.inner.left,
+        rdb_distribution_get(dg.max_depth, dg.region.inner.left,
                              superblock, res);
         for (std::map<store_key_t, int64_t>::iterator it = res->key_counts.begin(); it != res->key_counts.end(); ) {
             if (!dg.region.inner.contains_key(store_key_t(it->first))) {
