@@ -794,7 +794,9 @@ class page_txn_t {
 public:
     // Our transaction has to get committed to disk _after_ or at the same time as
     // preceding transactions on cache_conn, if that parameter is not NULL.
-    // RSI: It should never be null, all page txn's should exist on a cache conn.
+
+    // RSI: It should never be null, all page txn's should exist on a cache conn for
+    // some period of time, just to make the caller think.
     page_txn_t(page_cache_t *page_cache,
                // Unused for read transactions, pass repli_timestamp_t::invalid.
                repli_timestamp_t txn_recency,
@@ -840,7 +842,6 @@ private:
 
     page_cache_t *page_cache_;
     // This can be NULL, if the txn is not part of some cache conn.
-    // RSI: This is purely some boring refactoring away from being fixable.
     cache_conn_t *cache_conn_;
 
     // An acquisition object for the memory tracker.
