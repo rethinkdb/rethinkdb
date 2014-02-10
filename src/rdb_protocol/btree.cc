@@ -513,12 +513,11 @@ private:
 typedef btree_store_t<rdb_protocol_t>::sindex_access_t sindex_access_t;
 typedef btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindex_access_vector_t;
 
-// RSI: Pass a superblock instead of sindex_access_t.
 void sindex_erase_range(const key_range_t &key_range,
-        const sindex_access_t *sindex_access, auto_drainer_t::lock_t,
+        superblock_t *superblock, auto_drainer_t::lock_t,
         signal_t *interruptor, bool release_superblock) THROWS_NOTHING {
 
-    value_sizer_t<rdb_value_t> rdb_sizer(sindex_access->btree->cache()->get_block_size());
+    value_sizer_t<rdb_value_t> rdb_sizer(superblock->cache()->get_block_size());
     value_sizer_t<void> *sizer = &rdb_sizer;
 
     rdb_value_detacher_t deleter;
@@ -528,7 +527,7 @@ void sindex_erase_range(const key_range_t &key_range,
     try {
         btree_erase_range_generic(sizer, &tester,
                                   &deleter, NULL, NULL,
-                                  sindex_access->super_block.get(), interruptor,
+                                  superblock, interruptor,
                                   release_superblock);
     } catch (const interrupted_exc_t &) {
         // We were interrupted. That's fine nothing to be done about it.
@@ -545,7 +544,7 @@ void spawn_sindex_erase_ranges(
         signal_t *interruptor) {
     for (auto it = sindex_access->begin(); it != sindex_access->end(); ++it) {
         coro_t::spawn_sometime(std::bind(
-                    &sindex_erase_range, key_range, &*it,
+                    &sindex_erase_range, key_range, it->super_block.get(),
                     auto_drainer_t::lock_t(drainer), interruptor,
                     release_superblock));
     }
