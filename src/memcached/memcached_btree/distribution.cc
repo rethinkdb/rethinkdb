@@ -3,9 +3,8 @@
 
 #include "btree/get_distribution.hpp"
 
-// RSI: Remove slice param.
 distribution_result_t
-memcached_distribution_get(UNUSED btree_slice_t *slice, int max_depth,
+memcached_distribution_get(int max_depth,
                            const store_key_t &left_key,
                            exptime_t, superblock_t *superblock) {
     int64_t key_count_out;

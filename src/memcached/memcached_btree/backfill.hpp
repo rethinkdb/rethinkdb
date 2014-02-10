@@ -50,8 +50,7 @@ protected:
     virtual ~backfill_callback_t() { }
 };
 
-void memcached_backfill(btree_slice_t *slice,
-                        const key_range_t& key_range,
+void memcached_backfill(const key_range_t& key_range,
                         repli_timestamp_t since_when,
                         backfill_callback_t *callback,
                         superblock_t *superblock,

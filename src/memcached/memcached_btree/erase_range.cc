@@ -7,8 +7,7 @@
 #include "memcached/memcached_btree/node.hpp"
 #include "memcached/memcached_btree/value.hpp"
 
-// RSI: Remove slice.
-void memcached_erase_range(UNUSED btree_slice_t *slice, key_tester_t *tester,
+void memcached_erase_range(key_tester_t *tester,
                            bool left_key_supplied,
                            const store_key_t& left_key_exclusive,
                            bool right_key_supplied,
@@ -32,7 +31,7 @@ void memcached_erase_range(UNUSED btree_slice_t *slice, key_tester_t *tester,
         superblock, interruptor);
 }
 
-void memcached_erase_range(btree_slice_t *slice, key_tester_t *tester,
+void memcached_erase_range(key_tester_t *tester,
                            const key_range_t &keys,
                            superblock_t *superblock, signal_t *interruptor) {
     /* This is guaranteed because the way the keys are calculated below would
@@ -46,7 +45,7 @@ void memcached_erase_range(btree_slice_t *slice, key_tester_t *tester,
     if (right_key_supplied) {
         right_inclusive.decrement();
     }
-    memcached_erase_range(slice, tester, left_key_supplied, left_exclusive,
+    memcached_erase_range(tester, left_key_supplied, left_exclusive,
                           right_key_supplied, right_inclusive, superblock,
                           interruptor);
 }
