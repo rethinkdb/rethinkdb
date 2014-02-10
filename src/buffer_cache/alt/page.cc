@@ -933,11 +933,14 @@ void page_t::add_waiter(page_acq_t *acq) {
     acq->page_cache()->evicter().change_eviction_bag(old_bag, this);
     if (buf_.has()) {
         acq->buf_ready_signal_.pulse();
-    } else if (destroy_ptr_ == NULL) {
-        rassert(block_token_.has());
+    } else if (destroy_ptr_ != NULL) {
+        // Do nothing, the page is currently being loaded.
+    } else if (block_token.has()) {
         coro_t::spawn_now_dangerously(std::bind(&page_t::load_using_block_token,
                                                 this,
                                                 acq->page_cache()));
+    } else {
+        crash("An unloaded block is not in a loadable state.");
     }
 }
 
