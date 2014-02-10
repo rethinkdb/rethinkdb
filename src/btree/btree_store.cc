@@ -875,7 +875,7 @@ void btree_store_t<protocol_t>::acquire_superblock_for_backfill(
     object_buffer_t<fifo_enforcer_sink_t::exit_read_t>::destruction_sentinel_t destroyer(token);
     wait_interruptible(token->get(), interruptor);
 
-    get_btree_superblock_and_txn_for_backfilling(cache.get(),
+    get_btree_superblock_and_txn_for_backfilling(general_cache_conn.get(),
                                                  btree->get_backfill_account(),
                                                  sb_out, txn_out);
 }
