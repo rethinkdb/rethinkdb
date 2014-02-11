@@ -23,8 +23,8 @@ init () {
     must_fetch_list='protobufjs'
     please_fetch_list="handlebars gtest re2 $must_fetch_list"
 
-    required_libs="protobuf v8 termcap re2 z"
-    optional_libs="gtest"
+    required_libs="protobuf v8 re2 z"
+    optional_libs="gtest termcap"
     other_libs="unwind tcmalloc_minimal"
     all_libs="$required_libs $optional_libs $other_libs"
     default_static="tcmalloc_minimal"
@@ -131,6 +131,7 @@ configure () {
     else
         var TCMALLOC_MINIMAL_LIBS ""
         empty_deps_lib tcmalloc_minimal
+        var HAS_TCMALLOC_MINIMAL 0
     fi
     test_protobuf
     check_boost
@@ -301,7 +302,13 @@ handlebars:Handlebars
 unwind:libunwind
 tcmalloc_minimal:Google Perf Tools library
 v8:v8 javascript engine
-protobuf:Protobuf library'
+protobuf:Protobuf library
+browserify:Browserify
+proto2js:ProtoBuf.js
+v8:V8 JavaScript Engine
+re2:RE2
+z:zlib
+gtest:Google Test'
 
 # Output of --help
 show_help () {
@@ -753,6 +760,7 @@ fetch_lib () {
     local pkg
     local version
     add_fetch "$1"
+    var "HAS_$(uc "$1")" 1
     macro "$(uc "$1")_LIBS"             "\$(SUPPORT_BUILD_DIR)/${pkg}_$version/lib/lib$1.a"
     macro "$(uc "$1")_LIBS_DEP"         "\$(SUPPORT_BUILD_DIR)/${pkg}_$version/lib/lib$1.a"
     macro "$(uc "$1")_INCLUDE" "-isystem \$(SUPPORT_BUILD_DIR)/${pkg}_$version/include"
@@ -820,7 +828,10 @@ check_lib () {
     if lookup "$force_paths" $1 path; then
         ${info}_dep $1
         check_lib_compile "$path" $1
-        $can_show && show_no "$path"
+        if $can_show; then
+            show_no "$path"
+            var HAS_$(uc $1) 0
+        fi
         return
     fi
     local check
@@ -839,6 +850,7 @@ check_lib () {
         $check $lib $1
         if ! $can_show; then
             empty_deps_lib $1
+            var HAS_$(uc $1) 0
             return
         fi
     done
@@ -846,6 +858,7 @@ check_lib () {
         fetch_lib $1
     else
         show_no "lib$1$static_info"
+        var HAS_$(uc $1) 0
     fi
 }
 
@@ -870,6 +883,7 @@ check_lib_compile () {
     if "$CXX" ${CXXFLAGS:-} ${LDFLAGS:-} ${LIB_SEARCH_PATHS:-} "$bfile.cc" $1 -o "$bfile.out" 1>"$bfile.log" 2>&1; then
         show "${1:-ok}"
         var_append $(uc $2)_LIBS "$1"
+        var HAS_$(uc $2) 1
     else
         error_details="${error_details:-}"$(cat "$bfile.log")
     fi
@@ -879,6 +893,7 @@ check_static_lib () {
     local path=$(static_lib_lookup $1)
     if [[ -n "$path" ]]; then
         var_append $(uc $2)_LIBS "$path"
+        var HAS_$(uc $2) 1
     fi
 }
 
@@ -984,6 +999,9 @@ EOF
 check_boost () {
     require "Test boost"
     check_lib_compile "" boost
+    if $can_show; then
+        show_no "boost"
+    fi
 }
 
 # pkg_name <dep>

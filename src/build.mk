@@ -266,6 +266,10 @@ ifeq ($(CORO_PROFILING),1)
   RT_CXXFLAGS += -DENABLE_CORO_PROFILER
 endif
 
+ifeq ($(HAS_TERMCAP),1)
+  RT_CXXFLAGS += -DHAS_TERMCAP
+endif
+
 RT_CXXFLAGS += -I$(PROTO_DIR)
 
 #### Finding what to build
