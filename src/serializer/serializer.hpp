@@ -124,54 +124,6 @@ private:
 };
 
 
-// The do_write interface is now obvious helper functions
-
-struct serializer_write_launched_callback_t {
-    virtual void on_write_launched(const counted_t<standard_block_token_t>& token) = 0;
-    virtual ~serializer_write_launched_callback_t() {}
-};
-struct serializer_write_t {
-    block_id_t block_id;
-
-    enum { UPDATE, DELETE, TOUCH } action_type;
-    union {
-        struct {
-            const void *buf;
-            uint32_t ser_block_size;
-            repli_timestamp_t recency;
-            iocallback_t *io_callback;
-            serializer_write_launched_callback_t *launch_callback;
-        } update;
-        struct {
-            repli_timestamp_t recency;
-        } touch;
-    } action;
-
-    static serializer_write_t make_touch(block_id_t block_id, repli_timestamp_t recency);
-    static serializer_write_t make_update(block_id_t block_id, block_size_t block_size,
-                                          repli_timestamp_t recency, const void *buf,
-                                          iocallback_t *io_callback,
-                                          serializer_write_launched_callback_t *launch_callback);
-    static serializer_write_t make_delete(block_id_t block_id);
-};
-
-/* A bad wrapper for doing block writes and index writes.
- */
-void do_writes(serializer_t *ser, const std::vector<serializer_write_t>& writes, file_account_t *io_account);
-
-
-// Helpers for default implementations that can be used on log_serializer_t.
-
-// RSI: Does anybody use this?  And the templatization here is stoopid.
-template <class serializer_type>
-void serializer_index_write(serializer_type *ser, const index_write_op_t& op, file_account_t *io_account) {
-    std::vector<index_write_op_t> ops;
-    ops.push_back(op);
-    // RSI: The caller should have to pass this.
-    fifo_enforcer_sink_t::exit_write_t dummy_exiter;
-    return ser->index_write(ops, io_account, &dummy_exiter);
-}
-
 counted_t<standard_block_token_t> serializer_block_write(serializer_t *ser, ser_buffer_t *buf,
                                                          block_size_t block_size,
                                                          block_id_t block_id, file_account_t *io_account);
