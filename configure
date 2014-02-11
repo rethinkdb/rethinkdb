@@ -52,32 +52,39 @@ configure () {
         fi
     done
     var LIB_SEARCH_PATHS $(for path in $lib_paths; do echo " -L$path"; done)
-    require "Operating System"
-    var OS $(uname)
-    require "OS Version"
+    require "Use ccache"
+    boolvar USE_CCACHE $use_ccache
+    check_cxx
+    require "Target System"
+    var MACHINE $($CXX -dumpmachine)
+    require "Host System"
     show "`uname -msr`"
-    case "$OS" in
-        Darwin)
+    require "Target Operating System"
+    case "${MACHINE#*-}" in
+        *apple-darwin*)
+            var OS "Darwin"
             with_tcmalloc=false ;
             var PTHREAD_LIBS "" ;
             var RT_LIBS "" ;;
-        Linux)
+        *linux*)
+            var OS "Linux"
             var PTHREAD_LIBS -pthread ;
             var RT_LIBS -lrt ;;
-        *) error "unsupported operating system: $OS" ;;
+        *) error "unsupported operating system: $MACHINE" ;;
+    esac
+    case "${MACHINE%%-*}" in
+        x86_64|i?86) true ;;
+        arm) final_warning="ARM support is still experimental";;
+        *) error "unsopported architecture: $MACHINE"
     esac
     var M_LIBS -lm
     require "Without tcmalloc"
     boolvar NO_TCMALLOC not $with_tcmalloc
     require "Build client drivers"
     boolvar BUILD_DRIVERS $enable_drivers
-    require "Architecture"
+    require "Host Architecture"
     var GCC_ARCH $(uname -m | grep '^[A-Za-z0-9_]*$' | head -n 1)
     var GCC_ARCH_REDUCED $(echo "$GCC_ARCH" | sed -e 's/^i[56]86$$/i486/g')
-    var DEB_ARCH $(echo "${GCC_ARCH_REDUCED:-}" | sed -e 's/^x86_64$$/amd64/g')
-    require "Use ccache"
-    boolvar USE_CCACHE $use_ccache
-    check_cxx
     if [ "$COMPILER" = CLANG ]; then
         require stdlib
         case "$OS" in
@@ -141,6 +148,9 @@ configure () {
             fetch_pkg $pkg
         fi
     done
+    if [ -n "$final_warning" ]; then
+        echo "* Warning: $final_warning"
+    fi
 }
 
 # Entry point
