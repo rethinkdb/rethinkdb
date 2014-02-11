@@ -29,6 +29,7 @@ module 'UIComponents', ->
         #       * new_value: the new desired maximum value as a result of the operation
         #       * got_response: flag indicating that the goals have been set
         #         and we're ready to start processing
+        #   - cb: callback to execute once we remove the progress bar
         render: (current_value, max_value, additional_info, cb) =>
             if current_value isnt max_value and @timeout?
                 # We are in a finished state, but current_value != max_value,
