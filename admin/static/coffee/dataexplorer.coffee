@@ -2752,8 +2752,6 @@ module 'DataExplorerView', ->
         destroy: =>
             @results_view.destroy()
             @history_view.destroy()
-            if @state.cursor?
-                @state.cursor.close()
             @driver_handler.destroy()
 
             @display_normal()
@@ -3727,7 +3725,7 @@ module 'DataExplorerView', ->
 
         close_connection: =>
             if @connection?.open is true
-                @connection.cancel()
+                @connection.close {noreplyWait: false}
                 @connection = null
 
         create_connection: (cb, id_execution) =>

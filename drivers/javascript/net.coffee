@@ -138,6 +138,7 @@ class Connection extends events.EventEmitter
             @emit 'error', new err.RqlDriverError "Unexpected token #{token}."
 
     close: (varar 0, 2, (optsOrCallback, callback) ->
+        @open = false
         if callback?
             opts = optsOrCallback
             unless Object::toString.call(opts) is '[object Object]'
@@ -157,7 +158,6 @@ class Connection extends events.EventEmitter
             throw new err.RqlDriverError "Final argument to `close` must be a callback function or object."
 
         wrappedCb = (args...) =>
-            @open = false
             if cb?
                 cb(args...)
 
@@ -436,6 +436,31 @@ class HttpConnection extends Connection
         @_url = null
         @_connId = null
         super()
+
+    close: (varar 0, 2, (optsOrCallback, callback) ->
+        if callback?
+            opts = optsOrCallback
+            cb = callback
+        else if Object::toString.call(optsOrCallback) is '[object Object]'
+            opts = optsOrCallback
+            cb = null
+        else
+            opts = {}
+            cb = optsOrCallback
+        unless not cb? or typeof cb is 'function'
+            throw new err.RqlDriverError "Final argument to `close` must be a callback function or object."
+
+        wrappedCb = (args...) =>
+            @cancel()
+            if cb?
+                cb(args...)
+
+        # This would simply be super(opts, wrappedCb), if we were not in the varar
+        # anonymous function
+        HttpConnection.__super__.close.call(this, opts, wrappedCb)
+    )
+
+
 
     write: (chunk) ->
         xhr = new XMLHttpRequest
