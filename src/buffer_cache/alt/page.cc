@@ -1419,7 +1419,7 @@ void page_cache_t::remove_txn_set_from_graph(page_cache_t *page_cache,
         }
         txn->preceders_.clear();
 
-        // RSI: Maybe we could remove pages_modified_last_ earlier?  Like when we
+        // KSI: Maybe we could remove pages_modified_last_ earlier?  Like when we
         // begin the index write? (but that's the wrong thread) Or earlier?
         for (auto jt = txn->pages_modified_last_.begin();
              jt != txn->pages_modified_last_.end();
@@ -1497,7 +1497,7 @@ void page_cache_t::do_flush_txn_set(page_cache_t *page_cache,
                     blocks_by_tokens.push_back(block_token_tstamp_t(it->first,
                                                                     true,
                                                                     counted_t<standard_block_token_t>(),
-                                                                    it->second.tstamp,  // RSI: Deleted blocks have tstamps?
+                                                                    repli_timestamp_t::invalid,
                                                                     NULL));
                 } else {
                     // RSP: We could probably free the resources of
