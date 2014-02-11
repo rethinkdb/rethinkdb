@@ -2341,7 +2341,7 @@ module 'DataExplorerView', ->
         execute_query: =>
             # We don't let people execute more than one query at a time on the same connection
             # While we remove the button run, `execute_query` could still be called with Shift+Enter
-            if @toggle_executing is true
+            if @executing is true
                 return
 
             # Hide the option, if already hidden, nothing happens.
@@ -2433,8 +2433,8 @@ module 'DataExplorerView', ->
                         if (error)
                             @error_on_connect error
                         else
-                            rdb_query.private_run {connection: connection, timeFormat: "raw", profile: @state.options.profiler}, rdb_global_callback # @rdb_global_callback can be fire more than once
-                    , @id_execution
+                            rdb_query.private_run {connection: connection, timeFormat: "raw", profile: @state.options.profiler}, rdb_global_callback # @rdb_global_callback can be fired more than once
+                    , @id_execution, @error_on_connect
 
                     return true
                 else if rdb_query instanceof DataExplorerView.DriverHandler
@@ -3728,7 +3728,7 @@ module 'DataExplorerView', ->
                 @connection.close {noreplyWait: false}
                 @connection = null
 
-        create_connection: (cb, id_execution) =>
+        create_connection: (cb, id_execution, connection_cb) =>
             that = @
             @id_execution = id_execution
 
@@ -3736,8 +3736,9 @@ module 'DataExplorerView', ->
                 ((_id_execution) =>
                     r.connect @server, (error, connection) =>
                         if _id_execution is @id_execution
+                            connection.removeAllListeners 'error' # See issue 1347
+                            connection.on 'error', connection_cb
                             @connection = connection
-                            #TODO Listen on 'error'
                             cb(error, connection)
                         else
                             connection.cancel()
