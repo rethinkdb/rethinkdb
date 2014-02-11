@@ -878,11 +878,6 @@ private:
     bool began_waiting_for_flush_;
     bool spawned_flush_;
 
-    // RSI: Actually use this somehow?
-    // Tells whether this page_txn_t, in the process of being flushed, began its
-    // index write.  If it's a read-only transaction, this remains false.
-    // bool began_index_write_ = false;  // RSI: Not compilable on all systems.
-
     // This gets pulsed when the flush is complete or when the txn has no reason to
     // exist any more.
     cond_t flush_complete_cond_;

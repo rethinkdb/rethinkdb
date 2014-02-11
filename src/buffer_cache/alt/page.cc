@@ -1520,9 +1520,9 @@ void page_cache_t::do_flush_txn_set(page_cache_t *page_cache,
                         rassert(page->destroy_ptr_ == NULL);
                         rassert(page->buf_.has());
 
-                        // RSI: Is there a page_acq_t for this buf we're writing?  Is it
+                        // KSI: Is there a page_acq_t for this buf we're writing?  Is it
                         // possible that we might be trying to do an unbacked eviction
-                        // for this page right now?
+                        // for this page right now?  (No, we don't do that yet.)
                         write_infos.push_back(buf_write_info_t(page->buf_.get(),
                                                                block_size_t::unsafe_make(page->ser_buf_size_),
                                                                it->first));
@@ -1592,28 +1592,26 @@ void page_cache_t::do_flush_txn_set(page_cache_t *page_cache,
 
         blocks_releasable_cb.wait();
 
-        // RSI: Pass in the exiter to index_write, so that
-        // subsequent index_write operations don't have to wait for one another to
-        // finish.
+        // KSI: Pass in the exiter to index_write, so that subsequent index_write
+        // operations don't have to wait for one another to finish.  (Note: Doing
+        // this requires some sort of semaphore to prevent a zillion index_writes to
+        // queue up.)
         fifo_enforcer_sink_t::exit_write_t exiter(page_cache->index_write_sink_.get(),
                                                   index_write_token);
         exiter.wait();
 
         if (!write_ops.empty()) {
-            // RSI: This blocks?  Is there any way to set the began_index_write_ fields?
-            // RSI: Does the serializer guarantee that index_write operations happen in
-            // exactly the order that they're specified in?
             page_cache->serializer_->index_write(write_ops,
                                                  page_cache->writes_io_account_.get());
         }
     }
 
-    // Set the page_t's block token field to their new block tokens.  RSI: Can we
+    // Set the page_t's block token field to their new block tokens.  KSI: Can we
     // do this earlier?  Do we have to wait for blocks_releasable_cb?  It doesn't
     // matter that much as long as we have some way to prevent parallel forced
-    // eviction from happening, though.
+    // eviction from happening, though.  (That doesn't happen yet.)
 
-    // RSI: We could pass these block tokens as a message back to the cache thread
+    // KSI: We could pass these block tokens as a message back to the cache thread
     // and set them earlier -- at least we could after blocks_releasable_cb.wait()
     // and before the index_write.
     for (auto it = blocks_by_tokens.begin(); it != blocks_by_tokens.end(); ++it) {
@@ -1621,7 +1619,7 @@ void page_cache_t::do_flush_txn_set(page_cache_t *page_cache,
             // We know page is still a valid pointer because of the page_ptr_t in
             // snapshotted_dirtied_pages_.
 
-            // RSI: This assertion would fail if we try to force-evict the page
+            // KSI: This assertion would fail if we try to force-evict the page
             // simultaneously as this write.
             rassert(!it->page->block_token_.has());
             eviction_bag_t *old_bag
@@ -1632,10 +1630,6 @@ void page_cache_t::do_flush_txn_set(page_cache_t *page_cache,
     }
 
     // Flush complete, and we're back on the page cache's thread.
-
-    // RSI: connect_preceder uses flush_complete_cond_ to see whether it should
-    // connect.  It should probably use began_index_write_, when that variable
-    // exists?? We had some comment about that?  Or it should use something else?
 
     page_cache_t::remove_txn_set_from_graph(page_cache, txns);
 }
@@ -1684,7 +1678,6 @@ void page_cache_t::im_waiting_for_flush(page_txn_t *txn) {
     assert_thread();
     rassert(txn->began_waiting_for_flush_);
     rassert(!txn->spawned_flush_);
-    // rassert(!txn->began_index_write_);  // RSI: This variable doesn't exist.
     rassert(txn->live_acqs_.empty());
 
     // We have a new node that's waiting for flush.  Before this node is flushed, we
