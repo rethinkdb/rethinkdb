@@ -526,7 +526,7 @@ private:
 
     void inform_tracker() const;
 
-    // RSI: Implement issue 97.
+    // LSI: Implement issue 97.
     memory_tracker_t *const tracker_;
     uint64_t memory_limit_;
 
@@ -785,7 +785,7 @@ public:
 // Right now, situation '(a)' doesn't happen because transactions do greedily keep
 // their copies of the block.
 //
-// RSI: Make situation '(a)' happenable.
+// LSI: Make situation '(a)' happenable.
 class page_txn_t {
 public:
     // Our transaction has to get committed to disk _after_ or at the same time as
