@@ -525,7 +525,7 @@ module 'ResolveIssuesView', ->
                                     datacenter_name: (datacenter_name if datacenter_name?)
                                     num_replicas_requested: num_replicas_requested
 
-                        # Let's add universe at the beginning
+                        # Let's add universe at the beginning of the list of datacenters that require some replicas
                         num_replicas_universe_request = @model.get('replica_affinities')[universe_datacenter.get('id')]
                         if @model.get('primary_datacenter') is universe_datacenter.get('id')
                             num_replicas_universe_request += 1

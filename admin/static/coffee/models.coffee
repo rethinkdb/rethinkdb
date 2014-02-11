@@ -884,6 +884,7 @@ module 'DataUtils', ->
             nreplicas: 0
             nashards: 0 # Number of available shards
             nareplicas: 0 # Number of available replicas
+            reachability: 'Live' # 'Live' if we can write on the table, 'Down' if we can't
 
         # If we can't see the namespace...
         if not namespace?
@@ -922,11 +923,10 @@ module 'DataUtils', ->
         json.nmachines = _.uniq(_machines).length
         json.ndatacenters = _.uniq(_datacenters).length
 
-        json.reachability = 'Live'
         directory_by_namespaces = DataUtils.get_directory_activities_by_namespaces()
 
-        _shard_required = {} # -> datacenter -> count
-        _shard_has_master = {}
+        _shard_required = {} # Hashmap shard -> datacenter -> number of required replicas 
+        _shard_has_master = {} # Hashmap shard -> datacenter -> has a master available and ready
 
         for shard in namespace.get('shards')
             _shard_required[shard] = {}
@@ -936,7 +936,10 @@ module 'DataUtils', ->
             for shard of _shard_required
                 _shard_required[shard][datacenter] = value.expectation
 
-        # New check -- We still have to check the blueprints in case the directory and blueprint don't match
+        # Checking blueprint (goals) vs directory (real state of the cluster)
+        # For each shard assignments, we are going to
+        #     - Make sure there is a master
+        #     - Decrement the number of remaining ack we need to be available (per shard)
         blueprint = namespace.get('blueprint').peers_roles
         for machine_id of blueprint
             if json.reachability isnt 'Live'
@@ -953,7 +956,7 @@ module 'DataUtils', ->
                 if json.reachability isnt 'Live'
                     break
 
-                if role is "role_primary"
+                if role is "role_primary" # This machine is the master for the current shard
                     if directory_by_namespaces?[namespace.get('id')]?[machine_id]?[shard] is "primary"
                         _shard_has_master[shard] = true
                         
@@ -962,23 +965,36 @@ module 'DataUtils', ->
                         _shard_required[shard]?[datacenter_id] -= 1
                     else
                         json.reachability = 'Down'
-                else if role is "role_secondary"
+                else if role is "role_secondary" # This machine is a secondary for the current shard
                     if directory_by_namespaces?[namespace.get('id')]?[machine_id]?[shard] is "secondary_up_to_date"
                         # The shard can be defined in shards but not in the blueprint if there were not yet reprinted
                         if not _shard_required[shard]?[datacenter_id]?
                             _shard_required[shard]?[datacenter_id] = 0
                         _shard_required[shard]?[datacenter_id] -= 1
 
+        # By default we consider a machine to hold a replica because of a per datacenter requirement
+        # If a datacenter has more responsability than required, it's because some of these machines
+        # are working for the whole cluster (universe), so we nove them to universe
         for shard of _shard_required
             for datacenter of _shard_required[shard]
                 if _shard_required[shard][datacenter] < 0
                     _shard_required[shard][universe_datacenter.get('id')] += _shard_required[shard][datacenter]
                     _shard_required[shard][datacenter] = 0
 
-        for shard of _shard_required
-            for datacenter of _shard_required[shard]
-                if _shard_required[shard][datacenter] > 0
+
+        # Make sure that all shards have a master
+        if json.reachability = 'Live'
+            for shard of _shard_has_master
+                if _shard_has_master[shard] is false
                     json.reachability = 'Down'
+                    break
+
+        # Make sure that all shards have enough replica to satisfy a write
+        if json.reachability = 'Live'
+            for shard of _shard_required
+                for datacenter of _shard_required[shard]
+                    if _shard_required[shard][datacenter] > 0
+                        json.reachability = 'Down'
                     break
 
         return json
