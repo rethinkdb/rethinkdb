@@ -4,12 +4,11 @@
 
 #include <vector>
 
-#include "errors.hpp"
+#include "utils.hpp"
 #include <boost/optional.hpp>
 
 #include "arch/types.hpp"
 #include "concurrency/cond_var.hpp"
-#include "concurrency/fifo_enforcer.hpp"
 #include "containers/segmented_vector.hpp"
 #include "repli_timestamp.hpp"
 #include "serializer/types.hpp"
@@ -103,9 +102,7 @@ public:
     virtual counted_t<standard_block_token_t> index_read(block_id_t block_id) = 0;
 
     /* index_write() applies all given index operations in an atomic way */
-    virtual void index_write(const std::vector<index_write_op_t>& write_ops,
-                             file_account_t *io_account,
-                             fifo_enforcer_sink_t::exit_write_t *exiter) = 0;
+    virtual void index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_account) = 0;
 
     // Returns block tokens in the same order as write_infos.
     virtual std::vector<counted_t<standard_block_token_t> >

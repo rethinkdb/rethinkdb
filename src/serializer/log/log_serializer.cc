@@ -240,7 +240,7 @@ struct ls_start_existing_fsm_t :
             ser->metablock_manager = new mb_manager_t(ser->extent_manager);
             ser->lba_index = new lba_list_t(ser->extent_manager,
                     std::bind(&log_serializer_t::write_metablock, ser,
-                              ph::_1, ph::_2, ph::_3));
+                              std::placeholders::_1, std::placeholders::_2));
             ser->data_block_manager = new data_block_manager_t(&ser->dynamic_config, ser->extent_manager, ser, &ser->static_config, ser->stats.get());
 
             // STATE E
@@ -453,9 +453,7 @@ get_ls_block_token(const counted_t<scs_block_token_t<log_serializer_t> >& tok) {
 #endif  // SEMANTIC_SERIALIZER_CHECK
 
 
-void log_serializer_t::index_write(const std::vector<index_write_op_t> &write_ops,
-                                   file_account_t *io_account,
-                                   fifo_enforcer_sink_t::exit_write_t *exiter) {
+void log_serializer_t::index_write(const std::vector<index_write_op_t> &write_ops, file_account_t *io_account) {
     assert_thread();
     ticks_t pm_time;
     stats->pm_serializer_index_writes.begin(&pm_time);
@@ -509,7 +507,7 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t> &write_op
         }
     }
 
-    index_write_finish(&txn, io_account, exiter);
+    index_write_finish(&txn, io_account);
 
     stats->pm_serializer_index_writes.end(&pm_time);
 }
@@ -525,9 +523,7 @@ void log_serializer_t::index_write_prepare(extent_transaction_t *txn) {
     extent_manager->begin_transaction(txn);
 }
 
-void log_serializer_t::index_write_finish(extent_transaction_t *txn,
-                                          file_account_t *io_account,
-                                          fifo_enforcer_sink_t::exit_write_t *exiter) {
+void log_serializer_t::index_write_finish(extent_transaction_t *txn, file_account_t *io_account) {
     /* Sync the LBA */
     struct : public cond_t, public lba_list_t::sync_callback_t {
         void on_lba_sync() { pulse(); }
@@ -539,7 +535,7 @@ void log_serializer_t::index_write_finish(extent_transaction_t *txn,
     extent_manager->end_transaction(txn);
 
     /* Write the metablock */
-    write_metablock(on_lba_sync, io_account, exiter);
+    write_metablock(on_lba_sync, io_account);
 
     active_write_count--;
 
@@ -561,8 +557,7 @@ void log_serializer_t::index_write_finish(extent_transaction_t *txn,
 }
 
 void log_serializer_t::write_metablock(const signal_t &safe_to_write_cond,
-                                       file_account_t *io_account,
-                                       fifo_enforcer_sink_t::exit_write_t *exiter) {
+                                       file_account_t *io_account) {
     assert_thread();
     metablock_t mb_buffer;
 
@@ -576,11 +571,6 @@ void log_serializer_t::write_metablock(const signal_t &safe_to_write_cond,
     cond_t on_prev_write_submitted_metablock;
     metablock_waiter_queue.push_back(&on_prev_write_submitted_metablock);
 
-    /* We're now in line, so another index_write (from the same cache) may now
-       happen. */
-    exiter->reset();
-
-    /* Now wait for our turn to write a metablock. */
     safe_to_write_cond.wait();
     if (waiting_for_prev_write) on_prev_write_submitted_metablock.wait();
     guarantee(metablock_waiter_queue.front() == &on_prev_write_submitted_metablock);

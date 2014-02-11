@@ -75,8 +75,7 @@ void delete_contiguous_blocks_from_0(serializer_t *serializer) {
             deletes.push_back(index_write_op_t(i,
                                                counted_t<standard_block_token_t>()));
         }
-        fifo_enforcer_sink_t::exit_write_t dummy_exiter;
-        serializer->index_write(deletes, account.get(), &dummy_exiter);
+        serializer->index_write(deletes, account.get());
     }
 }
 

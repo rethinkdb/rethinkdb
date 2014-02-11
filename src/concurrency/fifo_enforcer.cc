@@ -116,12 +116,6 @@ void fifo_enforcer_sink_t::exit_write_t::begin(fifo_enforcer_sink_t *p, fifo_enf
     parent->internal_pump();
 }
 
-void fifo_enforcer_sink_t::exit_write_t::reset() {
-    if (parent && !ended) {
-        end();
-    }
-}
-
 void fifo_enforcer_sink_t::exit_write_t::end() THROWS_NOTHING {
     rassert(parent && !ended);
     mutex_assertion_t::acq_t acq(&parent->internal_lock);
@@ -156,7 +150,9 @@ void fifo_enforcer_sink_t::exit_write_t::end() THROWS_NOTHING {
 }
 
 fifo_enforcer_sink_t::exit_write_t::~exit_write_t() THROWS_NOTHING {
-    reset();
+    if (parent && !ended) {
+        end();
+    }
 }
 
 fifo_enforcer_sink_t::~fifo_enforcer_sink_t() THROWS_NOTHING {

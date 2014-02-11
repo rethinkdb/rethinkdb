@@ -86,8 +86,7 @@ public:
     /* index_write() applies all given index operations in an atomic way */
     /* This is where merger_serializer_t merges operations */
     void index_write(const std::vector<index_write_op_t> &write_ops,
-                     file_account_t *io_account,
-                     fifo_enforcer_sink_t::exit_write_t *exiter);
+                     file_account_t *io_account);
 
     // Returns block tokens in the same order as write_infos.
     std::vector<counted_t<standard_block_token_t> >

@@ -369,8 +369,7 @@ void lba_list_t::gc(int lba_shard, auto_drainer_t::lock_t) {
 
     // Write a new metablock once the LBA has synced. We have to do this before
     // we can commit the extent_manager transactions.
-    fifo_enforcer_sink_t::exit_write_t dummy_exiter;
-    write_metablock_fun(on_lba_sync, gc_io_account.get(), &dummy_exiter);
+    write_metablock_fun(on_lba_sync, gc_io_account.get());
 
     // Commit all extent transactions. From that point on the data of extents
     // we have deleted can be overwritten.
