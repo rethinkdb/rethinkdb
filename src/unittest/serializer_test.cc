@@ -59,15 +59,19 @@ void run_AddDeleteRepeatedly(bool perform_index_write) {
             // Do an index write creating the block.
             {
                 std::vector<index_write_op_t> write_ops;
-                write_ops.push_back(index_write_op_t(block_id, tokens[0], repli_timestamp_t::distant_past));
-                ser.index_write(write_ops, account.get());
+                write_ops.push_back(index_write_op_t(block_id, tokens[0],
+                                                     repli_timestamp_t::distant_past));
+                fifo_enforcer_sink_t::exit_write_t dummy_exiter;
+                ser.index_write(write_ops, account.get(), &dummy_exiter);
             }
             // Now delete the only block token and delete the index reference.
             tokens.clear();
             {
                 std::vector<index_write_op_t> write_ops;
-                write_ops.push_back(index_write_op_t(block_id, counted_t<standard_block_token_t>()));
-                ser.index_write(write_ops, account.get());
+                write_ops.push_back(index_write_op_t(block_id,
+                                                     counted_t<standard_block_token_t>()));
+                fifo_enforcer_sink_t::exit_write_t dummy_exiter;
+                ser.index_write(write_ops, account.get(), &dummy_exiter);
             }
 
         } else {

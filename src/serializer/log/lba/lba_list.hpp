@@ -21,7 +21,8 @@ class lba_list_t
     friend class lba_start_fsm_t;
     friend class lba_syncer_t;
 
-    typedef std::function<void(const signal_t &, file_account_t *)> write_metablock_fun_t;
+    typedef std::function<void(const signal_t &, file_account_t *,
+                               fifo_enforcer_sink_t::exit_write_t *)> write_metablock_fun_t;
 
 public:
     typedef lba_metablock_mixin_t metablock_mixin_t;

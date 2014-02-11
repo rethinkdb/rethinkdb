@@ -208,6 +208,7 @@ public:
 
         void begin(fifo_enforcer_sink_t *, fifo_enforcer_write_token_t) THROWS_NOTHING;
         void end() THROWS_NOTHING;
+        void reset();
 
     private:
         fifo_enforcer_write_token_t get_token() const {

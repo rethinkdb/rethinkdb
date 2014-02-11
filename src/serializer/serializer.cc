@@ -54,6 +54,7 @@ ser_buffer_t *convert_buffer_cache_buf_to_ser_buffer(const void *buf) {
     return static_cast<ser_buffer_t *>(const_cast<void *>(buf)) - 1;
 }
 
+// RSI: Does anybody use this function?
 void do_writes(serializer_t *ser, const std::vector<serializer_write_t> &writes, file_account_t *io_account) {
     ser->assert_thread();
     std::vector<index_write_op_t> index_write_ops;
@@ -129,7 +130,8 @@ void do_writes(serializer_t *ser, const std::vector<serializer_write_t> &writes,
     }
 
     // Step 3: Commit the transaction to the serializer
-    ser->index_write(index_write_ops, io_account);
+    fifo_enforcer_sink_t::exit_write_t dummy_exiter;  // RSI
+    ser->index_write(index_write_ops, io_account, &dummy_exiter);
 }
 
 counted_t<standard_block_token_t> serializer_block_write(serializer_t *ser, ser_buffer_t *buf,

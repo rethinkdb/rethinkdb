@@ -25,8 +25,10 @@ merger_serializer_t::~merger_serializer_t() {
     rassert(outstanding_index_write_ops.empty());
 }
 
+// RSI: This implementation doesn't use exiter yet.
 void merger_serializer_t::index_write(const std::vector<index_write_op_t> &write_ops,
-                                      file_account_t *) {
+                                      file_account_t *,
+                                      UNUSED fifo_enforcer_sink_t::exit_write_t *exiter) {
     rassert(coro_t::self() != NULL);
     assert_thread();
 
@@ -79,7 +81,8 @@ void merger_serializer_t::do_index_write() {
         write_complete.swap(on_inner_index_write_complete);
     }
 
-    inner->index_write(write_ops, index_writes_io_account.get());
+    fifo_enforcer_sink_t::exit_write_t dummy_exiter;  // RSI
+    inner->index_write(write_ops, index_writes_io_account.get(), &dummy_exiter);
 
     write_complete->pulse();
 

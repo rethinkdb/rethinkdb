@@ -4,11 +4,12 @@
 
 #include <vector>
 
-#include "utils.hpp"
+#include "errors.hpp"
 #include <boost/optional.hpp>
 
 #include "arch/types.hpp"
 #include "concurrency/cond_var.hpp"
+#include "concurrency/fifo_enforcer.hpp"
 #include "containers/segmented_vector.hpp"
 #include "repli_timestamp.hpp"
 #include "serializer/types.hpp"
@@ -102,7 +103,9 @@ public:
     virtual counted_t<standard_block_token_t> index_read(block_id_t block_id) = 0;
 
     /* index_write() applies all given index operations in an atomic way */
-    virtual void index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_account) = 0;
+    virtual void index_write(const std::vector<index_write_op_t>& write_ops,
+                             file_account_t *io_account,
+                             fifo_enforcer_sink_t::exit_write_t *exiter) = 0;
 
     // Returns block tokens in the same order as write_infos.
     virtual std::vector<counted_t<standard_block_token_t> >
@@ -159,11 +162,14 @@ void do_writes(serializer_t *ser, const std::vector<serializer_write_t>& writes,
 
 // Helpers for default implementations that can be used on log_serializer_t.
 
+// RSI: Does anybody use this?  And the templatization here is stoopid.
 template <class serializer_type>
 void serializer_index_write(serializer_type *ser, const index_write_op_t& op, file_account_t *io_account) {
     std::vector<index_write_op_t> ops;
     ops.push_back(op);
-    return ser->index_write(ops, io_account);
+    // RSI: The caller should have to pass this.
+    fifo_enforcer_sink_t::exit_write_t dummy_exiter;
+    return ser->index_write(ops, io_account, &dummy_exiter);
 }
 
 counted_t<standard_block_token_t> serializer_block_write(serializer_t *ser, ser_buffer_t *buf,

@@ -155,7 +155,11 @@ public:
 
     void block_read(const counted_t<ls_block_token_pointee_t> &token, ser_buffer_t *buf, file_account_t *io_account);
 
-    void index_write(const std::vector<index_write_op_t> &write_ops, file_account_t *io_account);
+    // Calls exiter->reset() once a subsequent index_write call is guaranteed to happen
+    // after ours.
+    void index_write(const std::vector<index_write_op_t> &write_ops,
+                     file_account_t *io_account,
+                     fifo_enforcer_sink_t::exit_write_t *exiter);
 
     std::vector<counted_t<ls_block_token_pointee_t> > block_writes(const std::vector<buf_write_info_t> &write_infos,
                                                                    file_account_t *io_account, iocallback_t *cb);
@@ -180,8 +184,11 @@ private:
 
     /* Starts a new transaction, updates perfmons etc. */
     void index_write_prepare(extent_transaction_t *txn);
-    /* Finishes a write transaction */
-    void index_write_finish(extent_transaction_t *txn, file_account_t *io_account);
+    /* Finishes a write transaction, calling exiter->reset() as soon as subsequent
+       callers would be guaranteed to have their write transactions finish after
+       ours. */
+    void index_write_finish(extent_transaction_t *txn, file_account_t *io_account,
+                            fifo_enforcer_sink_t::exit_write_t *exiter);
 
     /* This mess is because the serializer is still mostly FSM-based */
     bool shutdown(cond_t *cb);
@@ -191,9 +198,14 @@ private:
 
     /* Prepare a new metablock, then wait until safe_to_write_cond is pulsed.
     Finally write the new metablock to disk. Returns once the write is complete.
-    This function writes the metablock in the state that it has when called, i.e.
-    it does not block between calling and preparing the new metablock. */
-    void write_metablock(const signal_t &safe_to_write_cond, file_account_t *io_account);
+    This function writes the metablock in the state that it has when called, i.e.  it
+    does not block between calling and preparing the new metablock.  Calls
+    exiter->reset() once a subsequent call to write_metablock would be guaranteed to
+    write its metablock after we write ours. */
+    // RSI: Make safe_to_write_cond be a pointer.
+    void write_metablock(const signal_t &safe_to_write_cond,
+                         file_account_t *io_account,
+                         fifo_enforcer_sink_t::exit_write_t *exiter);
 
     typedef log_serializer_metablock_t metablock_t;
     void prepare_metablock(metablock_t *mb_buffer);
