@@ -109,8 +109,8 @@ define support_include_rules
 # Install the include files for a given package
 .PHONY: support-include-$2 support-include-$2_$3
 .PRECIOUS: $3
-support-include-$2: support-include-$2_$3
-support-include-$2_% $(subst _$3/,_%/,$1): | $(SUPPORT_SRC_DIR)/$2_$3
+install-include-$2: install-include-$2_$3
+install-include-$2_% $(subst _$3/,_%/,$1): | $(SUPPORT_SRC_DIR)/$2_$3
 	$$P INSTALL-INCLUDE $2_$3
 	$(PKG_RECURSIVE_MARKER)$$(PKG_SCRIPT) install-include $2 \
 	  $$(call SUPPORT_LOG_REDIRECT, $$(SUPPORT_LOG_DIR)/$2_$3_install-include.log)

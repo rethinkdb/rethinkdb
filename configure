@@ -130,8 +130,7 @@ configure () {
         check_lib tcmalloc_minimal require
     else
         var TCMALLOC_MINIMAL_LIBS ""
-        empty_deps_lib tcmalloc_minimal
-        var HAS_TCMALLOC_MINIMAL 0
+        empty_deps_lib tcmalloc_minimal false
     fi
     test_protobuf
     check_boost
@@ -830,7 +829,7 @@ check_lib () {
         check_lib_compile "$path" $1
         if $can_show; then
             show_no "$path"
-            var HAS_$(uc $1) 0
+            empty_deps_lib $1 false
         fi
         return
     fi
@@ -849,8 +848,7 @@ check_lib () {
     for lib in $1 $aliases; do
         $check $lib $1
         if ! $can_show; then
-            empty_deps_lib $1
-            var HAS_$(uc $1) 0
+            empty_deps_lib $1 true
             return
         fi
     done
@@ -858,11 +856,17 @@ check_lib () {
         fetch_lib $1
     else
         show_no "lib$1$static_info"
-        var HAS_$(uc $1) 0
+        empty_deps_lib $1 false
     fi
 }
 
 empty_deps_lib () {
+    if ! "$2"; then
+        var "HAS_$(uc $1)" 0
+        var "$(uc $1)_LIBS" ""
+    else
+        var "HAS_$(uc $1)" 1
+    fi
     var "$(uc $1)_INCLUDE" ""
     var "$(uc $1)_INCLUDE_DEP" ""
     var "$(uc $1)_LIBS_DEP" ""
@@ -1000,7 +1004,13 @@ check_boost () {
     require "Test boost"
     check_lib_compile "" boost
     if $can_show; then
-        show_no "boost"
+        if fetch_allowed boost; then
+            fetch_lib boost
+        else
+            show_no "boost"
+        fi
+    else
+        empty_deps_lib boost true
     fi
 }
 
