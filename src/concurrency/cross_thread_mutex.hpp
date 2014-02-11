@@ -38,8 +38,10 @@ public:
 
     cross_thread_mutex_t() : locked(false) { }
     ~cross_thread_mutex_t() {
+#ifndef NDEBUG
         spinlock_acq_t acq(&spinlock);
         rassert(!locked);
+#endif
     }
 
     bool is_locked() {
