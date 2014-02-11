@@ -1603,9 +1603,10 @@ void page_cache_t::do_flush_txn_set(page_cache_t *page_cache,
             // RSI: This blocks?  Is there any way to set the began_index_write_ fields?
             // RSI: Does the serializer guarantee that index_write operations happen in
             // exactly the order that they're specified in?
+            fifo_enforcer_sink_t::exit_write_t dummy_exiter;  // RSI
             page_cache->serializer_->index_write(write_ops,
                                                  page_cache->writes_io_account_.get(),
-                                                 &exiter);
+                                                 &dummy_exiter);
         }
     }
 
