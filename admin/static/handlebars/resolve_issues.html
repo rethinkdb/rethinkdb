@@ -12,10 +12,6 @@
 <script id="declare_machine_dead-modal-template" type="text/x-handlebars-template">
     <div class="alert alert-error error_answer"></div>
 
-    <div class="alert alert-error displayed_alert">
-        <strong>Warning:</strong> Removing this server will destroy its
-        data, proceed with caution.
-    </div>
 
     <p><strong>This server is currently unreachable</strong></p>
 
@@ -37,6 +33,12 @@
         <h3>
             Are you sure you want to permanently remove <strong>{{machine_name}}</strong>?
         </h3>
+
+        <div class="alert alert-error displayed_alert">
+            <strong>Warning:</strong> Removing this server will destroy its
+            data, proceed with caution.
+        </div>
+
 
         <p>
             <input class="xlarge large_input verification" name="name"
