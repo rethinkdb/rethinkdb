@@ -311,13 +311,13 @@ class RqlQuery(object):
     def __getitem__(self, index):
         if isinstance(index, slice):
             if index.stop:
-                return Slice(self, index.start or 0, index.stop)
+                return Slice(self, index.start or 0, index.stop, bracket_operator=True)
             else:
-                return Slice(self, index.start or 0, -1, right_bound='closed')
+                return Slice(self, index.start or 0, -1, right_bound='closed', bracket_operator=True)
         elif isinstance(index, int):
-            return Nth(self, index)
+            return Nth(self, index, bracket_operator=True)
         elif isinstance(index, types.StringTypes):
-            return GetField(self, index)
+            return GetField(self, index, bracket_operator=True)
         elif isinstance(index, RqlQuery):
             raise RqlDriverError(
                 "Bracket operator called with a ReQL expression parameter.\n"+
@@ -545,6 +545,24 @@ class RqlMethodQuery(RqlQuery):
         restargs = T(*restargs, intsp=', ')
 
         return T(args[0], '.', self.st, '(', restargs, ')')
+
+class RqlBracketQuery(RqlMethodQuery):
+    def __init__(self, *args, **optargs):
+        if 'bracket_operator' in optargs:
+            self.bracket_operator = optargs['bracket_operator']
+            del optargs['bracket_operator']
+        else:
+            self.bracket_operator = False
+
+        RqlMethodQuery.__init__(self, *args, **optargs)
+
+    def compose(self, args, optargs):
+        if self.bracket_operator:
+            if needs_wrap(self.args[0]):
+                args[0] = T('r.expr(', args[0], ')')
+            return T(args[0], '[', T(*args[1:], intsp=[',']), ']')
+        else:
+            return RqlMethodQuery.compose(self, args, optargs)
 
 class RqlTzinfo(datetime.tzinfo):
 
@@ -808,11 +826,18 @@ class SetDifference(RqlMethodQuery):
     tt = p.Term.SET_DIFFERENCE
     st = "set_difference"
 
-class Slice(RqlQuery):
+class Slice(RqlBracketQuery):
     tt = p.Term.SLICE
+    st = 'slice'
 
+    # Slice has a special bracket syntax, implemented here
     def compose(self, args, optargs):
-        return T(args[0], '[', args[1], ':', args[2], ']')
+        if self.bracket_operator:
+            if needs_wrap(self.args[0]):
+                args[0] = T('r.expr(', args[0], ')')
+            return T(args[0], '[', args[1], ':', args[2], ']')
+        else:
+            return RqlBracketQuery.compose(self, args, optargs)
 
 class Skip(RqlMethodQuery):
     tt = p.Term.SKIP
@@ -822,11 +847,9 @@ class Limit(RqlMethodQuery):
     tt = p.Term.LIMIT
     st = 'limit'
 
-class GetField(RqlQuery):
+class GetField(RqlBracketQuery):
     tt = p.Term.GET_FIELD
-
-    def compose(self, args, optargs):
-        return T(args[0], '[', args[1], ']')
+    st = 'get_field'
 
 class Contains(RqlMethodQuery):
     tt = p.Term.CONTAINS
@@ -972,11 +995,9 @@ class Union(RqlMethodQuery):
     tt = p.Term.UNION
     st = 'union'
 
-class Nth(RqlQuery):
+class Nth(RqlBracketQuery):
     tt = p.Term.NTH
-
-    def compose(self, args, optargs):
-        return T(args[0], '[', args[1], ']')
+    st = 'nth'
 
 class Match(RqlMethodQuery):
     tt = p.Term.MATCH
