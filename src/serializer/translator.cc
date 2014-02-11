@@ -26,6 +26,22 @@ int compute_mod_count(int32_t file_number, int32_t n_files, int32_t n_slices) {
     return n_slices / n_files + (n_slices % n_files > file_number);
 }
 
+counted_t<standard_block_token_t> serializer_block_write(serializer_t *ser, ser_buffer_t *buf,
+                                                         block_size_t block_size,
+                                                         block_id_t block_id, file_account_t *io_account) {
+    struct : public cond_t, public iocallback_t {
+        void on_io_complete() { pulse(); }
+    } cb;
+
+    std::vector<counted_t<standard_block_token_t> > tokens
+        = ser->block_writes({ buf_write_info_t(buf, block_size, block_id) },
+                            io_account, &cb);
+    guarantee(tokens.size() == 1);
+    cb.wait();
+    return tokens[0];
+
+}
+
 void prep_serializer(
         const std::vector<serializer_t *>& serializers,
         creation_timestamp_t creation_timestamp,

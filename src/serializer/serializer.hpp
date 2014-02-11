@@ -124,8 +124,4 @@ private:
 };
 
 
-counted_t<standard_block_token_t> serializer_block_write(serializer_t *ser, ser_buffer_t *buf,
-                                                         block_size_t block_size,
-                                                         block_id_t block_id, file_account_t *io_account);
-
 #endif /* SERIALIZER_SERIALIZER_HPP_ */
