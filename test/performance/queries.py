@@ -63,11 +63,11 @@ table_queries = [
         "tag": "filter_string_5"
     },
     {
-        "query": "r.db('test').table(table['name']).inner_join(r.db('test').table(table['name']), lambda left, right: left['id'] == right['id'])",
+        "query": "r.db('test').table(table['name']).limit(100).inner_join(r.db('test').table(table['name']), lambda left, right: left['id'] == right['id'])",
         "tag": "inner_join"
     },
     {
-        "query": "r.db('test').table(table['name']).outer_join(r.db('test').table(table['name']), lambda left, right: left['id'] == right['id'])",
+        "query": "r.db('test').table(table['name']).limit(100).outer_join(r.db('test').table(table['name']), lambda left, right: left['id'] == right['id'])",
         "tag": "outer_join"
     },
     {
@@ -99,7 +99,7 @@ table_queries = [
         "tag": "concat_map_array_str"
     },
     {
-        "query": "r.db('test').table(table['name']).order_by(r.row['id'])",
+        "query": "r.db('test').table(table['name']).limit(90000).order_by(r.row['id'])",
         "tag": "order_by_id"
     },
     {
@@ -168,18 +168,18 @@ constant_queries = [
     "r.expr([0, 1, 2, 3, 4, 5])",
     "r.expr({'a': 'aaaaa', 'b': 'bbbbb', 'c': 'ccccc'})",
     "r.expr({'a': 'aaaaa', 'b': 'bbbbb', 'c': 'ccccc'}).keys()",
-    "r.expr({'a': 'aaaaa', 'c': 'ccccc', 'b': 'bbbbb', 'e': 'eeeee', 'd': 'ddddd', 'g': 'ggggg', 'f': 'fffff', 'i': 'iiiii', 'h': 'hhhhh', 'k': 'kkkkk', 'j': 'jjjjj', 'm': 'mmmmm', 'l': 'lllll', 'o': 'ooooo', 'n': 'nnnnn', 'q': 'qqqqq', 'p': 'ppppp', 's': 'sssss', 'r': 'rrrrr', 'u': 'uuuuu', 't': 'ttttt', 'w': 'wwwww', 'v': 'vvvvv', 'y': 'yyyyy', 'x': 'xxxxx', 'z': 'zzzzz'}).keys()",
-    "r.expr([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]).insert_at(0, 100)",
-    "r.expr([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]).insert_at(10, 100)",
-    "r.expr([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]).insert_at(20, 100)",
-    "r.expr([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]).insert_at(20, 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')",
-    "r.expr([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]).delete_at(0)",
-    "r.expr([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]).delete_at(10)",
-    "r.expr([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]).delete_at(19)",
-    "r.expr([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]).delete_at(5, 15)",
-    "r.expr([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]).change_at(0, 999)",
-    "r.expr([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]).change_at(10, 999)",
-    "r.expr([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]).change_at(19, 999)",
+    {"query": "r.expr({'a': 'aaaaa', 'c': 'ccccc', 'b': 'bbbbb', 'e': 'eeeee', 'd': 'ddddd', 'g': 'ggggg', 'f': 'fffff', 'i': 'iiiii', 'h': 'hhhhh', 'k': 'kkkkk', 'j': 'jjjjj', 'm': 'mmmmm', 'l': 'lllll', 'o': 'ooooo', 'n': 'nnnnn', 'q': 'qqqqq', 'p': 'ppppp', 's': 'sssss', 'r': 'rrrrr', 'u': 'uuuuu', 't': 'ttttt', 'w': 'wwwww', 'v': 'vvvvv', 'y': 'yyyyy', 'x': 'xxxxx', 'z': 'zzzzz'}).keys()", "tag": "keys for big object"},
+    {"query": "r.expr([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]).insert_at(0, 100)", "tag": "insert_at start"},
+    {"query": "r.expr([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]).insert_at(10, 100)", "tag": "insert_at middle"},
+    {"query": "r.expr([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]).insert_at(20, 100)", "tag": "insert_at end"},
+    {"query": "r.expr([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]).insert_at(20, 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')", "tag": "insert_at long string"},
+    {"query": "r.expr([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]).delete_at(0)", "tag": "delet_at start"},
+    {"query": "r.expr([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]).delete_at(10)", "tag": "delete_at middle"},
+    {"query": "r.expr([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]).delete_at(19)", "tag": "delete_at end"},
+    {"query": "r.expr([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]).delete_at(5, 15)", "tag": "delete_at range"},
+    {"query": "r.expr([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]).change_at(0, 999)", "tag": "change_at start"},
+    {"query": "r.expr([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]).change_at(10, 999)", "tag": "change_at middle"},
+    {"query": "r.expr([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]).change_at(19, 999)", "tag": "change_at end"},
     {
         "query": "r.expr([0, 1, 2, 3, 4, 5])[1:3]",
         "tag": "slice"
@@ -229,8 +229,8 @@ constant_queries = [
     "r.iso8601('1986-11-03T08:30:00-07:00')",
     "r.now().in_timezone('-08:00')",
     "r.now().in_timezone('-08:00').timezone()",
-    "r.now().during(r.time(2013, 12, 1, 'Z'), r.time(2015, 12, 10, 'Z'))",
-    "r.now().during(r.time(2013, 12, 1, 'Z'), r.time(2013, 12, 10, 'Z'))",
+    {"query": "r.now().during(r.time(2013, 12, 1, 'Z'), r.time(2015, 12, 10, 'Z'))", "tag": "during false"},
+    {"query": "r.now().during(r.time(2013, 12, 1, 'Z'), r.time(2013, 12, 10, 'Z'))", "tag": "during true end"},
     "r.now().date()",
     "r.now().time_of_day()",
     "r.now().year()",

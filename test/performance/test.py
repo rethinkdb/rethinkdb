@@ -229,6 +229,7 @@ def execute_queries():
                         list(cursor)
                         cursor.close()
                 except:
+                    print "Query failed"
                     print constant_queries[p]
                     sys.stdout.flush()
             else:
@@ -254,11 +255,11 @@ def execute_queries():
         for p in xrange(len(delete_queries)):
             start = time.time()
 
-            num_writes = gen_num_docs(table["size_doc"])
-            for i in xrange(num_writes):
-                result = eval(delete_queries[p]["query"]).run(connection)
+            i = 0
+            while (time.time()-start < time_per_query) & (i < len(table["ids"])):
+                eval(delete_queries[p]["query"]).run(connection)
 
-            results[delete_queries[p]["tag"]+"-"+table["name"]] = num_writes/(time.time()-start)
+            results[delete_queries[p]["tag"]+"-"+table["name"]] = i/(time.time()-start)
 
     print " Done."
     sys.stdout.flush()
@@ -309,46 +310,53 @@ def save_compare_results():
     file_paths.sort()
     if len(file_paths) > 1:
         last_file = file_paths[-2] #The last file is the one we just saved
+
         f = open(last_file, "r")
         previous_results = json.loads(f.read())
         f.close()
-
-        if not os.path.exists("comparisons"):
-            os.makedirs("comparisons")
-
-        f = open("comparisons/comparison_"+str_date+".html", "w")
-        f.write("<html><head><style>table{padding: 0px; margin: 0px;border-collapse:collapse;}\ntd{border: 1px solid #000; padding: 5px 8px; margin: 0px; text-align: right;}</style></head><body><table>")
-        f.write("<tr><td>Query</td><td>Previous q/s</td><td>q/s</td><td>Previous ms/q</td><td>ms/q</td><td>Diff</td><td>Status</td></tr>")
-        for key in sorted(results):
-            if key in previous_results:
-                if results[key] > 0:
-                    diff = 1.*(previous_results[key]-results[key])/(results[key])
-                else:
-                    diff = "undefined"
-
-                if (type(diff) == type(0.)):
-                    if(diff < 0.2):
-                        status = "Success"
-                        color = "green"
-                    else:
-                        status = "Fail"
-                        color = "red"
-                else:
-                    status = "Bug"
-                    color = "gray"
-                f.write("<tr><td>"+str(key)[:50]+"</td><td>%.2f</td><td>%.2f</td><td>%.2f</td><td>%.2f</td><td>%.4f</td>"%(previous_results[key], results[key], 1000/previous_results[key], 1000/results[key], diff)+"<td style='background: "+str(color)+"'>"+str(status)+"</td></tr>")
-            else:
-                status = "Unknown"
-                color = "gray"
-
-                f.write("<tr><td>"+str(key)[:50]+"</td><td>Unknown</td><td>%.2f</td><td>Unknown</td><td>%.2f</td><td>Unknown</td>"%(results[key], 1000/results[key])+"<td style='background: "+str(color)+"'>"+str(status)+"</td></tr>")
-
-        f.write("</table></body></html>")
-        f.close()
     else:
-        print "No previous results to compare to."
-        sys.stdout.flush()
- 
+        previous_results = {}
+
+    if not os.path.exists("comparisons"):
+        os.makedirs("comparisons")
+
+    f = open("comparisons/comparison_"+str_date+".html", "w")
+    f.write("<html><head><style>table{padding: 0px; margin: 0px;border-collapse:collapse;}\ntd{border: 1px solid #000; padding: 5px 8px; margin: 0px; text-align: right;}</style></head><body><table>")
+    f.write("<tr><td>Query</td><td>Previous q/s</td><td>q/s</td><td>Previous ms/q</td><td>ms/q</td><td>Diff</td><td>Status</td></tr>")
+    for key in sorted(results):
+        if key in previous_results:
+            if results[key] > 0:
+                diff = 1.*(previous_results[key]-results[key])/(results[key])
+            else:
+                diff = "undefined"
+
+            if (type(diff) == type(0.)):
+                if(diff < 0.2):
+                    status = "Success"
+                    color = "green"
+                else:
+                    status = "Fail"
+                    color = "red"
+            else:
+                status = "Bug"
+                color = "gray"
+            try:
+                f.write("<tr><td>"+str(key)[:50]+"</td><td>%.2f</td><td>%.2f</td><td>%.2f</td><td>%.2f</td><td>%.4f</td>"%(previous_results[key], results[key], 1000/previous_results[key], 1000/results[key], diff)+"<td style='background: "+str(color)+"'>"+str(status)+"</td></tr>")
+            except:
+                print key
+
+        else:
+            status = "Unknown"
+            color = "gray"
+
+            try:
+                f.write("<tr><td>"+str(key)[:50]+"</td><td>Unknown</td><td>%.2f</td><td>Unknown</td><td>%.2f</td><td>Unknown</td>"%(results[key], 1000/results[key])+"<td style='background: "+str(color)+"'>"+str(status)+"</td></tr>")
+            except:
+                print key
+
+
+    f.write("</table></body></html>")
+    f.close()
 
 
 def main():
