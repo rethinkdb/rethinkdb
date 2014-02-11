@@ -1690,7 +1690,7 @@ void page_cache_t::im_waiting_for_flush(page_txn_t *txn) {
     // (recursively) in one atomic flush.
 
 
-    // RSI: Every transaction is getting its own flush, basically, the way things are
+    // LSI: Every transaction is getting its own flush, basically, the way things are
     // right now.
 
     std::set<page_txn_t *> flush_set;
@@ -1702,7 +1702,6 @@ void page_cache_t::im_waiting_for_flush(page_txn_t *txn) {
 
         fifo_enforcer_write_token_t token = index_write_source_.enter_write();
 
-        // RSI: We might be spawning too many coroutines, one for each flush.
         coro_t::spawn_later_ordered(std::bind(&page_cache_t::do_flush_txn_set,
                                               this,
                                               flush_set,
