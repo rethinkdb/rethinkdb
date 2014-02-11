@@ -426,7 +426,10 @@ class HttpConnection extends Connection
                     @emit 'error', new err.RqlDriverError "XHR error, http status #{xhr.status}."
         xhr.send()
 
+        @xhr = xhr # We allow only one query at a time per HTTP connection
+
     cancel: ->
+        @xhr.abort()
         xhr = new XMLHttpRequest
         xhr.open("POST", "#{@_url}close-connection?conn_id=#{@_connId}", true)
         xhr.send()
@@ -455,6 +458,7 @@ class HttpConnection extends Connection
             i++
 
         xhr.send array
+        @xhr = xhr # We allow only one query at a time per HTTP connection
 
 # The only exported function of this module
 module.exports.connect = ar (host, callback) ->
