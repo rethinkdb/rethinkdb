@@ -137,6 +137,23 @@ pkg_depends_env () {
     done
 }
 
+cross_build_env () {
+    unset CXX
+    unset AR
+    unset RANLIB
+    unset CC
+    unset LD
+    tmpdir=$(mktemp -d)
+    echo 'int main(){ return 0; }' > "$tmpdir/true.cc"
+    for cxx in c++ g++ clang; do
+        if $cxx "$tmpdir/true.cc" -o "$tmpdir/true" && "$tmpdir/true" >/dev/null 2>&1; then
+            export CXX=$cxx
+            rm -rf "$tmpdir"
+            return
+        fi
+    done
+}
+
 error () {
     echo "$0: ${pkg:-unknown}: $*" >&2
     exit 1
