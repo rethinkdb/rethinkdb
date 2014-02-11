@@ -2,10 +2,8 @@
 #include "arch/runtime/coroutines.hpp"
 #include "arch/timing.hpp"
 #include "buffer_cache/alt/page.hpp"
-
-// RSI: for alt_memory_tracker_t.  We'll want to have some mock one here probably.
+// For alt_memory_tracker_t.  KSI: We'll want a mock memory_tracker_t subclass.
 #include "buffer_cache/alt/alt.hpp"
-
 #include "concurrency/auto_drainer.hpp"
 #include "containers/scoped.hpp"
 #include "serializer/config.hpp"
