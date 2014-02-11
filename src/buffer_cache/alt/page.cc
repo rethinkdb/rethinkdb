@@ -1458,11 +1458,9 @@ struct block_token_tstamp_t {
 };
 
 struct ancillary_info_t {
-    ancillary_info_t(block_id_t _block_id,
-                     repli_timestamp_t _tstamp,
+    ancillary_info_t(repli_timestamp_t _tstamp,
                      page_t *_page)
-        : block_id(_block_id), tstamp(_tstamp), page(_page) { }
-    block_id_t block_id;
+        : tstamp(_tstamp), page(_page) { }
     repli_timestamp_t tstamp;
     page_t *page;
 };
@@ -1526,10 +1524,7 @@ void page_cache_t::do_flush_txn_set(page_cache_t *page_cache,
                         write_infos.push_back(buf_write_info_t(page->buf_.get(),
                                                                block_size_t::unsafe_make(page->ser_buf_size_),
                                                                it->first));
-                        // RSI: Does ancillary_infos actually need it->first again?  Do
-                        // we actually use that field?
-                        ancillary_infos.push_back(ancillary_info_t(it->first,
-                                                                   it->second.tstamp,
+                        ancillary_infos.push_back(ancillary_info_t(it->second.tstamp,
                                                                    page));
                     }
                 }
@@ -1561,7 +1556,7 @@ void page_cache_t::do_flush_txn_set(page_cache_t *page_cache,
         rassert(tokens.size() == write_infos.size());
         rassert(write_infos.size() == ancillary_infos.size());
         for (size_t i = 0; i < write_infos.size(); ++i) {
-            blocks_by_tokens.push_back(block_token_tstamp_t(ancillary_infos[i].block_id,
+            blocks_by_tokens.push_back(block_token_tstamp_t(write_infos[i].block_id,
                                                             false,
                                                             std::move(tokens[i]),
                                                             ancillary_infos[i].tstamp,
