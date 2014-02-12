@@ -10,7 +10,7 @@
 template <class T>
 void debug_print(printf_buffer_t *buf, const boost::optional<T> &value) {
     if (value) {
-        buf->appendf("opt(");
+        buf->appendf("opt{");
         debug_print(buf, *value);
         buf->appendf("}");
     } else {
