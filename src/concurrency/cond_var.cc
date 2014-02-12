@@ -9,7 +9,6 @@
 
 void cond_t::pulse_if_not_already_pulsed() {
     assert_thread();
-    // You can't call is_pulsed from the wrong thread.
     if (!is_pulsed()) {
         pulse();
     }
