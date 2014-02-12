@@ -62,7 +62,6 @@ void alt_memory_tracker_t::inform_memory_change(UNUSED uint64_t in_memory_size,
 // KSI: An interface problem here is that this is measured in blocks while
 // inform_memory_change is measured in bytes.
 tracker_acq_t alt_memory_tracker_t::begin_txn_or_throttle(int64_t expected_change_count) {
-    // RSI: _really_ implement this.
     tracker_acq_t acq;
     acq.semaphore_acq_.init(&semaphore_, expected_change_count);
     acq.semaphore_acq_.acquisition_signal()->wait();
