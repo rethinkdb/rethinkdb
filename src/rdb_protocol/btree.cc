@@ -67,7 +67,7 @@ void detach_rdb_value(buf_parent_t parent, void *value) {
     blob_t blob(parent.cache()->get_block_size(),
                 static_cast<rdb_value_t *>(value)->value_ref(),
                 blob::btree_maxreflen);
-    blob.detach_subtree(parent);
+    blob.detach_subtrees(parent);
 }
 
 void rdb_get(const store_key_t &store_key, btree_slice_t *slice,
