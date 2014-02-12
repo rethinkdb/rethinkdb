@@ -8,10 +8,6 @@ module RethinkDB
     ]
     @@regex = if __FILE__ =~ /^(.*\/)[^\/]+.rb$/ then /^#{$1}/ else nil end
 
-    def self.sanitize_context context
-      @@regex ? context.reject{|x| x =~ @@regex} : context
-    end
-
     def self.pp_int_optargs(q, optargs, pre_dot = false)
       q.text("r(") if pre_dot
       q.group(1, "{", "}") {
@@ -73,7 +69,6 @@ module RethinkDB
     end
     def self.pp_int(q, term, pre_dot=false)
       q.text("\x7", 0) if term.is_error
-      @@context = term.context if term.is_error
 
       if term.type == Term::TermType::DATUM
         res = pp_int_datum(q, term.datum, pre_dot)
@@ -161,7 +156,6 @@ module RethinkDB
 
     def self.pp term
       begin
-        @@context = nil
         q = PrettyPrint.new
         pp_int(q, term, true)
         q.flush
@@ -176,11 +170,7 @@ module RethinkDB
           else
             line
           end
-        }.flatten.join("\n") +
-          (@@context ?
-           "\nErroneous_Portion_Constructed:\n" +
-           "#{@@context.map{|x| "\tfrom "+x}.join("\n")}" +
-           "\nCalled:" : "")
+        }.flatten.join("\n")
       rescue Exception => e
         raise e
         "AN ERROR OCCURED DURING PRETTY-PRINTING:\n#{e.inspect}\n" +

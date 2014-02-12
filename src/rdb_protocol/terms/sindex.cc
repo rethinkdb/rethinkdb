@@ -23,7 +23,7 @@ public:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         counted_t<table_t> table = arg(env, 0)->as_table();
         counted_t<const datum_t> name_datum = arg(env, 1)->as_datum();
-        std::string name = name_datum->as_str();
+        std::string name = name_datum->as_str().to_std();
         rcheck(name != table->get_pkey(),
                base_exc_t::GENERIC,
                strprintf("Index name conflict: `%s` is the name of the primary key.",
@@ -72,7 +72,7 @@ public:
 
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         counted_t<table_t> table = arg(env, 0)->as_table();
-        std::string name = arg(env, 1)->as_datum()->as_str();
+        std::string name = arg(env, 1)->as_datum()->as_str().to_std();
         bool success = table->sindex_drop(env->env, name);
         if (success) {
             datum_ptr_t res(datum_t::R_OBJECT);
@@ -109,7 +109,7 @@ public:
         counted_t<table_t> table = arg(env, 0)->as_table();
         std::set<std::string> sindexes;
         for (size_t i = 1; i < num_args(); ++i) {
-            sindexes.insert(arg(env, i)->as_str());
+            sindexes.insert(arg(env, i)->as_str().to_std());
         }
         return new_val(table->sindex_status(env->env, sindexes));
     }
@@ -138,7 +138,7 @@ public:
         counted_t<table_t> table = arg(env, 0)->as_table();
         std::set<std::string> sindexes;
         for (size_t i = 1; i < num_args(); ++i) {
-            sindexes.insert(arg(env, i)->as_str());
+            sindexes.insert(arg(env, i)->as_str().to_std());
         }
         for (;;) {
             counted_t<const datum_t> statuses =

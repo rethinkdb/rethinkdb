@@ -49,7 +49,7 @@
     <ul class="tables">
         {{#each tables}}
             <li class="table">
-                <p class="name"><a href="/#tables/{{id}}">{{name}}</a></p>
+                <p class="name"><a href="#tables/{{id}}">{{name}}</a></p>
                 <p class="info"><span class="highlight">{{nshards}}</span> {{pluralize_noun "shard" nshards}}, <span class="highlight">{{nreplicas}}</span> {{pluralize_noun "replica" nreplicas}}</p>
                 <p class="status">{{humanize_namespace_reachability reachability}}</p>
             </li>

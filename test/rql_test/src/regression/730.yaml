@@ -1,4 +1,4 @@
 desc: Regression tests for issue #730 (unbound ruby functions)
 tests:
-  - rb: x=(begin; r.table_Create.run; rescue Exception => e; e.to_s; end); r(x)
-    ot: ("undefined method `table_Create'")
+  - rb: r.table_Create
+    ot: err_regex("NoMethodError", "undefined method `table_Create'")

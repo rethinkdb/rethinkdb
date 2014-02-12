@@ -18,7 +18,6 @@ class Term::AssocPair
 end
 
 class Term
-  attr_accessor :context
   attr_accessor :is_error
 
   def deep_dup
@@ -60,12 +59,13 @@ module RethinkDB
 
   module Utils
     def get_mname(i = 0)
-      caller[i]=~/`(.*?)'/
-      $1
+      caller(i, 1)[0] =~ /`(.*?)'/; $1
     end
     def unbound_if (x, name = nil)
-      name = get_mname(1) if not name
-      raise NoMethodError, "undefined method `#{name}'" if x
+      if x
+        name = get_mname(2) if not name
+        raise NoMethodError, "undefined method `#{name}'"
+      end
     end
   end
 
@@ -74,10 +74,9 @@ module RethinkDB
 
     attr_accessor :body, :bitop
 
-    def initialize(body = nil, bitop = nil, context = nil)
+    def initialize(body = nil, bitop = nil)
       @body = body
       @bitop = bitop
-      @body.context = (context || RPP.sanitize_context(caller)) if @body
     end
 
     def pp

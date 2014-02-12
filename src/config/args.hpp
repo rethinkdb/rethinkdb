@@ -16,11 +16,16 @@
  */
 
 #define SOFTWARE_NAME_STRING "RethinkDB"
-#define SERIALIZER_VERSION_STRING "1.11"
+#define SERIALIZER_VERSION_STRING "1.12"
 
 /**
  * Basic configuration parameters.
  */
+
+// The number of hash-based CPU shards per table.
+// This "must" be hard-coded because a cluster cannot run with
+// differing cpu sharding factors.
+#define CPU_SHARDING_FACTOR                       8
 
 // Defines the maximum size of the batch of IO events to process on
 // each loop iteration. A larger number will increase throughput but
@@ -44,19 +49,15 @@
 // one account for writes, and one account for reads.
 // By adjusting the priorities of these accounts, reads
 // can be prioritized over writes or the other way around.
-//
-// This is a one-per-serializer/file priority.
-// The per-cache priorities are dynamically derived by dividing these priorities
-// by the number of slices on a specific file.
-#define CACHE_READS_IO_PRIORITY                   512
-#define CACHE_WRITES_IO_PRIORITY                  64
+#define CACHE_READS_IO_PRIORITY                   (512 / CPU_SHARDING_FACTOR)
+#define CACHE_WRITES_IO_PRIORITY                  (64 / CPU_SHARDING_FACTOR)
 
 // The cache priority to use for secondary index post construction
 // 100 = same priority as all other read operations in the cache together.
 // 0 = minimal priority
 #define SINDEX_POST_CONSTRUCTION_CACHE_PRIORITY   5
 
-// Garbage Colletion uses its own two IO accounts.
+// Garbage Collection uses its own two IO accounts.
 // There is one low-priority account that is meant to guarantee
 // (performance-wise) unintrusive garbage collection.
 // If the garbage ratio keeps growing,
@@ -67,7 +68,7 @@
 //
 // This is a one-per-serializer/file priority.
 #define GC_IO_PRIORITY_NICE                       8
-#define GC_IO_PRIORITY_HIGH                       (4 * CACHE_WRITES_IO_PRIORITY)
+#define GC_IO_PRIORITY_HIGH                       (4 * CACHE_WRITES_IO_PRIORITY * CPU_SHARDING_FACTOR)
 
 // Size of the buffer used to perform IO operations (in bytes).
 #define IO_BUFFER_SIZE                            (4 * KILOBYTE)
@@ -117,17 +118,6 @@
 // on a specific slice at any given time.
 #define DEFAULT_MAX_CONCURRENT_FLUSHES            1
 
-// If more than this many bytes of dirty data accumulate in the cache, then write
-// transactions will be throttled.  A value of 0 means that it will automatically be
-// set to MAX_UNSAVED_DATA_LIMIT_FRACTION times the max cache size
-#define DEFAULT_UNSAVED_DATA_LIMIT                (4096 * MEGABYTE)
-
-// The unsaved data limit cannot exceed this fraction of the max cache size
-#define MAX_UNSAVED_DATA_LIMIT_FRACTION           0.9
-
-// We start flushing dirty pages as soon as we hit this fraction of the unsaved data limit
-#define FLUSH_AT_FRACTION_OF_UNSAVED_DATA_LIMIT   0.2
-
 // How many times the page replacement algorithm tries to find an eligible page before giving up.
 // Note that (MAX_UNSAVED_DATA_LIMIT_FRACTION ** PAGE_REPL_NUM_TRIES) is the probability that the
 // page replacement algorithm will succeed on a given try, and if that probability is less than 1/2
@@ -167,23 +157,11 @@
 // id.
 #define SUPERBLOCK_ID                             0
 
-// The ratio at which we should start GCing.  (HEY: What's the extra
-// 0.000001 in MAX_GC_HIGH_RATIO for?  Is it because we told the user
-// that 0.99 was too high?)
+// The ratio at which we should start GCing.
 #define DEFAULT_GC_HIGH_RATIO                     0.20
-// TODO: MAX_GC_HIGH_RATIO is unused.  Use it!
-// TODO: Probably this value is way too high.
-//  - Keeping this around because if it becomes configurable again, we
-//    should have these limits.  Before then at least rassert it.
-#define MAX_GC_HIGH_RATIO                         0.990001
 
 // The ratio at which we don't want to keep GC'ing.
 #define DEFAULT_GC_LOW_RATIO                      0.15
-// TODO: MIN_GC_LOW_RATIO is unused.  Use it!
-//  - Keeping this around because if it becomes configurable again, we
-//    should have these limits.  Before then at least rassert it.
-#define MIN_GC_LOW_RATIO                          0.099999
-
 
 // What's the maximum number of "young" extents we can have?
 #define GC_YOUNG_EXTENT_MAX_SIZE                  50
@@ -192,13 +170,16 @@
 
 // If the size of the LBA on a given disk exceeds LBA_MIN_SIZE_FOR_GC, then the fraction of the
 // entries that are live and not garbage should be at least LBA_MIN_UNGARBAGE_FRACTION.
-// TODO: Maybe change this back to 20 megabytes?
 #define LBA_MIN_SIZE_FOR_GC                       (MEGABYTE * 1)
-// TODO: This used to be 0.15 but we figured why not do the opposite of our well-tested parameter?
-#define LBA_MIN_UNGARBAGE_FRACTION                0.85
+#define LBA_MIN_UNGARBAGE_FRACTION                0.5
+
+// I/O priority for LBA garbage collection
+#define LBA_GC_IO_PRIORITY                        8
+
+// How many block ids should the LBA garbage collector rewrite before yielding?
+#define LBA_GC_BATCH_SIZE                         (1024 * 8)
 
 // How many LBA structures to have for each file
-// TODO: LBA_SHARD_FACTOR used to be 16.
 #define LBA_SHARD_FACTOR                          4
 
 // How much space to reserve in the metablock to store inline LBA entries
@@ -210,6 +191,12 @@
 // too high, then RethinkDB will eat a lot of memory at startup. This is bad because tcmalloc
 // doesn't return memory to the OS. If it's set too low, startup will take a longer time.
 #define LBA_READ_BUFFER_SIZE                      (128 * MEGABYTE)
+
+// After the LBA has been read, we reconstruct the in-memory LBA index.
+// For huge tables, this can take some considerable CPU time. We break the reconstruction
+// up into smaller batches, each batch reconstructing up to `LBA_RECONSTRUCTION_BATCH_SIZE`
+// block infos.
+#define LBA_RECONSTRUCTION_BATCH_SIZE             1024
 
 #define COROUTINE_STACK_SIZE                      131072
 
@@ -262,6 +249,7 @@
 #define CORO_PRIORITY_RESET_DATA                (-2)
 #define CORO_PRIORITY_REACTOR                   (-1)
 #define CORO_PRIORITY_DIRECTORY_CHANGES         (-2)
+#define CORO_PRIORITY_LBA_GC                    (-2)
 
 
 #endif  // CONFIG_ARGS_HPP_

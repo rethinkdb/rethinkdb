@@ -14,10 +14,6 @@
 #include "rpc/connectivity/connectivity.hpp"
 #include "rpc/semilattice/view.hpp"
 
-// This "must" be hard-coded because a cluster cannot run with
-// differing cpu sharding factors.
-const int CPU_SHARDING_FACTOR = 4;
-
 class io_backender_t;
 template <class> class multistore_ptr_t;
 

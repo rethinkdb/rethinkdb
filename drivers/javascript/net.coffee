@@ -48,7 +48,7 @@ class Connection extends events.EventEmitter
             if e instanceof err.RqlDriverError
                 callback e
             else
-                callback new err.RqlDriverError "Could not connect to #{@host}:#{@port}."
+                callback new err.RqlDriverError "Could not connect to #{@host}:#{@port}.\n#{e.message}"
         @once 'error', errCallback
 
         conCallback = =>
@@ -367,6 +367,9 @@ class TcpConnection extends Connection
         @rawSocket.on 'error', (args...) => @emit 'error', args...
 
         @rawSocket.on 'close', => @open = false; @emit 'close', {noreplyWait: false}
+
+        # In case the raw socket timesout, we close it and re-emit the event for the user
+        @rawSocket.on 'timeout', => @open = false; @emit 'timeout'
 
     close: (varar 0, 2, (optsOrCallback, callback) ->
         if callback?

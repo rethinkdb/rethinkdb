@@ -28,10 +28,8 @@ table_t::table_t(env_t *env,
                      name.c_str(), name_string_t::valid_char_msg));
     cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > namespaces_metadata
         = env->cluster_access.namespaces_semilattice_metadata->get();
-    cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t
-        namespaces_metadata_change(&namespaces_metadata);
-    metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >
-        ns_searcher(&namespaces_metadata_change.get()->namespaces);
+    const_metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >
+        ns_searcher(&namespaces_metadata.get()->namespaces);
     // TODO: fold into iteration below
     namespace_predicate_t pred(&table_name, &db_id);
     uuid_u id = meta_get_uuid(&ns_searcher, pred,
@@ -41,7 +39,7 @@ table_t::table_t(env_t *env,
     access.init(new rdb_namespace_access_t(id, env));
 
     metadata_search_status_t status;
-    metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >::iterator
+    const_metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >::iterator
         ns_metadata_it = ns_searcher.find_uniq(pred, &status);
     rcheck(status == METADATA_SUCCESS,
            base_exc_t::GENERIC,
@@ -608,7 +606,7 @@ int64_t val_t::as_int() {
         rfail(e.get_type(), "%s", e.what());
     }
 }
-const std::string &val_t::as_str() {
+const wire_string_t &val_t::as_str() {
     try {
         counted_t<const datum_t> d = as_datum();
         r_sanity_check(d.has());

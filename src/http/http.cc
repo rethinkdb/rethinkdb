@@ -239,9 +239,15 @@ bool maybe_gzip_response(const http_req_t &req, http_res_t *res) {
     // We only care about three potential encoding qvalues: 'gzip', 'identity', and '*'
     for (auto it = encodings.begin(); it != encodings.end(); ++it) {
         double val = 1.0;
+        char *endptr;
         if (it->second.length() != 0) {
-            val = strtod(it->second.c_str(), NULL);
-            if (errno == ERANGE) { return false; }
+            set_errno(0); // Clear errno because strtod doesn't
+            val = strtod(it->second.c_str(), &endptr);
+            if (endptr == it->second.c_str() ||
+                (get_errno() == ERANGE &&
+                 (val == HUGE_VALF || val == HUGE_VALL || val == 0))) {
+                return false;
+            }
         }
 
         if (it->first == "gzip") {
@@ -296,6 +302,7 @@ bool maybe_gzip_response(const http_req_t &req, http_res_t *res) {
 
     zres = deflate(&zstream, Z_FINISH);
     if (zres != Z_STREAM_END) {
+        deflateEnd(&zstream);
         return false;
     }
 
@@ -444,20 +451,19 @@ void http_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &nconn
     http_req_t req;
     tcp_http_msg_parser_t http_msg_parser;
 
-    /* parse the request */
+    // Parse the request
     try {
+        http_res_t res;
         if (http_msg_parser.parse(conn.get(), &req, keepalive.get_drain_signal())) {
-            /* TODO pass interruptor */
-            http_res_t res = application->handle(req);
+            application->handle(req, &res, keepalive.get_drain_signal());
             res.version = req.version;
             maybe_gzip_response(req, &res);
-            write_http_msg(conn.get(), res, keepalive.get_drain_signal());
         } else {
-            // Write error
-            http_res_t res;
-            res.code = 400;
-            write_http_msg(conn.get(), res, keepalive.get_drain_signal());
+            res = http_res_t(HTTP_BAD_REQUEST);
         }
+        write_http_msg(conn.get(), res, keepalive.get_drain_signal());
+    } catch (const interrupted_exc_t &) {
+        // The query was interrupted, no response since we are shutting down
     } catch (const tcp_conn_read_closed_exc_t &) {
         // Someone disconnected before sending us all the information we
         // needed... oh well.
