@@ -47,7 +47,7 @@ pkg_install () {
     in_dir "$install_dir" npm --no-registry install "$tgz"
 
     local bin_dir="$install_dir/node_modules/packed-$npm_package/node_modules/.bin/"
-    mkdir "$install_dir/bin"
+    mkdir -p "$install_dir/bin"
     for bin in "$bin_dir"*; do
         local name
         name=$(basename "$bin")
