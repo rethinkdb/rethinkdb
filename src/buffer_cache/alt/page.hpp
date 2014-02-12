@@ -569,23 +569,23 @@ private:
 
 class tracker_acq_t {
 public:
-    tracker_acq_t() : dirtied_count_(0) { }
+    tracker_acq_t() { }
     ~tracker_acq_t() { }
     tracker_acq_t(tracker_acq_t &&movee)
-        : semaphore_acq_(std::move(movee.semaphore_acq_)),
-          dirtied_count_(movee.dirtied_count_) {
+        : semaphore_acq_(std::move(movee.semaphore_acq_)) {
         movee.semaphore_acq_.reset();
-        movee.dirtied_count_ = 0;
     }
+
+    // See below:  this can update how much semaphore_acq_ holds.
+    void update_dirty_page_count(int64_t new_count);
 
 private:
     friend class alt_memory_tracker_t;
-    // At first, dirtied_count_ is 0 and semaphore_acq_.count() >=
-    // dirtied_count_.  Once dirtied_count_ gets bigger than the original value
-    // of semaphore_acq_.count(), we use semaphore_acq_.change_count() to keep the
-    // numbers equal.
+    // At first, the number of dirty pages is 0 and semaphore_acq_.count() >=
+    // dirtied_count_.  Once the number of dirty pages gets bigger than the original
+    // value of semaphore_acq_.count(), we use semaphore_acq_.change_count() to keep
+    // the numbers equal.
     new_semaphore_acq_t semaphore_acq_;
-    int64_t dirtied_count_;
 
     DISABLE_COPYING(tracker_acq_t);
 };

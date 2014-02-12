@@ -24,6 +24,12 @@ cache_conn_t::~cache_conn_t() {
 
 namespace alt {
 
+void tracker_acq_t::update_dirty_page_count(int64_t new_count) {
+    if (new_count > semaphore_acq_.count()) {
+        semaphore_acq_.change_count(new_count);
+    }
+}
+
 // We pick a weird that forces the logic and performance to not spaz out if the
 // access time counter overflows.  Performance degradation is "smooth" if
 // access_time_counter_ loops around past INITIAL_ACCESS_TIME -- which shouldn't be a
@@ -1317,6 +1323,9 @@ void page_txn_t::remove_acquirer(current_page_acq_t *acq) {
                                                                 acq->block_id(),
                                                                 std::move(local),
                                                                 acq->recency()));
+            // If you keep writing and reacquiring the same page, though, the count
+            // might be off and you could excessively throttle new operations.
+            tracker_acq_.update_dirty_page_count(snapshotted_dirtied_pages_.size());
         } else {
             // It's okay to have two dirtied_page_t's or touched_page_t's for the
             // same block id -- compute_changes handles this.
