@@ -65,7 +65,7 @@ public:
 
     // Returns a signal that gets pulsed when this has successfully acquired the
     // semaphore.
-    const signal_t *acquisition() const { return &cond_; }
+    const signal_t *acquisition_signal() const { return &cond_; }
 
 private:
     friend class new_semaphore_t;

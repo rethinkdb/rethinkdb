@@ -65,6 +65,7 @@ tracker_acq_t alt_memory_tracker_t::begin_txn_or_throttle(int64_t expected_chang
     // RSI: _really_ implement this.
     tracker_acq_t acq;
     acq.semaphore_acq_.init(&semaphore_, expected_change_count);
+    acq.semaphore_acq_.acquisition_signal()->wait();
     return acq;
 }
 
