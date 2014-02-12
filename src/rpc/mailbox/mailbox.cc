@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+#include <functional>
+
 #include "containers/archive/archive.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "concurrency/pmap.hpp"

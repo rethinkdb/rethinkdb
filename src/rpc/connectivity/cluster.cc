@@ -3,6 +3,8 @@
 
 #include <netinet/in.h>
 
+#include <functional>
+
 #include "errors.hpp"
 #include <boost/optional.hpp>
 
