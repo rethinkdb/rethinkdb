@@ -75,11 +75,11 @@ new_semaphore_acq_t::new_semaphore_acq_t(new_semaphore_acq_t &&movee)
     movee.cond_.reset();
 }
 
-int64_t new_semaphore_acq_t::acquired_count() const {
+int64_t new_semaphore_acq_t::count() const {
     return count_;
 }
 
-void new_semaphore_acq_t::change_acquired_count(int64_t new_count) {
+void new_semaphore_acq_t::change_count(int64_t new_count) {
     guarantee(semaphore_ != NULL);
     guarantee(new_count >= 0);
 

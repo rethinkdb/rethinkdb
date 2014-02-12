@@ -569,14 +569,23 @@ private:
 
 class tracker_acq_t {
 public:
-    tracker_acq_t() { }
+    tracker_acq_t() : dirtied_count_(0) { }
     ~tracker_acq_t() { }
     tracker_acq_t(tracker_acq_t &&movee)
-        : semaphore_acq(std::move(movee.semaphore_acq)) { }
+        : semaphore_acq_(std::move(movee.semaphore_acq_)),
+          dirtied_count_(movee.dirtied_count_) {
+        movee.semaphore_acq_.reset();
+        movee.dirtied_count_ = 0;
+    }
 
 private:
     friend class alt_memory_tracker_t;
-    new_semaphore_acq_t semaphore_acq;
+    // At first, dirtied_count_ is 0 and semaphore_acq_.count() >=
+    // dirtied_count_.  Once dirtied_count_ gets bigger than the original value
+    // of semaphore_acq_.count(), we use semaphore_acq_.change_count() to keep the
+    // numbers equal.
+    new_semaphore_acq_t semaphore_acq_;
+    int64_t dirtied_count_;
 
     DISABLE_COPYING(tracker_acq_t);
 };
