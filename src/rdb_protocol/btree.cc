@@ -50,8 +50,7 @@ block_magic_t value_sizer_t<rdb_value_t>::btree_leaf_magic() const {
 block_size_t value_sizer_t<rdb_value_t>::block_size() const { return block_size_; }
 
 bool btree_value_fits(block_size_t bs, int data_length, const rdb_value_t *value) {
-    return blob::ref_fits(bs, data_length, value->value_ref(),
-                               blob::btree_maxreflen);
+    return blob::ref_fits(bs, data_length, value->value_ref(), blob::btree_maxreflen);
 }
 
 // Remember that secondary indexes and the main btree both point to the same rdb
