@@ -8,6 +8,8 @@
 #include <unistd.h>
 #include <netinet/in.h>
 
+#include <functional>
+
 #include "arch/io/network.hpp"
 #include "arch/runtime/thread_pool.hpp"
 
