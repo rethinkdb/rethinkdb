@@ -24,6 +24,11 @@ private:
 
     void pulse_waiters();
 
+    // Normally, current_ <= capacity_, and capacity_ doesn't change.  current_ can
+    // exceed capacity_ for three reasons.
+    //   1. A call to change_acquired_count could force it to overflow.
+    //   2. An acquirer will never be blocked while current_ is 0.
+    //   3. An act of God could change capacity_ (currently unimplemented; hail Satan).
     int64_t capacity_;
     int64_t current_;
 
@@ -42,6 +47,15 @@ public:
     new_semaphore_acq_t();
     new_semaphore_acq_t(new_semaphore_t *semaphore, int64_t count);
     new_semaphore_acq_t(new_semaphore_acq_t &&movee);
+
+    // Returns "how much" of the semaphore this acq has acquired.
+    int64_t acquired_count() const;
+
+    // Changes "how much" of the semaphore this acq has acquired.  If it's already
+    // acquired the semaphore, and new_count is bigger than the current value of
+    // acquired_count(), it's possible that you'll make the semaphore "overfull",
+    // meaning that current_ > capacity_.  That's not ideal, but it's O.K.
+    void change_acquired_count(int64_t new_count);
 
     // Initializes the object.
     void init(new_semaphore_t *semaphore, int64_t count);

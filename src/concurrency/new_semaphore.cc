@@ -25,7 +25,7 @@ void new_semaphore_t::remove_acquirer(new_semaphore_acq_t *acq) {
 
 void new_semaphore_t::pulse_waiters() {
     while (new_semaphore_acq_t *acq = waiters_.head()) {
-        if (acq->count_ <= capacity_ - current_) {
+        if (acq->count_ <= capacity_ - current_ || current_ == 0) {
             current_ += acq->count_;
             waiters_.remove(acq);
             acq->cond_.pulse();
@@ -73,4 +73,26 @@ new_semaphore_acq_t::new_semaphore_acq_t(new_semaphore_acq_t &&movee)
     movee.semaphore_ = NULL;
     movee.count_ = 0;
     movee.cond_.reset();
+}
+
+int64_t new_semaphore_acq_t::acquired_count() const {
+    return count_;
+}
+
+void new_semaphore_acq_t::change_acquired_count(int64_t new_count) {
+    guarantee(semaphore_ != NULL);
+    guarantee(new_count >= 0);
+
+    if (cond_.is_pulsed()) {
+        // We've already acquired the semaphore, which means semaphore_->current_
+        // already accounts for our existing count_ amount of acquisition, now
+        // add/subtract the difference.
+        semaphore_->current_ += (new_count - count_);
+    }
+
+    count_ = new_count;
+
+    // Things have changed, tell the semaphore to try pulsing waiters (ourself, if we
+    // haven't acquired it yet, or other waiters, if we have reduced current_).
+    semaphore_->pulse_waiters();
 }
