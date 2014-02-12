@@ -293,7 +293,9 @@ void apply_keyvalue_change(keyvalue_location_t<Value> *kv_loc,
     check_and_handle_underfull(&sizer, &kv_loc->buf, &kv_loc->last_buf,
                                kv_loc->superblock, key);
 
-    // Modify the stats block.
+    // Modify the stats block.  The stats block is detached from the rest of the
+    // btree, we don't keep a consistent view of it, so we pass the txn as its
+    // parent.
     buf_lock_t stat_block(buf_parent_t(kv_loc->buf.txn()),
                           kv_loc->stat_block, access_t::write);
     buf_write_t stat_block_write(&stat_block);
