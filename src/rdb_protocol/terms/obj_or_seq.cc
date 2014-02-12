@@ -68,26 +68,32 @@ private:
         if (d.has() && d->get_type() == datum_t::R_OBJECT) {
             return obj_eval(env, v0);
         } else if ((d.has() && d->get_type() == datum_t::R_ARRAY) ||
-                   (!d.has() && v0->get_type().is_convertible(val_t::type_t::SEQUENCE))) {
+                   (!d.has()
+                    && v0->get_type().is_convertible(val_t::type_t::SEQUENCE))) {
             // The above if statement is complicated because it produces better
             // error messages on e.g. strings.
             if (counted_t<val_t> no_recurse = optarg(env, "_NO_RECURSE_")) {
                 rcheck(no_recurse->as_bool() == false, base_exc_t::GENERIC,
-                       strprintf("Cannot perform %s on a sequence of sequences.", name()));
+                       strprintf("Cannot perform %s on a sequence of sequences.",
+                                 name()));
             }
 
             compile_env_t compile_env(env->scope.compute_visibility());
-            counted_t<func_term_t> func_term = make_counted<func_term_t>(&compile_env, func);
+            counted_t<func_term_t> func_term
+                = make_counted<func_term_t>(&compile_env, func);
             counted_t<func_t> func = func_term->eval_to_func(env->scope);
 
             switch (poly_type) {
             case MAP:
-                return new_val(env->env, v0->as_seq(env->env)->map(func));
+                return new_val(env->env, v0->as_seq(env->env)->add_transformation(
+                                   env->env, map_wire_func_t(func)));
             case FILTER:
-                return new_val(env->env,
-                               v0->as_seq(env->env)->filter(func, counted_t<func_t>()));
+                return new_val(env->env, v0->as_seq(env->env)->add_transformation(
+                                   env->env,
+                                   filter_wire_func_t(func, counted_t<func_t>())));
             case SKIP_MAP:
-                return new_val(env->env, v0->as_seq(env->env)->concatmap(func));
+                return new_val(env->env, v0->as_seq(env->env)->add_transformation(
+                                   env->env, concatmap_wire_func_t(func)));
             default: unreachable();
             }
         }

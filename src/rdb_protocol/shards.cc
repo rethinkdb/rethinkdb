@@ -28,7 +28,6 @@ protected:
 private:
     virtual done_t operator()(groups_t *groups,
                               store_key_t &&key,
-                              // sindex_val may be NULL
                               counted_t<const datum_t> &&sindex_val) {
         for (auto it = groups->begin(); it != groups->end(); ++it) {
             // If there's already an entry, this insert won't do anything.
@@ -39,40 +38,18 @@ private:
         }
         return should_send_batch() ? done_t::YES : done_t::NO;
     }
-    virtual bool should_send_batch() = 0;
-    virtual void finish_impl(result_t *out) {
-        *out = grouped<T>();
-        boost::get<grouped<T> >(*out).swap(acc);
-        guarantee(acc.size() == 0);
-    }
-
     virtual void accumulate(const counted_t<const datum_t> &el,
                             T *t,
                             store_key_t &&key,
                             // sindex_val may be NULL
                             counted_t<const datum_t> &&sindex_val) = 0;
 
-    virtual counted_t<val_t> unpack(result_t &&res, protob_t<const Backtrace> bt) {
-        if (auto e = boost::get<exc_t>(&res)) {
-            throw *e;
-        }
-        acc.swap(boost::get<decltype(acc)>(res));
-        if (T *t = get_single()) {
-            return make_counted<val_t>(unpack(t), bt);
-        } else {
-            std::map<counted_t<const datum_t>, counted_t<const datum_t> > ret;
-            for (auto kv = acc.begin(); kv != acc.end(); ++kv) {
-                ret.insert(std::make_pair(kv->first, unpack(&kv->second)));
-            }
-            return make_counted<val_t>(std::move(ret), bt);
-        }
+    virtual bool should_send_batch() = 0;
+    virtual void finish_impl(result_t *out) {
+        *out = grouped<T>();
+        boost::get<grouped<T> >(*out).swap(acc);
+        guarantee(acc.size() == 0);
     }
-    T *get_single() {
-        return acc.size() == 1 && !acc.begin()->first.has()
-            ? &acc.begin()->second
-            : NULL;
-    }
-    virtual counted_t<const datum_t> unpack(T *t) = 0;
 
     virtual void unshard(const store_key_t &last_key,
                          const std::vector<result_t *> &results) {
@@ -93,6 +70,7 @@ private:
                               const store_key_t &last_key,
                               const std::vector<T *> &ts) = 0;
 
+protected:
     const T default_t;
     grouped<T> acc;
 };
@@ -174,10 +152,53 @@ accumulator_t *make_append(const sorting_t &sorting, batcher_t *batcher) {
 }
 
 template<class T>
-class terminal_t : public grouped_accumulator_t<T> {
+class terminal_t : public grouped_accumulator_t<T>, public eager_acc_t {
 protected:
     terminal_t(T &&t) : grouped_accumulator_t<T>(std::move(t)) { }
 private:
+    // In a perfect world this would be on grouped_accumulator.  I hate type
+    // hierarchies.
+    virtual void operator()(groups_t *groups) {
+        for (auto it = groups->begin(); it != groups->end(); ++it) {
+            auto t_it = acc.insert(std::make_pair(it->first, default_t)).first;
+            for (auto el = it->second.begin(); el != it->second.end(); ++el) {
+                accumulate(*el, &t_it->second);
+            }
+        }
+    }
+
+    virtual counted_t<val_t> finish_eager(protob_t<const Backtrace> bt) {
+        if (T *t = get_single()) {
+            return make_counted<val_t>(unpack(t), bt);
+        } else {
+            std::map<counted_t<const datum_t>, counted_t<const datum_t> > ret;
+            for (auto kv = acc.begin(); kv != acc.end(); ++kv) {
+                ret.insert(std::make_pair(kv->first, unpack(&kv->second)));
+            }
+            return make_counted<val_t>(std::move(ret), bt);
+        }
+    }
+    T *get_single() {
+        return acc.size() == 1 && !acc.begin()->first.has()
+            ? &acc.begin()->second
+            : NULL;
+    }
+    virtual counted_t<const datum_t> unpack(T *t) = 0;
+
+    virtual void add_res(result_t &&res) {
+        if (auto e = boost::get<exc_t>(&res)) {
+            throw *e;
+        }
+        grouped<T> *gres = boost::get<grouped<T> >(&res);
+        if (acc.size() == 0) {
+            gres->swap(acc);
+        } else {
+            for (auto kv = gres->begin(); kv != gres->end(); ++kv) {
+                accumulate(kv->first, kv->second);
+            }
+        }
+    }
+
     virtual void accumulate(
         const counted_t<const datum_t> &el, T *t,
         store_key_t &&, counted_t<const datum_t> &&) {
@@ -244,19 +265,24 @@ private:
     counted_t<func_t> f;
 };
 
-class terminal_visitor_t : public boost::static_visitor<accumulator_t *> {
+template<class T>
+class terminal_visitor_t : public boost::static_visitor<T *> {
 public:
     terminal_visitor_t(env_t *_env) : env(_env) { }
-    accumulator_t *operator()(const count_wire_func_t &f) const {
+    T *operator()(const count_wire_func_t &f) const {
         return new count_terminal_t(env, f);
     }
-    accumulator_t *operator()(const reduce_wire_func_t &f) const {
+    T *operator()(const reduce_wire_func_t &f) const {
         return new reduce_terminal_t(env, f);
     }
     env_t *env;
 };
 
 accumulator_t *make_terminal(env_t *env, const terminal_variant_t &t) {
+    return boost::apply_visitor(terminal_visitor_t(env), t);
+}
+
+eager_acc_t *make_eager_terminal(env_t *env, const terminal_variant_t &t) {
     return boost::apply_visitor(terminal_visitor_t(env), t);
 }
 

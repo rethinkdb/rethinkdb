@@ -87,7 +87,6 @@ public:
                               // sindex_val may be NULL
                               counted_t<const datum_t> &&sindex_val) = 0;
     virtual void finish(result_t *out);
-    virtual counted_t<val_t> unpack(result_t &&res, protob_t<const Backtrace> bt) = 0;
     virtual void unshard(
         const store_key_t &last_key,
         const std::vector<result_t *> &results) = 0;
@@ -96,10 +95,21 @@ private:
     bool finished;
 };
 
+class eager_acc_t {
+public:
+    eager_acc_t() { }
+    virtual ~eager_acc_t() { }
+    virtual void operator()(groups_t *groups) = 0;
+    virtual void add_res(result_t &&res) = 0;
+    virtual counted_t<val_t> finish_eager(protob_t<const Backtrace> bt) = 0;
+};
+
 // Make sure to put these right into a scoped pointer.
 accumulator_t *make_append(const sorting_t &sorting, batcher_t *batcher);
-//                                    NULL if unsharding ^^^^^^^
+//                                           NULL if unsharding ^^^^^^^
 accumulator_t *make_terminal(
+    ql::env_t *env, const terminal_variant_t &t);
+eager_acc_t *make_eager_terminal(
     ql::env_t *env, const terminal_variant_t &t);
 op_t *make_op(env_t *env, const transform_variant_t &tv);
 

@@ -1455,7 +1455,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
 
         response->response = res;
     }
-    
+
     void operator()(const sync_t &) {
         response->response = sync_response_t();
 
@@ -1463,7 +1463,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
          * write transactions are persisted simply by following them
          * up with another transaction with hard durability.
          */
-        
+
         token_pair->sindex_write_token.reset();
     }
 

@@ -245,7 +245,6 @@ struct rdb_protocol_t {
         RDB_DECLARE_ME_SERIALIZABLE;
     };
 
-    // RSI: fix res/result bullshit
     struct rget_read_response_t {
 
         class empty_t { RDB_MAKE_ME_SERIALIZABLE_0() };

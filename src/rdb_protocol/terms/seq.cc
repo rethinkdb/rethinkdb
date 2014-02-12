@@ -21,18 +21,21 @@ private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         counted_t<val_t> v0 = arg(env, 0);
         if (num_args() == 1) {
-            return v0->as_seq(env->env)->count(env->env);
+            v0->as_seq(env->env)->add_transformation(env->env, count_wire_func_t());
         } else {
             counted_t<val_t> v1 = arg(env, 1);
             if (v1->get_type().is_convertible(val_t::type_t::FUNC)) {
                 return v0->as_seq(env->env)
-                     ->filter(v1->as_func(), counted_t<func_t>())
-                     ->count(env->env);
+                    ->add_transformation(
+                        env, filter_wire_func_t(v1->as_func(), counted_t<func_t>()))
+                    ->add_transformation(env, count_wire_func_t());
             } else {
                 counted_t<func_t> f =
                     new_eq_comparison_func(v1->as_datum(), backtrace());
                 return v0->as_seq(env->env)
-                     ->filter(f, counted_t<func_t>())->count(env->env);
+                    ->add_transformation(
+                        env, filter_wire_func_t(f, counted_t<func_t>()))
+                    ->add_trasnformation(env, count_wire_func_t());
             }
         }
     }
