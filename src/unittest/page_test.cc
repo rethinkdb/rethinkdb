@@ -36,32 +36,28 @@ struct mock_ser_t {
     }
 };
 
-class test_txn_t : public page_txn_t {
-public:
-    // KSI: We could make these tests better by varying the expected change count given
-    // by an actual tracker_acq_t.
+void nop(alt::tracker_acq_t) { }
 
-    // KSI: It would be nice if this test covered the use of cache_conn_t (it used to
-    // check that preceding_txns worked).'
-    explicit test_txn_t(page_cache_t *cache)
-        : page_txn_t(cache,
-                     repli_timestamp_t::distant_past,
-                     alt::tracker_acq_t(),
-                     NULL) { }
-};
-
-void nop(alt::tracker_acq_t &&) { }
+class test_txn_t;
 
 class test_cache_t : public page_cache_t {
 public:
     test_cache_t(serializer_t *serializer, alt_memory_tracker_t *tracker)
-        : page_cache_t(serializer, page_cache_config_t(), tracker) { }
+        : page_cache_t(serializer, page_cache_config_t(), tracker),
+          tracker_(tracker) { }
     test_cache_t(serializer_t *serializer, alt_memory_tracker_t *tracker,
                  uint64_t memory_limit)
-        : page_cache_t(serializer, make_config(memory_limit), tracker) { }
+        : page_cache_t(serializer, make_config(memory_limit), tracker),
+          tracker_(tracker) { }
 
     void flush(scoped_ptr_t<test_txn_t> txn) {
         flush_and_destroy_txn(std::move(txn), &nop);
+    }
+
+    alt::tracker_acq_t make_tracker_acq() {
+        // KSI: We could make these tests better by varying the expected change
+        // count.
+        return tracker_->begin_txn_or_throttle(0);
     }
 
 private:
@@ -70,7 +66,23 @@ private:
         ret.memory_limit = memory_limit;
         return ret;
     }
+
+    alt_memory_tracker_t *tracker_;
 };
+
+class test_txn_t : public page_txn_t {
+public:
+    explicit test_txn_t(test_cache_t *cache);
+};
+
+
+test_txn_t::test_txn_t(test_cache_t *cache)
+    : page_txn_t(cache,
+                 repli_timestamp_t::distant_past,
+                 cache->make_tracker_acq(),
+                 NULL) { }
+
+
 
 void run_Control() {
     mock_ser_t ser;

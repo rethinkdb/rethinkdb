@@ -26,13 +26,14 @@ public:
     alt_memory_tracker_t();
     ~alt_memory_tracker_t();
 
+    alt::tracker_acq_t begin_txn_or_throttle(int64_t expected_change_count);
+    void end_txn(alt::tracker_acq_t acq);
+
 private:
     friend class txn_t;
 
     void inform_memory_change(uint64_t in_memory_size,
                               uint64_t memory_limit);
-    alt::tracker_acq_t begin_txn_or_throttle(int64_t expected_change_count);
-    void end_txn(alt::tracker_acq_t acq);
 
     new_semaphore_t semaphore_;
     DISABLE_COPYING(alt_memory_tracker_t);
