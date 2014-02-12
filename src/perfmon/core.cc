@@ -38,7 +38,7 @@ public:
     }
 };
 
-perfmon_collection_t::perfmon_collection_t() { }
+perfmon_collection_t::perfmon_collection_t() : constituents_access(true) { }
 perfmon_collection_t::~perfmon_collection_t() { }
 
 void *perfmon_collection_t::begin_stats() {

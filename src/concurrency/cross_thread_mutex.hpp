@@ -13,6 +13,7 @@ class cross_thread_mutex_t;
 
 /* `cross_thread_mutex_t` behaves like `mutex_t`, but can be used across
  * multiple threads.
+ * It also allows recursive lock acquisition from the same coroutine if desired.
  * It is more efficient than doing
  * `{ on_thread_t t(mutex_home_thread); co_lock_mutex(&m); }`
  * because the thread switch is avoided.
@@ -36,17 +37,18 @@ public:
         DISABLE_COPYING(acq_t);
     };
 
-    cross_thread_mutex_t() : locked(false) { }
+    cross_thread_mutex_t(bool recursive = false) :
+        is_recursive(recursive), locked_count(0), lock_holder(NULL) { }
     ~cross_thread_mutex_t() {
 #ifndef NDEBUG
         spinlock_acq_t acq(&spinlock);
-        rassert(!locked);
+        rassert(locked_count == 0);
 #endif
     }
 
     bool is_locked() {
         spinlock_acq_t acq(&spinlock);
-        return locked;
+        return locked_count > 0;
     }
 
     friend void co_lock_mutex(cross_thread_mutex_t *mutex);
@@ -54,7 +56,9 @@ public:
 
 private:
     spinlock_t spinlock;
-    bool locked;
+    bool is_recursive;
+    int locked_count;
+    coro_t *lock_holder;
     std::deque<coro_t *> waiters;
 
     DISABLE_COPYING(cross_thread_mutex_t);
