@@ -1138,8 +1138,7 @@ write_message_t &operator<<(write_message_t &wm,
     } break;
     case datum_t::R_OBJECT: {
         wm << datum_serialized_type_t::R_OBJECT;
-        const std::map<std::string, counted_t<const datum_t> > &value = datum->as_object();
-        wm << value;
+        wm << datum->as_object();
     } break;
     case datum_t::R_STR: {
         wm << datum_serialized_type_t::R_STR;

@@ -11,7 +11,6 @@ namespace ql {
 
 bool reversed(sorting_t sorting) { return sorting == sorting_t::DESCENDING; }
 
-
 void accumulator_t::finish(result_t *out) {
     // We fill in the result if there have been no errors.
     if (boost::get<exc_t>(out) == NULL) {
@@ -56,7 +55,9 @@ private:
         guarantee(acc.size() == 0);
         std::map<counted_t<const datum_t>, std::vector<T *> > vecs;
         for (auto res = results.begin(); res != results.end(); ++res) {
+            guarantee(*res);
             grouped<T> *gres = boost::get<grouped<T> >(*res);
+            guarantee(gres);
             for (auto kv = gres->begin(); kv != gres->end(); ++kv) {
                 vecs[kv->first].push_back(&kv->second);
             }
@@ -109,7 +110,7 @@ private:
     virtual void unshard_impl(stream_t *out,
                               const store_key_t &last_key,
                               const std::vector<stream_t *> &streams) {
-        size_t sz = 0;
+        uint64_t sz = 0;
         for (auto it = streams.begin(); it != streams.end(); ++it) {
             sz += (*it)->size();
         }
@@ -221,19 +222,19 @@ private:
     virtual bool should_send_batch() { return false; }
 };
 
-class count_terminal_t : public terminal_t<size_t> {
+class count_terminal_t : public terminal_t<uint64_t> {
 public:
     count_terminal_t(env_t *, const count_wire_func_t &) : terminal_t(0) { }
 private:
     virtual bool uses_val() { return false; }
-    virtual void accumulate(const counted_t<const datum_t> &el, size_t *out) {
+    virtual void accumulate(const counted_t<const datum_t> &el, uint64_t *out) {
         guarantee(!el.has()); // To prevent silent performance regressions.
         *out += 1;
     }
-    virtual counted_t<const datum_t> unpack(size_t *sz) {
+    virtual counted_t<const datum_t> unpack(uint64_t *sz) {
         return make_counted<const datum_t>(double(*sz));
     }
-    virtual void unshard_impl(size_t *out, const std::vector<size_t *> &sizes) {
+    virtual void unshard_impl(uint64_t *out, const std::vector<uint64_t *> &sizes) {
         for (auto it = sizes.begin(); it != sizes.end(); ++it) {
             *out += **it;
         }

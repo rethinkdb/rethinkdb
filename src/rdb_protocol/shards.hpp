@@ -27,17 +27,6 @@ bool reversed(sorting_t sorting);
 // we want to use this logic in multiple places.
 typedef std::vector<counted_t<const ql::datum_t> > lst_t;
 typedef std::map<counted_t<const ql::datum_t>, lst_t> groups_t;
-template<class T>
-class grouped : public std::map<counted_t<const ql::datum_t>, T> {
-public:
-    // This is needed for serialization to overload correctly (don't ask me why).
-    void rdb_serialize(write_message_t &msg) const { // NOLINT
-        msg << *this;
-    }
-    archive_result_t rdb_deserialize(read_stream_t *s) {
-        return deserialize(s, this);
-    }
-};
 
 struct rget_item_t {
     rget_item_t() { }
@@ -53,8 +42,61 @@ struct rget_item_t {
 };
 typedef std::vector<rget_item_t> stream_t;
 
+static inline void serialize_grouped(
+    write_message_t *msg, const counted_t<const datum_t> &d) {
+    *msg << d.has();
+    if (d.has()) *msg << d;
+}
+static inline void serialize_grouped(write_message_t *msg, uint64_t sz) {
+    serialize_varint_uint64(msg, sz);
+}
+static inline void serialize_grouped(write_message_t *msg, const stream_t &sz) {
+    *msg << sz;
+}
+static inline archive_result_t deserialize_grouped(
+    read_stream_t *s, counted_t<const datum_t> *d) {
+    bool has;
+    if (auto res = deserialize(s, &has)) return res;
+    return has ? deserialize(s, d) : ARCHIVE_SUCCESS;
+}
+static inline archive_result_t deserialize_grouped(read_stream_t *s, uint64_t *sz) {
+    return deserialize_varint_uint64(s, sz);
+}
+static inline archive_result_t deserialize_grouped(read_stream_t *s, stream_t *sz) {
+    return deserialize(s, sz);
+}
+
+template<class T>
+class grouped : public std::map<counted_t<const ql::datum_t>, T> {
+public:
+    void rdb_serialize(write_message_t &msg) const { // NOLINT
+        serialize_varint_uint64(
+            &msg, std::map<counted_t<const ql::datum_t>, T>::size());
+        auto b = std::map<counted_t<const ql::datum_t>, T>::begin();
+        auto e = std::map<counted_t<const ql::datum_t>, T>::end();
+        for (auto it = std::move(b); it != e; ++it) {
+            serialize_grouped(&msg, it->first);
+            serialize_grouped(&msg, it->second);
+        }
+    }
+    archive_result_t rdb_deserialize(read_stream_t *s) {
+        uint64_t sz = std::map<counted_t<const ql::datum_t>, T>::size();
+        guarantee(sz == 0);
+        if (auto res = deserialize_varint_uint64(s, &sz)) return res;
+        if (sz > std::numeric_limits<size_t>::max()) return ARCHIVE_RANGE_ERROR;
+        auto pos = std::map<counted_t<const ql::datum_t>, T>::begin();
+        for (uint64_t i = 0; i < sz; ++i) {
+            std::pair<counted_t<const datum_t>, T> el;
+            if (auto res = deserialize_grouped(s, &el.first)) return res;
+            if (auto res = deserialize_grouped(s, &el.second)) return res;
+            pos = std::map<counted_t<const ql::datum_t>, T>::insert(pos, std::move(el));
+        }
+        return ARCHIVE_SUCCESS;
+    }
+};
+
 typedef boost::variant<
-    ql::grouped<size_t>, // Count.
+    ql::grouped<uint64_t>, // Count.
     ql::grouped<counted_t<const ql::datum_t> >, // Reduce (may be NULL).
     ql::grouped<stream_t>, // No terminal.
     ql::exc_t // Don't re-order (we don't want this to initialize to an error.)

@@ -653,7 +653,7 @@ void rdb_r_unshard_visitor_t::operator()(const rget_read_t &rg) {
             out->result = std::move(resp->result);
             return;
         }
-        results.push_back(&resp->result);
+        results[i] = &resp->result;
     }
     out->last_key = (best != NULL) ? std::move(*best) : key_max(rg.sorting);
 
