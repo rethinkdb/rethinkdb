@@ -213,7 +213,9 @@ private:
     boost::variant<counted_t<const db_t>,
                    counted_t<datum_stream_t>,
                    counted_t<const datum_t>,
-                   counted_t<func_t> > u;
+                   counted_t<func_t>,
+                   std::map<counted_t<const datum_t>, counted_t<const datum_t> >
+                   > u;
 
     const counted_t<const db_t> &db() const {
         return boost::get<counted_t<const db_t> >(u);

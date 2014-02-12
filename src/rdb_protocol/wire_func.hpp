@@ -64,6 +64,10 @@ struct filter_wire_func_t {
                        const boost::optional<ql::wire_func_t> &_default_filter_val)
         : filter_func(_filter_func),
           default_filter_val(_default_filter_val) { }
+    filter_wire_func_t(const counted_t<func_t> &_filter_func,
+                       const boost::optional<ql::wire_func_t> &_default_filter_val)
+        : filter_func(_filter_func),
+          default_filter_val(_default_filter_val) { }
 
     ql::wire_func_t filter_func;
     boost::optional<ql::wire_func_t> default_filter_val;

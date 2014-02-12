@@ -21,21 +21,22 @@ private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         counted_t<val_t> v0 = arg(env, 0);
         if (num_args() == 1) {
-            v0->as_seq(env->env)->add_transformation(env->env, count_wire_func_t());
+            return v0->as_seq(env->env)
+                ->run_terminal(env->env, count_wire_func_t());
         } else {
             counted_t<val_t> v1 = arg(env, 1);
             if (v1->get_type().is_convertible(val_t::type_t::FUNC)) {
                 return v0->as_seq(env->env)
                     ->add_transformation(
-                        env, filter_wire_func_t(v1->as_func(), counted_t<func_t>()))
-                    ->add_transformation(env, count_wire_func_t());
+                        env->env, filter_wire_func_t(v1->as_func(), boost::none))
+                    ->run_terminal(env->env, count_wire_func_t());
             } else {
                 counted_t<func_t> f =
                     new_eq_comparison_func(v1->as_datum(), backtrace());
                 return v0->as_seq(env->env)
                     ->add_transformation(
-                        env, filter_wire_func_t(f, counted_t<func_t>()))
-                    ->add_trasnformation(env, count_wire_func_t());
+                        env->env, filter_wire_func_t(f, boost::none))
+                    ->run_terminal(env->env, count_wire_func_t());
             }
         }
     }
@@ -48,8 +49,8 @@ public:
         : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
-        return new_val(env->env,
-                       arg(env, 0)->as_seq(env->env)->map(arg(env, 1)->as_func()));
+        return new_val(env->env, arg(env, 0)->as_seq(env->env)->add_transformation(
+                           env->env, map_wire_func_t(arg(env, 1)->as_func())));
     }
     virtual const char *name() const { return "map"; }
 };
@@ -60,7 +61,8 @@ public:
         : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
-        return new_val(env->env, arg(env, 0)->as_seq(env->env)->concatmap(arg(env, 1)->as_func()));
+        return new_val(env->env, arg(env, 0)->as_seq(env->env)->add_transformation(
+                           env->env, concatmap_wire_func_t(arg(env, 1)->as_func())));
     }
     virtual const char *name() const { return "concatmap"; }
 };
@@ -76,16 +78,20 @@ private:
         counted_t<val_t> v0 = arg(env, 0);
         counted_t<val_t> v1 = arg(env, 1, LITERAL_OK);
         counted_t<func_t> f = v1->as_func(CONSTANT_SHORTCUT);
-        counted_t<func_t> default_filter_val = default_filter_term.has()
-            ? default_filter_term->eval_to_func(env->scope)
-            : counted_t<func_t>();
+        boost::optional<wire_func_t> defval;
+        if (default_filter_term.has()) {
+            defval = wire_func_t(default_filter_term->eval_to_func(env->scope));
+        }
 
         if (v0->get_type().is_convertible(val_t::type_t::SELECTION)) {
             std::pair<counted_t<table_t>, counted_t<datum_stream_t> > ts
                 = v0->as_selection(env->env);
-            return new_val(ts.second->filter(f, default_filter_val), ts.first);
+            return new_val(ts.second->add_transformation(
+                               env->env, filter_wire_func_t(f, defval)),
+                           ts.first);
         } else {
-            return new_val(env->env, v0->as_seq(env->env)->filter(f, default_filter_val));
+            return new_val(env->env, v0->as_seq(env->env)->add_transformation(
+                               env->env, filter_wire_func_t(f, defval)));
         }
     }
 
@@ -100,8 +106,8 @@ public:
         op_term_t(env, term, argspec_t(2), optargspec_t({ "base" })) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
-        return arg(env, 0)->as_seq(env->env)
-             ->reduce(env->env, optarg(env, "base"), arg(env, 1)->as_func());
+        return arg(env, 0)->as_seq(env->env)->run_terminal(
+            env->env, reduce_wire_func_t(arg(env, 1)->as_func()));
     }
     virtual const char *name() const { return "reduce"; }
 };
@@ -157,7 +163,7 @@ private:
             streams.push_back(arg(env, i)->as_seq(env->env));
         }
         counted_t<datum_stream_t> union_stream
-            = make_counted<union_datum_stream_t>(streams, backtrace());
+            = make_counted<union_datum_stream_t>(std::move(streams), backtrace());
         return new_val(env->env, union_stream);
     }
     virtual const char *name() const { return "union"; }

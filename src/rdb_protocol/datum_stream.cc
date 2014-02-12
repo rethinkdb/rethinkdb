@@ -106,11 +106,11 @@ void reader_t::add_transformation(transform_variant_t &&tv) {
     transforms.push_back(std::move(tv));
 }
 
-void reader_t::accumulate(env_t *env, eager_acc_t *acc, terminal_variant_t &&tv) {
+void reader_t::accumulate(env_t *env, eager_acc_t *acc, const terminal_variant_t &tv) {
     r_sanity_check(!started);
     started = shards_exhausted = true;
     batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env);
-    read_t read = readgen->terminal_read(transforms, std::move(tv), batchspec);
+    read_t read = readgen->terminal_read(transforms, tv, batchspec);
     acc->add_res(do_read(env, std::move(read)).result);
 }
 
@@ -160,11 +160,11 @@ std::vector<rget_item_t> reader_t::do_range_read(env_t *env, const read_t &read)
 
     shards_exhausted = readgen->update_range(&active_range, res.last_key);
     grouped<stream_t> *gs = boost::get<grouped<stream_t> >(&res.result);
-    rcheck(gs->size() == 1 && !gs.begin()->first.has(),
+    rcheck_datum(gs->size() == 1 && !gs->begin()->first.has(),
            base_exc_t::GENERIC,
            "Cannot return grouped stream without a reduction (`reduce`, `sum`, etc.)"
            " on the end.");
-    return std::move(gs.begin()->second);
+    return std::move(gs->begin()->second);
 }
 
 bool reader_t::load_items(env_t *env, const batchspec_t &batchspec) {
@@ -328,10 +328,10 @@ read_t readgen_t::next_read(
 // TODO: this is how we did it before, but it sucks.
 read_t readgen_t::terminal_read(
     const std::vector<transform_variant_t> &transforms,
-    terminal_variant_t &&_terminal,
+    const terminal_variant_t &_terminal,
     const batchspec_t &batchspec) const {
     rget_read_t read = next_read_impl(original_keyrange(), transforms, batchspec);
-    read.terminal = std::move(_terminal);
+    read.terminal = _terminal;
     return read_t(read, profile);
 }
 
@@ -485,9 +485,10 @@ std::string sindex_readgen_t::sindex_name() const {
     return sindex;
 }
 
-counted_t<val_t> datum_stream_t::run_terminal(env_t *env, terminal_variant_t &&tv) {
+counted_t<val_t> datum_stream_t::run_terminal(
+    env_t *env, const terminal_variant_t &tv) {
     scoped_ptr_t<eager_acc_t> acc(make_eager_terminal(env, tv));
-    accumulate(env, acc.get(), std::move(tv));
+    accumulate(env, acc.get(), tv);
     return acc->finish_eager(backtrace());
 }
 
@@ -568,8 +569,8 @@ done_t eager_datum_stream_t::next_grouped_batch(
 }
 
 void eager_datum_stream_t::accumulate(
-    env_t *env, eager_acc_t *acc, terminal_variant_t &&tv) {
-    batchspec_t bs(batch_type_t::TERMINAL, env);
+    env_t *env, eager_acc_t *acc, const terminal_variant_t &) {
+    batchspec_t bs = batchspec_t::user(batch_type_t::TERMINAL, env);
     groups_t data;
     while (next_grouped_batch(env, bs, &data) == done_t::YES) {
         (*acc)(&data);
@@ -600,12 +601,6 @@ counted_t<const datum_t> eager_datum_stream_t::as_array(env_t *env) {
     return arr.to_counted();
 }
 
-std::vector<counted_t<const datum_t> >
-wrapper_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &bs) {
-    return source->next_batch(env, bs);
-}
-
-
 // LAZY_DATUM_STREAM_T
 lazy_datum_stream_t::lazy_datum_stream_t(
     rdb_namespace_access_t *ns_access,
@@ -617,19 +612,14 @@ lazy_datum_stream_t::lazy_datum_stream_t(
       reader(*ns_access, use_outdated, std::move(readgen)) { }
 
 counted_t<datum_stream_t>
-lazy_datum_stream_t::add_transformation(terminal_variant_t &&tv) {
+lazy_datum_stream_t::add_transformation(env_t *, transform_variant_t &&tv) {
     reader.add_transformation(std::move(tv));
     return counted_from_this();
 }
 
 void lazy_datum_stream_t::accumulate(
-    env_t *env, eager_acc_t *acc, terminal_variant_t &&tv) {
-    reader.accumulate(env, acc, std::move(tv));
-}
-
-done_t lazy_datum_stream_t::next_grouped_batch(
-    env_t *env, const batchspec_t &bs, groups_t *out) {
-    return reader.next_grouped_batch(env, bs, out);
+    env_t *env, eager_acc_t *acc, const terminal_variant_t &tv) {
+    reader.accumulate(env, acc, tv);
 }
 
 std::vector<counted_t<const datum_t> >
@@ -649,9 +639,8 @@ array_datum_stream_t::array_datum_stream_t(counted_t<const datum_t> _arr,
                                            const protob_t<const Backtrace> &bt_source)
     : eager_datum_stream_t(bt_source), index(0), arr(_arr) { }
 
-counted_t<const datum_t> array_datum_stream_t::next(
-    UNUSED env_t *env, UNUSED const batchspec_t &batchspec) {
-    return ops_to_do() ? datum_stream_t::next() : next_arr_el();
+counted_t<const datum_t> array_datum_stream_t::next(env_t *env, const batchspec_t &bs) {
+    return ops_to_do() ? datum_stream_t::next(env, bs) : next_arr_el();
 }
 counted_t<const datum_t> array_datum_stream_t::next_arr_el() {
     return index < arr->size() ? arr->get(index++) : counted_t<const datum_t>();
@@ -749,63 +738,6 @@ indexes_of_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &bs) {
     return ret;
 }
 
-// FILTER_DATUM_STREAM_T
-filter_datum_stream_t::filter_datum_stream_t(counted_t<func_t> _f,
-                                             counted_t<func_t> _default_filter_val,
-                                             counted_t<datum_stream_t> _source)
-    : wrapper_datum_stream_t(_source), f(_f),
-      default_filter_val(_default_filter_val) {
-    guarantee(f.has() && source.has());
-}
-
-std::vector<counted_t<const datum_t> >
-filter_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &batchspec) {
-    std::vector<counted_t<const datum_t> > ret;
-    profile::sampler_t sampler("Filtering eagerly.", env->trace);
-    while (ret.size() == 0) {
-        std::vector<counted_t<const datum_t> > v = source->next_batch(env, batchspec);
-        if (v.size() == 0) {
-            break;
-        }
-        for (auto it = v.begin(); it != v.end(); ++it) {
-            if (f->filter_call(env, *it, default_filter_val)) {
-                ret.push_back(std::move(*it));
-            }
-            sampler.new_sample();
-        }
-    }
-    return ret;
-}
-
-// CONCATMAP_DATUM_STREAM_T
-concatmap_datum_stream_t::concatmap_datum_stream_t(counted_t<func_t> _f,
-                                                   counted_t<datum_stream_t> _source)
-    : wrapper_datum_stream_t(_source), f(_f) {
-    guarantee(f.has() && source.has());
-}
-
-std::vector<counted_t<const datum_t> >
-concatmap_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &batchspec) {
-    profile::sampler_t sampler("Concat_mapping eagerly.", env->trace);
-    for (;;) {
-        if (!subsource.has()) {
-            counted_t<const datum_t> arg = source->next(env, batchspec);
-            if (!arg.has()) {
-                return std::vector<counted_t<const datum_t> >();
-            }
-            subsource = f->call(env, arg)->as_seq(env);
-            sampler.new_sample();
-        }
-        std::vector<counted_t<const datum_t> > v
-            = subsource->next_batch(env, batchspec);
-        if (v.size() != 0) {
-            return v;
-        } else {
-            subsource.reset();
-        }
-    }
-}
-
 // SLICE_DATUM_STREAM_T
 slice_datum_stream_t::slice_datum_stream_t(
     uint64_t _left, uint64_t _right, counted_t<datum_stream_t> _src)
@@ -884,18 +816,16 @@ zip_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &batchspec) {
 counted_t<datum_stream_t> union_datum_stream_t::add_transformation(
     env_t *env, transform_variant_t &&tv) {
     for (auto it = streams.begin(); it != streams.end(); ++it) {
-        transform_varian_t tv2(tv);
-        *it = (*it)->add_transformation(env, std::move(tv2));
+        *it = (*it)->add_transformation(env, transform_variant_t(tv));
     }
     return counted_from_this();
 }
 
 // RSI: double-check what happens when r.union(lst, empty_lst).reduce{...}
 void union_datum_stream_t::accumulate(
-    env_t *env, eager_acc_t *acc, terminal_variant_t &&tv) {
-    batchspec_t bs(batch_type_t::TERMINAL, env);
+    env_t *env, eager_acc_t *acc, const terminal_variant_t &tv) {
     for (auto it = streams.begin(); it != streams.end(); ++it) {
-        (*it)->accumulate(env, acc, terminal_variant_t(tv));
+        (*it)->accumulate(env, acc, tv);
     }
 }
 

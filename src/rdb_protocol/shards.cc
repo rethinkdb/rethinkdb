@@ -71,6 +71,9 @@ private:
                               const std::vector<T *> &ts) = 0;
 
 protected:
+    const T *get_default_t() { return &default_t; }
+    grouped<T> *get_acc() { return &acc; }
+private:
     const T default_t;
     grouped<T> acc;
 };
@@ -156,11 +159,11 @@ class terminal_t : public grouped_accumulator_t<T>, public eager_acc_t {
 protected:
     terminal_t(T &&t) : grouped_accumulator_t<T>(std::move(t)) { }
 private:
-    // In a perfect world this would be on grouped_accumulator.  I hate type
-    // hierarchies.
     virtual void operator()(groups_t *groups) {
+        grouped<T> *acc = grouped_accumulator_t<T>::get_acc();
+        const T *default_t = grouped_accumulator_t<T>::get_default_t();
         for (auto it = groups->begin(); it != groups->end(); ++it) {
-            auto t_it = acc.insert(std::make_pair(it->first, default_t)).first;
+            auto t_it = acc->insert(std::make_pair(it->first, *default_t)).first;
             for (auto el = it->second.begin(); el != it->second.end(); ++el) {
                 accumulate(*el, &t_it->second);
             }
@@ -168,33 +171,38 @@ private:
     }
 
     virtual counted_t<val_t> finish_eager(protob_t<const Backtrace> bt) {
+        grouped<T> *acc = grouped_accumulator_t<T>::get_acc();
         if (T *t = get_single()) {
             return make_counted<val_t>(unpack(t), bt);
         } else {
             std::map<counted_t<const datum_t>, counted_t<const datum_t> > ret;
-            for (auto kv = acc.begin(); kv != acc.end(); ++kv) {
+            for (auto kv = acc->begin(); kv != acc->end(); ++kv) {
                 ret.insert(std::make_pair(kv->first, unpack(&kv->second)));
             }
             return make_counted<val_t>(std::move(ret), bt);
         }
     }
     T *get_single() {
-        return acc.size() == 1 && !acc.begin()->first.has()
-            ? &acc.begin()->second
+        grouped<T> *acc = grouped_accumulator_t<T>::get_acc();
+        return acc->size() == 1 && !acc->begin()->first.has()
+            ? &acc->begin()->second
             : NULL;
     }
     virtual counted_t<const datum_t> unpack(T *t) = 0;
 
     virtual void add_res(result_t &&res) {
+        grouped<T> *acc = grouped_accumulator_t<T>::get_acc();
+        const T *default_t = grouped_accumulator_t<T>::get_default_t();
         if (auto e = boost::get<exc_t>(&res)) {
             throw *e;
         }
         grouped<T> *gres = boost::get<grouped<T> >(&res);
-        if (acc.size() == 0) {
-            gres->swap(acc);
+        if (acc->size() == 0) {
+            acc->swap(*gres);
         } else {
             for (auto kv = gres->begin(); kv != gres->end(); ++kv) {
-                accumulate(kv->first, kv->second);
+                auto t_it = acc->insert(std::make_pair(kv->first, *default_t)).first;
+                accumulate(kv->first, &t_it->second);
             }
         }
     }
@@ -279,11 +287,11 @@ public:
 };
 
 accumulator_t *make_terminal(env_t *env, const terminal_variant_t &t) {
-    return boost::apply_visitor(terminal_visitor_t(env), t);
+    return boost::apply_visitor(terminal_visitor_t<accumulator_t>(env), t);
 }
 
 eager_acc_t *make_eager_terminal(env_t *env, const terminal_variant_t &t) {
-    return boost::apply_visitor(terminal_visitor_t(env), t);
+    return boost::apply_visitor(terminal_visitor_t<eager_acc_t>(env), t);
 }
 
 class ungrouped_op_t : public op_t {

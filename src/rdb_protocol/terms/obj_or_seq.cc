@@ -89,8 +89,7 @@ private:
                                    env->env, map_wire_func_t(func)));
             case FILTER:
                 return new_val(env->env, v0->as_seq(env->env)->add_transformation(
-                                   env->env,
-                                   filter_wire_func_t(func, counted_t<func_t>())));
+                                   env->env, filter_wire_func_t(func, boost::none)));
             case SKIP_MAP:
                 return new_val(env->env, v0->as_seq(env->env)->add_transformation(
                                    env->env, concatmap_wire_func_t(func)));

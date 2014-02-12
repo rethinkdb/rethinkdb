@@ -93,7 +93,7 @@ public:
 
     virtual counted_t<datum_stream_t> add_transformation(
         env_t *env, transform_variant_t &&tv) = 0;
-    counted_t<val_t> run_terminal(env_t *env, terminal_variant_t &&tv);
+    counted_t<val_t> run_terminal(env_t *env, const terminal_variant_t &tv);
 
     // stream -> stream (always eager)
     counted_t<datum_stream_t> slice(size_t l, size_t r);
@@ -113,16 +113,16 @@ public:
     virtual counted_t<const datum_t> next(env_t *env, const batchspec_t &batchspec);
     virtual bool is_exhausted() const = 0;
 
+    virtual void accumulate(
+        env_t *env, eager_acc_t *acc, const terminal_variant_t &tv) = 0;
+
 protected:
     bool batch_cache_exhausted() const;
     explicit datum_stream_t(const protob_t<const Backtrace> &bt_src);
-    virtual done_t next_grouped_batch(
-        env_t *env, const batchspec_t &bs, groups_t *out) = 0;
 
 private:
     virtual std::vector<counted_t<const datum_t> >
     next_batch_impl(env_t *env, const batchspec_t &batchspec) = 0;
-    virtual void accumulate(env_t *env, eager_acc_t *acc, terminal_variant_t &&tv) = 0;
 
     std::vector<counted_t<const datum_t> > batch_cache;
     size_t batch_cache_index;
@@ -140,7 +140,7 @@ private:
 
     virtual counted_t<datum_stream_t> add_transformation(
         env_t *env, transform_variant_t &&tv);
-    virtual void accumulate(env_t *env, eager_acc_t *acc, terminal_variant_t &&tv);
+    virtual void accumulate(env_t *env, eager_acc_t *acc, const terminal_variant_t &tv);
 
     done_t next_grouped_batch(env_t *env, const batchspec_t &bs, groups_t *out);
     virtual std::vector<counted_t<const datum_t> >
@@ -166,8 +166,7 @@ private:
         return source->is_exhausted() && batch_cache_exhausted();
     }
 
-    virtual std::vector<counted_t<const datum_t> >
-    next_raw_batch(env_t *env, const batchspec_t &bs);
+protected:
     const counted_t<datum_stream_t> source;
 };
 
@@ -194,6 +193,7 @@ private:
     virtual std::vector<counted_t<const datum_t> >
     next_raw_batch(env_t *env, UNUSED const batchspec_t &batchspec);
     counted_t<const datum_t> next(env_t *env, const batchspec_t &batchspec);
+    counted_t<const datum_t> next_arr_el();
 
     size_t index;
     counted_t<const datum_t> arr;
@@ -239,18 +239,14 @@ std::vector<counted_t<const datum_t> > data;
 
 class union_datum_stream_t : public datum_stream_t {
 public:
-    union_datum_stream_t(const std::vector<counted_t<datum_stream_t> > &_streams,
+    union_datum_stream_t(std::vector<counted_t<datum_stream_t> > &&_streams,
                          const protob_t<const Backtrace> &bt_src)
         : datum_stream_t(bt_src), streams(_streams), streams_index(0) { }
 
     virtual counted_t<datum_stream_t> add_transformation(
         env_t *env, transform_variant_t &&tv);
-    virtual void accumulate(env_t *env, eager_acc_t *acc, terminal_variant_t &&tv);
+    virtual void accumulate(env_t *env, eager_acc_t *acc, const terminal_variant_t &tv);
 
-    // stream -> atom
-    virtual counted_t<val_t> count(env_t *env);
-    virtual counted_t<val_t> reduce(
-        env_t *env, counted_t<val_t> base_val, counted_t<func_t> f);
     virtual bool is_array();
     virtual counted_t<const datum_t> as_array(env_t *env);
     virtual bool is_exhausted() const;
@@ -276,7 +272,7 @@ public:
     virtual ~readgen_t() { }
     read_t terminal_read(
         const std::vector<transform_variant_t> &transform,
-        terminal_variant_t &&_terminal,
+        const terminal_variant_t &_terminal,
         const batchspec_t &batchspec) const;
     // This has to be on `readgen_t` because we sort differently depending on
     // the kinds of reads we're doing.
@@ -374,7 +370,7 @@ public:
         scoped_ptr_t<readgen_t> &&readgen);
     void add_transformation(transform_variant_t &&tv);
     // RSI: make work (also: rename transform_visitors.*)
-    void accumulate(env_t *env, eager_acc_t *acc, terminal_variant_t &&tv);
+    void accumulate(env_t *env, eager_acc_t *acc, const terminal_variant_t &tv);
     std::vector<counted_t<const datum_t> >
     next_batch(env_t *env, const batchspec_t &batchspec);
     bool is_finished() const;
@@ -414,12 +410,10 @@ public:
 private:
     std::vector<counted_t<const datum_t> >
     next_batch_impl(env_t *env, const batchspec_t &batchspec);
-    virtual done_t next_grouped_batch(
-        env_t *env, const batchspec_t &bs, groups_t *out);
 
     virtual counted_t<datum_stream_t> add_transformation(
         env_t *env, transform_variant_t &&tv);
-    virtual void accumulate(env_t *env, eager_acc_t *acc, terminal_variant_t &&tv);
+    virtual void accumulate(env_t *env, eager_acc_t *acc, const terminal_variant_t &tv);
 
     // We use these to cache a batch so that `next` works.  There are a lot of
     // things that are most easily written in terms of `next` that would
