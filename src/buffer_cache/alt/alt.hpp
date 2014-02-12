@@ -19,6 +19,8 @@ class alt_cache_config_t;
 class alt_cache_stats_t;
 class alt_snapshot_node_t;
 
+// KSI: This is kind of F'd up a bit.  Throttling doesn't use the stuff we learn in
+// inform_memory_change (right now) so this is just a nonsensical mixing of notions.
 class alt_memory_tracker_t : public memory_tracker_t {
 public:
     alt_memory_tracker_t();
@@ -68,10 +70,7 @@ private:
     scoped_ptr_t<alt_cache_stats_t> stats_;
 
     // tracker_ is used for throttling (which can cause the txn_t constructor to
-    // block).  RSI: The throttling interface is bad (maybe) because it's worried
-    // about transaction_t's passing one another(?) or maybe the callers are bad with
-    // their use of chained mutexes.  Make sure that timestamps don't get mixed up in
-    // their ordering, once they begin to play a role.
+    // block).
     alt_memory_tracker_t tracker_;
     alt::page_cache_t page_cache_;
 
