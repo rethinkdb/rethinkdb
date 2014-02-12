@@ -13,7 +13,7 @@
     <div class="alert alert-error error_answer"></div>
 
 
-    <p><strong>This server is currently unreachable</strong></p>
+    <p><strong>How to restore availability?</strong></p>
 
     <p>
         To restore service availability, this server either needs to rejoin
@@ -39,16 +39,14 @@
             data, proceed with caution.
         </div>
 
-
         <p>
-            <input class="xlarge large_input verification" name="name"
-            placeholder="Type 'permanently remove' to confirm" size="30" type=
-            "text">
+            <div class="alert alert-error error_verification">
+                Please type "remove" to confirm.
+            </div>
         </p>
-
-        <div class="alert alert-error error_verification">
-            Please type "permanently remove" to confirm.
-        </div>
+        <input class="verification" name="name"
+            placeholder="Type 'remove' to confirm" size="30" type=
+            "text">
     </div>
 
 </script>

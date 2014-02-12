@@ -38,13 +38,13 @@ module 'ResolveIssuesView', ->
             @machine_to_kill = _machine_to_kill
             super
                 machine_name: @machine_to_kill.get("name")
-                modal_title: "Declare server dead"
-                btn_primary_text: 'Declare Dead'
+                modal_title: "Permanently remove the server"
+                btn_primary_text: 'Remove'
 
         on_submit: ->
             super
 
-            if @$('.verification').val().toLowerCase() is 'permanently remove'
+            if @$('.verification').val().toLowerCase() is 'remove'
                 $.ajax
                     url: "ajax/semilattice/machines/#{@machine_to_kill.id}"
                     type: 'DELETE'
