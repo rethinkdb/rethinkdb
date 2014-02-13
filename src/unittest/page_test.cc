@@ -230,6 +230,8 @@ void ReadAfterWrite_cases(ReadAfterWrite_state_t *s, test_cache_t *cache, int i)
             ASSERT_FALSE(s->read_acquired.is_pulsed());
         }
         s->write_released.pulse();
+
+        cache->flush(std::move(txn));
     } else if (i == 1) {
         auto txn = make_scoped<test_txn_t>(cache);
         s->write_acquired.wait();
@@ -244,6 +246,7 @@ void ReadAfterWrite_cases(ReadAfterWrite_state_t *s, test_cache_t *cache, int i)
         ASSERT_TRUE(s->write_released.is_pulsed());
         s->read_acquired.pulse();
 
+        cache->flush(std::move(txn));
     } else {
         unreachable();
     }
