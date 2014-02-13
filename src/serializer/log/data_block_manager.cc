@@ -736,7 +736,7 @@ data_block_manager_t::many_writes(const std::vector<buf_write_info_t> &writes,
     };
 
     intermediate_cb_t *const intermediate_cb = new intermediate_cb_t;
-    // We add 1 for degenerate case where token_groups.size() -- we call
+    // We add 1 for degenerate case where token_groups is empty -- we call
     // intermediate_cb->on_io_complete later.
     intermediate_cb->ops_remaining = token_groups.size() + 1;
     intermediate_cb->cb = cb;
@@ -780,7 +780,7 @@ data_block_manager_t::many_writes(const std::vector<buf_write_info_t> &writes,
     }
 
     // Call on_io_complete for degenerate case (we added 1 to ops_remaining
-    // gearlier).
+    // earlier).
     intermediate_cb->on_io_complete();
 
     std::vector<counted_t<ls_block_token_pointee_t> > ret;
