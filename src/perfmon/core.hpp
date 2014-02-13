@@ -8,7 +8,7 @@
 #include <vector>
 #include <set>
 
-#include "concurrency/rwi_lock.hpp"
+#include "concurrency/cross_thread_mutex.hpp"
 #include "containers/intrusive_list.hpp"
 #include "containers/scoped.hpp"
 #include "utils.hpp"
@@ -65,7 +65,10 @@ private:
     void add(perfmon_membership_t *perfmon);
     void remove(perfmon_membership_t *perfmon);
 
-    rwi_lock_t constituents_access;
+    // TODO: This should be a cross_thread_rwi_lock_t.
+    // However concurrent reads to a perfmon_collection are currently rare,
+    // and this makes the implementation simpler.
+    cross_thread_mutex_t constituents_access;
     intrusive_list_t<perfmon_membership_t> constituents;
 };
 
