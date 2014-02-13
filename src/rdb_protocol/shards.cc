@@ -21,6 +21,7 @@ void accumulator_t::mark_finished() { finished = true; }
 
 void accumulator_t::finish(result_t *out) {
     // We fill in the result if there have been no errors.
+    // RSI: acc assertion if there are no errors?
     if (boost::get<exc_t>(out) == NULL) {
         finish_impl(out);
     }
@@ -31,11 +32,7 @@ template<class T>
 class grouped_accumulator_t : public accumulator_t {
 protected:
     grouped_accumulator_t(T &&_default_t) : default_t(std::move(_default_t)) { }
-    virtual ~grouped_accumulator_t() {
-        if (!std::uncaught_exception()) {
-            r_sanity_check(acc.size() == 0);
-        }
-    }
+    virtual ~grouped_accumulator_t() { }
 private:
     virtual done_t operator()(groups_t *groups,
                               store_key_t &&key,
@@ -56,6 +53,7 @@ private:
                             counted_t<const datum_t> &&sindex_val) = 0;
 
     virtual bool should_send_batch() = 0;
+
     virtual void finish_impl(result_t *out) {
         *out = grouped<T>();
         boost::get<grouped<T> >(*out).swap(acc);
@@ -181,14 +179,23 @@ private:
                 accumulate(*el, &t_it->second);
             }
         }
+        groups->clear();
     }
 
+    // RSI: empty?
     virtual counted_t<val_t> finish_eager(protob_t<const Backtrace> bt) {
         grouped<T> *acc = grouped_accumulator_t<T>::get_acc();
+        const T *default_t = grouped_accumulator_t<T>::get_default_t();
         counted_t<val_t> retval;
-        if (T *t = get_single()) {
-            retval = make_counted<val_t>(unpack(t), bt);
+        if (acc->size() == 0) {
+            debugf("zero\n");
+            T t(*default_t);
+            retval = make_counted<val_t>(unpack(&t), bt);
+        } else if (acc->size() == 1 && !acc->begin()->first.has()) {
+            debugf("single\n");
+            retval = make_counted<val_t>(unpack(&acc->begin()->second), bt);
         } else {
+            debugf("multi\n");
             std::map<counted_t<const datum_t>, counted_t<const datum_t> > ret;
             for (auto kv = acc->begin(); kv != acc->end(); ++kv) {
                 ret.insert(std::make_pair(kv->first, unpack(&kv->second)));
@@ -198,12 +205,6 @@ private:
         acc->clear();
         accumulator_t::mark_finished();
         return retval;
-    }
-    T *get_single() {
-        grouped<T> *acc = grouped_accumulator_t<T>::get_acc();
-        return acc->size() == 1 && !acc->begin()->first.has()
-            ? &acc->begin()->second
-            : NULL;
     }
     virtual counted_t<const datum_t> unpack(T *t) = 0;
 

@@ -12,9 +12,6 @@
 
 namespace ql {
 
-
-/* rdb_namespace_interface_t methods */
-
 rdb_namespace_interface_t::rdb_namespace_interface_t(
         namespace_interface_t<rdb_protocol_t> *internal, env_t *env)
     : internal_(internal), env_(env) { }
@@ -90,6 +87,19 @@ rdb_namespace_interface_t rdb_namespace_access_t::get_namespace_if() {
 const char *const empty_stream_msg =
     "Cannot reduce over an empty stream with no base.";
 
+template<class T>
+T groups_to_batch(std::map<counted_t<const datum_t>, T> *g) {
+    if (g->size() == 0) {
+        return T();
+    } else {
+        rcheck_datum(
+            g->size() == 1 && !g->begin()->first.has(), base_exc_t::GENERIC,
+            "Cannot return grouped stream without a reduction (`reduce`, `sum`, etc.)"
+            " on the end.");
+        return std::move(g->begin()->second);
+    }
+}
+
 // RANGE/READGEN STUFF
 reader_t::reader_t(
     const rdb_namespace_access_t &_ns_access,
@@ -160,11 +170,7 @@ std::vector<rget_item_t> reader_t::do_range_read(env_t *env, const read_t &read)
 
     shards_exhausted = readgen->update_range(&active_range, res.last_key);
     grouped<stream_t> *gs = boost::get<grouped<stream_t> >(&res.result);
-    rcheck_datum(gs->size() == 1 && !gs->begin()->first.has(),
-           base_exc_t::GENERIC,
-           "Cannot return grouped stream without a reduction (`reduce`, `sum`, etc.)"
-           " on the end.");
-    return std::move(gs->begin()->second);
+    return groups_to_batch(gs);
 }
 
 bool reader_t::load_items(env_t *env, const batchspec_t &batchspec) {
@@ -558,6 +564,7 @@ done_t eager_datum_stream_t::next_grouped_batch(
     env_t *env, const batchspec_t &bs, groups_t *out) {
     r_sanity_check(out->size() == 0);
     std::vector<counted_t<const datum_t> > v = next_raw_batch(env, bs);
+    debugf("Got raw batch of size %zu\n", v.size());
     if (v.size() != 0) {
         (*out)[counted_t<const datum_t>()] = std::move(v);
         for (auto it = ops.begin(); it != ops.end(); ++it) {
@@ -572,7 +579,8 @@ void eager_datum_stream_t::accumulate(
     env_t *env, eager_acc_t *acc, const terminal_variant_t &) {
     batchspec_t bs = batchspec_t::user(batch_type_t::TERMINAL, env);
     groups_t data;
-    while (next_grouped_batch(env, bs, &data) == done_t::YES) {
+    while (next_grouped_batch(env, bs, &data) == done_t::NO) {
+        debugf("GROUPED_BATCH %zu\n", data.size());
         (*acc)(&data);
     }
 }
@@ -581,11 +589,7 @@ std::vector<counted_t<const datum_t> >
 eager_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &bs) {
     groups_t data;
     next_grouped_batch(env, bs, &data);
-    rcheck(data.size() == 1 && !data.begin()->first.has(),
-           base_exc_t::GENERIC,
-           "Cannot return grouped stream without a reduction (`reduce`, `sum`, etc.)"
-           " on the end.");
-    return std::move(data.begin()->second);
+    return groups_to_batch(&data);
 }
 
 counted_t<const datum_t> eager_datum_stream_t::as_array(env_t *env) {

@@ -737,8 +737,9 @@ done_t rget_cb_t::handle_pair(scoped_key_value_t &&keyvalue,
 THROWS_ONLY(interrupted_exc_t) {
     sampler->new_sample();
 
-    guarantee(boost::get<ql::exc_t>(&io.response->result) == NULL);
-    if (bad_init) return done_t::YES;
+    if (bad_init || boost::get<ql::exc_t>(&io.response->result) != NULL) {
+        return done_t::YES;
+    }
 
     // Load the key and value.
     store_key_t key(keyvalue.key());
@@ -1082,6 +1083,7 @@ void rdb_rget_slice(
     const boost::optional<terminal_variant_t> &terminal,
     sorting_t sorting,
     rget_read_response_t *response) {
+    r_sanity_check(boost::get<ql::exc_t>(&response->result) == NULL);
     profile::starter_t starter("Do range scan on primary index.", ql_env->trace);
     rget_cb_t callback(
         io_data_t(txn, response, slice),
@@ -1108,6 +1110,7 @@ void rdb_rget_secondary_slice(
     const ql::map_wire_func_t &sindex_func,
     sindex_multi_bool_t sindex_multi,
     rget_read_response_t *response) {
+    r_sanity_check(boost::get<ql::exc_t>(&response->result) == NULL);
     profile::starter_t starter("Do range scan on secondary index.", ql_env->trace);
     rget_cb_t callback(
         io_data_t(txn, response, slice),
