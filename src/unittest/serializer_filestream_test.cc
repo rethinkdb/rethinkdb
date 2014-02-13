@@ -7,7 +7,7 @@
 namespace unittest {
 
 
-void run_SerializerFileWriteStreamBoundaries() {
+void run_Boundaries() {
     mock_file_opener_t file_opener;
     standard_serializer_t::create(&file_opener,
                                   standard_serializer_t::static_config_t());
@@ -46,8 +46,8 @@ void run_SerializerFileWriteStreamBoundaries() {
     ASSERT_EQ(text1 + text2, builder);
 }
 
-TEST(SerializerFilestreamTest, SerializerFileWriteStreamBoundaries) {
-    run_in_thread_pool(&run_SerializerFileWriteStreamBoundaries);
+TEST(SerializerFilestreamTest, Boundaries) {
+    run_in_thread_pool(&run_Boundaries);
 }
 
 }  // namespace unittest

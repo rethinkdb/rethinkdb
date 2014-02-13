@@ -251,9 +251,10 @@ current_page_t *page_cache_t::page_for_block_id(block_id_t block_id) {
 
     resize_current_pages_to_id(block_id);
     if (current_pages_[block_id] == NULL) {
-        // KSI: This code is never hit by the unit tests.
         rassert(recency_for_block_id(block_id) != repli_timestamp_t::invalid,
-                "expected block %" PR_BLOCK_ID "not to be deleted", block_id);
+                "Expected block %" PR_BLOCK_ID "not to be deleted "
+                "(should you have used alt_create_t::create?).",
+                block_id);
         current_pages_[block_id] = new current_page_t();
     } else {
         rassert(!current_pages_[block_id]->is_deleted());

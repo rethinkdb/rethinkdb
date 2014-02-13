@@ -123,10 +123,10 @@ MUST_USE int64_t serializer_file_write_stream_t::write(const void *p, int64_t n)
         buf_lock_t *b = &z;
         if (block_id > 0) {
             if (offset % block_size == 0) {
-                block = buf_lock_t(&z, block_id, access_t::write);
-            } else {
                 block = buf_lock_t(buf_parent_t(&z), block_id,
                                    alt_create_t::create);
+            } else {
+                block = buf_lock_t(&z, block_id, access_t::write);
             }
             b = &block;
         }
