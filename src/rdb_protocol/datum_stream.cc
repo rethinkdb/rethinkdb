@@ -92,10 +92,7 @@ T groups_to_batch(std::map<counted_t<const datum_t>, T> *g) {
     if (g->size() == 0) {
         return T();
     } else {
-        rcheck_datum(
-            g->size() == 1 && !g->begin()->first.has(), base_exc_t::GENERIC,
-            "Cannot return grouped stream without a reduction (`reduce`, `sum`, etc.)"
-            " on the end.");
+        r_sanity_check(g->size() == 1 && !g->begin()->first.has());
         return std::move(g->begin()->second);
     }
 }
@@ -495,7 +492,7 @@ counted_t<val_t> datum_stream_t::run_terminal(
     env_t *env, const terminal_variant_t &tv) {
     scoped_ptr_t<eager_acc_t> acc(make_eager_terminal(env, tv));
     accumulate(env, acc.get(), tv);
-    return acc->finish_eager(backtrace());
+    return acc->finish_eager(backtrace(), is_grouped());
 }
 
 // DATUM_STREAM_T
@@ -510,8 +507,21 @@ counted_t<datum_stream_t> datum_stream_t::indexes_of(counted_t<func_t> f) {
 }
 
 datum_stream_t::datum_stream_t(const protob_t<const Backtrace> &bt_src)
-    : pb_rcheckable_t(bt_src), batch_cache_index(0) {
+    : pb_rcheckable_t(bt_src), batch_cache_index(0), grouped(false) {
 }
+
+counted_t<datum_stream_t> datum_stream_t::add_grouping(
+    env_t *env, transform_variant_t &&tv) {
+    check_not_grouped();
+    grouped = true;
+    return add_transformation(env, std::move(tv));
+}
+void datum_stream_t::check_not_grouped() {
+    rcheck(!is_grouped(), base_exc_t::GENERIC,
+           "Cannot return grouped stream without a reduction "
+           "(`reduce`, `sum`, etc.) on the end.");
+}
+
 
 std::vector<counted_t<const datum_t> >
 datum_stream_t::next_batch(env_t *env, const batchspec_t &batchspec) {
@@ -519,6 +529,7 @@ datum_stream_t::next_batch(env_t *env, const batchspec_t &batchspec) {
     env->throw_if_interruptor_pulsed();
     // Cannot mix `next` and `next_batch`.
     r_sanity_check(batch_cache_index == 0 && batch_cache.size() == 0);
+    check_not_grouped();
     try {
         return next_batch_impl(env, batchspec);
     } catch (const datum_exc_t &e) {
@@ -591,6 +602,7 @@ eager_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &bs) {
 }
 
 counted_t<const datum_t> eager_datum_stream_t::as_array(env_t *env) {
+    if (is_grouped()) return counted_t<const datum_t>();
     datum_ptr_t arr(datum_t::R_ARRAY);
     batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env);
     {
@@ -670,7 +682,7 @@ array_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &batchspec) {
 }
 
 bool array_datum_stream_t::is_array() {
-    return true;
+    return !is_grouped();
 }
 
 // INDEXED_SORT_DATUM_STREAM_T

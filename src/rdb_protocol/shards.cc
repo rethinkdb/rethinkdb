@@ -182,22 +182,24 @@ private:
     }
 
     // RSI: empty?
-    virtual counted_t<val_t> finish_eager(protob_t<const Backtrace> bt) {
+    virtual counted_t<val_t> finish_eager(protob_t<const Backtrace> bt,
+                                          bool is_grouped) {
         accumulator_t::mark_finished();
         grouped<T> *acc = grouped_accumulator_t<T>::get_acc();
         const T *default_t = grouped_accumulator_t<T>::get_default_t();
         counted_t<val_t> retval;
-        if (acc->size() == 0) {
-            T t(*default_t);
-            retval = make_counted<val_t>(unpack(&t), bt);
-        } else if (acc->size() == 1 && !acc->begin()->first.has()) {
-            retval = make_counted<val_t>(unpack(&acc->begin()->second), bt);
-        } else {
+        if (is_grouped) {
             counted_t<grouped_data_t> ret(new grouped_data_t());
             for (auto kv = acc->begin(); kv != acc->end(); ++kv) {
                 ret->insert(std::make_pair(kv->first, unpack(&kv->second)));
             }
             retval = make_counted<val_t>(std::move(ret), bt);
+        } else if (acc->size() == 0) {
+            T t(*default_t);
+            retval = make_counted<val_t>(unpack(&t), bt);
+        } else {
+            r_sanity_check(acc->size() == 1 && !acc->begin()->first.has());
+            retval = make_counted<val_t>(unpack(&acc->begin()->second), bt);
         }
         acc->clear();
         return retval;
@@ -327,44 +329,41 @@ public:
     }
 private:
     virtual void operator()(groups_t *groups) {
-        if (groups->size() == 1 && !groups->begin()->first.has()) {
-            lst_t *lst = &groups->begin()->second;
-            for (auto el = lst->begin(); el != lst->end(); ++el) {
-                std::vector<counted_t<const datum_t> > arr;
-                arr.reserve(funcs.size());
-                for (auto f = funcs.begin(); f != funcs.end(); ++f) {
+        if (groups->size() == 0) return;
+        r_sanity_check(groups->size() == 1 && !groups->begin()->first.has());
+        lst_t *lst = &groups->begin()->second;
+        for (auto el = lst->begin(); el != lst->end(); ++el) {
+            std::vector<counted_t<const datum_t> > arr;
+            arr.reserve(funcs.size());
+            for (auto f = funcs.begin(); f != funcs.end(); ++f) {
+                try {
                     try {
-                        try {
-                            arr.push_back((*f)->call(env, *el)->as_datum());
-                        } catch (const base_exc_t &e) {
-                            if (e.get_type() == base_exc_t::NON_EXISTENCE) {
-                                arr.push_back(
-                                    make_counted<const datum_t>(datum_t::R_NULL));
-                            } else {
-                                throw;
-                            }
+                        arr.push_back((*f)->call(env, *el)->as_datum());
+                    } catch (const base_exc_t &e) {
+                        if (e.get_type() == base_exc_t::NON_EXISTENCE) {
+                            arr.push_back(
+                                make_counted<const datum_t>(datum_t::R_NULL));
+                        } else {
+                            throw;
                         }
-                    } catch (const datum_exc_t &e) {
-                        throw exc_t(e, (*f)->backtrace().get(), 1);
                     }
+                } catch (const datum_exc_t &e) {
+                    throw exc_t(e, (*f)->backtrace().get(), 1);
                 }
-                r_sanity_check(arr.size() == funcs.size());
-                counted_t<const datum_t> group = arr.size() == 1
-                    ? std::move(arr[0])
-                    : make_counted<const datum_t>(std::move(arr));
-                r_sanity_check(group.has());
-                (*groups)[group].push_back(*el);
-                rcheck_target(
-                    funcs[0], base_exc_t::GENERIC,
-                    groups->size() <= array_size_limit(),
-                    strprintf("Too many groups (> %zu).", array_size_limit()));
             }
-            size_t erased = groups->erase(counted_t<const datum_t>());
-            r_sanity_check(erased == 1);
-        } else if (groups->size() != 0) {
-            rfail_target(funcs[0], base_exc_t::GENERIC,
-                         "Cannot call `.group` on the output of `.group`.");
+            r_sanity_check(arr.size() == funcs.size());
+            counted_t<const datum_t> group = arr.size() == 1
+                ? std::move(arr[0])
+                : make_counted<const datum_t>(std::move(arr));
+            r_sanity_check(group.has());
+            (*groups)[group].push_back(*el);
+            rcheck_target(
+                funcs[0], base_exc_t::GENERIC,
+                groups->size() <= array_size_limit(),
+                strprintf("Too many groups (> %zu).", array_size_limit()));
         }
+        size_t erased = groups->erase(counted_t<const datum_t>());
+        r_sanity_check(erased == 1);
     }
     env_t *env;
     std::vector<counted_t<func_t> > funcs;

@@ -78,7 +78,7 @@ private:
         for (size_t i = 1; i < num_args(); ++i) {
             funcs.push_back(arg(env, i)->as_func(GET_FIELD_SHORTCUT));
         }
-        return new_val(env->env, arg(env, 0)->as_seq(env->env)->add_transformation(
+        return new_val(env->env, arg(env, 0)->as_seq(env->env)->add_grouping(
                            env->env, group_wire_func_t(std::move(funcs))));
     }
     virtual const char *name() const { return "group"; }

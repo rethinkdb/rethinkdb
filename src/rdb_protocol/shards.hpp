@@ -149,7 +149,8 @@ public:
     virtual ~eager_acc_t() { }
     virtual void operator()(groups_t *groups) = 0;
     virtual void add_res(result_t &&res) = 0;
-    virtual counted_t<val_t> finish_eager(protob_t<const Backtrace> bt) = 0;
+    virtual counted_t<val_t> finish_eager(
+        protob_t<const Backtrace> bt, bool is_grouped) = 0;
 };
 
 // Make sure to put these right into a scoped pointer.

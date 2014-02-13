@@ -93,6 +93,8 @@ public:
 
     virtual counted_t<datum_stream_t> add_transformation(
         env_t *env, transform_variant_t &&tv) = 0;
+    counted_t<datum_stream_t> add_grouping(env_t *env, transform_variant_t &&tv);
+
     counted_t<val_t> run_terminal(env_t *env, const terminal_variant_t &tv);
 
     // stream -> stream (always eager)
@@ -103,6 +105,8 @@ public:
     // Returns false or NULL respectively if stream is lazy.
     virtual bool is_array() = 0;
     virtual counted_t<const datum_t> as_array(env_t *env) = 0;
+
+    bool is_grouped() { return grouped; }
 
     // Gets the next elements from the stream.  (Returns zero elements only when
     // the end of the stream has been reached.  Otherwise, returns at least one
@@ -118,6 +122,7 @@ public:
 
 protected:
     bool batch_cache_exhausted() const;
+    void check_not_grouped();
     explicit datum_stream_t(const protob_t<const Backtrace> &bt_src);
 
 private:
@@ -126,6 +131,7 @@ private:
 
     std::vector<counted_t<const datum_t> > batch_cache;
     size_t batch_cache_index;
+    bool grouped;
 };
 
 class eager_datum_stream_t : public datum_stream_t {
@@ -158,7 +164,7 @@ protected:
 private:
     virtual bool is_array() { return source->is_array(); }
     virtual counted_t<const datum_t> as_array(env_t *env) {
-        return is_array()
+        return source->is_array() && !source->is_grouped()
             ? eager_datum_stream_t::as_array(env)
             : counted_t<const datum_t>();
     }
@@ -190,6 +196,11 @@ public:
 
 private:
     virtual bool is_array();
+    virtual counted_t<const datum_t> as_array(env_t *env) {
+        return is_array()
+            ? eager_datum_stream_t::as_array(env)
+            : counted_t<const datum_t>();
+    }
     // RSI: implement as_array()
     virtual std::vector<counted_t<const datum_t> >
     next_raw_batch(env_t *env, UNUSED const batchspec_t &batchspec);
