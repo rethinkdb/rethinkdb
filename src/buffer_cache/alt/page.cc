@@ -1750,7 +1750,7 @@ bool eviction_bag_t::remove_oldish(page_t **page_out, uint64_t access_time_offse
     if (bag_.size() == 0) {
         return false;
     } else {
-        const int num_randoms = 5;
+        const size_t num_randoms = 5;
         page_t *oldest = bag_.access_random(randsize(bag_.size()));
         for (size_t i = 1; i < num_randoms; ++i) {
             page_t *page = bag_.access_random(randsize(bag_.size()));
