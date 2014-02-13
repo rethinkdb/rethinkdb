@@ -39,7 +39,7 @@ module.exports.ParseResponse = (data) ->
         view = new Uint8Array(array)
         i = 0
         while i < data.length
-            view[i] = data.get(i)
+            view[i] = data[i]
             i++
 
         response = protodef.Response.decode(array)

@@ -17,7 +17,7 @@ init () {
     max_lessc_version=1.6.2
     min_coffee_version=1.6.2
     max_coffee_version=1.7.1
-    min_browserify_version=2.18.1
+    min_browserify_version=3.0.0
     max_browserify_version=3.24.13
 
     must_fetch_list='protobufjs'
