@@ -5,6 +5,38 @@
 
 #include "containers/segmented_vector.hpp"
 
+// A backindex_bag_t<T> is a bag of elements of type T.  Typically T is a pointer
+// type.  Why not just use an intrusive list?  The reason is, with an intrusive list,
+// you can't efficiently select a random element from the list.  A backindex_bag_t
+// lets you do that.  It also automatically makes it efficient to detect whether an
+// element is contained by a specific bag (while with an intrusive list, you can only
+// tell whether the node is an element of _some_ list).  To use, define a type T:
+//
+// struct T {
+//   ...
+//   backindex_bag_index_t index;
+// };
+//
+// And then define a function
+//
+// backindex_bag_index_t *access_backindex(T *ptr) {
+//   return &ptr->index;
+// }
+//
+// And then you can use a backindex_bag_t<T *>.
+//
+// Or you could define a different function,
+//
+// backindex_bag_index_t *access_backindex(counted_t<T> ptr) {
+//   return &ptr->index;
+// }
+//
+// And then you could use a backindex_bag_t< counted_t<T> >.
+//
+// A backindex_bag_t is essentially a vector, and a backindex_bag_index_t is the
+// element's modifiable index in that vector.  The index of other elements can
+// change, behind the scenes, as things get added and removed from the bag.
+
 class backindex_bag_index_t {
 public:
     backindex_bag_index_t()
@@ -26,9 +58,6 @@ private:
 
     DISABLE_COPYING(backindex_bag_index_t);
 };
-
-template <class T>
-class backindex_trait_t;
 
 // A bag of elements that it _does not own_.
 template <class T>
