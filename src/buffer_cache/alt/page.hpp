@@ -580,7 +580,7 @@ public:
     void update_dirty_page_count(int64_t new_count);
 
 private:
-    friend class alt_memory_tracker_t;
+    friend class ::alt_memory_tracker_t;
     // At first, the number of dirty pages is 0 and semaphore_acq_.count() >=
     // dirtied_count_.  Once the number of dirty pages gets bigger than the original
     // value of semaphore_acq_.count(), we use semaphore_acq_.change_count() to keep
@@ -816,7 +816,7 @@ public:
 
 private:
     // To set cache_conn_ to NULL.
-    friend class cache_conn_t;
+    friend class ::cache_conn_t;
 
     // To access tracker_acq_.
     friend class flush_and_destroy_t;
