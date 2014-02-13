@@ -11,7 +11,49 @@
 
 namespace ql {
 
-// Most of the real logic for these is in datum_stream.cc.
+template<class T>
+class map_acc_term_t : public op_term_t {
+protected:
+    map_acc_term_t(compile_env_t *env, const protob_t<const Term> &term)
+        : op_term_t(env, term, argspec_t(1, 2)) { }
+private:
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) {
+        if (num_args() == 1) {
+            return arg(env, 0)->as_seq(env->env)->run_terminal(
+                env->env, T(backtrace()));
+        } else {
+            auto f = arg(env, 1)->as_func(GET_FIELD_SHORTCUT);
+            return arg(env, 0)->as_seq(env->env)
+                ->add_transformation(env->env, map_wire_func_t(f))
+                ->run_terminal(env->env, T(backtrace()));
+        }
+    }
+};
+
+class sum_term_t : public map_acc_term_t<sum_wire_func_t> {
+public:
+    template<class... Args> sum_term_t(Args... args) : map_acc_term_t(args...) { }
+private:
+    virtual const char *name() const { return "sum"; }
+};
+class avg_term_t : public map_acc_term_t<avg_wire_func_t> {
+public:
+    template<class... Args> avg_term_t(Args... args) : map_acc_term_t(args...) { }
+private:
+    virtual const char *name() const { return "avg"; }
+};
+class min_term_t : public map_acc_term_t<min_wire_func_t> {
+public:
+    template<class... Args> min_term_t(Args... args) : map_acc_term_t(args...) { }
+private:
+    virtual const char *name() const { return "min"; }
+};
+class max_term_t : public map_acc_term_t<max_wire_func_t> {
+public:
+    template<class... Args> max_term_t(Args... args) : map_acc_term_t(args...) { }
+private:
+    virtual const char *name() const { return "max"; }
+};
 
 class count_term_t : public op_term_t {
 public:
@@ -224,6 +266,22 @@ counted_t<term_t> make_group_term(
 counted_t<term_t> make_count_term(
     compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<count_term_t>(env, term);
+}
+counted_t<term_t> make_avg_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
+    return make_counted<avg_term_t>(env, term);
+}
+counted_t<term_t> make_sum_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
+    return make_counted<sum_term_t>(env, term);
+}
+counted_t<term_t> make_min_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
+    return make_counted<min_term_t>(env, term);
+}
+counted_t<term_t> make_max_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
+    return make_counted<max_term_t>(env, term);
 }
 counted_t<term_t> make_union_term(
     compile_env_t *env, const protob_t<const Term> &term) {

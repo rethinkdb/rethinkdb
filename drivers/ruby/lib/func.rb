@@ -105,18 +105,6 @@ module RethinkDB
       b ? begin b.call(c) ensure c.close end : c
     end
 
-    def avg(attr)
-      unbound_if @body
-      {:AVG => attr}
-    end
-    def sum(attr)
-      unbound_if @body
-      {:SUM => attr}
-    end
-    def count(*a, &b)
-      !@body && a == [] ? {:COUNT => true} : super(*a, &b)
-    end
-
     def -@; RQL.new.sub(0, self); end
 
     def [](ind)

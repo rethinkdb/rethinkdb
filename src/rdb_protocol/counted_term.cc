@@ -24,6 +24,4 @@ protob_t<Backtrace> make_counted_backtrace() {
     return protob_t<Backtrace>(pointee, &pointee->backtrace);
 }
 
-
-
 }  // namespace ql

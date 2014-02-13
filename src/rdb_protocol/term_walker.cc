@@ -156,6 +156,10 @@ private:
         case Term::ORDERBY:
         case Term::DISTINCT:
         case Term::COUNT:
+        case Term::SUM:
+        case Term::AVG:
+        case Term::MIN:
+        case Term::MAX:
         case Term::UNION:
         case Term::NTH:
         case Term::LIMIT:
@@ -266,6 +270,10 @@ private:
         case Term::REPLACE:
         case Term::INSERT:
         case Term::COUNT:
+        case Term::SUM:
+        case Term::AVG:
+        case Term::MIN:
+        case Term::MAX:
             return true;
 
         case Term::DATUM:

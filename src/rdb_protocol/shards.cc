@@ -255,8 +255,97 @@ private:
     }
 };
 
+class sum_terminal_t : public terminal_t<double> {
+public:
+    sum_terminal_t(env_t *, const sum_wire_func_t &f)
+        : terminal_t(0.0L), bt(f.get_bt()) { }
+private:
+    virtual void accumulate(const counted_t<const datum_t> &el, double *out) {
+        try {
+            *out += el->as_num();
+        } catch (const datum_exc_t &e) {
+            throw exc_t(e, bt.get());
+        }
+    }
+    virtual counted_t<const datum_t> unpack(double *d) {
+        return make_counted<const datum_t>(*d);
+    }
+    virtual void unshard_impl(double *out, double *el) {
+        *out += *el;
+    }
+    protob_t<const Backtrace> bt;
+};
+
+class avg_terminal_t : public terminal_t<std::pair<double, uint64_t> > {
+public:
+    avg_terminal_t(env_t *, const avg_wire_func_t &f)
+        : terminal_t(std::make_pair(0.0L, 0ULL)), bt(f.get_bt()) { }
+private:
+    virtual void accumulate(const counted_t<const datum_t> &el,
+                            std::pair<double, uint64_t> *out) {
+        try {
+            out->first += el->as_num();
+            out->second += 1;
+        } catch (const datum_exc_t &e) {
+            throw exc_t(e, bt.get());
+        }
+    }
+    virtual counted_t<const datum_t> unpack(
+        std::pair<double, uint64_t> *p) {
+        rcheck_datum(p->second != 0, base_exc_t::NON_EXISTENCE,
+                     "Cannot take the average of an empty stream.");
+        return make_counted<const datum_t>(p->first / p->second);
+    }
+    virtual void unshard_impl(std::pair<double, uint64_t> *out,
+                              std::pair<double, uint64_t> *el) {
+        out->first += el->first;
+        out->second += el->second;
+    }
+    protob_t<const Backtrace> bt;
+};
+
+class min_terminal_t : public terminal_t<counted_t<const datum_t> > {
+public:
+    min_terminal_t(env_t *, const min_wire_func_t &)
+        : terminal_t(counted_t<const datum_t>()) { }
+private:
+    virtual void accumulate(const counted_t<const datum_t> &el,
+                            counted_t<const datum_t> *out) {
+        *out = !out->has() ? el : std::min(el, *out);
+    }
+    virtual counted_t<const datum_t> unpack(counted_t<const datum_t> *el) {
+        rcheck_datum(el->has(), base_exc_t::NON_EXISTENCE,
+                     "Cannot take the minimum of an empty stream.");
+        return std::move(*el);
+    }
+    virtual void unshard_impl(counted_t<const datum_t> *out,
+                              counted_t<const datum_t> *el) {
+        if (el->has()) accumulate(*el, out);
+    }
+};
+
+class max_terminal_t : public terminal_t<counted_t<const datum_t> > {
+public:
+    max_terminal_t(env_t *, const max_wire_func_t &)
+        : terminal_t(counted_t<const datum_t>()) { }
+private:
+    virtual void accumulate(const counted_t<const datum_t> &el,
+                            counted_t<const datum_t> *out) {
+        *out = !out->has() ? el : std::max(el, *out);
+    }
+    virtual counted_t<const datum_t> unpack(counted_t<const datum_t> *el) {
+        rcheck_datum(el->has(), base_exc_t::NON_EXISTENCE,
+                     "Cannot take the maximum of an empty stream.");
+        return std::move(*el);
+    }
+    virtual void unshard_impl(counted_t<const datum_t> *out,
+                              counted_t<const datum_t> *el) {
+        if (el->has()) accumulate(*el, out);
+    }
+};
+
 const char *const empty_stream_msg =
-    "Cannot reduce over an empty stream with no base.";
+    "Cannot reduce over an empty stream.";
 
 class reduce_terminal_t : public terminal_t<counted_t<const datum_t> > {
 public:
@@ -292,6 +381,18 @@ public:
     terminal_visitor_t(env_t *_env) : env(_env) { }
     T *operator()(const count_wire_func_t &f) const {
         return new count_terminal_t(env, f);
+    }
+    T *operator()(const sum_wire_func_t &f) const {
+        return new sum_terminal_t(env, f);
+    }
+    T *operator()(const avg_wire_func_t &f) const {
+        return new avg_terminal_t(env, f);
+    }
+    T *operator()(const min_wire_func_t &f) const {
+        return new min_terminal_t(env, f);
+    }
+    T *operator()(const max_wire_func_t &f) const {
+        return new max_terminal_t(env, f);
     }
     T *operator()(const reduce_wire_func_t &f) const {
         return new reduce_terminal_t(env, f);

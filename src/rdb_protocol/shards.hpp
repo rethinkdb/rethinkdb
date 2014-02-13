@@ -50,6 +50,14 @@ static inline void serialize_grouped(
 static inline void serialize_grouped(write_message_t *msg, uint64_t sz) {
     serialize_varint_uint64(msg, sz);
 }
+static inline void serialize_grouped(write_message_t *msg, double d) {
+    *msg << d;
+}
+static inline void serialize_grouped(write_message_t *msg,
+                                     const std::pair<double, uint64_t> &p) {
+    *msg << p.first;
+    serialize_varint_uint64(msg, p.second);
+}
 static inline void serialize_grouped(write_message_t *msg, const stream_t &sz) {
     *msg << sz;
 }
@@ -61,6 +69,15 @@ static inline archive_result_t deserialize_grouped(
 }
 static inline archive_result_t deserialize_grouped(read_stream_t *s, uint64_t *sz) {
     return deserialize_varint_uint64(s, sz);
+}
+static inline archive_result_t deserialize_grouped(read_stream_t *s, double *d) {
+    return deserialize(s, d);
+}
+static inline archive_result_t deserialize_grouped(read_stream_t *s,
+                                                   std::pair<double, uint64_t> *p) {
+
+    if (auto res = deserialize(s, &p->first)) return res;
+    return deserialize_varint_uint64(s, &p->second);
 }
 static inline archive_result_t deserialize_grouped(read_stream_t *s, stream_t *sz) {
     return deserialize(s, sz);
@@ -100,7 +117,9 @@ class grouped_data_t : public grouped<counted_t<const datum_t> >,
 
 typedef boost::variant<
     ql::grouped<uint64_t>, // Count.
-    ql::grouped<counted_t<const ql::datum_t> >, // Reduce (may be NULL).
+    ql::grouped<double>, // Sum.
+    ql::grouped<std::pair<double, uint64_t> >, // Avg.
+    ql::grouped<counted_t<const ql::datum_t> >, // Reduce (may be NULL), min, max.
     ql::grouped<stream_t>, // No terminal.
     ql::exc_t // Don't re-order (we don't want this to initialize to an error.)
     > result_t;
@@ -111,6 +130,10 @@ typedef boost::variant<ql::map_wire_func_t,
                        ql::concatmap_wire_func_t> transform_variant_t;
 
 typedef boost::variant<ql::count_wire_func_t,
+                       ql::sum_wire_func_t,
+                       ql::avg_wire_func_t,
+                       ql::min_wire_func_t,
+                       ql::max_wire_func_t,
                        ql::reduce_wire_func_t> terminal_variant_t;
 
 class op_t {

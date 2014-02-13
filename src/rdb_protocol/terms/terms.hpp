@@ -181,6 +181,14 @@ counted_t<term_t> make_group_term(
     compile_env_t *env, const protob_t<const Term> &term);
 counted_t<term_t> make_count_term(
     compile_env_t *env, const protob_t<const Term> &term);
+counted_t<term_t> make_sum_term(
+    compile_env_t *env, const protob_t<const Term> &term);
+counted_t<term_t> make_avg_term(
+    compile_env_t *env, const protob_t<const Term> &term);
+counted_t<term_t> make_min_term(
+    compile_env_t *env, const protob_t<const Term> &term);
+counted_t<term_t> make_max_term(
+    compile_env_t *env, const protob_t<const Term> &term);
 counted_t<term_t> make_union_term(
     compile_env_t *env, const protob_t<const Term> &term);
 counted_t<term_t> make_zip_term(

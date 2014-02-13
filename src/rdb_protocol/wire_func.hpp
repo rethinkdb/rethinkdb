@@ -97,10 +97,42 @@ public:
     explicit concatmap_wire_func_t(Args... args) : wire_func_t(args...) { }
 };
 
-// Count is a fake function because we don't need to send anything.
-class count_wire_func_t {
+// These are fake functions because we don't need to send anything.
+struct count_wire_func_t {
+    RDB_MAKE_ME_SERIALIZABLE_0();
+};
+
+class bt_wire_func_t {
 public:
-    RDB_MAKE_ME_SERIALIZABLE_0()
+    void rdb_serialize(write_message_t &msg) const;
+    archive_result_t rdb_deserialize(read_stream_t *s);
+    protob_t<const Backtrace> get_bt() const { return bt; }
+protected:
+    bt_wire_func_t() : bt(make_counted_backtrace()) { }
+    explicit bt_wire_func_t(const protob_t<const Backtrace> &_bt) : bt(_bt) { }
+private:
+    protob_t<const Backtrace> bt;
+};
+class sum_wire_func_t : public bt_wire_func_t {
+public:
+    template<class... Args>
+    sum_wire_func_t(Args... args) : bt_wire_func_t(args...) { }
+};
+class avg_wire_func_t : public bt_wire_func_t {
+public:
+    template<class... Args>
+    avg_wire_func_t(Args... args) : bt_wire_func_t(args...) { }
+};
+
+struct min_wire_func_t {
+    min_wire_func_t() { }
+    explicit min_wire_func_t(const protob_t<const Backtrace> &) { }
+    RDB_MAKE_ME_SERIALIZABLE_0();
+};
+struct max_wire_func_t {
+    max_wire_func_t() { }
+    explicit max_wire_func_t(const protob_t<const Backtrace> &) { }
+    RDB_MAKE_ME_SERIALIZABLE_0();
 };
 
 }  // namespace ql

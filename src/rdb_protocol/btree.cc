@@ -796,7 +796,7 @@ THROWS_ONLY(interrupted_exc_t) {
 #ifndef NDEBUG
         unreachable();
 #else
-        io.response->result = exc_t(e, NULL);
+        io.response->result = ql::exc_t(e, NULL);
         return done_t::YES;
 #endif // NDEBUG
     }

@@ -71,6 +71,10 @@ counted_t<term_t> compile_term(compile_env_t *env, protob_t<const Term> t) {
     case Term::ORDERBY:            return make_orderby_term(env, t);
     case Term::DISTINCT:           return make_distinct_term(env, t);
     case Term::COUNT:              return make_count_term(env, t);
+    case Term::SUM:                return make_sum_term(env, t);
+    case Term::AVG:                return make_avg_term(env, t);
+    case Term::MIN:                return make_min_term(env, t);
+    case Term::MAX:                return make_max_term(env, t);
     case Term::UNION:              return make_union_term(env, t);
     case Term::NTH:                return make_nth_term(env, t);
     case Term::LIMIT:              return make_limit_term(env, t);

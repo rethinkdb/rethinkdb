@@ -76,7 +76,7 @@ private:
 };
 
 
-void wire_func_t::rdb_serialize(write_message_t &msg) const {  // NOLINT(runtime/references)
+void wire_func_t::rdb_serialize(write_message_t &msg) const { // NOLINT
     wire_func_serialization_visitor_t v(&msg);
     func->visit(&v);
 }
@@ -103,8 +103,10 @@ archive_result_t wire_func_t::rdb_deserialize(read_stream_t *s) {
         res = deserialize(s, &*backtrace);
         if (res) { return res; }
 
-        compile_env_t env(scope.compute_visibility().with_func_arg_name_list(arg_names));
-        func = make_counted<reql_func_t>(backtrace, scope, arg_names, compile_term(&env, body));
+        compile_env_t env(
+            scope.compute_visibility().with_func_arg_name_list(arg_names));
+        func = make_counted<reql_func_t>(
+            backtrace, scope, arg_names, compile_term(&env, body));
         return res;
     } break;
     case wire_func_type_t::JS: {
@@ -155,5 +157,14 @@ map_wire_func_t map_wire_func_t::make_safely(
 }
 
 RDB_IMPL_SERIALIZABLE_2(filter_wire_func_t, filter_func, default_filter_val);
+
+void bt_wire_func_t::rdb_serialize(write_message_t &msg) const { // NOLINT
+    msg << *bt;
+}
+
+archive_result_t bt_wire_func_t::rdb_deserialize(read_stream_t *s) {
+    // It's OK to cheat on const-ness during deserialization.
+    return deserialize(s, const_cast<Backtrace *>(&*bt));
+}
 
 }  // namespace ql
