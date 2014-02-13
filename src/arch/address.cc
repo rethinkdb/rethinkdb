@@ -8,8 +8,7 @@
 #include <unistd.h>
 #include <netinet/in.h>
 
-#include "errors.hpp"
-#include <boost/bind.hpp>
+#include <functional>
 
 #include "arch/io/network.hpp"
 #include "arch/runtime/thread_pool.hpp"
@@ -60,9 +59,9 @@ void hostname_to_ips_internal(const std::string &host,
     int res;
     int errno_res;
     struct addrinfo *addrs;
-    boost::function<void ()> fn =
-        boost::bind(do_getaddrinfo, host.c_str(), static_cast<const char*>(NULL),
-                    &hint, &addrs, &res, &errno_res);
+    std::function<void ()> fn =
+        std::bind(do_getaddrinfo, host.c_str(), static_cast<const char*>(NULL),
+                  &hint, &addrs, &res, &errno_res);
     thread_pool_t::run_in_blocker_pool(fn);
 
     if (res != 0) {

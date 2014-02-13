@@ -1,5 +1,8 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "clustering/reactor/namespace_interface.hpp"
+
+#include <functional>
+
 #include "clustering/immediate_consistency/query/master_access.hpp"
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/watchable.hpp"
@@ -13,7 +16,7 @@ cluster_namespace_interface_t<protocol_t>::cluster_namespace_interface_t(
       directory_view(dv),
       ctx(_ctx),
       start_count(0),
-      watcher_subscription(new watchable_subscription_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > >(boost::bind(&cluster_namespace_interface_t::update_registrants, this, false))) {
+      watcher_subscription(new watchable_subscription_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > >(std::bind(&cluster_namespace_interface_t::update_registrants, this, false))) {
     {
         typename watchable_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > >::freeze_t freeze(directory_view);
         update_registrants(true);
@@ -136,7 +139,7 @@ void cluster_namespace_interface_t<protocol_t>::dispatch_immediate_op(
 
     std::vector<op_response_type> results(masters_to_contact.size());
     std::vector<std::string> failures(masters_to_contact.size());
-    pmap(masters_to_contact.size(), boost::bind(
+    pmap(masters_to_contact.size(), std::bind(
              &cluster_namespace_interface_t::template perform_immediate_op<
                  op_type, fifo_enforcer_token_type, op_response_type>,
              this,
@@ -145,7 +148,7 @@ void cluster_namespace_interface_t<protocol_t>::dispatch_immediate_op(
              &results,
              &failures,
              order_token,
-             _1,
+             ph::_1,
              interruptor));
 
     if (interruptor->is_pulsed()) throw interrupted_exc_t();
@@ -252,8 +255,8 @@ cluster_namespace_interface_t<protocol_t>::dispatch_outdated_read(
 
     std::vector<typename protocol_t::read_response_t> results(direct_readers_to_contact.size());
     std::vector<std::string> failures(direct_readers_to_contact.size());
-    pmap(direct_readers_to_contact.size(), boost::bind(&cluster_namespace_interface_t::perform_outdated_read, this,
-                                                       &direct_readers_to_contact, &results, &failures, _1, interruptor));
+    pmap(direct_readers_to_contact.size(), std::bind(&cluster_namespace_interface_t::perform_outdated_read, this,
+                                                     &direct_readers_to_contact, &results, &failures, ph::_1, interruptor));
 
     if (interruptor->is_pulsed()) throw interrupted_exc_t();
 
@@ -286,7 +289,7 @@ void cluster_namespace_interface_t<protocol_t>::perform_outdated_read(
     try {
         cond_t done;
         mailbox_t<void(typename protocol_t::read_response_t)> cont(mailbox_manager,
-                                                                   boost::bind(&outdated_read_store_result<protocol_t>, &results->at(i), _1, &done));
+                                                                   std::bind(&outdated_read_store_result<protocol_t>, &results->at(i), ph::_1, &done));
 
         send(mailbox_manager, direct_reader_to_contact->direct_reader_access->access().read_mailbox, direct_reader_to_contact->sharded_op, cont.get_address());
         wait_any_t waiter(direct_reader_to_contact->direct_reader_access->get_failed_signal(), &done);
@@ -340,9 +343,9 @@ void cluster_namespace_interface_t<protocol_t>::update_registrants(bool is_start
                     }
 
                     /* Now handle it. */
-                    coro_t::spawn_sometime(boost::bind(&cluster_namespace_interface_t::relationship_coroutine, this,
-                                                       it->first, id, is_start, is_primary, amit->second.region,
-                                                       auto_drainer_t::lock_t(&relationship_coroutine_auto_drainer)));
+                    coro_t::spawn_sometime(std::bind(&cluster_namespace_interface_t::relationship_coroutine, this,
+                                                     it->first, id, is_start, is_primary, amit->second.region,
+                                                     auto_drainer_t::lock_t(&relationship_coroutine_auto_drainer)));
                 }
             }
         }
@@ -420,11 +423,11 @@ void cluster_namespace_interface_t<protocol_t>::relationship_coroutine(peer_id_t
         scoped_ptr_t<resource_access_t<direct_reader_business_card_t<protocol_t> > > direct_reader_access;
         if (is_primary) {
             master_access.init(new master_access_t<protocol_t>(mailbox_manager,
-                                                               directory_view->subview(boost::bind(&cluster_namespace_interface_t<protocol_t>::extract_master_business_card, _1, peer_id, activity_id)),
+                                                               directory_view->subview(std::bind(&cluster_namespace_interface_t<protocol_t>::extract_master_business_card, ph::_1, peer_id, activity_id)),
                                                                lock.get_drain_signal()));
-            direct_reader_access.init(new resource_access_t<direct_reader_business_card_t<protocol_t> >(directory_view->subview(boost::bind(&cluster_namespace_interface_t<protocol_t>::extract_direct_reader_business_card_from_primary, _1, peer_id, activity_id))));
+            direct_reader_access.init(new resource_access_t<direct_reader_business_card_t<protocol_t> >(directory_view->subview(std::bind(&cluster_namespace_interface_t<protocol_t>::extract_direct_reader_business_card_from_primary, ph::_1, peer_id, activity_id))));
         } else {
-            direct_reader_access.init(new resource_access_t<direct_reader_business_card_t<protocol_t> >(directory_view->subview(boost::bind(&cluster_namespace_interface_t<protocol_t>::extract_direct_reader_business_card_from_secondary, _1, peer_id, activity_id))));
+            direct_reader_access.init(new resource_access_t<direct_reader_business_card_t<protocol_t> >(directory_view->subview(std::bind(&cluster_namespace_interface_t<protocol_t>::extract_direct_reader_business_card_from_secondary, ph::_1, peer_id, activity_id))));
         }
 
         relationship_t relationship_record;

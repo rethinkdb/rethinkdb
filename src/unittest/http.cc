@@ -38,8 +38,10 @@ http_req_t http_req_encoding(const std::string &encoding) {
 void test_encoding(const std::string &encoding, bool expected) {
     // Use at least 2k so compression has something to work with
     static std::string body;
-    for (size_t i = 0; i < 2048; ++i) {
-        body += 'a' + (i % 26);
+    if (body.empty()) {
+        for (size_t i = 0; i < 2048; ++i) {
+            body += 'a' + (i % 26);
+        }
     }
 
     http_req_t req = http_req_encoding(encoding);

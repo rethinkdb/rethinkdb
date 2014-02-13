@@ -5,8 +5,7 @@
 
 #include <stdint.h>
 
-#include "errors.hpp"
-#include <boost/bind.hpp>
+#include <functional>
 
 #include "containers/archive/archive.hpp"
 #include "containers/archive/vector_stream.hpp"
@@ -166,10 +165,10 @@ void mailbox_manager_t::on_message(peer_id_t source_peer, read_stream_t *stream)
     // We use `spawn_now_dangerously()` to avoid having to heap-allocate `stream_data`.
     // Instead we pass in a pointer to our local automatically allocated object
     // and `mailbox_read_coroutine()` moves the data out of it before it yields.
-    coro_t::spawn_now_dangerously(boost::bind(&mailbox_manager_t::mailbox_read_coroutine,
-                                              this, source_peer, threadnum_t(dest_thread),
-                                              dest_mailbox_id, &stream_data,
-                                              stream_data_offset));
+    coro_t::spawn_now_dangerously(std::bind(&mailbox_manager_t::mailbox_read_coroutine,
+                                            this, source_peer, threadnum_t(dest_thread),
+                                            dest_mailbox_id, &stream_data,
+                                            stream_data_offset));
 }
 
 void mailbox_manager_t::mailbox_read_coroutine(peer_id_t source_peer,
