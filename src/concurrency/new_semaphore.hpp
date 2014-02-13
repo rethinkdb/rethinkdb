@@ -7,6 +7,11 @@
 
 // KSI: This is a horrible name, fix it.
 
+// This semaphore obeys first-in-line/first-acquisition semantics.  The
+// new_semaphore_acq_t's will receive access to the semaphore in the same order that
+// such access was requested.  Also, there aren't problems with starvation.  Also, it
+// doesn't have naked lock and unlock functions, you have to use new_semaphore_acq_t.
+
 class new_semaphore_acq_t;
 
 class new_semaphore_t {
