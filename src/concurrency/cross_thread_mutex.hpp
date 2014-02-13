@@ -31,13 +31,16 @@ public:
         void assert_is_holding(DEBUG_VAR cross_thread_mutex_t *m) const {
             rassert(lock_ == m);
         }
+        void swap(cross_thread_mutex_t::acq_t &other) {
+            std::swap(lock_, other.lock_);
+        }
     private:
         friend void swap(acq_t &, acq_t &);
         cross_thread_mutex_t *lock_;
         DISABLE_COPYING(acq_t);
     };
 
-    cross_thread_mutex_t(bool recursive = false) :
+    explicit cross_thread_mutex_t(bool recursive = false) :
         is_recursive(recursive), locked_count(0), lock_holder(NULL) { }
     ~cross_thread_mutex_t() {
 #ifndef NDEBUG
@@ -51,10 +54,11 @@ public:
         return locked_count > 0;
     }
 
-    friend void co_lock_mutex(cross_thread_mutex_t *mutex);
-    friend void unlock_mutex(cross_thread_mutex_t *mutex);
-
 private:
+    // These are private. Use `acq_t` to lock and unlock the mutex.
+    void co_lock();
+    void unlock();
+
     spinlock_t spinlock;
     bool is_recursive;
     int locked_count;
@@ -63,9 +67,5 @@ private:
 
     DISABLE_COPYING(cross_thread_mutex_t);
 };
-
-inline void swap(cross_thread_mutex_t::acq_t &a, cross_thread_mutex_t::acq_t &b) {
-    std::swap(a.lock_, b.lock_);
-}
 
 #endif /* CONCURRENCY_CROSS_THREAD_MUTEX_HPP_ */

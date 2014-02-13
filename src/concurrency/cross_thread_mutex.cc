@@ -14,7 +14,7 @@ cross_thread_mutex_t::acq_t::~acq_t() {
 
 void cross_thread_mutex_t::acq_t::reset() {
     if (lock_) {
-        unlock_mutex(lock_);
+        lock_->unlock();
     }
     lock_ = NULL;
 }
@@ -22,22 +22,22 @@ void cross_thread_mutex_t::acq_t::reset() {
 void cross_thread_mutex_t::acq_t::reset(cross_thread_mutex_t *l) {
     reset();
     lock_ = l;
-    co_lock_mutex(l);
+    lock_->co_lock();
 }
 
-void co_lock_mutex(cross_thread_mutex_t *mutex) {
+void cross_thread_mutex_t::co_lock() {
     bool do_wait = false;
     {
-        spinlock_acq_t acq(&mutex->spinlock);
-        if (mutex->locked_count > 0 && mutex->lock_holder != coro_t::self()) {
-            mutex->waiters.push_back(coro_t::self());
+        spinlock_acq_t acq(&spinlock);
+        if (locked_count > 0 && lock_holder != coro_t::self()) {
+            waiters.push_back(coro_t::self());
             do_wait = true;
         } else {
-            guarantee(mutex->locked_count == 0 || mutex->is_recursive,
+            guarantee(locked_count == 0 || is_recursive,
                 "Deadlock detected. A coroutine tried to acquire a mutex which it is "
                 "already holding.");
-            mutex->lock_holder = coro_t::self();
-            ++mutex->locked_count;
+            lock_holder = coro_t::self();
+            ++locked_count;
         }
     }
     if (do_wait) {
@@ -45,16 +45,16 @@ void co_lock_mutex(cross_thread_mutex_t *mutex) {
     }
 }
 
-void unlock_mutex(cross_thread_mutex_t *mutex) {
-    spinlock_acq_t acq(&mutex->spinlock);
-    rassert(mutex->locked_count > 0);
-    rassert(mutex->lock_holder == coro_t::self());
-    --mutex->locked_count;
-    if (mutex->locked_count == 0 && !mutex->waiters.empty()) {
-        coro_t *next = mutex->waiters.front();
-        mutex->waiters.pop_front();
-        ++mutex->locked_count;
-        mutex->lock_holder = next;
+void cross_thread_mutex_t::unlock() {
+    spinlock_acq_t acq(&spinlock);
+    rassert(locked_count > 0);
+    rassert(lock_holder == coro_t::self());
+    --locked_count;
+    if (locked_count == 0 && !waiters.empty()) {
+        coro_t *next = waiters.front();
+        waiters.pop_front();
+        ++locked_count;
+        lock_holder = next;
         next->notify_sometime();
     }
 }
