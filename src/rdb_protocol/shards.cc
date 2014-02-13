@@ -11,19 +11,31 @@ namespace ql {
 
 bool reversed(sorting_t sorting) { return sorting == sorting_t::DESCENDING; }
 
+accumulator_t::accumulator_t() : finished(false) { }
+accumulator_t::~accumulator_t() {
+    if (!std::uncaught_exception()) {
+        r_sanity_check(finished);
+    }
+}
+void accumulator_t::mark_finished() { finished = true; }
+
 void accumulator_t::finish(result_t *out) {
     // We fill in the result if there have been no errors.
     if (boost::get<exc_t>(out) == NULL) {
         finish_impl(out);
     }
-    finished = true;
+    mark_finished();
 }
 
 template<class T>
 class grouped_accumulator_t : public accumulator_t {
 protected:
     grouped_accumulator_t(T &&_default_t) : default_t(std::move(_default_t)) { }
-    virtual ~grouped_accumulator_t() { r_sanity_check(acc.size() == 0); }
+    virtual ~grouped_accumulator_t() {
+        if (!std::uncaught_exception()) {
+            r_sanity_check(acc.size() == 0);
+        }
+    }
 private:
     virtual done_t operator()(groups_t *groups,
                               store_key_t &&key,
@@ -173,15 +185,19 @@ private:
 
     virtual counted_t<val_t> finish_eager(protob_t<const Backtrace> bt) {
         grouped<T> *acc = grouped_accumulator_t<T>::get_acc();
+        counted_t<val_t> retval;
         if (T *t = get_single()) {
-            return make_counted<val_t>(unpack(t), bt);
+            retval = make_counted<val_t>(unpack(t), bt);
         } else {
             std::map<counted_t<const datum_t>, counted_t<const datum_t> > ret;
             for (auto kv = acc->begin(); kv != acc->end(); ++kv) {
                 ret.insert(std::make_pair(kv->first, unpack(&kv->second)));
             }
-            return make_counted<val_t>(std::move(ret), bt);
+            retval = make_counted<val_t>(std::move(ret), bt);
         }
+        acc->clear();
+        accumulator_t::mark_finished();
+        return retval;
     }
     T *get_single() {
         grouped<T> *acc = grouped_accumulator_t<T>::get_acc();
@@ -227,8 +243,7 @@ public:
     count_terminal_t(env_t *, const count_wire_func_t &) : terminal_t(0) { }
 private:
     virtual bool uses_val() { return false; }
-    virtual void accumulate(const counted_t<const datum_t> &el, uint64_t *out) {
-        guarantee(!el.has()); // To prevent silent performance regressions.
+    virtual void accumulate(const counted_t<const datum_t> &, uint64_t *out) {
         *out += 1;
     }
     virtual counted_t<const datum_t> unpack(uint64_t *sz) {

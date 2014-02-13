@@ -749,7 +749,7 @@ THROWS_ONLY(interrupted_exc_t) {
     lazy_json_t row(static_cast<const rdb_value_t *>(keyvalue.value()), io.transaction);
     counted_t<const ql::datum_t> val;
     // We only load the value if we actually use it (`count` does not).
-    if (job.accumulator->uses_val()) {
+    if (job.accumulator->uses_val() || job.transformers.size() != 0) {
         val = row.get();
         io.slice->stats.pm_keys_read.record();
     }

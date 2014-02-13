@@ -119,8 +119,8 @@ public:
 // RSI: does append keep track of the last considered key?
 class accumulator_t {
 public:
-    accumulator_t() : finished(false) { }
-    virtual ~accumulator_t() { guarantee(finished); }
+    accumulator_t();
+    virtual ~accumulator_t();
     // May be overridden as an optimization (currently is for `count`).
     virtual bool uses_val() { return true; }
     virtual bool should_send_batch() = 0;
@@ -132,6 +132,8 @@ public:
     virtual void unshard(
         const store_key_t &last_key,
         const std::vector<result_t *> &results) = 0;
+protected:
+    void mark_finished();
 private:
     virtual void finish_impl(result_t *out) = 0;
     bool finished;
