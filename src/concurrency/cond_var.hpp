@@ -6,7 +6,7 @@
 #include "concurrency/signal.hpp"
 
 /* A cond_t is the simplest form of signal. It just exposes the pulse() method
-directly. It is safe to call pulse() on any thread. */
+directly. */
 
 class coro_t;
 
