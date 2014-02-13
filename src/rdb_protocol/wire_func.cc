@@ -128,6 +128,22 @@ archive_result_t wire_func_t::rdb_deserialize(read_stream_t *s) {
     }
 }
 
+group_wire_func_t::group_wire_func_t(std::vector<counted_t<func_t> > &&_funcs) {
+    funcs.reserve(_funcs.size());
+    for (size_t i = 0; i < _funcs.size(); ++i) {
+        funcs.push_back(wire_func_t(std::move(_funcs[i])));
+    }
+}
+std::vector<counted_t<func_t> > group_wire_func_t::compile_funcs() const {
+    std::vector<counted_t<func_t> > ret;
+    ret.reserve(funcs.size());
+    for (size_t i = 0; i < funcs.size(); ++i) {
+        ret.push_back(funcs[i].compile_wire_func());
+    }
+    return std::move(ret);
+}
+
+
 map_wire_func_t map_wire_func_t::make_safely(
     pb::dummy_var_t dummy_var,
     const std::function<protob_t<Term>(sym_t argname)> &body_generator,

@@ -67,6 +67,7 @@ counted_t<term_t> compile_term(compile_env_t *env, protob_t<const Term> t) {
     case Term::MAP:                return make_map_term(env, t);
     case Term::FILTER:             return make_filter_term(env, t);
     case Term::CONCATMAP:          return make_concatmap_term(env, t);
+    case Term::GROUP:              return make_group_term(env, t);
     case Term::ORDERBY:            return make_orderby_term(env, t);
     case Term::DISTINCT:           return make_distinct_term(env, t);
     case Term::COUNT:              return make_count_term(env, t);
@@ -242,6 +243,26 @@ void run(protob_t<Query> q,
                     stream_cache2->insert(token, use_json, std::move(env), seq);
                     bool b = stream_cache2->serve(token, res, interruptor);
                     r_sanity_check(b);
+                }
+            } else if (val->get_type().is_convertible(val_t::type_t::GROUPED_DATA)) {
+                auto grouped_data = val->as_grouped_data();
+                res->set_type(Response::SUCCESS_ATOM);
+                Datum *d = res->add_response();
+                d->set_type(Datum::R_OBJECT);
+                Datum::AssocPair *type_field = d->add_r_object();
+                type_field->set_key(datum_t::reql_type_string);
+                type_field->mutable_val()->set_type(Datum::R_STR);
+                type_field->mutable_val()->set_r_str("GROUPED_DATA");
+                Datum::AssocPair *data_field = d->add_r_object();
+                data_field->set_key("data");
+                Datum *arr = data_field->mutable_val();
+                arr->set_type(Datum::R_ARRAY);
+                for (auto it = grouped_data->begin(); it != grouped_data->end(); ++it) {
+                    r_sanity_check(it->first.has() && it->second.has());
+                    Datum *pair = arr->add_r_array();
+                    pair->set_type(Datum::R_ARRAY);
+                    it->first->write_to_protobuf(pair->add_r_array(), use_json);
+                    it->second->write_to_protobuf(pair->add_r_array(), use_json);
                 }
             } else {
                 rfail_toplevel(base_exc_t::GENERIC,

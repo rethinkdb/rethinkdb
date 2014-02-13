@@ -429,13 +429,12 @@ val_t::val_t(counted_t<const datum_t> _datum, protob_t<const Backtrace> backtrac
     guarantee(datum().has());
 }
 
-val_t::val_t(std::map<counted_t<const datum_t>, counted_t<const datum_t> > &&m,
+val_t::val_t(const counted_t<grouped_data_t> &groups,
              protob_t<const Backtrace> bt)
     : pb_rcheckable_t(bt),
       type(type_t::GROUPED_DATA),
-      u(std::map<counted_t<const datum_t>, counted_t<const datum_t> >()) {
-    boost::get<std::map<counted_t<const datum_t>,
-                        counted_t<const datum_t> >>(&u)->swap(m);
+      u(groups) {
+    guarantee(groups.has());
 }
 
 val_t::val_t(counted_t<const datum_t> _datum, counted_t<table_t> _table,
@@ -532,6 +531,11 @@ counted_t<datum_stream_t> val_t::as_seq(env_t *env) {
     }
     rcheck_literal_type(type_t::SEQUENCE);
     unreachable();
+}
+
+counted_t<grouped_data_t> val_t::as_grouped_data() {
+    rcheck_literal_type(type_t::GROUPED_DATA);
+    return boost::get<counted_t<grouped_data_t> >(u);
 }
 
 std::pair<counted_t<table_t>, counted_t<datum_stream_t> > val_t::as_selection(env_t *env) {

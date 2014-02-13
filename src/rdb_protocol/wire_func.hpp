@@ -45,6 +45,16 @@ private:
     counted_t<func_t> func;
 };
 
+class group_wire_func_t {
+public:
+    group_wire_func_t() { }
+    group_wire_func_t(std::vector<counted_t<func_t> > &&_funcs);
+    std::vector<counted_t<func_t> > compile_funcs() const;
+    RDB_MAKE_ME_SERIALIZABLE_1(funcs);
+private:
+    std::vector<wire_func_t> funcs;
+};
+
 class map_wire_func_t : public wire_func_t {
 public:
     template <class... Args>
@@ -58,7 +68,8 @@ public:
         protob_t<const Backtrace> backtrace);
 };
 
-struct filter_wire_func_t {
+class filter_wire_func_t {
+public:
     filter_wire_func_t() { }
     filter_wire_func_t(const ql::wire_func_t &_filter_func,
                        const boost::optional<ql::wire_func_t> &_default_filter_val)

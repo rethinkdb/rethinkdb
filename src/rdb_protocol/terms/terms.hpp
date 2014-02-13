@@ -177,6 +177,8 @@ counted_t<term_t> make_filter_term(
     compile_env_t *env, const protob_t<const Term> &term);
 counted_t<term_t> make_concatmap_term(
     compile_env_t *env, const protob_t<const Term> &term);
+counted_t<term_t> make_group_term(
+    compile_env_t *env, const protob_t<const Term> &term);
 counted_t<term_t> make_count_term(
     compile_env_t *env, const protob_t<const Term> &term);
 counted_t<term_t> make_union_term(

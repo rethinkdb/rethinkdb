@@ -792,6 +792,13 @@ THROWS_ONLY(interrupted_exc_t) {
     } catch (const ql::exc_t &e) {
         io.response->result = e;
         return done_t::YES;
+    } catch (const ql::datum_exc_t &e) {
+#ifndef NDEBUG
+        unreachable();
+#else
+        io.response->result = exc_t(e, NULL);
+        return done_t::YES;
+#endif // NDEBUG
     }
 }
 

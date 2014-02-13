@@ -95,6 +95,9 @@ public:
     }
 };
 
+class grouped_data_t : public grouped<counted_t<const datum_t> >,
+                       public slow_atomic_countable_t<grouped_data_t> { };
+
 typedef boost::variant<
     ql::grouped<uint64_t>, // Count.
     ql::grouped<counted_t<const ql::datum_t> >, // Reduce (may be NULL).
@@ -103,6 +106,7 @@ typedef boost::variant<
     > result_t;
 
 typedef boost::variant<ql::map_wire_func_t,
+                       ql::group_wire_func_t,
                        ql::filter_wire_func_t,
                        ql::concatmap_wire_func_t> transform_variant_t;
 

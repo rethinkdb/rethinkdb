@@ -152,6 +152,7 @@ private:
         case Term::MAP:
         case Term::FILTER:
         case Term::CONCATMAP:
+        case Term::GROUP:
         case Term::ORDERBY:
         case Term::DISTINCT:
         case Term::COUNT:
@@ -256,6 +257,7 @@ private:
         case Term::MAP:
         case Term::FILTER:
         case Term::CONCATMAP:
+        case Term::GROUP:
         case Term::INNER_JOIN:
         case Term::OUTER_JOIN:
         case Term::EQ_JOIN:

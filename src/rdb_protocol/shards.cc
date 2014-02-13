@@ -193,9 +193,9 @@ private:
         } else if (acc->size() == 1 && !acc->begin()->first.has()) {
             retval = make_counted<val_t>(unpack(&acc->begin()->second), bt);
         } else {
-            std::map<counted_t<const datum_t>, counted_t<const datum_t> > ret;
+            counted_t<grouped_data_t> ret(new grouped_data_t());
             for (auto kv = acc->begin(); kv != acc->end(); ++kv) {
-                ret.insert(std::make_pair(kv->first, unpack(&kv->second)));
+                ret->insert(std::make_pair(kv->first, unpack(&kv->second)));
             }
             retval = make_counted<val_t>(std::move(ret), bt);
         }
@@ -319,6 +319,57 @@ private:
     virtual void lst_transform(lst_t *lst) = 0;
 };
 
+class group_trans_t : public op_t {
+public:
+    group_trans_t(env_t *_env, const group_wire_func_t &f)
+        : env(_env), funcs(f.compile_funcs()) {
+        r_sanity_check(funcs.size() != 0);
+    }
+private:
+    virtual void operator()(groups_t *groups) {
+        if (groups->size() == 1 && !groups->begin()->first.has()) {
+            lst_t *lst = &groups->begin()->second;
+            for (auto el = lst->begin(); el != lst->end(); ++el) {
+                std::vector<counted_t<const datum_t> > arr;
+                arr.reserve(funcs.size());
+                for (auto f = funcs.begin(); f != funcs.end(); ++f) {
+                    try {
+                        try {
+                            arr.push_back((*f)->call(env, *el)->as_datum());
+                        } catch (const base_exc_t &e) {
+                            if (e.get_type() == base_exc_t::NON_EXISTENCE) {
+                                arr.push_back(
+                                    make_counted<const datum_t>(datum_t::R_NULL));
+                            } else {
+                                throw;
+                            }
+                        }
+                    } catch (const datum_exc_t &e) {
+                        throw exc_t(e, (*f)->backtrace().get(), 1);
+                    }
+                }
+                r_sanity_check(arr.size() == funcs.size());
+                counted_t<const datum_t> group = arr.size() == 1
+                    ? std::move(arr[0])
+                    : make_counted<const datum_t>(std::move(arr));
+                r_sanity_check(group.has());
+                (*groups)[group].push_back(*el);
+                rcheck_target(
+                    funcs[0], base_exc_t::GENERIC,
+                    groups->size() <= array_size_limit(),
+                    strprintf("Too many groups (> %zu).", array_size_limit()));
+            }
+            size_t erased = groups->erase(counted_t<const datum_t>());
+            r_sanity_check(erased == 1);
+        } else if (groups->size() != 0) {
+            rfail_target(funcs[0], base_exc_t::GENERIC,
+                         "Cannot call `.group` on the output of `.group`.");
+        }
+    }
+    env_t *env;
+    std::vector<counted_t<func_t> > funcs;
+};
+
 class map_trans_t : public ungrouped_op_t {
 public:
     map_trans_t(env_t *_env, const map_wire_func_t &_f)
@@ -399,6 +450,9 @@ public:
     transform_visitor_t(env_t *_env) : env(_env) { }
     op_t *operator()(const map_wire_func_t &f) const {
         return new map_trans_t(env, f);
+    }
+    op_t *operator()(const group_wire_func_t &f) const {
+        return new group_trans_t(env, f);
     }
     op_t *operator()(const filter_wire_func_t &f) const {
         return new filter_trans_t(env, f);

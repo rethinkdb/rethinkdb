@@ -67,6 +67,23 @@ private:
     virtual const char *name() const { return "concatmap"; }
 };
 
+class group_term_t : public op_term_t {
+public:
+    group_term_t(compile_env_t *env, const protob_t<const Term> &term)
+        : op_term_t(env, term, argspec_t(2, -1)) { }
+private:
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+        std::vector<counted_t<func_t> > funcs;
+        funcs.reserve(num_args() - 1);
+        for (size_t i = 1; i < num_args(); ++i) {
+            funcs.push_back(arg(env, i)->as_func(GET_FIELD_SHORTCUT));
+        }
+        return new_val(env->env, arg(env, 0)->as_seq(env->env)->add_transformation(
+                           env->env, group_wire_func_t(std::move(funcs))));
+    }
+    virtual const char *name() const { return "group"; }
+};
+
 class filter_term_t : public op_term_t {
 public:
     filter_term_t(compile_env_t *env, const protob_t<const Term> &term)
@@ -180,28 +197,40 @@ private:
     virtual const char *name() const { return "zip"; }
 };
 
-counted_t<term_t> make_between_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_between_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<between_term_t>(env, term);
 }
-counted_t<term_t> make_reduce_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_reduce_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<reduce_term_t>(env, term);
 }
-counted_t<term_t> make_map_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_map_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<map_term_t>(env, term);
 }
-counted_t<term_t> make_filter_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_filter_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<filter_term_t>(env, term);
 }
-counted_t<term_t> make_concatmap_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_concatmap_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<concatmap_term_t>(env, term);
 }
-counted_t<term_t> make_count_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_group_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
+    return make_counted<group_term_t>(env, term);
+}
+counted_t<term_t> make_count_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<count_term_t>(env, term);
 }
-counted_t<term_t> make_union_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_union_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<union_term_t>(env, term);
 }
-counted_t<term_t> make_zip_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_zip_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<zip_term_t>(env, term);
 }
 
