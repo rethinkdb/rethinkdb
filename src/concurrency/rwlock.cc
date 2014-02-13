@@ -24,33 +24,35 @@ void rwlock_t::pulse_pulsables(rwlock_in_line_t *p) {
     if (p == NULL) {
         return;
     } else if (p->read_cond_.is_pulsed()) {
-        // p is already pulsed for read.  That means the only question is whether we
-        // should pulse p (and only p) for write.  (This is typical: When we remove a
-        // read-acquirer that has been pulsed for read, the subsequent chain of nodes
-        // will already have been pulsed for read.)
+        // p is already pulsed for read.  We don't want to re-pulse the same chain of
+        // nodes after p.  The only question is whether we should pulse p for write.
+        // (This is typical: When we remove a read-acquirer that has been pulsed for
+        // read, the subsequent chain of nodes will already have been pulsed for
+        // read.)
         if (p->access_ == access_t::write && acqs_.prev(p) == NULL) {
             p->write_cond_.pulse_if_not_already_pulsed();
         }
         return;
     } else {
+        rwlock_in_line_t *prev = acqs_.prev(p);
         do {
-            // p is not NULL, not pulsed for read.  Should it be pulsed?  Look at the
-            // previous node.
-            rwlock_in_line_t *prev = acqs_.prev(p);
-            // Should we pulse p for read?
-            if (prev == NULL || prev->read_cond_.is_pulsed()) {
-                p->read_cond_.pulse();
-            } else {
-                // Stop pulsing, p doesn't even get read access.
+            // p is not null.  Should we pulse p for read and continue?
+            if (prev != NULL &&
+                !(prev->access_ == access_t::read && prev->read_cond_.is_pulsed())) {
+                // We're done, because the previous node is present and isn't a
+                // pulsed read-acquirer.
                 return;
             }
-            // Should we stop pulsing (and maybe pulse p for write)?
+            p->read_cond_.pulse();
+
+            // Should we also pulse p for write (and exit, of course)?
             if (p->access_ == access_t::write) {
                 if (prev == NULL) {
                     p->write_cond_.pulse();
                 }
                 return;
             }
+            prev = p;
             p = acqs_.next(p);
         } while (p != NULL);
         return;
