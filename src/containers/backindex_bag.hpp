@@ -59,7 +59,9 @@ private:
     DISABLE_COPYING(backindex_bag_index_t);
 };
 
-// A bag of elements that it _does not own_.
+// An unordered bag of elements, maintained using backindexes.  T is typically a
+// pointer type (see the description above).  You can randomly select elements and
+// test for membership.
 template <class T>
 class backindex_bag_t {
 public:
