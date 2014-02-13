@@ -743,14 +743,14 @@ THROWS_ONLY(interrupted_exc_t) {
 
     // Load the key and value.
     store_key_t key(keyvalue.key());
-    if (sindex && sindex->pkey_range.contains_key(ql::datum_t::extract_primary(key))) {
+    if (sindex && !sindex->pkey_range.contains_key(ql::datum_t::extract_primary(key))) {
         return done_t::NO;
     }
 
     lazy_json_t row(static_cast<const rdb_value_t *>(keyvalue.value()), io.transaction);
     counted_t<const ql::datum_t> val;
     // We only load the value if we actually use it (`count` does not).
-    if (job.accumulator->uses_val() || job.transformers.size() != 0) {
+    if (job.accumulator->uses_val() || job.transformers.size() != 0 || sindex) {
         val = row.get();
         io.slice->stats.pm_keys_read.record();
     }

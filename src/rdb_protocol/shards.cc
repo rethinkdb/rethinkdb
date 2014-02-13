@@ -20,12 +20,11 @@ accumulator_t::~accumulator_t() {
 void accumulator_t::mark_finished() { finished = true; }
 
 void accumulator_t::finish(result_t *out) {
+    mark_finished();
     // We fill in the result if there have been no errors.
-    // RSI: acc assertion if there are no errors?
     if (boost::get<exc_t>(out) == NULL) {
         finish_impl(out);
     }
-    mark_finished();
 }
 
 template<class T>
@@ -184,18 +183,16 @@ private:
 
     // RSI: empty?
     virtual counted_t<val_t> finish_eager(protob_t<const Backtrace> bt) {
+        accumulator_t::mark_finished();
         grouped<T> *acc = grouped_accumulator_t<T>::get_acc();
         const T *default_t = grouped_accumulator_t<T>::get_default_t();
         counted_t<val_t> retval;
         if (acc->size() == 0) {
-            debugf("zero\n");
             T t(*default_t);
             retval = make_counted<val_t>(unpack(&t), bt);
         } else if (acc->size() == 1 && !acc->begin()->first.has()) {
-            debugf("single\n");
             retval = make_counted<val_t>(unpack(&acc->begin()->second), bt);
         } else {
-            debugf("multi\n");
             std::map<counted_t<const datum_t>, counted_t<const datum_t> > ret;
             for (auto kv = acc->begin(); kv != acc->end(); ++kv) {
                 ret.insert(std::make_pair(kv->first, unpack(&kv->second)));
@@ -203,7 +200,6 @@ private:
             retval = make_counted<val_t>(std::move(ret), bt);
         }
         acc->clear();
-        accumulator_t::mark_finished();
         return retval;
     }
     virtual counted_t<const datum_t> unpack(T *t) = 0;
@@ -220,7 +216,7 @@ private:
         } else {
             for (auto kv = gres->begin(); kv != gres->end(); ++kv) {
                 auto t_it = acc->insert(std::make_pair(kv->first, *default_t)).first;
-                accumulate(kv->first, &t_it->second);
+                unshard_impl(&t_it->second, &kv->second);
             }
         }
     }
@@ -233,9 +229,11 @@ private:
     virtual void accumulate(const counted_t<const datum_t> &el, T *t) = 0;
 
     virtual void unshard_impl(T *out, const store_key_t &, const std::vector<T *> &ts) {
-        unshard_impl(out, ts);
+        for (auto it = ts.begin(); it != ts.end(); ++it) {
+            unshard_impl(out, *it);
+        }
     }
-    virtual void unshard_impl(T *out, const std::vector<T *> &ts) = 0;
+    virtual void unshard_impl(T *out, T *el) = 0;
     virtual bool should_send_batch() { return false; }
 };
 
@@ -250,10 +248,8 @@ private:
     virtual counted_t<const datum_t> unpack(uint64_t *sz) {
         return make_counted<const datum_t>(double(*sz));
     }
-    virtual void unshard_impl(uint64_t *out, const std::vector<uint64_t *> &sizes) {
-        for (auto it = sizes.begin(); it != sizes.end(); ++it) {
-            *out += **it;
-        }
+    virtual void unshard_impl(uint64_t *out, uint64_t *el) {
+        *out += *el;
     }
 };
 
@@ -280,10 +276,8 @@ private:
         return std::move(*el);
     }
     virtual void unshard_impl(counted_t<const datum_t> *out,
-                              const std::vector<counted_t<const datum_t> *> &ds) {
-        for (auto it = ds.begin(); it != ds.end(); ++it) {
-            if ((*it)->has()) accumulate(**it, out);
-        }
+                              counted_t<const datum_t> *el) {
+        if (el->has()) accumulate(*el, out);
     }
 
     env_t *env;
@@ -317,6 +311,9 @@ private:
     virtual void operator()(groups_t *groups) {
         for (auto it = groups->begin(); it != groups->end(); ++it) {
             lst_transform(&it->second);
+            if (it->second.size() == 0) {
+                groups->erase(it); // This is important for batching with filter.
+            }
         }
     }
     virtual void lst_transform(lst_t *lst) = 0;

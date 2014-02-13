@@ -563,16 +563,15 @@ counted_t<datum_stream_t> eager_datum_stream_t::add_transformation(
 done_t eager_datum_stream_t::next_grouped_batch(
     env_t *env, const batchspec_t &bs, groups_t *out) {
     r_sanity_check(out->size() == 0);
-    std::vector<counted_t<const datum_t> > v = next_raw_batch(env, bs);
-    debugf("Got raw batch of size %zu\n", v.size());
-    if (v.size() != 0) {
+    while (out->size() == 0) {
+        std::vector<counted_t<const datum_t> > v = next_raw_batch(env, bs);
+        if (v.size() == 0) return done_t::YES;
         (*out)[counted_t<const datum_t>()] = std::move(v);
         for (auto it = ops.begin(); it != ops.end(); ++it) {
             (**it)(out);
         }
-        return done_t::NO;
     }
-    return done_t::YES;
+    return done_t::NO;
 }
 
 void eager_datum_stream_t::accumulate(
@@ -580,7 +579,6 @@ void eager_datum_stream_t::accumulate(
     batchspec_t bs = batchspec_t::user(batch_type_t::TERMINAL, env);
     groups_t data;
     while (next_grouped_batch(env, bs, &data) == done_t::NO) {
-        debugf("GROUPED_BATCH %zu\n", data.size());
         (*acc)(&data);
     }
 }

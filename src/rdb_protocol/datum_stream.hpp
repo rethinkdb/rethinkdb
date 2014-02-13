@@ -190,6 +190,7 @@ public:
 
 private:
     virtual bool is_array();
+    // RSI: implement as_array()
     virtual std::vector<counted_t<const datum_t> >
     next_raw_batch(env_t *env, UNUSED const batchspec_t &batchspec);
     counted_t<const datum_t> next(env_t *env, const batchspec_t &batchspec);

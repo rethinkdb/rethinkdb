@@ -1127,21 +1127,28 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             std::vector<char> sindex_mapping_data;
 
             try {
-                bool found = store->acquire_sindex_superblock_for_read(rget.sindex->id,
-                        superblock->get_sindex_block_id(), token_pair,
-                        txn, &sindex_sb, &sindex_mapping_data, &interruptor);
+                bool found = store->acquire_sindex_superblock_for_read(
+                    rget.sindex->id,
+                    superblock->get_sindex_block_id(),
+                    token_pair,
+                    txn,
+                    &sindex_sb,
+                    &sindex_mapping_data,
+                    &interruptor);
 
                 if (!found) {
-                    rfail_toplevel(ql::base_exc_t::GENERIC,
-                                   "Index `%s` was not found.",
-                                   rget.sindex->id.c_str());
+                    res->result = ql::exc_t(
+                        ql::base_exc_t::GENERIC,
+                        strprintf("Index `%s` was not found.", rget.sindex->id.c_str()),
+                        NULL);
                     return;
                 }
             } catch (const sindex_not_post_constructed_exc_t &) {
-                rfail_toplevel(ql::base_exc_t::GENERIC,
-                               "Index `%s` was accessed before "
-                               "its construction was finished.",
-                               rget.sindex->id.c_str());
+                res->result = ql::exc_t(
+                    ql::base_exc_t::GENERIC,
+                    strprintf("Index `%s` was accessed before its construction "
+                              "was finished.", rget.sindex->id.c_str()),
+                    NULL);
                 return;
             }
 
