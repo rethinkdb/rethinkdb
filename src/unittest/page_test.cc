@@ -5,6 +5,7 @@
 // For alt_memory_tracker_t.  KSI: We'll want a mock memory_tracker_t subclass.
 #include "buffer_cache/alt/alt.hpp"
 #include "concurrency/auto_drainer.hpp"
+#include "concurrency/pmap.hpp"
 #include "containers/scoped.hpp"
 #include "serializer/config.hpp"
 #include "unittest/gtest.hpp"
@@ -207,6 +208,56 @@ void run_OneWriteAcqWait() {
 
 TEST(PageTest, OneWriteAcqWait) {
     run_in_thread_pool(run_OneWriteAcqWait, 4);
+}
+
+struct ReadAfterWrite_state_t {
+    block_id_t block_id;
+    cond_t write_acquired;
+    cond_t read_acquiring;
+    cond_t write_released;
+    cond_t read_acquired;
+};
+
+void ReadAfterWrite_cases(ReadAfterWrite_state_t *s, test_cache_t *cache, int i) {
+    if (i == 0) {
+        auto txn = make_scoped<test_txn_t>(cache);
+        {
+            current_page_acq_t acq(txn.get(), alt_create_t::create);
+            s->block_id = acq.block_id();
+            acq.write_acq_signal()->wait();
+            s->write_acquired.pulse();
+            s->read_acquiring.wait();
+            ASSERT_FALSE(s->read_acquired.is_pulsed());
+        }
+        s->write_released.pulse();
+    } else if (i == 1) {
+        auto txn = make_scoped<test_txn_t>(cache);
+        s->write_acquired.wait();
+        s->read_acquiring.pulse();
+        current_page_acq_t acq(txn.get(), s->block_id, access_t::read);
+        // This assertion should be false since the coroutine hasn't yielded and
+        // given the read_acquiring.wait() call a chance to return,
+        ASSERT_FALSE(s->write_released.is_pulsed());
+        acq.read_acq_signal()->wait();
+        // This assertion should definitely be true since we shouldn't have acquired
+        // the lock while the write acquisition has it acquired.
+        ASSERT_TRUE(s->write_released.is_pulsed());
+        s->read_acquired.pulse();
+
+    } else {
+        unreachable();
+    }
+}
+
+void run_ReadAfterWrite() {
+    mock_ser_t mock;
+    test_cache_t page_cache(mock.ser.get(), mock.tracker.get());
+    ReadAfterWrite_state_t s;
+    pmap(2, std::bind(&ReadAfterWrite_cases, &s, &page_cache, ph::_1));
+}
+
+TEST(PageTest, ReadAfterWrite) {
+    run_in_thread_pool(run_ReadAfterWrite, 4);
 }
 
 class bigger_test_t {

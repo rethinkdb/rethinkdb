@@ -48,7 +48,7 @@ void read_after_write_cases(read_after_write_state_t *s, int i) {
 void read_after_write() {
     read_after_write_state_t s;
 
-    pmap(2, std::bind(read_after_write_cases, &s, ph::_1));
+    pmap(2, std::bind(&read_after_write_cases, &s, ph::_1));
 }
 
 TEST(RwlockTest, ReadAfterWrite) {
