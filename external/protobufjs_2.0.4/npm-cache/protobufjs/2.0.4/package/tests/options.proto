@@ -1,0 +1,8 @@
+option (toplevel_1) = 10;
+package My;
+option (toplevel_2) = "Hello world!";
+
+message Test {
+    optional string name = 1 [default="Max"];
+    option (inmessage) = My.Test;
+}

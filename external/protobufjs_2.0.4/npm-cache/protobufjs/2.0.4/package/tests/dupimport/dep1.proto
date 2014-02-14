@@ -1,0 +1,6 @@
+package My;
+import public "dep2.proto";
+
+message dep1 {
+    optional dep2 test1 = 0;
+}
