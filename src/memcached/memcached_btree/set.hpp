@@ -1,11 +1,11 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef MEMCACHED_MEMCACHED_BTREE_SET_HPP_
 #define MEMCACHED_MEMCACHED_BTREE_SET_HPP_
 
 #include "btree/node.hpp"
-#include "btree/slice.hpp"
 #include "memcached/queries.hpp"
 
+class btree_slice_t;
 class superblock_t;
 
 set_result_t memcached_set(const store_key_t &key,
@@ -19,7 +19,6 @@ set_result_t memcached_set(const store_key_t &key,
                            cas_t proposed_cas,
                            exptime_t effective_time,
                            repli_timestamp_t timestamp,
-                           transaction_t *txn,
                            superblock_t *superblock);
 
 #endif // MEMCACHED_MEMCACHED_BTREE_SET_HPP_

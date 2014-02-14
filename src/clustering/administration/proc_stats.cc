@@ -1,6 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
-#define __STDC_FORMAT_MACROS
-
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "clustering/administration/proc_stats.hpp"
 
 #include <inttypes.h>
@@ -15,8 +13,7 @@
 proc_stats_collector_t::proc_stats_collector_t(perfmon_collection_t *stats) :
     instantaneous_stats_collector(),
     stats_membership(stats,
-        &instantaneous_stats_collector, NULL,
-        NULLPTR) {
+        &instantaneous_stats_collector, static_cast<const char *>(NULL)) {
 }
 
 proc_stats_collector_t::instantaneous_stats_collector_t::instantaneous_stats_collector_t() {

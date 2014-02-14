@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef UNITTEST_MOCK_FILE_HPP_
 #define UNITTEST_MOCK_FILE_HPP_
 
@@ -43,6 +43,7 @@ public:
     bool coop_lock_and_check();
 
 private:
+    rng_t yield_rng;
     mode_t mode_;
     std::vector<char> *data_;
 

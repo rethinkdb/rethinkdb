@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "btree/backfill.hpp"
 
 #include <algorithm>
@@ -12,14 +12,19 @@
 #include "btree/leaf_node.hpp"
 #include "btree/parallel_traversal.hpp"
 #include "btree/secondary_operations.hpp"
-#include "btree/slice.hpp"
-#include "buffer_cache/buffer_cache.hpp"
+#include "buffer_cache/alt/alt.hpp"
 #include "protocol_api.hpp"
 
 struct backfill_traversal_helper_t : public btree_traversal_helper_t, public home_thread_mixin_debug_only_t {
-    void process_a_leaf(transaction_t *txn, buf_lock_t *leaf_node_buf, const btree_key_t *left_exclusive_or_null, const btree_key_t *right_inclusive_or_null, signal_t *interruptor, int * /*population_change_out*/) THROWS_ONLY(interrupted_exc_t) {
+    void process_a_leaf(buf_lock_t *leaf_node_buf,
+                        const btree_key_t *left_exclusive_or_null,
+                        const btree_key_t *right_inclusive_or_null,
+                        signal_t *interruptor,
+                        int * /*population_change_out*/)
+        THROWS_ONLY(interrupted_exc_t) {
         assert_thread();
-        const leaf_node_t *data = reinterpret_cast<const leaf_node_t *>(leaf_node_buf->get_data_read());
+        buf_read_t read(leaf_node_buf);
+        const leaf_node_t *data = static_cast<const leaf_node_t *>(read.get_data_read());
 
         key_range_t clipped_range(
             left_exclusive_or_null ? key_range_t::open : key_range_t::none,
@@ -28,7 +33,8 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
             right_inclusive_or_null ? store_key_t(right_inclusive_or_null) : store_key_t());
         clipped_range = clipped_range.intersection(key_range_);
 
-        struct : public leaf::entry_reception_callback_t {
+        struct our_cb_t : public leaf::entry_reception_callback_t {
+            explicit our_cb_t(buf_parent_t _parent) : parent(_parent) { }
             void lost_deletions() {
                 cb->on_delete_range(range, interruptor);
             }
@@ -41,17 +47,18 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
 
             void key_value(const btree_key_t *k, const void *value, repli_timestamp_t tstamp) {
                 if (range.contains_key(k->contents, k->size)) {
-                    cb->on_pair(txn, tstamp, k, value, interruptor);
+                    cb->on_pair(parent, tstamp, k, value, interruptor);
                 }
             }
 
             agnostic_backfill_callback_t *cb;
-            transaction_t *txn;
+            buf_parent_t parent;
             key_range_t range;
             signal_t *interruptor;
-        } x;
+        };
+
+        our_cb_t x((buf_parent_t(leaf_node_buf)));
         x.cb = callback_;
-        x.txn = txn;
         x.range = clipped_range;
         x.interruptor = interruptor;
 
@@ -63,61 +70,31 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
         // do nothing
     }
 
-    access_t btree_superblock_mode() { return rwi_read; }
-    access_t btree_node_mode() { return rwi_read; }
+    access_t btree_superblock_mode() { return access_t::read; }
+    access_t btree_node_mode() { return access_t::read; }
 
-    struct annoying_t : public get_subtree_recencies_callback_t {
-        interesting_children_callback_t *cb;
-        scoped_array_t<block_id_t> block_ids;
-        scoped_array_t<repli_timestamp_t> recencies;
-        repli_timestamp_t since_when;
-        cond_t *done_cond;
-
-        void got_subtree_recencies() {
-            coro_t::spawn_sometime(boost::bind(&annoying_t::do_got_subtree_recencies, this));
-        }
-
-        void do_got_subtree_recencies() {
-            rassert(coro_t::self());
-
-            for (int i = 0, e = block_ids.size(); i < e; ++i) {
-                if (block_ids[i] != NULL_BLOCK_ID && recencies[i] >= since_when) {
-                    cb->receive_interesting_child(i);
-                }
-            }
-
-            interesting_children_callback_t *local_cb = cb;
-            cond_t *local_done_cond = done_cond;
-            delete this;
-            local_cb->no_more_interesting_children();
-            local_done_cond->pulse();
-        }
-    };
-
-    void filter_interesting_children(transaction_t *txn, ranged_block_ids_t *ids_source, interesting_children_callback_t *cb) {
+    void filter_interesting_children(buf_parent_t parent,
+                                     ranged_block_ids_t *ids_source,
+                                     interesting_children_callback_t *cb) {
         assert_thread();
-        annoying_t *fsm = new annoying_t;
+
         int num_block_ids = ids_source->num_block_ids();
-        fsm->block_ids.init(num_block_ids);
         for (int i = 0; i < num_block_ids; ++i) {
             const btree_key_t *left, *right;
             block_id_t id;
             ids_source->get_block_id_and_bounding_interval(i, &id, &left, &right);
             if (overlaps(left, right, key_range_.left, key_range_.right)) {
-                fsm->block_ids[i] = id;
-            } else {
-                fsm->block_ids[i] = NULL_BLOCK_ID;
+                repli_timestamp_t recency;
+                {
+                    buf_lock_t lock(parent, id, access_t::read);
+                    recency = lock.get_recency();
+                }
+                if (recency >= since_when_) {
+                    cb->receive_interesting_child(i);
+                }
             }
         }
-
-        cond_t done_cond;
-        fsm->cb = cb;
-        fsm->since_when = since_when_;
-        fsm->recencies.init(num_block_ids);
-        fsm->done_cond = &done_cond;
-
-        txn->get_subtree_recencies(fsm->block_ids.data(), num_block_ids, fsm->recencies.data(), fsm);
-        done_cond.wait();
+        cb->no_more_interesting_children();
     }
 
     // Checks if (x_left, x_right] intersects [y_left, y_right).  If
@@ -160,19 +137,21 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
 };
 
 void do_agnostic_btree_backfill(value_sizer_t<void> *sizer,
-        btree_slice_t *slice, const key_range_t& key_range, repli_timestamp_t since_when,
-        agnostic_backfill_callback_t *callback, transaction_t *txn,
-        superblock_t *superblock, buf_lock_t *sindex_block, parallel_traversal_progress_t *p,
-        signal_t *interruptor)
-THROWS_ONLY(interrupted_exc_t) {
-    //Start things off easy with a coro assertion.
+                                const key_range_t &key_range,
+                                repli_timestamp_t since_when,
+                                agnostic_backfill_callback_t *callback,
+                                superblock_t *superblock,
+                                buf_lock_t *sindex_block,
+                                parallel_traversal_progress_t *p,
+                                signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t) {
     rassert(coro_t::self());
 
     std::map<std::string, secondary_index_t> sindexes;
-    get_secondary_indexes(txn, sindex_block, &sindexes);
+    get_secondary_indexes(sindex_block, &sindexes);
     callback->on_sindexes(sindexes, interruptor);
 
     backfill_traversal_helper_t helper(callback, since_when, sizer, key_range);
     helper.progress = p;
-    btree_parallel_traversal(txn, superblock, slice, &helper, interruptor);
+    btree_parallel_traversal(superblock, &helper, interruptor);
 }

@@ -1,10 +1,10 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "memcached/memcached_btree/backfill.hpp"
 
 #include "btree/backfill.hpp"
+#include "btree/operations.hpp"
 #include "btree/parallel_traversal.hpp"
-#include "btree/slice.hpp"
-#include "buffer_cache/buffer_cache.hpp"
+#include "buffer_cache/alt/alt.hpp"
 #include "containers/printf_buffer.hpp"
 #include "memcached/memcached_btree/btree_data_provider.hpp"
 #include "memcached/memcached_btree/node.hpp"
@@ -24,10 +24,12 @@ public:
         cb_->on_deletion(key, recency, interruptor);
     }
 
-    void on_pair(transaction_t *txn, repli_timestamp_t recency, const btree_key_t *key, const void *val, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    void on_pair(buf_parent_t parent, repli_timestamp_t recency,
+                 const btree_key_t *key, const void *val,
+                 signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
         rassert(kr_.contains_key(key->contents, key->size));
         const memcached_value_t *value = static_cast<const memcached_value_t *>(val);
-        counted_t<data_buffer_t> data_provider = value_to_data_buffer(value, txn);
+        counted_t<data_buffer_t> data_provider = value_to_data_buffer(value, parent);
         backfill_atom_t atom;
         atom.key.assign(key->size, key->contents);
         atom.value = data_provider;
@@ -49,12 +51,17 @@ public:
     key_range_t kr_;
 };
 
-void memcached_backfill(btree_slice_t *slice, const key_range_t& key_range, repli_timestamp_t since_when, backfill_callback_t *callback,
-                    transaction_t *txn, superblock_t *superblock, buf_lock_t *sindex_block, parallel_traversal_progress_t *p,
-                    signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+void memcached_backfill(const key_range_t& key_range,
+                        repli_timestamp_t since_when, backfill_callback_t *callback,
+                        superblock_t *superblock,
+                        buf_lock_t *sindex_block,
+                        parallel_traversal_progress_t *p,
+                        signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     agnostic_memcached_backfill_callback_t agnostic_cb(callback, key_range);
-    value_sizer_t<memcached_value_t> sizer(slice->cache()->get_block_size());
-    do_agnostic_btree_backfill(&sizer, slice, key_range, since_when, &agnostic_cb, txn, superblock, sindex_block, p, interruptor);
+    value_sizer_t<memcached_value_t> sizer(superblock->cache()->get_block_size());
+    do_agnostic_btree_backfill(&sizer, key_range, since_when,
+                               &agnostic_cb, superblock, sindex_block, p,
+                               interruptor);
 }
 
 

@@ -41,3 +41,20 @@ void signal_t::wait_lazily_unordered() const {
         coro_t::wait();
     }
 }
+
+
+signal_t::signal_t(signal_t &&movee)
+    : home_thread_mixin_t(std::move(movee)),
+      pulsed(movee.pulsed),
+      publisher_controller(std::move(movee.publisher_controller)),
+      lock(std::move(movee.lock)) {
+    movee.pulsed = false;
+}
+
+// The same thing that happens when a signal_t is destructed happens: We crash if
+// there are any current waiters.
+void signal_t::reset() {
+    lock.reset();
+    publisher_controller.reset();
+    pulsed = false;
+}

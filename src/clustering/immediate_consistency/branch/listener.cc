@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "clustering/immediate_consistency/branch/listener.hpp"
 
 #include "clustering/generic/registrant.hpp"
@@ -129,7 +129,7 @@ listener_t<protocol_t>::listener_t(const base_path_t &base_path,
                                         it->first));
         }
     }
-#endif
+#endif  // NDEBUG
 
     /* Attempt to register for reads and writes */
     try_start_receiving_writes(broadcaster_metadata, interruptor);
@@ -457,7 +457,7 @@ void listener_t<protocol_t>::perform_enqueued_write(const write_queue_entry_t &q
             binary_blob_t(version_range_t(version_t(branch_id_, qe.transition_timestamp.timestamp_after())))),
         qe.write,
         &response,
-        WRITE_DURABILITY_SOFT,
+        write_durability_t::SOFT,
         qe.transition_timestamp,
         qe.order_token,
         &write_token_pair,

@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef BTREE_BTREE_STORE_HPP_
 #define BTREE_BTREE_STORE_HPP_
 
@@ -14,7 +14,6 @@
 
 #include "btree/erase_range.hpp"
 #include "btree/secondary_operations.hpp"
-#include "buffer_cache/mirrored/config.hpp"  // TODO: Move to buffer_cache/config.hpp or something.
 #include "buffer_cache/types.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "containers/disk_backed_queue.hpp"
@@ -58,11 +57,6 @@ public:
     /* store_view_t interface */
     void new_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token_out);
     void new_write_token(object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token_out);
-
-    /* These functions get tokens for both the main B-Tree and the secondary
-     * structures. */
-    void new_read_token_pair(read_token_pair_t *token_pair_out);
-    void new_write_token_pair(write_token_pair_t *token_pair_out);
 
     typedef region_map_t<protocol_t, binary_blob_t> metainfo_t;
 
@@ -146,116 +140,58 @@ public:
 
     progress_completion_fraction_t get_progress(uuid_u id);
 
-    void acquire_sindex_block_for_read(
-            read_token_pair_t *token_pair,
-            transaction_t *txn,
-            scoped_ptr_t<buf_lock_t> *sindex_block_out,
-            block_id_t sindex_block_id,
-            signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t);
+    MUST_USE buf_lock_t acquire_sindex_block_for_read(
+            buf_parent_t parent,
+            block_id_t sindex_block_id);
 
-    void acquire_sindex_block_for_write(
-            write_token_pair_t *token_pair,
-            transaction_t *txn,
-            scoped_ptr_t<buf_lock_t> *sindex_block_out,
-            block_id_t sindex_block_id,
-            signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t);
+    MUST_USE buf_lock_t acquire_sindex_block_for_write(
+            buf_parent_t parent,
+            block_id_t sindex_block_id);
 
     MUST_USE bool add_sindex(
-        write_token_pair_t *token_pair,
         const std::string &id,
         const secondary_index_t::opaque_definition_t &definition,
-        transaction_t *txn,
-        superblock_t *super_block,
-        signal_t *interruptor)
-    THROWS_ONLY(interrupted_exc_t);
-
-    MUST_USE bool add_sindex(
-        write_token_pair_t *token_pair,
-        const std::string &id,
-        const secondary_index_t::opaque_definition_t &definition,
-        transaction_t *txn,
-        superblock_t *super_block,
-        scoped_ptr_t<buf_lock_t> *sindex_block_out,
-        signal_t *interruptor)
-    THROWS_ONLY(interrupted_exc_t);
+        buf_lock_t *sindex_block);
 
     void set_sindexes(
-        write_token_pair_t *token_pair,
         const std::map<std::string, secondary_index_t> &sindexes,
-        transaction_t *txn,
-        superblock_t *superblock,
+        buf_lock_t *sindex_block,
         value_sizer_t<void> *sizer,
         value_deleter_t *deleter,
-        scoped_ptr_t<buf_lock_t> *sindex_block_out,
         std::set<std::string> *created_sindexes_out,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t);
 
     bool mark_index_up_to_date(
         const std::string &id,
-        transaction_t *txn,
         buf_lock_t *sindex_block)
     THROWS_NOTHING;
 
     bool mark_index_up_to_date(
         uuid_u id,
-        transaction_t *txn,
         buf_lock_t *sindex_block)
     THROWS_NOTHING;
 
     bool drop_sindex(
-        write_token_pair_t *token_pair,
         const std::string &id,
-        transaction_t *txn,
-        superblock_t *super_block,
-        value_sizer_t<void> *sizer,
-        value_deleter_t *deleter,
-        signal_t *interruptor)
-    THROWS_ONLY(interrupted_exc_t);
-
-    void drop_all_sindexes(
-        write_token_pair_t *token_pair,
-        transaction_t *txn,
-        superblock_t *super_block,
-        value_sizer_t<void> *sizer,
-        value_deleter_t *deleter,
-        signal_t *interruptor)
-    THROWS_ONLY(interrupted_exc_t);
-
-    void get_sindexes(
-        read_token_pair_t *token_pair,
-        transaction_t *txn,
-        superblock_t *super_block,
-        std::map<std::string, secondary_index_t> *sindexes_out,
-        signal_t *interruptor)
-    THROWS_ONLY(interrupted_exc_t);
-
-    void get_sindexes(
         buf_lock_t *sindex_block,
-        transaction_t *txn,
-        std::map<std::string, secondary_index_t> *sindexes_out)
-    THROWS_NOTHING;
+        value_sizer_t<void> *sizer,
+        value_deleter_t *deleter,
+        signal_t *interruptor)
+    THROWS_ONLY(interrupted_exc_t);
 
     MUST_USE bool acquire_sindex_superblock_for_read(
             const std::string &id,
-            block_id_t sindex_block_id,
-            read_token_pair_t *token_pair,
-            transaction_t *txn_out,
+            superblock_t *superblock,  // releases this.
             scoped_ptr_t<real_superblock_t> *sindex_sb_out,
-            std::vector<char> *opaque_definition_out, // Optional, may be NULL
-            signal_t *interruptor)
-    THROWS_ONLY(interrupted_exc_t, sindex_not_post_constructed_exc_t);
+            std::vector<char> *opaque_definition_out) // Optional, may be NULL
+        THROWS_ONLY(sindex_not_post_constructed_exc_t);
 
     MUST_USE bool acquire_sindex_superblock_for_write(
             const std::string &id,
-            block_id_t sindex_block_id,
-            write_token_pair_t *token_pair,
-            transaction_t *txn,
-            scoped_ptr_t<real_superblock_t> *sindex_sb_out,
-            signal_t *interruptor)
-    THROWS_ONLY(interrupted_exc_t, sindex_not_post_constructed_exc_t);
+            superblock_t *superblock,  // releases this.
+            scoped_ptr_t<real_superblock_t> *sindex_sb_out)
+        THROWS_ONLY(sindex_not_post_constructed_exc_t);
 
     struct sindex_access_t {
         sindex_access_t(btree_slice_t *_btree, secondary_index_t _sindex,
@@ -273,43 +209,29 @@ public:
 
     void acquire_all_sindex_superblocks_for_write(
             block_id_t sindex_block_id,
-            write_token_pair_t *token_pair,
-            transaction_t *txn,
-            sindex_access_vector_t *sindex_sbs_out,
-            signal_t *interruptor)
-    THROWS_ONLY(interrupted_exc_t, sindex_not_post_constructed_exc_t);
+            buf_parent_t parent,
+            sindex_access_vector_t *sindex_sbs_out)
+        THROWS_ONLY(sindex_not_post_constructed_exc_t);
 
     void acquire_all_sindex_superblocks_for_write(
             buf_lock_t *sindex_block,
-            transaction_t *txn,
             sindex_access_vector_t *sindex_sbs_out)
-    THROWS_ONLY(sindex_not_post_constructed_exc_t);
+        THROWS_ONLY(sindex_not_post_constructed_exc_t);
 
-    void aquire_post_constructed_sindex_superblocks_for_write(
-            block_id_t sindex_block_id,
-            write_token_pair_t *token_pair,
-            transaction_t *txn,
-            sindex_access_vector_t *sindex_sbs_out,
-            signal_t *interruptor)
-    THROWS_ONLY(interrupted_exc_t);
-
-    void aquire_post_constructed_sindex_superblocks_for_write(
+    void acquire_post_constructed_sindex_superblocks_for_write(
             buf_lock_t *sindex_block,
-            transaction_t *txn,
             sindex_access_vector_t *sindex_sbs_out)
     THROWS_NOTHING;
 
     bool acquire_sindex_superblocks_for_write(
             boost::optional<std::set<std::string> > sindexes_to_acquire, //none means acquire all sindexes
             buf_lock_t *sindex_block,
-            transaction_t *txn,
             sindex_access_vector_t *sindex_sbs_out)
     THROWS_ONLY(sindex_not_post_constructed_exc_t);
 
     bool acquire_sindex_superblocks_for_write(
             boost::optional<std::set<uuid_u> > sindexes_to_acquire, //none means acquire all sindexes
             buf_lock_t *sindex_block,
-            transaction_t *txn,
             sindex_access_vector_t *sindex_sbs_out)
     THROWS_ONLY(sindex_not_post_constructed_exc_t);
 
@@ -320,18 +242,14 @@ public:
     virtual void protocol_read(const typename protocol_t::read_t &read,
                                typename protocol_t::read_response_t *response,
                                btree_slice_t *btree,
-                               transaction_t *txn,
                                superblock_t *superblock,
-                               read_token_pair_t *token_pair,
                                signal_t *interruptor) = 0;
 
     virtual void protocol_write(const typename protocol_t::write_t &write,
                                 typename protocol_t::write_response_t *response,
                                 transition_timestamp_t timestamp,
                                 btree_slice_t *btree,
-                                transaction_t *txn,
                                 scoped_ptr_t<superblock_t> *superblock,
-                                write_token_pair_t *token_pair,
                                 signal_t *interruptor) = 0;
 
     virtual void protocol_send_backfill(const region_map_t<protocol_t, state_timestamp_t> &start_point,
@@ -339,31 +257,27 @@ public:
                                         superblock_t *superblock,
                                         buf_lock_t *sindex_block,
                                         btree_slice_t *btree,
-                                        transaction_t *txn,
                                         typename protocol_t::backfill_progress_t *progress,
                                         signal_t *interruptor)
                                         THROWS_ONLY(interrupted_exc_t) = 0;
 
     virtual void protocol_receive_backfill(btree_slice_t *btree,
-                                           transaction_t *txn,
                                            superblock_t *superblock,
-                                           write_token_pair_t *token_pair,
                                            signal_t *interruptor,
                                            const typename protocol_t::backfill_chunk_t &chunk) = 0;
 
     virtual void protocol_reset_data(const typename protocol_t::region_t& subregion,
                                      btree_slice_t *btree,
-                                     transaction_t *txn,
                                      superblock_t *superblock,
-                                     write_token_pair_t *token_pair,
                                      signal_t *interruptor) = 0;
 
-    void get_metainfo_internal(transaction_t* txn, buf_lock_t* sb_buf, region_map_t<protocol_t, binary_blob_t> *out) const THROWS_NOTHING;
+    void get_metainfo_internal(buf_lock_t *sb_buf,
+                               region_map_t<protocol_t, binary_blob_t> *out)
+        const THROWS_NOTHING;
 
     void acquire_superblock_for_read(
-            access_t access,
             object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
-            scoped_ptr_t<transaction_t> *txn_out,
+            scoped_ptr_t<txn_t> *txn_out,
             scoped_ptr_t<real_superblock_t> *sb_out,
             signal_t *interruptor,
             bool use_snapshot)
@@ -371,7 +285,7 @@ public:
 
     void acquire_superblock_for_backfill(
             object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
-            scoped_ptr_t<transaction_t> *txn_out,
+            scoped_ptr_t<txn_t> *txn_out,
             scoped_ptr_t<real_superblock_t> *sb_out,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
@@ -381,31 +295,18 @@ public:
             int expected_change_count,
             write_durability_t durability,
             write_token_pair_t *token_pair,
-            scoped_ptr_t<transaction_t> *txn_out,
+            scoped_ptr_t<txn_t> *txn_out,
             scoped_ptr_t<real_superblock_t> *sb_out,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
 
-    void acquire_superblock_for_write(
-            access_t txn_access,
-            access_t superblock_access,
-            repli_timestamp_t timestamp,
-            int expected_change_count,
-            write_durability_t durability,
-            write_token_pair_t *token_pair,
-            scoped_ptr_t<transaction_t> *txn_out,
-            scoped_ptr_t<real_superblock_t> *sb_out,
-            signal_t *interruptor)
-            THROWS_ONLY(interrupted_exc_t);
 private:
     void acquire_superblock_for_write(
-            access_t txn_access,
-            access_t superblock_access,
             repli_timestamp_t timestamp,
             int expected_change_count,
             write_durability_t durability,
             object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
-            scoped_ptr_t<transaction_t> *txn_out,
+            scoped_ptr_t<txn_t> *txn_out,
             scoped_ptr_t<real_superblock_t> *sb_out,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
@@ -414,20 +315,17 @@ public:
     void check_and_update_metainfo(
         DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
         const metainfo_t &new_metainfo,
-        transaction_t *txn,
         real_superblock_t *superblock) const
         THROWS_NOTHING;
 
     metainfo_t check_metainfo(
         DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
-        transaction_t *txn,
         real_superblock_t *superblock) const
         THROWS_NOTHING;
 
-    void update_metainfo(const metainfo_t &old_metainfo, const metainfo_t &new_metainfo, transaction_t *txn, real_superblock_t *superbloc) const THROWS_NOTHING;
-
-    mirrored_cache_config_t cache_dynamic_config;
-    order_source_t order_source;
+    void update_metainfo(const metainfo_t &old_metainfo,
+                         const metainfo_t &new_metainfo,
+                         real_superblock_t *superblock) const THROWS_NOTHING;
 
     fifo_enforcer_source_t main_token_source, sindex_token_source;
     fifo_enforcer_sink_t main_token_sink, sindex_token_sink;
@@ -436,6 +334,7 @@ public:
     // Mind the constructor ordering. We must destruct the cache and btree
     // before we destruct perfmon_collection
     scoped_ptr_t<cache_t> cache;
+    scoped_ptr_t<cache_conn_t> general_cache_conn;
     scoped_ptr_t<btree_slice_t> btree;
     io_backender_t *io_backender_;
     base_path_t base_path_;
@@ -444,6 +343,7 @@ public:
     boost::ptr_map<const std::string, btree_slice_t> secondary_index_slices;
 
     std::vector<internal_disk_backed_queue_t *> sindex_queues;
+    // KSI: mutex_t is a horrible type.
     mutex_t sindex_queue_mutex;
     std::map<uuid_u, const parallel_traversal_progress_t *> progress_trackers;
 

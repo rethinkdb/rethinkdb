@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "serializer/log/lba/lba_list.hpp"
 
 #include "errors.hpp"
@@ -159,6 +159,17 @@ block_size_t lba_list_t::get_block_size(block_id_t block) {
 
 repli_timestamp_t lba_list_t::get_block_recency(block_id_t block) {
     return get_block_info(block).recency;
+}
+
+segmented_vector_t<repli_timestamp_t> lba_list_t::get_block_recencies(block_id_t first,
+                                                                      block_id_t step) {
+    rassert(state == state_ready);
+    segmented_vector_t<repli_timestamp_t> ret;
+    block_id_t end = in_memory_index.end_block_id();
+    for (block_id_t i = first; i < end; i += step) {
+        ret.push_back(in_memory_index.get_block_info(i).recency);
+    }
+    return ret;
 }
 
 void lba_list_t::set_block_info(block_id_t block, repli_timestamp_t recency,

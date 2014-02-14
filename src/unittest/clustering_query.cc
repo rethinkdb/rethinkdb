@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "unittest/gtest.hpp"
 
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
@@ -71,7 +71,7 @@ static void run_read_write_test() {
             return set.size() >= 1;
         }
         write_durability_t get_write_durability(const peer_id_t&) const {
-            return WRITE_DURABILITY_SOFT;
+            return write_durability_t::SOFT;
         }
     } ack_checker;
     master_t<dummy_protocol_t> master(cluster.get_mailbox_manager(), &ack_checker, mock::a_thru_z_region(), &broadcaster);
@@ -164,7 +164,7 @@ static void run_broadcaster_problem_test() {
             return false;
         }
         write_durability_t get_write_durability(const peer_id_t &) const {
-            return WRITE_DURABILITY_SOFT;
+            return write_durability_t::SOFT;
         }
     } ack_checker;
     master_t<dummy_protocol_t> master(cluster.get_mailbox_manager(), &ack_checker, mock::a_thru_z_region(), &broadcaster);

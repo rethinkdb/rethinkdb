@@ -1,8 +1,5 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "unittest/gtest.hpp"
-
-// These unit tests need to access some private methods.
-#define private public
 
 #include "clustering/administration/metadata.hpp"
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
@@ -21,8 +18,6 @@
 #include "unittest/clustering_utils.hpp"
 #include "unittest/dummy_metadata_controller.hpp"
 #include "unittest/unittest_utils.hpp"
-
-#pragma GCC diagnostic ignored "-Wshadow"
 
 namespace unittest {
 
@@ -178,6 +173,7 @@ void run_backfill_test(size_t value_padding_length,
     watchable_variable_t<boost::optional<boost::optional<replier_business_card_t<rdb_protocol_t> > > >
         replier_business_card_variable(boost::optional<boost::optional<replier_business_card_t<rdb_protocol_t> > >(boost::optional<replier_business_card_t<rdb_protocol_t> >(replier.get_business_card())));
 
+    debugf("start sending operations to the broadcaster\n");
     /* Start sending operations to the broadcaster */
     std::map<std::string, std::string> inserter_state;
     test_inserter_t inserter(
@@ -187,10 +183,13 @@ void run_backfill_test(size_t value_padding_length,
         order_source,
         "rdb_backfill run_partial_backfill_test inserter",
         &inserter_state);
+    debugf("<nap A>\n");
     nap(10000);
 
+    debugf("</nap A>, set up a second mirror\n");
     /* Set up a second mirror */
     test_store_t<rdb_protocol_t> store2(io_backender, order_source, ctx);
+    debugf("set up store2\n");
     cond_t interruptor;
     listener_t<rdb_protocol_t> listener2(
         base_path_t("."),
@@ -205,16 +204,21 @@ void run_backfill_test(size_t value_padding_length,
         &interruptor,
         order_source);
 
+    debugf("listener2 constructed\n");
     EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
     EXPECT_FALSE(listener2.get_broadcaster_lost_signal()->is_pulsed());
 
+    debugf("<nap B>\n");
     nap(10000);
 
+    debugf("</nap B>, inserter.stop\n");
     /* Stop the inserter, then let any lingering writes finish */
     inserter.stop();
     /* Let any lingering writes finish */
+    debugf("<nap C> (100 seconds)\n");
     // TODO: 100 seconds?
     nap(100000);
+    debugf("</nap C>\n");
 
     for (std::map<std::string, std::string>::iterator it = inserter_state.begin();
             it != inserter_state.end(); it++) {
@@ -231,6 +235,7 @@ void run_backfill_test(size_t value_padding_length,
                                      it->second),
                   *get_result.data);
     }
+    debugf("done for loop\n");
 }
 
 TEST(RDBProtocolBackfill, Backfill) {

@@ -1,5 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
-#define __STDC_FORMAT_MACROS
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "http/json.hpp"
 
 #include <stdlib.h>
