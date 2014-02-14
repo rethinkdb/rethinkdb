@@ -25,8 +25,9 @@ def synonyms(seq)
   [seq,
    seq.map{|x| x},
    seq.filter{true},
-   seq.limit(10),
-   seq.limit(5).union(seq.skip(5))]
+   seq.limit(20),
+   seq.orderby('a'),
+   seq.orderby('a').limit(5).union(seq.orderby('a').skip(5))]
 end
 seq1s = synonyms($s1) + synonyms($tbl1)
 seq2s = synonyms($s2) + synonyms($tbl2)
@@ -51,26 +52,53 @@ class ClientTest < Test::Unit::TestCase
     r.table_create('2').run rescue nil
     r.table_create('12').run rescue nil
     r.table_create('empty').run rescue nil
+    r.table_list.foreach{|x| r.table(x).delete}.run
     $tbl1.insert($s1).run
     $tbl2.insert($s2).run
     $tbl12.insert($s12).run
-    r.table_list.foreach{|x| r.table(x).delete}.run
   end
 
   def eq(query, res)
-    $batch_confs.each {|bc|
-      assert_equal(res, query.run(bc), "Query: #{PP.pp(query, "")}\nBatch Conf: #{bc}\n")
+    $batch_confs.map {|bc|
+      assert_equal(res, query.run(bc),
+                   "Query: #{PP.pp(query, "")}\nBatch Conf: #{bc}\n")
+    }
+  end
+
+  def percent_iter(arr, rat=100)
+    i=0
+    arr.each {|el|
+      yield(el)
+      if (i+=1)%(arr.size()/rat) == 0
+        puts("#{i.to_f/arr.size()}")
+      end
+    }
+  end
+
+  def iter_sources
+    canon = yield($s12).run
+    PP.pp yield($s12)
+    PP.pp canon
+    percent_iter($sources) {|source|
+      eq(yield(source), canon)
     }
   end
 
   def test_gmr
-    $sources.each{|source|
-      eq(source.group('b').count, {0 => 10, 1 => 10})
+    eq(r([]).group('a').count, {})
+    eq($tbl_empty.group('a').count, {})
+    iter_sources {|s|
+      s.orderby('a').group('b', 'c').map{|x| x['a']}.reduce{|a,b| a+b}
     }
-  end
-
-  def test__empty
-    assert_equal(1, 2)
+    iter_sources {|s| s.group('b', 'c').min('a')}
+    iter_sources {|s| s.group('b', 'c').max('a')}
+    iter_sources {|s| s.group('b', 'c').sum('a')}
+    iter_sources {|s| s.group('b', 'c').avg('a')}
+    iter_sources {|s| s.group('b', 'c').count}
+    iter_sources {|s| s.group('b', 'c').count{|x| x['a'].eq(0)}}
+    iter_sources {|s|
+      s.group('b', 'c').map{|x| [x]}.reduce{|a,b| a+b}
+    }
   end
 end
 
