@@ -923,15 +923,44 @@ module 'DataUtils', ->
         json.nmachines = _.uniq(_machines).length
         json.ndatacenters = _.uniq(_datacenters).length
 
+        # Getting the directoy per namespace
         directory_by_namespaces = DataUtils.get_directory_activities_by_namespaces()
 
-        _shard_required = {} # Hashmap shard -> datacenter -> number of required replicas 
-        _shard_has_master = {} # Hashmap shard -> datacenter -> has a master available and ready
+        # We now want to know if the table is available or not
+        # The table is available only if these two conditions are met:
+        # - A write can succeed, which means that for each shard, # the number of available
+        #   replicas in each datacenter should be at least the number of acks required in this datacenter
+        # - The master for this shard is available
 
+        # This is an object that will store the number of acks for each shard and datacenter
+        # Ex: _shard_required = {
+        #   ['', 'foo']: {
+        #       universe_id: 0,
+        #       datacenter_1: 3,
+        #       datacenter_2: 1
+        #   }
+        #   ['foo', null]: {
+        #       universe_id: 0,
+        #       datacenter_1: 3,
+        #       datacenter_2: 1
+        #  }
+        # }
+        _shard_required = {}
+
+        # An object that will store for each shard a boolean that represents whether its master is available or not
+        # Ex: _shard_has_master = {
+        #   ['', 'foo']: Boolean
+        #   ['foo', null]: Boolean
+        # }
+        _shard_has_master = {}
+
+
+        # Initialize all the two previous variable
         for shard in namespace.get('shards')
-            _shard_required[shard] = {}
-            _shard_has_master[shard] = false
+            _shard_required[shard] = {} # We will add the requirement per datacenter in the next loop
+            _shard_has_master[shard] = false # We haven't seen the master yet, so we consider it not available
 
+        # For each shard, we save the number of write required (per datacenter) to have a write acknowledge (in this datacenter)
         for datacenter, value of namespace.get('ack_expectations')
             for shard of _shard_required
                 _shard_required[shard][datacenter] = value.expectation
@@ -973,8 +1002,8 @@ module 'DataUtils', ->
                         _shard_required[shard]?[datacenter_id] -= 1
 
         # By default we consider a machine to hold a replica because of a per datacenter requirement
-        # If a datacenter has more responsability than required, it's because some of these machines
-        # are working for the whole cluster (universe), so we nove them to universe
+        # If a datacenter has more responsabilities than required, it's because some of these machines
+        # are working for the whole cluster (universe), so we move them to universe
         for shard of _shard_required
             for datacenter of _shard_required[shard]
                 if _shard_required[shard][datacenter] < 0
