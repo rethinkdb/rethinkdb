@@ -2,9 +2,7 @@ require 'json'
 require 'time'
 
 module RethinkDB
-
   module Shim
-
     def self.is_reql_time(obj)
       obj.is_a? Hash and obj["$reql_type$"] == "TIME"
     end
@@ -15,26 +13,50 @@ module RethinkDB
       (tz && tz != "" && tz != "Z") ? t.getlocal(tz) : t.utc
     end
 
-    def self.convert_times!(result)
+    def self.is_grouped_data(obj)
+      obj.is_a? Hash and obj["$reql_type$"] == "GROUPED_DATA"
+    end
+
+    def self.convert_grouped_data(obj, opts)
+      convert_reql_types!(obj['data'], opts)
+      Hash[obj["data"]]
+    end
+
+    def self.maybe_convert_type(obj, opts)
+      if opts['time_format'] != 'raw' && is_reql_time(obj)
+        convert_time(obj)
+      elsif opts['grouped_data_format'] != 'raw' && is_grouped_data(obj)
+        convert_grouped_data(obj, opts)
+      else
+        nil
+      end
+    end
+
+    def self.convert_reql_types!(result, opts)
       case result
       when Hash
-        result.each { |k, v|
-          if is_reql_time v
-            result[k] = convert_time v
+        result.each {|k,v|
+          if (new_res = maybe_convert_type(k, opts))
+            result[k] = new_res
           else
-            convert_times! v
+            convert_reql_types!(v, opts)
           end
         }
       when Array
-        result.each_index { |i|
-          if is_reql_time result[i]
-            result[i] = convert_time result[i]
+        result.each_index {|i|
+          if (new_res = maybe_convert_type(result[i], opts))
+            result[i] = new_res;
           else
-            convert_times! result[i]
+            convert_reql_types!(result[i], opts)
           end
         }
       end
-      result
+      nil
+    end
+
+    def self.postprocess!(result, opts)
+      maybe_convert_type(result, opts) \
+      || (convert_reql_types!(result, opts); result)
     end
 
     def self.datum_to_native(d, opts)
@@ -48,18 +70,9 @@ module RethinkDB
       when dt::R_ARRAY then d.r_array.map{|d2| datum_to_native(d2, opts)}
       when dt::R_OBJECT then
         obj = Hash[d.r_object.map{|x| [x.key, datum_to_native(x.val, opts)]}]
-        if opts[:time_format] != 'raw'
-          is_reql_time(obj) ? convert_time(obj) : obj
-        else
-          obj
-        end
+        postprocess!(obj, opts)
       when dt::R_JSON then
-        result = JSON.parse("[" + d.r_str + "]")[0]
-        if opts[:time_format] != 'raw'
-          is_reql_time(result) ? convert_time(result) : convert_times!(result)
-        else
-          result
-        end
+        postprocess!(JSON.parse("[" + d.r_str + "]")[0], opts)
       else raise RqlRuntimeError, "#{dt} Unimplemented."
       end
     end
