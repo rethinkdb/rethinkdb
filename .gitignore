@@ -24,6 +24,7 @@ rethinkdb_metadata
 /bench/stress-client/protocols/query_language.pb.h
 /bench/stress-client/protocols/query_language.pb.cc
 last_tested_versions
+<<<<<<< HEAD
 /src/spin_up_clusters.py
 /src/.clang_complete
 /src/find_replace.sh
@@ -42,3 +43,6 @@ last_tested_versions
 /drivers/python/ql2.proto
 /scripts/cluster_directory_*
 /packaging/ami/build-ami-files/static-web
+test/performance/comparisons/
+test/performance/results/
+test/performance/run/
