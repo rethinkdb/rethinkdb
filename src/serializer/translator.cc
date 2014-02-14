@@ -312,7 +312,7 @@ void translator_serializer_t::offer_read_ahead_buf(
 
     if (read_ahead_callback != NULL) {
         const block_id_t inner_block_id = untranslate_block_id_to_id(block_id, mod_count, mod_id, cfgid);
-        read_ahead_callback->offer_read_ahead_buf(inner_block_id, buf,
+        read_ahead_callback->offer_read_ahead_buf(inner_block_id, &local_buf,
                                                   token);
     }
 }

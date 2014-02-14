@@ -155,18 +155,16 @@ void find_keyvalue_location_for_read(
 #endif  // NDEBUG
 
     for (;;) {
-        {
-            buf_read_t read(&buf);
-            if (!node::is_internal(static_cast<const node_t *>(read.get_data_read()))) {
-                break;
-            }
-        }
         block_id_t node_id;
         {
             buf_read_t read(&buf);
-            const internal_node_t *node
-                = static_cast<const internal_node_t *>(read.get_data_read());
-            node_id = internal_node::lookup(node, key);
+            const void *data = read.get_data_read();
+            if (!node::is_internal(static_cast<const node_t *>(data))) {
+                break;
+            }
+
+            node_id = internal_node::lookup(static_cast<const internal_node_t *>(data),
+                                            key);
         }
         rassert(node_id != NULL_BLOCK_ID && node_id != SUPERBLOCK_ID);
 
