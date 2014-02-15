@@ -18,7 +18,7 @@ class IterableResult
     hasNext: -> throw "Abstract Method"
     next: -> throw "Abstract Method"
 
-    each: varar(1, 2, (cb, onFinished) ->
+    each: varar(1, 2, (cb, onFinished) =>
         unless typeof cb is 'function'
             throw new err.RqlDriverError "First argument to each must be a function."
         if onFinished? and typeof onFinished isnt 'function'
@@ -35,7 +35,7 @@ class IterableResult
         n()
     )
 
-    toArray: ar (cb) ->
+    toArray: ar (cb) =>
         unless typeof cb is 'function'
             throw new err.RqlDriverError "Argument to toArray must be a function."
 
@@ -69,7 +69,7 @@ class Cursor extends IterableResult
         @_cont = null
         @_cbQueue = []
 
-    _addResponse: (response) ->
+    _addResponse: (response) =>
         @_responses.push response
         @_outstandingRequests -= 1
 
@@ -84,7 +84,7 @@ class Cursor extends IterableResult
         @_promptNext()
         @
 
-    _getCallback: ->
+    _getCallback: =>
         @_iterations += 1
         cb = @_cbQueue.shift()
 
@@ -94,7 +94,7 @@ class Cursor extends IterableResult
         else
             return cb
 
-    _handleRow: ->
+    _handleRow: =>
         response = @_responses[0]
         row = deconstructDatum(response.response[@_responseIndex], @_opts)
         cb = @_getCallback()
@@ -108,7 +108,7 @@ class Cursor extends IterableResult
 
         cb null, row
 
-    _promptNext: ->
+    _promptNext: =>
         # If there are no more waiting callbacks, just wait until the next event
         while @_cbQueue[0]?
             # If there's no more data let's notify the waiting callback
@@ -156,7 +156,7 @@ class Cursor extends IterableResult
                             cb new err.RqlDriverError "Unknown response type for cursor"
                 )
 
-    _promptCont: ->
+    _promptCont: =>
         # Let's ask the server for more data if we haven't already
         if !@_contFlag && !@_endFlag
             @_contFlag = true
@@ -166,14 +166,14 @@ class Cursor extends IterableResult
 
     ## Implement IterableResult
 
-    hasNext: ar () -> @_responses[0]? && @_responses[0].response.length > 0
+    hasNext: ar () => @_responses[0]? && @_responses[0].response.length > 0
 
-    next: ar (cb) ->
+    next: ar (cb) =>
         nextCbCheck(cb)
         @_cbQueue.push cb
         @_promptNext()
 
-    close: ar () ->
+    close: ar () =>
         unless @_endFlag
             @_outstandingRequests += 1
             @_conn._endQuery(@_token)
@@ -189,12 +189,12 @@ class ArrayResult extends IterableResult
     stackSize: 100
 
     # We store @__index as soon as the user starts using the cursor interface
-    hasNext: ar () ->
+    hasNext: ar () =>
         if not @__index?
             @__index = 0
         @__index < @length
 
-    next: ar (cb) ->
+    next: ar (cb) =>
         nextCbCheck(cb)
 
         # If people call next
@@ -212,14 +212,14 @@ class ArrayResult extends IterableResult
         else
             cb new err.RqlDriverError "No more rows in the cursor."
 
-    toArray: ar (cb) ->
+    toArray: ar (cb) =>
         # IterableResult.toArray would create a copy
         if @__index?
             cb(null, @.slice(@__index, @.length))
         else
             cb(null, @)
 
-    makeIterable: (response) ->
+    makeIterable: (response) =>
         for name, method of ArrayResult.prototype
             if name isnt 'constructor'
                 response.__proto__[name] = method
