@@ -259,6 +259,7 @@ const char *show(access_t access) {
 
 alt_snapshot_node_t *buf_lock_t::help_make_child(cache_t *cache,
                                                  block_id_t child_id) {
+    // KSI: This allocation is sometimes just unnecessary, right?
     auto acq = make_scoped<current_page_acq_t>(&cache->page_cache_, child_id,
                                                read_access_t::read);
 
