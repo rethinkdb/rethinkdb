@@ -1626,6 +1626,12 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
 
     void operator()(const sync_t &) {
         response->response = sync_response_t();
+
+        // We know this sync_t operation will force all preceding write transactions
+        // (on our cache_conn_t) to flush before or at the same time, because the
+        // cache guarantees that.  (Right now it will force _all_ preceding write
+        // transactions to flush, on any conn, because they all touch the metainfo in
+        // the superblock.)
     }
 
 
