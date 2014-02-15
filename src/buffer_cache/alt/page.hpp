@@ -202,7 +202,7 @@ private:
     // So, when destroy_ptr_, waiters_, buf_, or block_token_ is touched, we might
     // need to change this page's eviction bag.
     //
-    // The logic above is implemented in page_cache_t::appropriate_eviction_bag.
+    // The logic above is implemented in page_cache_t::correct_eviction_category.
     backindex_bag_index_t eviction_index_;
 
     DISABLE_COPYING(page_t);
