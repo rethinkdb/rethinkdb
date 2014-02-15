@@ -43,7 +43,6 @@ public:
     bool coop_lock_and_check();
 
 private:
-    rng_t yield_rng;
     mode_t mode_;
     std::vector<char> *data_;
 
