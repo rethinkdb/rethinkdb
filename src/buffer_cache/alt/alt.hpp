@@ -219,9 +219,6 @@ private:
     void help_construct(buf_parent_t parent, alt_create_t create);
     void help_construct(buf_parent_t parent, block_id_t block_id, alt_create_t create);
 
-    static alt_snapshot_node_t *
-    find_matching_version(intrusive_list_t<alt_snapshot_node_t> *list,
-                          block_version_t version);
     static alt_snapshot_node_t *help_make_child(cache_t *cache, block_id_t child_id);
 
 

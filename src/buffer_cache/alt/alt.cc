@@ -257,25 +257,13 @@ const char *show(access_t access) {
 }
 #endif
 
-alt_snapshot_node_t *
-buf_lock_t::find_matching_version(intrusive_list_t<alt_snapshot_node_t> *list,
-                                  block_version_t version) {
-    for (alt_snapshot_node_t *p = list->head(); p != NULL; p = list->next(p)) {
-        if (p->current_page_acq_->block_version() == version) {
-            return p;
-        }
-    }
-    return NULL;
-}
-
 alt_snapshot_node_t *buf_lock_t::help_make_child(cache_t *cache,
                                                  block_id_t child_id) {
     auto acq = make_scoped<current_page_acq_t>(&cache->page_cache_, child_id,
                                                read_access_t::read);
 
     alt_snapshot_node_t *child
-        = find_matching_version(&cache->snapshot_nodes_by_block_id_[child_id],
-                                acq->block_version());
+        = cache->matching_snapshot_node_or_null(child_id, acq->block_version());
 
     if (child != NULL) {
         acq.reset();
