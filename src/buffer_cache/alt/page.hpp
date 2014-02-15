@@ -855,6 +855,13 @@ private:
     // KSI: This is ugh-ish and the design is borrowed from the mirrored cache.
     alt_cache_account_t *cache_account_;
 
+    // page_txn_t's form a directed graph.  preceders_ and subseqers_ represent the
+    // inward-pointing and outward-pointing arrows.  (I'll let you decide which
+    // direction should be inward and which should be outward.)  Each page_txn_t
+    // pointed at by subseqers_ has an entry in its preceders_ that is back-pointing
+    // at this page_txn_t.  (And vice versa for each page_txn_t pointed at by
+    // preceders_.)
+
     // The transactions that must be committed before or at the same time as this
     // transaction.
     std::vector<page_txn_t *> preceders_;
