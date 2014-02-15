@@ -16,6 +16,8 @@ using alt::page_t;
 using alt::page_txn_t;
 using alt::tracker_acq_t;
 
+const int SOFT_UNWRITTEN_CHANGES_LIMIT = 200;
+
 // There are very few ASSERT_NO_CORO_WAITING calls (instead we have
 // ASSERT_FINITE_CORO_WAITING) because most of the time we're at the mercy of the
 // page cache, which often may need to load or evict blocks, which may involve a
@@ -51,7 +53,7 @@ private:
 };
 
 alt_memory_tracker_t::alt_memory_tracker_t()
-    : semaphore_(200) { }
+    : unwritten_changes_semaphore_(SOFT_UNWRITTEN_CHANGES_LIMIT) { }
 alt_memory_tracker_t::~alt_memory_tracker_t() { }
 
 void alt_memory_tracker_t::inform_memory_change(UNUSED uint64_t in_memory_size,
@@ -63,7 +65,7 @@ void alt_memory_tracker_t::inform_memory_change(UNUSED uint64_t in_memory_size,
 // inform_memory_change is measured in bytes.
 tracker_acq_t alt_memory_tracker_t::begin_txn_or_throttle(int64_t expected_change_count) {
     tracker_acq_t acq;
-    acq.semaphore_acq_.init(&semaphore_, expected_change_count);
+    acq.semaphore_acq_.init(&unwritten_changes_semaphore_, expected_change_count);
     acq.semaphore_acq_.acquisition_signal()->wait();
     return acq;
 }

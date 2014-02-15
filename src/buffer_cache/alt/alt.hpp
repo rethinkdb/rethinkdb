@@ -35,7 +35,7 @@ private:
     void inform_memory_change(uint64_t in_memory_size,
                               uint64_t memory_limit);
 
-    new_semaphore_t semaphore_;
+    new_semaphore_t unwritten_changes_semaphore_;
     DISABLE_COPYING(alt_memory_tracker_t);
 };
 
