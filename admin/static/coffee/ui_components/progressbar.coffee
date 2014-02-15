@@ -14,8 +14,12 @@ module 'UIComponents', ->
             if template?
                 @template = template
             else
-                template = Handlebars.templates['progressbar-template']
+                @template = Handlebars.templates['progressbar-template']
             @timeout = null
+            @percent = 0
+
+        reset_percent: =>
+            @percent = 0
 
         # The render function takes a number of arguments:
         #   - current_value: current value of the operation or status being monitored
@@ -25,7 +29,8 @@ module 'UIComponents', ->
         #       * new_value: the new desired maximum value as a result of the operation
         #       * got_response: flag indicating that the goals have been set
         #         and we're ready to start processing
-        render: (current_value, max_value, additional_info) =>
+        #   - cb: callback to execute once we remove the progress bar
+        render: (current_value, max_value, additional_info, cb) =>
             if current_value isnt max_value and @timeout?
                 # We are in a finished state, but current_value != max_value,
                 # so the server sent us an update and we start processing again
@@ -65,6 +70,14 @@ module 'UIComponents', ->
                     percent_complete = 0
                 else
                     percent_complete = Math.floor current_value/max_value*100
+
+                # Make sure we never go back
+                if additional_info.check is true
+                    if percent_complete < @percent
+                        percent_complete = @percent
+                    else
+                        @percent = percent_complete
+
                 data = _.extend data,
                     operation_active: true
                     processing: true
@@ -81,6 +94,8 @@ module 'UIComponents', ->
                         @stage = 'none'
                         @render current_value, max_value, {}
                         @timeout = null
+                        if cb?
+                            cb()
                     , 2000
             
             @.$el.html @template data
