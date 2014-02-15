@@ -36,7 +36,7 @@ module RethinkDB
       case result
       when Hash
         result.each {|k,v|
-          if (new_res = maybe_convert_type(k, opts))
+          if (new_res = maybe_convert_type(v, opts))
             result[k] = new_res
           else
             convert_reql_types!(v, opts)
