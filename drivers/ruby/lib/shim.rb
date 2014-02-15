@@ -23,9 +23,9 @@ module RethinkDB
     end
 
     def self.maybe_convert_type(obj, opts)
-      if opts['time_format'] != 'raw' && is_reql_time(obj)
+      if opts[:time_format] != 'raw' && is_reql_time(obj)
         convert_time(obj)
-      elsif opts['grouped_data_format'] != 'raw' && is_grouped_data(obj)
+      elsif opts[:grouped_data_format] != 'raw' && is_grouped_data(obj)
         convert_grouped_data(obj, opts)
       else
         nil

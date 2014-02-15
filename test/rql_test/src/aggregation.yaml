@@ -52,7 +52,71 @@ tests:
 
     # GMR
 
+    - cd: tbl.sum('a')
+      ot: 150
+    - cd: tbl.map{|row| row['a']}.sum
+      ot: 150
+    - cd: tbl.group('a').sum('id')
+      ot: ({0=>1200, 1=>1225, 2=>1250, 3=>1275})
+    - cd: tbl.avg('a')
+      ot: 1.5
+    - cd: tbl.map{|row| row['a']}.avg
+      ot: 1.5
+    - cd: tbl.group('a').avg('id')
+      ot: ({0=>48, 1=>49, 2=>50, 3=>51})
+    - cd: tbl.min('a')
+      ot: 0
+    - cd: tbl.map{|row| row['a']}.min
+      ot: 0
+    - cd: tbl.group('a').min('id')
+      ot: ({0=>0, 1=>1, 2=>2, 3=>3})
+    - cd: tbl.max('a')
+      ot: 3
+    - cd: tbl.map{|row| row['a']}.max
+      ot: 3
+    - cd: tbl.group('a').max('id')
+      ot: ({0=>96, 1=>97, 2=>98, 3=>99})
+
+    - cd: tbl.min
+      ot: ({"a"=>0, "id"=>0})
+    - cd: tbl.group('a').min
+      ot: ({0=>{"a"=>0, "id"=>0}, 1=>{"a"=>1, "id"=>1}, 2=>{"a"=>2, "id"=>2}, 3=>{"a"=>3, "id"=>3}})
+    - cd: tbl.max
+      ot: ({"a"=>3, "id"=>99})
+    - cd: tbl.group('a').max
+      ot: ({0=>{"a"=>0, "id"=>96}, 1=>{"a"=>1, "id"=>97}, 2=>{"a"=>2, "id"=>98}, 3=>{"a"=>3, "id"=>99}})
+
+    - cd: tbl.sum{|row| row['a']}
+      ot: 150
+    - cd: tbl.map{|row| row['a']}.sum
+      ot: 150
+    - cd: tbl.group{|row| row['a']}.sum{|row| row['id']}
+      ot: ({0=>1200, 1=>1225, 2=>1250, 3=>1275})
+    - cd: tbl.avg{|row| row['a']}
+      ot: 1.5
+    - cd: tbl.map{|row| row['a']}.avg
+      ot: 1.5
+    - cd: tbl.group{|row| row['a']}.avg{|row| row['id']}
+      ot: ({0=>48, 1=>49, 2=>50, 3=>51})
+    - cd: tbl.min{|row| row['a']}
+      ot: 0
+    - cd: tbl.map{|row| row['a']}.min
+      ot: 0
+    - cd: tbl.group{|row| row['a']}.min{|row| row['id']}
+      ot: ({0=>0, 1=>1, 2=>2, 3=>3})
+    - cd: tbl.max{|row| row['a']}
+      ot: 3
+    - cd: tbl.map{|row| row['a']}.max
+      ot: 3
+    - cd: tbl.group{|row| row['a']}.max{|row| row['id']}
+      ot: ({0=>96, 1=>97, 2=>98, 3=>99})
+
+    - cd: tbl.group{|row| row[:a]}.map{|row| row[:id]}.reduce{|a,b| a+b}
+      ot: ({0=>1200, 1=>1225, 2=>1250, 3=>1275})
+
     - rb: tbl.group{|row| row[:a]}.map{|row| row[:id]}.reduce{|a,b| a+b}
+      runopts:
+        grouped_data_format: '"raw"'
       py:
         - tbl.grouped_map_reduce(lambda row:row['a'], lambda row:row['id'], lambda a,b:a + b)
         - tbl.grouped_map_reduce(r.row['a'], r.row['id'], lambda a,b:a + b)
@@ -65,15 +129,12 @@ tests:
           }, function(a,b) {
               return a.add(b);
           })
-        - |
-          tbl.groupedMapReduce(r.row('a'), r.row('id'),
-          function(a,b) {
-              return a.add(b);
-          })
       ot: ({'$reql_type$':'GROUPED_DATA', 'data':[[0, 1200], [1, 1225], [2, 1250], [3, 1275]]})
 
     # GMR
     - rb: tbl.union(tbl).group('a').map{|x| x['id']}.reduce{|a,b| a+b}
+      runopts:
+        grouped_data_format: '"raw"'
       py:
         - tbl.union(tbl).grouped_map_reduce(lambda row:row['a'], lambda row:row['id'], lambda a,b:a + b)
         - tbl.union(tbl).grouped_map_reduce(r.row['a'], r.row['id'], lambda a,b:a + b)
@@ -86,15 +147,12 @@ tests:
           }, function(a,b) {
               return a.add(b);
           })
-        - |
-          tbl.union(tbl).groupedMapReduce(r.row('a'), r.row('id'),
-          function(a,b) {
-              return a.add(b);
-          })
       ot: ({'$reql_type$':'GROUPED_DATA', 'data':[[0, 2400], [1, 2450], [2, 2500], [3, 2550]]})
 
     # GMR
     - rb: tbl.coerce_to("array").union(tbl).group('a').map{|x| x['id']}.reduce{|a,b| a+b}
+      runopts:
+        grouped_data_format: '"raw"'
       py:
         - tbl.coerce_to("array").union(tbl).grouped_map_reduce(lambda row:row['a'], lambda row:row['id'], lambda a,b:a + b)
         - tbl.coerce_to("array").union(tbl).grouped_map_reduce(r.row['a'], r.row['id'], lambda a,b:a + b)
@@ -116,6 +174,8 @@ tests:
 
     # GMR
     - rb: tbl.union(tbl.coerce_to("array")).group('a').map{|x| x['id']}.reduce{|a,b| a+b}
+      runopts:
+        grouped_data_format: '"raw"'
       py:
         - tbl.union(tbl.coerce_to("array")).grouped_map_reduce(lambda row:row['a'], lambda row:row['id'], lambda a,b:a + b)
         - tbl.union(tbl.coerce_to("array")).grouped_map_reduce(r.row['a'], r.row['id'], lambda a,b:a + b)
@@ -153,6 +213,8 @@ tests:
                   return a.add(b);
               }, 0)
       rb: tbl.group('a').map{|x| x['id']}.reduce{|a,b| a+b}
+      runopts:
+        grouped_data_format: '"raw"'
       ot: ({'$reql_type$':'GROUPED_DATA', 'data':[[0, 1200], [1, 1225], [2, 1250], [3, 1275]]})
 
     # undefined...
@@ -169,23 +231,33 @@ tests:
     # COUNT
 
     - cd: tbl.group('a').count
+      runopts:
+        grouped_data_format: '"raw"'
       ot: ({'$reql_type$':'GROUPED_DATA', 'data':[[0, 25], [1, 25], [2, 25], [3, 25]]})
 
     # SUM
     - cd: tbl.group('a').sum('id')
+      runopts:
+        grouped_data_format: '"raw"'
       ot: ({'$reql_type$':'GROUPED_DATA', 'data':[[0, 1200], [1, 1225], [2, 1250], [3, 1275]]})
 
     # AVG
     - cd: tbl.group('a').avg('id')
+      runopts:
+        grouped_data_format: '"raw"'
       ot: ({'$reql_type$':'GROUPED_DATA', 'data':[[0, 48], [1, 49], [2, 50], [3, 51]]})
 
     # Pattern Matching
     - cd: tbl3.group_by({'b':'c'}, r.count)
       rb: tbl3.group{|row| row['b']['c']}.count
+      runopts:
+        grouped_data_format: '"raw"'
       ot: ({'$reql_type$':'GROUPED_DATA', 'data':[[0, 20], [1, 20], [2, 20], [3, 20], [4, 20]]})
 
     # Multiple keys
     - cd: tbl.group('a', lambda {|row| row['id']%3}).count
+      runopts:
+        grouped_data_format: '"raw"'
       ot: ({'$reql_type$':'GROUPED_DATA', 'data':[[[0, 0], 9], [[0, 1], 8], [[0, 2], 8], [[1, 0], 8], [[1, 1], 9], [[1, 2], 8], [[2, 0], 8], [[2, 1], 8], [[2, 2], 9], [[3, 0], 9], [[3, 1], 8], [[3, 2], 8]]})
 
     # Distinct
