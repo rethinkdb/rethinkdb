@@ -549,7 +549,6 @@ public:
     page_read_ahead_cb_t(serializer_t *serializer,
                          page_cache_t *cache,
                          uint64_t bytes_to_send);
-    ~page_read_ahead_cb_t();
 
     void offer_read_ahead_buf(block_id_t block_id,
                               scoped_malloc_t<ser_buffer_t> *buf,
@@ -558,6 +557,8 @@ public:
     void destroy_self();
 
 private:
+    ~page_read_ahead_cb_t();
+
     serializer_t *serializer_;
     page_cache_t *page_cache_;
 
