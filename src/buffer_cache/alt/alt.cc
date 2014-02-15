@@ -315,10 +315,13 @@ buf_lock_t::get_or_create_child_snapshot_node(cache_t *cache,
 // snapshot nodes (but only those that aren't newer than our acquisition of the
 // parent [1]).
 //
-// [1] We need to be careful about this because if you have two write acquisitions,
-// W_X and W_Y of block B1 (where W_X acquires B1 before W_Y does), which then both
-// acquire the child B2, you only want the child of acquisition W1 to attach to
-// children of snapshot nodes that happened _before_ W1 and not after.
+// [1] We might need to be careful about this because if you have two write
+// acquisitions, W_X and W_Y of block B1 (where W_X acquires B1 before W_Y does),
+// which then both acquire the child B2, you only want the child of acquisition W1 to
+// attach to children of snapshot nodes that happened _before_ W_X and not after.
+// This can happen -- the snapshot nodes that happen _after_ W_X wouldn't have
+// acquired the block yet, but they'd exist, and they'd be in line, waiting for their
+// turn.
 
 void buf_lock_t::create_child_snapshot_attachments(cache_t *cache,
                                                    block_version_t parent_version,
