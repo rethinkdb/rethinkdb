@@ -1522,11 +1522,12 @@ void page_cache_t::do_flush_txn_set(page_cache_t *page_cache,
                                                                         it->second.tstamp,
                                                                         page));
                     } else {
-                        // We can't be in the process of loading a block we're going to
-                        // write that we don't have a block token.  That's because we
-                        // _actually dirtied the page_.  We had to have acquired the buf,
-                        // and the only way to get rid of the buf is for it to be
-                        // evicted, in which case the block token would be non-empty.
+                        // We can't be in the process of loading a block we're going
+                        // to write for which we don't have a block token.  That's
+                        // because we _actually dirtied the page_.  We had to have
+                        // acquired the buf, and the only way to get rid of the buf
+                        // is for it to be evicted, in which case the block token
+                        // would be non-empty.
                         rassert(page->destroy_ptr_ == NULL);
                         rassert(page->buf_.has());
 
