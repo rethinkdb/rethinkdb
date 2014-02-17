@@ -206,13 +206,13 @@ private:
     }
     virtual counted_t<const datum_t> unpack(T *t) = 0;
 
-    virtual void add_res(result_t &&res) {
+    virtual void add_res(result_t *res) {
         grouped<T> *acc = grouped_accumulator_t<T>::get_acc();
         const T *default_t = grouped_accumulator_t<T>::get_default_t();
-        if (auto e = boost::get<exc_t>(&res)) {
+        if (auto e = boost::get<exc_t>(res)) {
             throw *e;
         }
-        grouped<T> *gres = boost::get<grouped<T> >(&res);
+        grouped<T> *gres = boost::get<grouped<T> >(res);
         if (acc->size() == 0) {
             acc->swap(*gres);
         } else {

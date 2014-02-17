@@ -118,7 +118,8 @@ void reader_t::accumulate(env_t *env, eager_acc_t *acc, const terminal_variant_t
     started = shards_exhausted = true;
     batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env);
     read_t read = readgen->terminal_read(transforms, tv, batchspec);
-    acc->add_res(do_read(env, std::move(read)).result);
+    result_t res = do_read(env, std::move(read)).result;
+    acc->add_res(&res);
 }
 
 rget_read_response_t reader_t::do_read(env_t *env, const read_t &read) {
@@ -521,7 +522,6 @@ void datum_stream_t::check_not_grouped() {
            "Cannot return grouped stream without a reduction "
            "(`reduce`, `sum`, etc.) on the end.");
 }
-
 
 std::vector<counted_t<const datum_t> >
 datum_stream_t::next_batch(env_t *env, const batchspec_t &batchspec) {

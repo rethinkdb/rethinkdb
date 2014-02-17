@@ -664,7 +664,7 @@ public:
             transformers[i].init(ql::make_op(env, _transforms[i]));
         }
     }
-    job_data_t(job_data_t &&other) = default;
+    job_data_t(job_data_t &&) = default;
 private:
     friend class rget_cb_t;
     ql::env_t *const env;
