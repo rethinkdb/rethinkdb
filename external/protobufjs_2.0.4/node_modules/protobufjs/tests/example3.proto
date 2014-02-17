@@ -1,0 +1,9 @@
+message Test1 {
+  required int32 a = 1;
+}
+
+message Test3 {
+  required Test1 c = 3;
+}
+
+// Test3 should encode to "1a 03 08 96 01" with Test1#a=150 

@@ -44,19 +44,15 @@ EOF
 # read the config file file into the variable var
 conf_read () {
     local _dict="#"
-    local n=1
     local line sect key val
     while read -r full_line; do
         line=${full_line%%#*}
         if conf_read_line "$line" key val; then
             _dict="$_dict$key=$val#"
         elif [ "`echo -n $line`" != "" ]; then
-            echo "$0: $1: parse error on line $n:" >&2
-            echo "$full_line"
-            unset -v "$2"
-            return 1
+            # ignore parse errors
+            true
         fi
-        n=$((n + 1))
     done < $1 && read -r $2 <<EOF
 $_dict
 EOF

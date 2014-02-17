@@ -162,7 +162,7 @@ class QueryThrottler:
 
         if time_overdue > 10 * self.secs_per_op:
             # Don't allow us to get more than 10 ops behind or we'll overload if/when the system recovers
-            self.next_query_time = (10 * self.secs_per_op)
+            self.next_query_time = now - (10 * self.secs_per_op)
         elif time_overdue >= 0.0:
             self.next_query_time += self.secs_per_op
         else:

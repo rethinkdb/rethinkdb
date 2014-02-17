@@ -34,7 +34,7 @@ class http_conn_cache_t : public repeating_timer_callback_t {
 public:
     class http_conn_t {
     public:
-        http_conn_t() : last_accessed(time(0)) {
+        http_conn_t() : in_use(false), last_accessed(time(0)) {
             ctx.interruptor = &interruptor;
         }
         context_t *get_ctx() {
@@ -48,7 +48,19 @@ public:
         bool is_expired() {
             return difftime(time(0), last_accessed) > TIMEOUT_SEC;
         }
+        bool acquire() {
+            if (in_use) {
+                return false;
+            }
+            in_use = true;
+            return true;
+        }
+        void release() {
+            in_use = false;
+        }
+
     private:
+        bool in_use;
         cond_t interruptor;
         context_t ctx;
         time_t last_accessed;
@@ -126,7 +138,7 @@ private:
     static auth_key_t read_auth_key(tcp_conn_t *conn, signal_t *interruptor);
 
     // For HTTP server
-    http_res_t handle(const http_req_t &);
+    void handle(const http_req_t &, http_res_t *result, signal_t *interruptor);
 
     boost::function<bool(request_t, response_t *, context_t *)> f;  // NOLINT(readability/casting)
     response_t (*on_unparsable_query)(request_t, std::string);

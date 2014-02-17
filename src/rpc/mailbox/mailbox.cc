@@ -5,8 +5,7 @@
 
 #include <stdint.h>
 
-#include "errors.hpp"
-#include <boost/bind.hpp>
+#include <functional>
 
 #include "containers/archive/archive.hpp"
 #include "containers/archive/vector_stream.hpp"
@@ -121,7 +120,9 @@ void mailbox_manager_t::on_message(peer_id_t source_peer, read_stream_t *stream)
     raw_mailbox_t::id_t dest_mailbox_id;
     {
         archive_result_t res = deserialize(stream, &data_length);
-        if (res != 0 || data_length > std::numeric_limits<size_t>::max()) {
+        if (res != ARCHIVE_SUCCESS
+            || data_length > std::numeric_limits<size_t>::max()
+            || data_length > static_cast<uint64_t>(std::numeric_limits<int64_t>::max())) {
             throw fake_archive_exc_t();
         }
 
@@ -142,7 +143,7 @@ void mailbox_manager_t::on_message(peer_id_t source_peer, read_stream_t *stream)
     if (vector_stream != NULL) {
         // Avoid copying the data
         vector_stream->swap(&stream_data, &stream_data_offset);
-        if(stream_data.size() - stream_data_offset != data_length) {
+        if(stream_data.size() - static_cast<uint64_t>(stream_data_offset) != data_length) {
             // Either we go a vector_read_stream_t that contained more data
             // than just ours (which shouldn't happen), or we got a wrong data_length
             // from the network.
@@ -164,10 +165,10 @@ void mailbox_manager_t::on_message(peer_id_t source_peer, read_stream_t *stream)
     // We use `spawn_now_dangerously()` to avoid having to heap-allocate `stream_data`.
     // Instead we pass in a pointer to our local automatically allocated object
     // and `mailbox_read_coroutine()` moves the data out of it before it yields.
-    coro_t::spawn_now_dangerously(boost::bind(&mailbox_manager_t::mailbox_read_coroutine,
-                                              this, source_peer, threadnum_t(dest_thread),
-                                              dest_mailbox_id, &stream_data,
-                                              stream_data_offset));
+    coro_t::spawn_now_dangerously(std::bind(&mailbox_manager_t::mailbox_read_coroutine,
+                                            this, source_peer, threadnum_t(dest_thread),
+                                            dest_mailbox_id, &stream_data,
+                                            stream_data_offset));
 }
 
 void mailbox_manager_t::mailbox_read_coroutine(peer_id_t source_peer,
