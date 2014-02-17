@@ -48,7 +48,6 @@ struct log_serializer_metablock_t {
     extent_manager_t::metablock_mixin_t extent_manager_part;
     lba_list_t::metablock_mixin_t lba_index_part;
     data_block_manager::metablock_mixin_t data_block_manager_part;
-    block_sequence_id_t block_sequence_id;
 } __attribute__((__packed__));
 
 //  Data to be serialized to disk with each block.  Changing this changes the disk format!
@@ -247,8 +246,6 @@ private:
     std::list<cond_t *> metablock_waiter_queue;
 
     int active_write_count;
-
-    block_sequence_id_t latest_block_sequence_id;
 
     DISABLE_COPYING(log_serializer_t);
 };
