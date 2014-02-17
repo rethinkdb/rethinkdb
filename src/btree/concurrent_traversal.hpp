@@ -21,7 +21,7 @@ private:
     concurrent_traversal_adapter_t *const parent_;
 };
 
-enum done_t { NO, YES };
+enum class done_t { NO, YES };
 class concurrent_traversal_callback_t {
 public:
     concurrent_traversal_callback_t() { }
