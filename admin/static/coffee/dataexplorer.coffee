@@ -517,16 +517,16 @@ module 'DataExplorerView', ->
                 @$('.reason_dataexplorer_broken').html @reason_dataexplorer_broken_template
                     is_internet_explorer: true
                 @$('.reason_dataexplorer_broken').slideDown 'fast'
-                @$('.button_query').prop 'disabled', 'disabled'
+                @$('.button_query').prop 'disabled', true
             else if (not DataView?) or (not Uint8Array?) # The main two components that the javascript driver requires.
                 @$('.reason_dataexplorer_broken').html @reason_dataexplorer_broken_template
                 @$('.reason_dataexplorer_broken').slideDown 'fast'
-                @$('.button_query').prop 'disabled', 'disabled'
+                @$('.button_query').prop 'disabled', true
             else if not window.r? # In case the javascript driver is not found (if build from source for example)
                 @$('.reason_dataexplorer_broken').html @reason_dataexplorer_broken_template
                     no_driver: true
                 @$('.reason_dataexplorer_broken').slideDown 'fast'
-                @$('.button_query').prop 'disabled', 'disabled'
+                @$('.button_query').prop 'disabled', true
 
             # Let's bring back the data explorer to its old state (if there was)
             if @state?.query? and @state?.results? and @state?.metadata?

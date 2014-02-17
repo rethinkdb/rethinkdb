@@ -123,7 +123,7 @@ module 'NamespaceView', ->
                 if @sending? and @sending is true
                     return ''
                 @sending = true
-                @.$('.rebalance').prop 'disabled', 'disabled'
+                @.$('.rebalance').prop 'disabled', true
 
                 @empty_master_pin = {}
                 @empty_replica_pins = {}
@@ -164,7 +164,7 @@ module 'NamespaceView', ->
 
         on_success: =>
             @sending = false
-            @.$('.rebalance').removeProp 'disabled'
+            @.$('.rebalance').prop 'disabled', false
 
             @model.set 'shards', @shard_set
             @model.set 'primary_pinnings', @empty_master_pin
@@ -190,7 +190,7 @@ module 'NamespaceView', ->
 
         on_error: =>
             @sending = false
-            @.$('.rebalance').removeProp 'disabled'
+            @.$('.rebalance').prop 'disabled', false
 
 
             @display_msg @error_ajax_template()
@@ -328,21 +328,21 @@ module 'NamespaceView', ->
             if @can_change_shards is true and can_change_shards_now is false
                 @.$('.critical_error').html @reasons_cannot_shard_template @reasons_cannot_shard
                 @.$('.critical_error').slideDown()
-                @.$('.edit').prop 'disabled', 'disabled'
-                @.$('.rebalance').prop 'disabled', 'disabled'
+                @.$('.edit').prop 'disabled', true
+                @.$('.rebalance').prop 'disabled', true
             else if @can_change_shards is false and can_change_shards_now is true
                 @.$('.critical_error').hide()
                 @.$('.critical_error').empty()
-                @.$('.edit').removeProp 'disabled'
-                @.$('.rebalance').removeProp 'disabled'
+                @.$('.edit').prop 'disabled', false
+                @.$('.rebalance').prop 'disabled', false
             else if @can_change_shards is false and can_change_shards_now is false
                 if not _.isEqual reasons_cannot_shard, @reasons_cannot_shard
                     @reasons_cannot_shard = reasons_cannot_shard
                     @.$('.critical_error').html @reasons_cannot_shard_template @reasons_cannot_shard
                     @.$('.critical_error').slideDown()
                 # Just for safety
-                @.$('.edit').prop 'disabled', 'disabled'
-                @.$('.rebalance').prop 'disabled', 'disabled'
+                @.$('.edit').prop 'disabled', true
+                @.$('.rebalance').prop 'disabled', true
 
         render: =>
             @.$el.html @template({})
