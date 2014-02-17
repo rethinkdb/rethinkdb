@@ -415,7 +415,7 @@ module 'ResolveIssuesView', ->
             else
                 # known issues = issue where replica > number of machines in a datacenter (not universe)
                 number_machines_universe_can_use_if_no_known_issues = machines.length
-                if @model.get('primary_datacenter') is universe_datacenter
+                if @model.get('primary_datacenter') is universe_datacenter.get('id')
                     number_machines_universe_can_use_if_no_known_issues-- #-1 because there is a primary somewhere
 
                 # Find the datacenters in which we are sure that there is a unsatisfiable goal ( replicas > number of machines in the datacenter )
@@ -525,11 +525,14 @@ module 'ResolveIssuesView', ->
                                     datacenter_name: (datacenter_name if datacenter_name?)
                                     num_replicas_requested: num_replicas_requested
 
-                        # Let's add universe at the beginning
+                        # Let's add universe at the beginning of the list of datacenters that require some replicas
+                        num_replicas_universe_request = @model.get('replica_affinities')[universe_datacenter.get('id')]
+                        if @model.get('primary_datacenter') is universe_datacenter.get('id')
+                            num_replicas_universe_request += 1
                         json.extra_replicas_accross_cluster.datacenters_that_can_help.unshift
                             datacenter_id: universe_datacenter.get('id')
                             is_universe: true
-                            num_replicas_requested: @model.get('replica_affinities')[universe_datacenter.get('id')]
+                            num_replicas_requested: num_replicas_universe_request
 
 
                 json.can_solve_issue = json.datacenters_with_issues.length > 0
