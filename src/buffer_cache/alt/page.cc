@@ -1232,10 +1232,6 @@ void page_txn_t::remove_subseqer(page_txn_t *subseqer) {
     subseqers_.erase(it);
 }
 
-void destroy_page_txn(page_txn_t *txn) {
-    delete txn;
-}
-
 page_txn_t::~page_txn_t() {
     guarantee(flush_complete_cond_.is_pulsed());
 
