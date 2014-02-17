@@ -842,7 +842,7 @@ private:
     void add_acquirer(current_page_acq_t *acq);
     void remove_acquirer(current_page_acq_t *acq);
 
-    void announce_waiting_for_flush_if_we_should();
+    void announce_waiting_for_flush();
 
     page_cache_t *page_cache_;
     // This can be NULL, if the txn is not part of some cache conn.

@@ -235,7 +235,7 @@ void page_cache_t::flush_and_destroy_txn(
             "current_page_acq_t lifespan exceeds its page_txn_t's");
     guarantee(!txn->began_waiting_for_flush_);
 
-    txn->announce_waiting_for_flush_if_we_should();
+    txn->announce_waiting_for_flush();
 
     page_txn_t *page_txn = txn.release();
     flush_and_destroy_txn_waiter_t *sub
@@ -1338,7 +1338,7 @@ void page_txn_t::remove_acquirer(current_page_acq_t *acq) {
     }
 }
 
-void page_txn_t::announce_waiting_for_flush_if_we_should() {
+void page_txn_t::announce_waiting_for_flush() {
     rassert(live_acqs_.empty());
     rassert(!began_waiting_for_flush_);
     began_waiting_for_flush_ = true;
