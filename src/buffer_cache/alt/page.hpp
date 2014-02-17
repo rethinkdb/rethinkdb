@@ -820,7 +820,7 @@ private:
     friend class ::cache_conn_t;
 
     // To access tracker_acq_.
-    friend class flush_and_destroy_t;
+    friend class flush_and_destroy_txn_waiter_t;
 
     // page cache has access to all of this type's innards, including fields.
     friend class page_cache_t;

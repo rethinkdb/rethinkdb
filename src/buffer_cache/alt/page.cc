@@ -192,11 +192,11 @@ page_cache_t::~page_cache_t() {
 }
 
 // We go a bit old-school, with a self-destroying callback.
-class flush_and_destroy_t : public signal_t::subscription_t {
+class flush_and_destroy_txn_waiter_t : public signal_t::subscription_t {
 public:
-    flush_and_destroy_t(auto_drainer_t::lock_t &&lock,
-                        page_txn_t *txn,
-                        std::function<void(tracker_acq_t)> on_flush_complete)
+    flush_and_destroy_txn_waiter_t(auto_drainer_t::lock_t &&lock,
+                                   page_txn_t *txn,
+                                   std::function<void(tracker_acq_t)> on_flush_complete)
         : lock_(std::move(lock)),
           txn_(txn),
           on_flush_complete_(std::move(on_flush_complete)) { }
@@ -209,7 +209,7 @@ private:
         // We have to do the rest _later_ because of signal_t::subscription_t not
         // allowing reentrant signal_t::subscription_t::reset() calls, and the like,
         // even though it would be valid.
-        coro_t::spawn_sometime(std::bind(&flush_and_destroy_t::kill_ourselves,
+        coro_t::spawn_sometime(std::bind(&flush_and_destroy_txn_waiter_t::kill_ourselves,
                                          this));
     }
 
@@ -225,7 +225,7 @@ private:
     page_txn_t *txn_;
     std::function<void(tracker_acq_t)> on_flush_complete_;
 
-    DISABLE_COPYING(flush_and_destroy_t);
+    DISABLE_COPYING(flush_and_destroy_txn_waiter_t);
 };
 
 void page_cache_t::flush_and_destroy_txn(
@@ -238,9 +238,9 @@ void page_cache_t::flush_and_destroy_txn(
     txn->announce_waiting_for_flush_if_we_should();
 
     page_txn_t *page_txn = txn.release();
-    flush_and_destroy_t *sub
-        = new flush_and_destroy_t(drainer_->lock(), page_txn,
-                                  std::move(on_flush_complete));
+    flush_and_destroy_txn_waiter_t *sub
+        = new flush_and_destroy_txn_waiter_t(drainer_->lock(), page_txn,
+                                             std::move(on_flush_complete));
 
     sub->reset(&page_txn->flush_complete_cond_);
 }
