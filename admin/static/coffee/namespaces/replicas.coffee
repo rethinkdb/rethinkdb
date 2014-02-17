@@ -15,7 +15,7 @@ module 'NamespaceView', ->
 
         check_issues: =>
             # We look for vector clock conflict (cluster configuration conflict) issues related to this table
-            # If there is, the server will reject any attempt to directly change the value, so
+            # If there are, the server will reject any attempt to directly change the value, so
             # so we want to
             #    - tell them to fix the vector clock conflict
             #    - forbid users to try to manually change the value
