@@ -42,6 +42,9 @@ struct rget_item_t {
 };
 typedef std::vector<rget_item_t> stream_t;
 
+// We write all of these serializations and deserializations explicitly because:
+// * It stops people from inadvertently using a new `grouped<T>` without thinking.
+// * Some grouped elements need specialized serialization.
 static inline void serialize_grouped(
     write_message_t *msg, const counted_t<const datum_t> &d) {
     *msg << d.has();
@@ -61,6 +64,10 @@ static inline void serialize_grouped(write_message_t *msg,
 static inline void serialize_grouped(write_message_t *msg, const stream_t &sz) {
     *msg << sz;
 }
+static inline void serialize_grouped(write_message_t *msg, const lst_t &l) {
+    *msg << l;
+}
+
 static inline archive_result_t deserialize_grouped(
     read_stream_t *s, counted_t<const datum_t> *d) {
     bool has;
@@ -81,6 +88,9 @@ static inline archive_result_t deserialize_grouped(read_stream_t *s,
 }
 static inline archive_result_t deserialize_grouped(read_stream_t *s, stream_t *sz) {
     return deserialize(s, sz);
+}
+static inline archive_result_t deserialize_grouped(read_stream_t *s, lst_t *l) {
+    return deserialize(s, l);
 }
 
 template<class T>
@@ -116,25 +126,29 @@ class grouped_data_t : public grouped<counted_t<const datum_t> >,
                        public slow_atomic_countable_t<grouped_data_t> { };
 
 typedef boost::variant<
-    ql::grouped<uint64_t>, // Count.
-    ql::grouped<double>, // Sum.
-    ql::grouped<std::pair<double, uint64_t> >, // Avg.
-    ql::grouped<counted_t<const ql::datum_t> >, // Reduce (may be NULL), min, max.
-    ql::grouped<stream_t>, // No terminal.
-    ql::exc_t // Don't re-order (we don't want this to initialize to an error.)
+    grouped<uint64_t>, // Count.
+    grouped<double>, // Sum.
+    grouped<std::pair<double, uint64_t> >, // Avg.
+    grouped<counted_t<const ql::datum_t> >, // Reduce (may be NULL), min, max.
+    grouped<lst_t>, // To array.
+    grouped<stream_t>, // No terminal.,
+    exc_t // Don't re-order (we don't want this to initialize to an error.)
     > result_t;
 
-typedef boost::variant<ql::map_wire_func_t,
-                       ql::group_wire_func_t,
-                       ql::filter_wire_func_t,
-                       ql::concatmap_wire_func_t> transform_variant_t;
+typedef boost::variant<map_wire_func_t,
+                       group_wire_func_t,
+                       filter_wire_func_t,
+                       concatmap_wire_func_t
+                       > transform_variant_t;
 
-typedef boost::variant<ql::count_wire_func_t,
-                       ql::sum_wire_func_t,
-                       ql::avg_wire_func_t,
-                       ql::min_wire_func_t,
-                       ql::max_wire_func_t,
-                       ql::reduce_wire_func_t> terminal_variant_t;
+typedef boost::variant<count_wire_func_t,
+                       to_array_wire_func_t,
+                       sum_wire_func_t,
+                       avg_wire_func_t,
+                       min_wire_func_t,
+                       max_wire_func_t,
+                       reduce_wire_func_t
+                       > terminal_variant_t;
 
 class op_t {
 public:

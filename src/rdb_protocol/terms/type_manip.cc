@@ -214,17 +214,7 @@ private:
 
             // SEQUENCE -> ARRAY
             if (end_type == R_ARRAY_TYPE || end_type == DATUM_TYPE) {
-                datum_ptr_t arr(datum_t::R_ARRAY);
-                batchspec_t batchspec
-                    = batchspec_t::user(batch_type_t::TERMINAL, env->env);
-                {
-                    profile::sampler_t sampler("Coercing to array.", env->env->trace);
-                    while (auto el = ds->next(env->env, batchspec)) {
-                        arr.add(el);
-                        sampler.new_sample();
-                    }
-                }
-                return new_val(arr.to_counted());
+                return ds->run_terminal(env->env, to_array_wire_func_t());
             }
 
             // SEQUENCE -> OBJECT
@@ -279,6 +269,9 @@ private:
         if (v->get_type().raw_type == val_t::type_t::DATUM) {
             counted_t<const datum_t> d = v->as_datum();
             return new_val(make_counted<const datum_t>(d->get_type_name()));
+        } else if (v->get_type().raw_type == val_t::type_t::SEQUENCE
+                   && v->as_seq(env->env)->is_grouped()) {
+            return new_val(make_counted<const datum_t>("GROUPED_STREAM"));
         } else {
             return new_val(
                 make_counted<const datum_t>(get_name(val_type(arg(env, 0)))));

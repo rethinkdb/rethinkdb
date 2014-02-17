@@ -101,6 +101,9 @@ public:
 struct count_wire_func_t {
     RDB_MAKE_ME_SERIALIZABLE_0();
 };
+struct to_array_wire_func_t {
+    RDB_MAKE_ME_SERIALIZABLE_0();
+};
 
 class bt_wire_func_t {
 public:

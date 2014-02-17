@@ -255,6 +255,22 @@ private:
     }
 };
 
+class to_array_terminal_t : public terminal_t<lst_t> {
+public:
+    to_array_terminal_t(env_t *, const to_array_wire_func_t &) : terminal_t(lst_t()) { }
+private:
+    virtual void accumulate(const counted_t<const datum_t> &el, lst_t *out) {
+        out->push_back(el);
+    }
+    virtual counted_t<const datum_t> unpack(lst_t *l) {
+        return make_counted<const datum_t>(std::move(*l));
+    }
+    virtual void unshard_impl(lst_t *out, lst_t *el) {
+        out->reserve(out->size() + el->size());
+        std::move(el->begin(), el->end(), std::back_inserter(*out));
+    }
+};
+
 class sum_terminal_t : public terminal_t<double> {
 public:
     sum_terminal_t(env_t *, const sum_wire_func_t &f)
@@ -381,6 +397,9 @@ public:
     terminal_visitor_t(env_t *_env) : env(_env) { }
     T *operator()(const count_wire_func_t &f) const {
         return new count_terminal_t(env, f);
+    }
+    T *operator()(const to_array_wire_func_t &f) const {
+        return new to_array_terminal_t(env, f);
     }
     T *operator()(const sum_wire_func_t &f) const {
         return new sum_terminal_t(env, f);
