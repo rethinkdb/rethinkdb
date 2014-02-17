@@ -270,7 +270,8 @@ void run(protob_t<Query> q,
                 }
             } else {
                 rfail_toplevel(base_exc_t::GENERIC,
-                               "Query result must be of type DATUM or STREAM (got %s).",
+                               "Query result must be of type "
+                               "DATUM, GROUPED_DATA, or STREAM (got %s).",
                                val->get_type().name());
             }
         } catch (const exc_t &e) {
