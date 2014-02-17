@@ -133,14 +133,14 @@ tests:
 
     # GMR
     - cd: tbl.group('a').typeof
-      ot: "GROUPED_STREAM"
+      ot: ("GROUPED_STREAM")
     - cd: tbl.group('a').count.typeof
-      ot: "GROUPED_DATA"
-    - cd: tbl.orderby(index:'id').group('a').coerce_to('ARRAY').typeof
-      ot: "GROUPED_DATA"
+      ot: ("GROUPED_DATA")
+    - cd: tbl.group('a').coerce_to('ARRAY').typeof
+      ot: ("GROUPED_DATA")
 
-    - cd: tbl.filter{|row| row['id'].lt(10)}.group('a').map{|row| row['id']}.coerce_to('ARRAY')
-      ot: ({0=>[0, 8, 4], 1=>[1, 5, 9], 2=>[2, 6], 3=>[7, 3]})
+    - cd: tbl.orderby(index:'id').filter{|row| row['id'].lt(10)}.group('a').map{|row| row['id']}.coerce_to('ARRAY')
+      ot: ({0=>[0, 4, 8], 1=>[1, 5, 9], 2=>[2, 6], 3=>[3, 7]})
 
     - rb: tbl.union(tbl).group('a').map{|x| x['id']}.reduce{|a,b| a+b}
       runopts:
