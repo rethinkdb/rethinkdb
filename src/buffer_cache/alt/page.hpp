@@ -506,7 +506,7 @@ public:
     void add_to_evictable_disk_backed(page_t *page);
     bool page_is_in_unevictable_bag(page_t *page) const;
     void move_unevictable_to_evictable(page_t *page);
-    void change_eviction_bag(eviction_bag_t *current_bag, page_t *page);
+    void change_to_correct_eviction_bag(eviction_bag_t *current_bag, page_t *page);
     eviction_bag_t *correct_eviction_category(page_t *page);
     void remove_page(page_t *page);
 
@@ -685,9 +685,16 @@ private:
 
     const page_cache_config_t dynamic_config_;
 
-    // We use a separate IO account for reads and writes, so reads can pass ahead of
-    // active writebacks. Otherwise writebacks could badly block out readers, thereby
-    // blocking user queries.
+    // We use separate I/O accounts for reads and writes, so reads can pass ahead of
+    // flushes.  The rationale behind this is that reads are almost always blocking
+    // operations.  Writes, on the other hand, can be non-blocking (from the user's
+    // perspective) if they are soft-durability or noreply writes.
+    //
+    // TODO: Check whether it would be better to change this to separate I/O accounts
+    // for blocking and non-blocking access rather than reads and writes.  On the
+    // other hand, write transactions often (always, actually, thanks metainfo block)
+    // have to wait for previous ones to flush before they can proceed, so this
+    // separation might be tricky in practice.
     scoped_ptr_t<file_account_t> reads_io_account_;
     scoped_ptr_t<file_account_t> writes_io_account_;
 

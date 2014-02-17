@@ -943,7 +943,7 @@ void page_t::add_waiter(page_acq_t *acq) {
     eviction_bag_t *old_bag
         = acq->page_cache()->evicter().correct_eviction_category(this);
     waiters_.push_back(acq);
-    acq->page_cache()->evicter().change_eviction_bag(old_bag, this);
+    acq->page_cache()->evicter().change_to_correct_eviction_bag(old_bag, this);
     if (buf_.has()) {
         acq->buf_ready_signal_.pulse();
     } else if (destroy_ptr_ != NULL) {
@@ -1022,7 +1022,7 @@ void page_t::remove_waiter(page_acq_t *acq) {
     eviction_bag_t *old_bag
         = acq->page_cache()->evicter().correct_eviction_category(this);
     waiters_.remove(acq);
-    acq->page_cache()->evicter().change_eviction_bag(old_bag, this);
+    acq->page_cache()->evicter().change_to_correct_eviction_bag(old_bag, this);
 
     // page_acq_t always has a lesser lifetime than some page_ptr_t.
     rassert(snapshot_refcount_ > 0);
@@ -1633,7 +1633,7 @@ void page_cache_t::do_flush_txn_set(page_cache_t *page_cache,
             eviction_bag_t *old_bag
                 = page_cache->evicter().correct_eviction_category(it->page);
             it->page->block_token_ = std::move(it->block_token);
-            page_cache->evicter().change_eviction_bag(old_bag, it->page);
+            page_cache->evicter().change_to_correct_eviction_bag(old_bag, it->page);
         }
     }
 
@@ -1825,8 +1825,8 @@ void evicter_t::move_unevictable_to_evictable(page_t *page) {
     evict_if_necessary();
 }
 
-void evicter_t::change_eviction_bag(eviction_bag_t *current_bag,
-                                    page_t *page) {
+void evicter_t::change_to_correct_eviction_bag(eviction_bag_t *current_bag,
+                                               page_t *page) {
     assert_thread();
     rassert(current_bag->has_page(page));
     current_bag->remove(page, page->ser_buf_size_);
