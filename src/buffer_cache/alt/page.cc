@@ -643,7 +643,13 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq) {
     // Second, avoid re-pulsing already-pulsed chains.
     if (acq->access_ == access_t::read && acq->read_cond_.is_pulsed()
         && !acq->declared_snapshotted_) {
-        return;
+        // acq was pulsed for read, but it could have been a write acq at that time,
+        // so the next node might not have been pulsed for read.  Also we might as
+        // well stop if we're at the end of the chain (and have been pulsed).
+        current_page_acq_t *next = acquirers_.next(acq);
+        if (next == NULL || next->read_cond_.is_pulsed()) {
+            return;
+        }
     }
 
     // It's time to pulse the pulsables.
