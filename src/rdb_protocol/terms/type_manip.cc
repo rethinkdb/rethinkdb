@@ -64,6 +64,7 @@ public:
                  it = map.begin(); it != map.end(); ++it) {
             rmap[it->second] = it->first;
         }
+        guarantee(map.size() == rmap.size());
     }
     int get_type(const std::string &s, const rcheckable_t *caller) const {
         std::map<std::string, int>::const_iterator it = map.find(s);
