@@ -1,0 +1,28 @@
+{
+    "name": "long",
+    "version": "1.1.2",
+    "author": "Daniel Wirtz <dcode@dcode.io>",
+    "description": "A Long class for representing a 64-bit two's-complement integer value.",
+    "main": "Long.js",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/dcodeIO/Long.js.git"
+    },
+    "keywords": ["math"],
+    "dependencies": {
+    },
+    "devDependencies": {
+        "testjs": "latest",
+        "closurecompiler": "latest"
+    },
+    "license": "Apache-2.0",
+    "engines": {
+        "node": ">=0.6"
+    },
+    "scripts": {
+        "make": "npm run-script compile && npm test && npm run-script jsdoc",
+        "compile": "ccjs Long.js --compilation_level=ADVANCED_OPTIMIZATIONS > Long.min.js",
+        "test": "node node_modules/testjs/bin/testjs tests/suite.js",
+        "jsdoc": "jsdoc -c jsdoc.json"
+    }
+}

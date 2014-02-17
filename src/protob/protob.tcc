@@ -20,6 +20,7 @@
 #include "containers/auth_key.hpp"
 #include "rpc/semilattice/joins/vclock.hpp"
 #include "rpc/semilattice/view.hpp"
+#include "rdb_protocol/env.hpp"
 #include "utils.hpp"
 
 template <class request_t, class response_t, class context_t>
@@ -262,39 +263,42 @@ private:
     wait_any_t combined_interruptor;
 };
 
+template <class context_t>
+class conn_acq_t {
+public:
+    conn_acq_t() : conn(NULL) { }
+
+    bool init(typename http_conn_cache_t<context_t>::http_conn_t *_conn) {
+        guarantee(conn == NULL);
+        if (_conn->acquire()) {
+            conn = _conn;
+            return true;
+        }
+        return false;
+    }
+
+    ~conn_acq_t() {
+        if (conn != NULL) {
+            conn->release();
+        }
+    }
+private:
+    typename http_conn_cache_t<context_t>::http_conn_t *conn;
+};
+
 template <class request_t, class response_t, class context_t>
 void protob_server_t<request_t, response_t, context_t>::handle(const http_req_t &req,
                                                                http_res_t *result,
                                                                signal_t *interruptor) {
     auto_drainer_t::lock_t auto_drainer_lock(&auto_drainer);
-    if (req.method == POST &&
-        req.resource.as_string().find("close-connection") != std::string::npos) {
-
-        boost::optional<std::string> optional_conn_id = req.find_query_param("conn_id");
-        if (!optional_conn_id) {
-            *result = http_res_t(HTTP_BAD_REQUEST, "application/text",
-                                 "Required parameter \"conn_id\" missing\n");
-        }
-
-        std::string string_conn_id = *optional_conn_id;
-        int32_t conn_id = boost::lexical_cast<int32_t>(string_conn_id);
-        http_conn_cache.erase(conn_id);
-
-        result->code = HTTP_OK;
-#ifndef NDEBUG
-        result->add_header_line("Access-Control-Allow-Origin", "*");
-#endif
-    } else if (req.method == GET &&
-               req.resource.as_string().find("open-new-connection")) {
+    if (req.method == GET &&
+        req.resource.as_string().find("open-new-connection")) {
         int32_t conn_id = http_conn_cache.create();
 
         std::string body_data;
         body_data.assign(reinterpret_cast<char *>(&conn_id), sizeof(conn_id));
         result->set_body("application/octet-stream", body_data);
         result->code = HTTP_OK;
-#ifndef NDEBUG
-        result->add_header_line("Access-Control-Allow-Origin", "*");
-#endif
     } else {
         boost::optional<std::string> optional_conn_id = req.find_query_param("conn_id");
         if (!optional_conn_id) {
@@ -302,62 +306,85 @@ void protob_server_t<request_t, response_t, context_t>::handle(const http_req_t 
                                  "Required parameter \"conn_id\" missing\n");
             return;
         }
+
         std::string string_conn_id = *optional_conn_id;
         int32_t conn_id = boost::lexical_cast<int32_t>(string_conn_id);
 
-        // Extract protobuf from http request body
-        const char *data = req.body.data();
-        int32_t req_size = *reinterpret_cast<const int32_t *>(data);
-        data += sizeof(req_size);
+        if (req.method == POST &&
+            req.resource.as_string().find("close-connection") != std::string::npos) {
+            http_conn_cache.erase(conn_id);
+            result->code = HTTP_OK;
+        } else {
+            // Extract protobuf from http request body
+            const char *data = req.body.data();
+            int32_t req_size = *reinterpret_cast<const int32_t *>(data);
+            data += sizeof(req_size);
 
-        request_t request;
-        make_empty_protob_bearer(&request);
-        const bool parseSucceeded
-            = underlying_protob_value(&request)->ParseFromArray(data, req_size);
+            request_t request;
+            make_empty_protob_bearer(&request);
+            const bool parseSucceeded
+                = underlying_protob_value(&request)->ParseFromArray(data, req_size);
 
-        bool response_needed;
-        response_t response;
-        switch (cb_mode) {
-        case INLINE: {
-            boost::shared_ptr<typename http_conn_cache_t<context_t>::http_conn_t> conn =
-                http_conn_cache.find(conn_id);
-            if (!parseSucceeded) {
-                std::string err = "Client is buggy (failed to deserialize protobuf).";
-                response = on_unparsable_query(request, err);
-            } else if (!conn) {
-                std::string err = "This HTTP connection not open.";
-                response = on_unparsable_query(request, err);
-            } else {
-                context_t *ctx = conn->get_ctx();
-                interruptor_mixer_t<context_t> interruptor_mixer(ctx, interruptor);
-                response_needed = f(request, &response, ctx);
-                if (!response_needed) {
-                    *result = http_res_t(HTTP_BAD_REQUEST, "application/text",
-                                         "Noreply writes unsupported over HTTP\n");
-                    return;
+            response_t response;
+            switch (cb_mode) {
+            case INLINE:
+                {
+                    boost::shared_ptr<typename http_conn_cache_t<context_t>::http_conn_t> conn =
+                        http_conn_cache.find(conn_id);
+                    if (!parseSucceeded) {
+                        std::string err = "Client is buggy (failed to deserialize protobuf).";
+                        response = on_unparsable_query(request, err);
+                    } else if (!conn) {
+                        std::string err = "This HTTP connection is not open.";
+                        response = on_unparsable_query(request, err);
+                    } else {
+                        // Make sure the connection is not already running a query
+                        conn_acq_t<context_t> conn_acq;
+
+                        if (!conn_acq.init(conn.get())) {
+                            *result = http_res_t(HTTP_BAD_REQUEST, "application/text",
+                                                 "Session is already running a query");
+                            return;
+                        }
+
+                        // Check for noreply, which we don't support here, as it causes
+                        // problems with interruption
+                        counted_t<const ql::datum_t> noreply = static_optarg("noreply", request);
+                        bool response_needed = !(noreply.has() &&
+                             noreply->get_type() == ql::datum_t::type_t::R_BOOL &&
+                             noreply->as_bool());
+
+                        if (!response_needed) {
+                            *result = http_res_t(HTTP_BAD_REQUEST, "application/text",
+                                                 "Noreply writes unsupported over HTTP\n");
+                            return;
+                        }
+
+                        context_t *ctx = conn->get_ctx();
+                        interruptor_mixer_t<context_t> interruptor_mixer(ctx, interruptor);
+                        response_needed = f(request, &response, ctx);
+                        guarantee(response_needed);
+                    }
                 }
+                break;
+            case CORO_ORDERED:
+            case CORO_UNORDERED:
+                crash("unimplemented");
+            default:
+                crash("unreachable");
+                break;
             }
-        } break;
-        case CORO_ORDERED:
-        case CORO_UNORDERED:
-            crash("unimplemented");
-        default:
-            crash("unreachable");
-            break;
+
+            int32_t res_size = response.ByteSize();
+            scoped_array_t<char> res_data(sizeof(res_size) + res_size);
+            *reinterpret_cast<int32_t *>(res_data.data()) = res_size;
+            response.SerializeToArray(res_data.data() + sizeof(res_size), res_size);
+
+            std::string body_data;
+            body_data.assign(res_data.data(), res_size + sizeof(res_size));
+            result->set_body("application/octet-stream", body_data);
+            result->code = HTTP_OK;
         }
-
-        int32_t res_size = response.ByteSize();
-        scoped_array_t<char> res_data(sizeof(res_size) + res_size);
-        *reinterpret_cast<int32_t *>(res_data.data()) = res_size;
-        response.SerializeToArray(res_data.data() + sizeof(res_size), res_size);
-
-        std::string body_data;
-        body_data.assign(res_data.data(), res_size + sizeof(res_size));
-        result->set_body("application/octet-stream", body_data);
-        result->code = HTTP_OK;
-#ifndef NDEBUG
-        result->add_header_line("Access-Control-Allow-Origin", "*");
-#endif
     }
 }
 

@@ -33,7 +33,10 @@ pkg_version () {
 
 # Generate shell commands that add the paths for this package to the environment
 pkg_environment () {
-    test -d "$install_dir/include" && echo "export CXXFLAGS=\"\${CXXFLAGS:-} -isystem $(niceabspath "$install_dir/include")\"" || :
+    if test -d "$install_dir/include"; then
+        echo "export CXXFLAGS=\"\${CXXFLAGS:-} -isystem $(niceabspath "$install_dir/include")\""
+        echo "export   CFLAGS=\"\${CFLAGS:-}   -isystem $(niceabspath "$install_dir/include")\""
+    fi
     test -d "$install_dir/lib" && echo "export LDFLAGS=\"\${LDFLAGS:-} -L$(niceabspath "$install_dir/lib")\"" || :
     test -d "$install_dir/bin" && echo "export PATH=\"$(niceabspath "$install_dir/bin"):\$PATH\"" || :
 }

@@ -13,11 +13,15 @@ init () {
     min_gcc_version=$(read_version 4.4.3)
     min_clang_version=0
     min_icc_version=0
-    min_lessc_version="1.3.1"
-    min_coffee_version="1.6.2"
+    min_lessc_version=1.3.1
+    max_lessc_version=1.6.2
+    min_coffee_version=1.6.2
+    max_coffee_version=1.7.1
+    min_browserify_version=3.0.0
+    max_browserify_version=3.24.13
 
     must_fetch_list='protobufjs'
-    please_fetch_list="handlebars coffee-script less browserify re2 gtest $must_fetch_list"
+    please_fetch_list="handlebars gtest re2 $must_fetch_list"
 
     required_libs="protobuf v8 termcap re2 z"
     optional_libs="gtest"
@@ -25,11 +29,10 @@ init () {
     all_libs="$required_libs $optional_libs $other_libs"
     default_static="tcmalloc_minimal"
 
-    web_assets_deps="lessc coffee handlebars browserify proto2js"
-    npm_deps="$web_assets_deps"
-    required_bin_deps="protoc npm"
+    web_assets_deps="npm lessc coffee handlebars browserify proto2js"
+    required_bin_deps="protoc"
     optional_bin_deps="wget curl"
-    bin_deps="cxx $npm_deps $required_bin_deps $optional_bin_deps"
+    bin_deps="cxx $web_assets_deps $required_bin_deps $optional_bin_deps"
     all_deps="$bin_deps $all_libs"
 
     allowed_arg_vars="CXXFLAGS LDFLAGS"
@@ -96,12 +99,14 @@ configure () {
         require_dep $bin
         check_bin $bin
     done
-    if ! $enable_precompiled_web; then
-        for bin in $web_assets_deps; do
+    for bin in $web_assets_deps; do
+        if $enable_precompiled_web; then
+            optional_dep $bin
+        else
             require_dep $bin
-            check_bin $bin
-        done
-    fi
+        fi
+        check_bin $bin
+    done
     for bin in $optional_bin_deps; do
         optional_dep $bin
         check_bin $bin
@@ -530,10 +535,10 @@ check_cxx () {
         error "Could not determine C++ compiler version (>= $(write_version $min_version) required)"
         return
     else
+        show "$(uc $type) $version_string ($full_CXX)"
         test_version_ge $(uc $type) $(read_version "$version_string") $min_version || return
     fi
 
-    show "$(uc $type) $version_string ($full_CXX)"
     var COMPILER "$(uc $type)"
     var CXX "$full_CXX"
 }
@@ -559,13 +564,15 @@ read_version () {
 # write_version "10203" -> "1.2.3"
 write_version () {
     local v=$(printf %06d "$1")
-    printf %d.%d.%d ${v:0:2} ${v:2:2} ${v:4:2}
+    local v1=${v:0:2}
+    local v2=${v:2:2}
+    local v3=${v:4:2}
+    printf %d.%d.%d "${v1#0}" "${v2#0}" "${v3#0}"
 }
 
 # test_version_ge <name> <version> <min version>
 test_version_ge () {
     if ! [[ $2 -ge $3 ]]; then
-        show "$1 $(write_version $2)"
         error "$1 $(write_version $2) is too old. At least $1 $(write_version $3) is required"
         return 1
     fi
@@ -573,9 +580,8 @@ test_version_ge () {
 
 # test_version_le <name> <version> <max version>
 test_version_le () {
-    if ! [[ $2 -le $3 ]]; then
-        show "$1 $(write_version $2)"
-        error "$1 $(write_version $2) is too recent. At most $1 $(write_version $3) is required"
+    if ! [[ $2 -le $3 ]]; then 
+       error "$1 $(write_version $2) is too recent. At most $1 $(write_version $3) is required"
         return 1
     fi
 }
@@ -599,7 +605,6 @@ test_bin_version () {
         test -z "$min" || test_version_ge $1 $version $(read_version $min) || return 1
         test -z "$max" || test_version_le $1 $version $(read_version $max) || return 1
         if contains "$invalid" "$ver" ; then
-            show "$ver"
             error "$1 ($ver) is not supported"
             return 1
         fi
@@ -607,6 +612,7 @@ test_bin_version () {
         error "Could not determine $1 version"
         return 1
     fi
+    show "$1 $ver"
 }
 
 # contains <haystack> <needle>
@@ -676,7 +682,16 @@ check_bin () {
         fi
     fi
     local version
-    test_bin_version $1 "$bin" || return
+    delay_errors=true
+    if ! test_bin_version $1 "$bin"; then
+        if fetch_allowed $1; then
+            fetch_bin $1
+            return
+        else
+            show_no
+            return
+        fi
+    fi
     var "$(uc $1)" "$bin"
     var "$(uc $1)_BIN_DEP" ""
 }
@@ -947,7 +962,7 @@ int main() {
 EOF
     if
         "$CXX" ${CXXFLAGS:-} ${LDFLAGS:-} ${LIB_SEARCH_PATHS:-} "$tmpfile.cc" \
-            $V8_LIBS $PTHREAD_LIBS $M_LIBS $RT_LIBS -o "$tmpfile.out" 1>"$tmpfile.log" 2>&1;
+            ${V8_LIBS:-} $PTHREAD_LIBS $M_LIBS $RT_LIBS -o "$tmpfile.out" 1>"$tmpfile.log" 2>&1;
     then
         boolvar V8_PRE_3_19 false
     else

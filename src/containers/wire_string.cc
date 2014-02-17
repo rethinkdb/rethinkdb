@@ -10,7 +10,8 @@
 #include "utils.hpp"
 
 wire_string_t *wire_string_t::create(size_t _size) {
-    size_t memory_size = offsetof(wire_string_t, data_) + (_size + 1) * sizeof(char);
+    // This allocates _size + 1 bytes for the data_ field (which is declared as char[1])
+    size_t memory_size = sizeof(wire_string_t) + _size;
     void *raw_result = ::malloc(memory_size);
     guarantee(raw_result != NULL, "Unable to allocate memory.");
     wire_string_t *result = reinterpret_cast<wire_string_t *>(raw_result);

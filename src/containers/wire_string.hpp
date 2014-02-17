@@ -54,7 +54,7 @@ public:
 
 private:
     size_t size_;
-    char data_[0];
+    char data_[1];
 
     DISABLE_COPYING(wire_string_t);
 };

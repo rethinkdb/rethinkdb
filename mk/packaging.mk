@@ -36,22 +36,19 @@ prepare_deb_package_dirs:
 	mkdir -p $(DEB_PACKAGE_DIR)
 	mkdir -p $(DEB_CONTROL_ROOT)
 
-DSC_CONFIGURE_DEFAULT += --prefix=/usr --sysconfdir=/etc --localstatedir=/var
-
+DIST_SUPPORT_PACKAGES := $(filter re2 gtest protobufjs handlebars v8, $(FETCH_LIST))
+DIST_CUSTOM_MK_LINES :=
 ifeq ($(BUILD_PORTABLE),1)
-  DIST_SUPPORT_PACKAGES := v8 protobuf gperftools libunwind re2 gtest
-
-  DIST_CUSTOM_MK_LINES :=
-  ifneq ($(CWD),$(TOP))
-    DIST_CUSTOM_LINES = $(error Portable packages need to be built from '$(TOP)')
-  endif
+  DIST_SUPPORT_PACKAGES += protobuf gperftools libunwind v8
   DIST_CUSTOM_MK_LINES += 'BUILD_PORTABLE := 1'
-  DIST_CONFIGURE_DEFAULT += --fetch v8 --fetch protobuf --fetch gperftools
-else
-  DIST_SUPPORT_PACKAGES := re2 gtest
-  DIST_CUSTOM_MK_LINES :=
+
+  ifneq ($(CWD),$(TOP))
+    DIST_CUSTOM_MK_LINES = $(error Portable packages need to be built from '$(TOP)')
+  endif
 endif
 
+DSC_CONFIGURE_DEFAULT = --prefix=/usr --sysconfdir=/etc --localstatedir=/var
+DIST_CONFIGURE_DEFAULT = $(foreach pkg, $(DIST_SUPPORT_PACKAGES), --fetch $(pkg))
 DIST_SUPPORT = $(foreach pkg, $(DIST_SUPPORT_PACKAGES), $(SUPPORT_SRC_DIR)/$(pkg)_$($(pkg)_VERSION))
 
 DEB_BUILD_DEPENDS := g++, libboost-dev, libssl-dev, curl, exuberant-ctags, m4, debhelper

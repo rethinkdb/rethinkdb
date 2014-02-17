@@ -28,7 +28,6 @@
 #include "memcached/tcp_conn.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "mock/dummy_protocol_parser.hpp"
-#include "rdb_protocol/parser.hpp"
 #include "rdb_protocol/pb_server.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rpc/connectivity/cluster.hpp"
@@ -377,8 +376,6 @@ bool do_serve(
                     &local_issue_tracker,
                     &perfmon_repo);
 
-                rdb_protocol::query_http_app_t rdb_parser(semilattice_manager_cluster.get_root_view(), &rdb_namespace_repo);
-
                 query2_server_t rdb_pb2_server(address_ports.local_addresses,
                                                address_ports.reql_port, &rdb_ctx);
                 logINF("Listening for client driver connections on port %d\n",
@@ -470,6 +467,9 @@ bool do_serve(
         logINF("Storage engine shut down.\n");
 
     } catch (const address_in_use_exc_t &ex) {
+        logERR("%s.\n", ex.what());
+        return false;
+    } catch (const tcp_socket_exc_t &ex) {
         logERR("%s.\n", ex.what());
         return false;
     }

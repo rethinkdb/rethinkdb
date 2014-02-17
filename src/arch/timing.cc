@@ -1,8 +1,7 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "arch/timing.hpp"
 
-#include "errors.hpp"
-#include <boost/bind.hpp>
+#include <functional>
 
 #include "arch/arch.hpp"
 #include "arch/runtime/coroutines.hpp"
@@ -86,5 +85,5 @@ void call_ringer(repeating_timer_callback_t *ringee) {
 void repeating_timer_t::on_timer() {
     // Spawn _now_, otherwise the reating_timer_t lifetime might end
     // before ring gets used.
-    coro_t::spawn_now_dangerously(boost::bind(call_ringer, ringee));
+    coro_t::spawn_now_dangerously(std::bind(call_ringer, ringee));
 }

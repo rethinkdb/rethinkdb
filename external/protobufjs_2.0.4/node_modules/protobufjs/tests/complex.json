@@ -1,0 +1,123 @@
+{
+    "package": "Game.Cars",
+    "messages": [
+        {
+            "name": "Car",
+            "fields": [
+                {
+                    "rule": "required",
+                    "type": "string",
+                    "name": "model",
+                    "id": 1,
+                    "options": {}
+                },
+                {
+                    "rule": "required",
+                    "type": "Vendor",
+                    "name": "vendor",
+                    "id": 2,
+                    "options": {}
+                },
+                {
+                    "rule": "optional",
+                    "type": "Speed",
+                    "name": "speed",
+                    "id": 3,
+                    "options": {
+                        "default": "FAST"
+                    }
+                }
+            ],
+            "enums": [
+                {
+                    "name": "Speed",
+                    "values": [
+                        {
+                            "name": "FAST",
+                            "id": 1
+                        },
+                        {
+                            "name": "SUPERFAST",
+                            "id": 2
+                        }
+                    ],
+                    "options": {}
+                }
+            ],
+            "messages": [
+                {
+                    "name": "Vendor",
+                    "fields": [
+                        {
+                            "rule": "required",
+                            "type": "string",
+                            "name": "name",
+                            "id": 1,
+                            "options": {}
+                        },
+                        {
+                            "rule": "optional",
+                            "type": "Address",
+                            "name": "address",
+                            "id": 2,
+                            "options": {}
+                        }
+                    ],
+                    "enums": [],
+                    "messages": [
+                        {
+                            "name": "Address",
+                            "fields": [
+                                {
+                                    "rule": "required",
+                                    "type": "string",
+                                    "name": "country",
+                                    "id": 1,
+                                    "options": {}
+                                }
+                            ],
+                            "enums": [],
+                            "messages": [],
+                            "options": {}
+                        }
+                    ],
+                    "options": {}
+                },
+                {
+                    "name": "Holder",
+                    "fields": [
+                        {
+                            "rule": "optional",
+                            "type": "string",
+                            "name": "first_name",
+                            "id": 1,
+                            "options": {}
+                        },
+                        {
+                            "rule": "required",
+                            "type": "string",
+                            "name": "last_name",
+                            "id": 2,
+                            "options": {}
+                        },
+                        {
+                            "rule": "optional",
+                            "type": "Vendor.Address",
+                            "name": "address",
+                            "id": 3,
+                            "options": {}
+                        }
+                    ],
+                    "enums": [],
+                    "messages": [],
+                    "options": {}
+                }
+            ],
+            "options": {}
+        }
+    ],
+    "enums": [],
+    "imports": [],
+    "options": {},
+    "services": []
+}

@@ -1,0 +1,25 @@
+{
+    "name": "colour",
+    "description": "A cored, fixed, documented and optimized version of the popular `colors.js`: Get colors in your node.js console like what...",
+    "version": "0.7.1",
+    "author": "Daniel Wirtz <dcode@dcode.io>",
+    "keywords": [ "ansi", "terminal", "colors" ],
+    "bugs": {
+        "url": "https://github.com/dcodeIO/colour.js/issues"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/dcodeIO/colour.js.git"
+    },
+    "engines": {
+        "node": ">=0.8"
+    },
+    "dependencies": {},
+    "devDependencies": {},
+    "main": "./colour.min.js",
+    "scripts": {
+        "test": "node tests/test.js",
+        "compile": "ccjs colour.js --warning_level=VERBOSE --compilation_level=ADVANCED_OPTIMIZATIONS --externs=externs > colour.min.js"
+    },
+    "license": "MIT"
+}
