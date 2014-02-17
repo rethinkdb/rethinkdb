@@ -315,9 +315,6 @@ def run_tests(lang, servers):
     os.system(interpreter + " --version")
     print ''
     stdout.flush()
-    res = 0
-    if res != 0:
-        exit("Failed server_test.rb")
     res = call([interpreter, 'build/test.'+lang, "UNUSED", str(servers.driver_port()), str(servers.cluster_port()), servers.executable()])
     if res != 0:
         exit("Failed %s tests" % lang)
