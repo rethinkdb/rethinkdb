@@ -20,6 +20,8 @@
 #include "repli_timestamp.hpp"
 #include "serializer/types.hpp"
 
+// LSI: Move some of this stuff (the free list, etc) to a different file.
+
 class alt_memory_tracker_t;
 class auto_drainer_t;
 class cache_t;
