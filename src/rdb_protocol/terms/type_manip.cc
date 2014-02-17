@@ -214,7 +214,7 @@ private:
 
             // SEQUENCE -> ARRAY
             if (end_type == R_ARRAY_TYPE || end_type == DATUM_TYPE) {
-                return ds->run_terminal(env->env, to_array_wire_func_t());
+                return ds->to_array(env->env);
             }
 
             // SEQUENCE -> OBJECT

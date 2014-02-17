@@ -96,6 +96,7 @@ public:
     counted_t<datum_stream_t> add_grouping(env_t *env, transform_variant_t &&tv);
 
     counted_t<val_t> run_terminal(env_t *env, const terminal_variant_t &tv);
+    counted_t<val_t> to_array(env_t *env);
 
     // stream -> stream (always eager)
     counted_t<datum_stream_t> slice(size_t l, size_t r);
@@ -119,6 +120,7 @@ public:
 
     virtual void accumulate(
         env_t *env, eager_acc_t *acc, const terminal_variant_t &tv) = 0;
+    virtual void accumulate_all(env_t *env, eager_acc_t *acc) = 0;
 
 protected:
     bool batch_cache_exhausted() const;
@@ -147,6 +149,7 @@ private:
     virtual counted_t<datum_stream_t> add_transformation(
         env_t *env, transform_variant_t &&tv);
     virtual void accumulate(env_t *env, eager_acc_t *acc, const terminal_variant_t &tv);
+    virtual void accumulate_all(env_t *env, eager_acc_t *acc);
 
     done_t next_grouped_batch(env_t *env, const batchspec_t &bs, groups_t *out);
     virtual std::vector<counted_t<const datum_t> >
@@ -258,6 +261,7 @@ public:
     virtual counted_t<datum_stream_t> add_transformation(
         env_t *env, transform_variant_t &&tv);
     virtual void accumulate(env_t *env, eager_acc_t *acc, const terminal_variant_t &tv);
+    virtual void accumulate_all(env_t *env, eager_acc_t *acc);
 
     virtual bool is_array();
     virtual counted_t<const datum_t> as_array(env_t *env);
@@ -383,6 +387,7 @@ public:
     void add_transformation(transform_variant_t &&tv);
     // RSI: make work (also: rename transform_visitors.*)
     void accumulate(env_t *env, eager_acc_t *acc, const terminal_variant_t &tv);
+    void accumulate_all(env_t *env, eager_acc_t *acc);
     std::vector<counted_t<const datum_t> >
     next_batch(env_t *env, const batchspec_t &batchspec);
     bool is_finished() const;
@@ -426,6 +431,7 @@ private:
     virtual counted_t<datum_stream_t> add_transformation(
         env_t *env, transform_variant_t &&tv);
     virtual void accumulate(env_t *env, eager_acc_t *acc, const terminal_variant_t &tv);
+    virtual void accumulate_all(env_t *env, eager_acc_t *acc);
 
     // We use these to cache a batch so that `next` works.  There are a lot of
     // things that are most easily written in terms of `next` that would

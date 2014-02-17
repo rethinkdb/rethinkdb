@@ -122,6 +122,22 @@ void reader_t::accumulate(env_t *env, eager_acc_t *acc, const terminal_variant_t
     acc->add_res(&res);
 }
 
+void reader_t::accumulate_all(env_t *env, eager_acc_t *acc) {
+    r_sanity_check(!started);
+    started = true;
+    batchspec_t batchspec = batchspec_t::all();
+    read_t read = readgen->next_read(active_range, transforms, batchspec);
+    rget_read_response_t resp = do_read(env, std::move(read));
+
+    auto rr = boost::get<rget_read_t>(&read.read);
+    auto final_key = !reversed(rr->sorting) ? store_key_t::max() : store_key_t::min();
+    r_sanity_check(resp.last_key == final_key);
+    r_sanity_check(!resp.truncated);
+    shards_exhausted = true;
+
+    acc->add_res(&resp.result);
+}
+
 rget_read_response_t reader_t::do_read(env_t *env, const read_t &read) {
     read_response_t res;
     try {
@@ -496,6 +512,12 @@ counted_t<val_t> datum_stream_t::run_terminal(
     return acc->finish_eager(backtrace(), is_grouped());
 }
 
+counted_t<val_t> datum_stream_t::to_array(env_t *env) {
+    scoped_ptr_t<eager_acc_t> acc(make_to_array());
+    accumulate_all(env, acc.get());
+    return acc->finish_eager(backtrace(), is_grouped());
+}
+
 // DATUM_STREAM_T
 counted_t<datum_stream_t> datum_stream_t::slice(size_t l, size_t r) {
     return make_counted<slice_datum_stream_t>(l, r, this->counted_from_this());
@@ -594,6 +616,14 @@ void eager_datum_stream_t::accumulate(
     }
 }
 
+void eager_datum_stream_t::accumulate_all(env_t *env, eager_acc_t *acc) {
+    batchspec_t bs = batchspec_t::all();
+    groups_t data;
+    done_t done = next_grouped_batch(env, bs, &data);
+    r_sanity_check(done == done_t::YES);
+    (*acc)(&data);
+}
+
 std::vector<counted_t<const datum_t> >
 eager_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &bs) {
     groups_t data;
@@ -634,6 +664,10 @@ lazy_datum_stream_t::add_transformation(env_t *, transform_variant_t &&tv) {
 void lazy_datum_stream_t::accumulate(
     env_t *env, eager_acc_t *acc, const terminal_variant_t &tv) {
     reader.accumulate(env, acc, tv);
+}
+
+void lazy_datum_stream_t::accumulate_all(env_t *env, eager_acc_t *acc) {
+    reader.accumulate_all(env, acc);
 }
 
 std::vector<counted_t<const datum_t> >
@@ -840,6 +874,12 @@ void union_datum_stream_t::accumulate(
     env_t *env, eager_acc_t *acc, const terminal_variant_t &tv) {
     for (auto it = streams.begin(); it != streams.end(); ++it) {
         (*it)->accumulate(env, acc, tv);
+    }
+}
+
+void union_datum_stream_t::accumulate_all(env_t *env, eager_acc_t *acc) {
+    for (auto it = streams.begin(); it != streams.end(); ++it) {
+        (*it)->accumulate_all(env, acc);
     }
 }
 

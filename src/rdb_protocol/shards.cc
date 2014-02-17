@@ -164,6 +164,57 @@ accumulator_t *make_append(const sorting_t &sorting, batcher_t *batcher) {
     return new append_t(sorting, batcher);
 }
 
+// This can't be a normal terminal because it wouldn't preserve ordering.
+// (Also, I'm sorry for this absurd type hierarchy.)
+class to_array_t : public eager_acc_t {
+private:
+    virtual void operator()(groups_t *gs) {
+        for (auto kv = gs->begin(); kv != gs->end(); ++kv) {
+            lst_t *l1 = &groups[kv->first];
+            lst_t *l2 = &kv->second;
+            l1->reserve(l1->size() + l2->size());
+            std::move(l2->begin(), l2->end(), std::back_inserter(*l1));
+        }
+    }
+
+    virtual void add_res(result_t *res) {
+        auto streams = boost::get<grouped<stream_t> >(res);
+        r_sanity_check(streams);
+        for (auto kv = streams->begin(); kv != streams->end(); ++kv) {
+            lst_t *l = &groups[kv->first];
+            stream_t *s = &kv->second;
+            l->reserve(l->size() + s->size());
+            for (auto it = s->begin(); it != s->end(); ++it) {
+                l->push_back(std::move(it->data));
+            }
+        }
+    }
+
+    virtual counted_t<val_t> finish_eager(
+        protob_t<const Backtrace> bt, bool is_grouped) {
+        if (is_grouped) {
+            counted_t<grouped_data_t> ret(new grouped_data_t());
+            for (auto kv = groups.begin(); kv != groups.end(); ++kv) {
+                (*ret)[kv->first] = make_counted<const datum_t>(std::move(kv->second));
+            }
+            return make_counted<val_t>(std::move(ret), bt);
+        } else if (groups.size() == 0) {
+            return make_counted<val_t>(
+                make_counted<const datum_t>(datum_t::R_ARRAY), bt);
+        } else {
+            r_sanity_check(groups.size() == 1 && !groups.begin()->first.has());
+            return make_counted<val_t>(
+                make_counted<const datum_t>(std::move(groups.begin()->second)), bt);
+        }
+    }
+
+    groups_t groups;
+};
+
+eager_acc_t *make_to_array() {
+    return new to_array_t();
+}
+
 template<class T>
 class terminal_t : public grouped_accumulator_t<T>, public eager_acc_t {
 protected:
@@ -213,6 +264,7 @@ private:
             throw *e;
         }
         grouped<T> *gres = boost::get<grouped<T> >(res);
+        r_sanity_check(gres);
         if (acc->size() == 0) {
             acc->swap(*gres);
         } else {
@@ -252,22 +304,6 @@ private:
     }
     virtual void unshard_impl(uint64_t *out, uint64_t *el) {
         *out += *el;
-    }
-};
-
-class to_array_terminal_t : public terminal_t<lst_t> {
-public:
-    to_array_terminal_t(env_t *, const to_array_wire_func_t &) : terminal_t(lst_t()) { }
-private:
-    virtual void accumulate(const counted_t<const datum_t> &el, lst_t *out) {
-        out->push_back(el);
-    }
-    virtual counted_t<const datum_t> unpack(lst_t *l) {
-        return make_counted<const datum_t>(std::move(*l));
-    }
-    virtual void unshard_impl(lst_t *out, lst_t *el) {
-        out->reserve(out->size() + el->size());
-        std::move(el->begin(), el->end(), std::back_inserter(*out));
     }
 };
 
@@ -397,9 +433,6 @@ public:
     terminal_visitor_t(env_t *_env) : env(_env) { }
     T *operator()(const count_wire_func_t &f) const {
         return new count_terminal_t(env, f);
-    }
-    T *operator()(const to_array_wire_func_t &f) const {
-        return new to_array_terminal_t(env, f);
     }
     T *operator()(const sum_wire_func_t &f) const {
         return new sum_terminal_t(env, f);

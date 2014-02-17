@@ -142,7 +142,6 @@ typedef boost::variant<map_wire_func_t,
                        > transform_variant_t;
 
 typedef boost::variant<count_wire_func_t,
-                       to_array_wire_func_t,
                        sum_wire_func_t,
                        avg_wire_func_t,
                        min_wire_func_t,
@@ -195,8 +194,11 @@ accumulator_t *make_append(const sorting_t &sorting, batcher_t *batcher);
 //                                           NULL if unsharding ^^^^^^^
 accumulator_t *make_terminal(
     ql::env_t *env, const terminal_variant_t &t);
+
+eager_acc_t *make_to_array();
 eager_acc_t *make_eager_terminal(
     ql::env_t *env, const terminal_variant_t &t);
+
 op_t *make_op(env_t *env, const transform_variant_t &tv);
 
 } // namespace ql
