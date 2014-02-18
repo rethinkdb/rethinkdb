@@ -1409,6 +1409,9 @@ page_cache_t::compute_changes(const std::set<page_txn_t *> &txns) {
 void page_cache_t::remove_txn_set_from_graph(page_cache_t *page_cache,
                                              const std::set<page_txn_t *> &txns) {
     page_cache->assert_thread();
+
+    std::set<page_txn_t *> unblocked;
+
     for (auto it = txns.begin(); it != txns.end(); ++it) {
         // We want detaching the subsequers and preceders to happen at the same time
         // that the flush_complete_cond_ is pulsed.  That way connect_preceder can
@@ -1416,23 +1419,16 @@ void page_cache_t::remove_txn_set_from_graph(page_cache_t *page_cache,
         ASSERT_FINITE_CORO_WAITING;
         page_txn_t *txn = *it;
         {
-            std::vector<page_txn_t *> unblocked;
             for (auto jt = txn->subseqers_.begin(); jt != txn->subseqers_.end(); ++jt) {
                 (*jt)->remove_preceder(txn);
                 if (txns.find(*jt) != txns.end()) {
                     if ((*jt)->began_waiting_for_flush_ && !(*jt)->spawned_flush_) {
-                        unblocked.reserve(txn->subseqers_.size());
-                        unblocked.push_back(*jt);
+                        unblocked.insert(*jt);
                     }
                 }
             }
             txn->subseqers_.clear();
-
-            for (auto jt = unblocked.begin(); jt != unblocked.end(); ++jt) {
-                page_cache->im_waiting_for_flush(*jt);
-            }
         }
-
 
         for (auto jt = txn->preceders_.begin(); jt != txn->preceders_.end(); ++jt) {
             // All our preceders should be from our own txn set.
@@ -1459,6 +1455,11 @@ void page_cache_t::remove_txn_set_from_graph(page_cache_t *page_cache,
         }
 
         txn->flush_complete_cond_.pulse();
+    }
+
+    // Now pulse those txns whose flushes might no longer blocked by some preceder.
+    for (auto jt = unblocked.begin(); jt != unblocked.end(); ++jt) {
+        page_cache->im_waiting_for_flush(*jt);
     }
 }
 
