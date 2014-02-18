@@ -97,11 +97,11 @@ private:
         if (num_args() == 1) {
             return f->call(env->env, flags);
         } else {
-            counted_t<val_t> arg1 = arg(env, 1);
+            counted_t<val_t> arg1 = arg(env, 1, flags);
             std::vector<counted_t<const datum_t> > args(1);
             args.reserve(num_args() - 1);
             for (size_t i = 2; i < num_args(); ++i) {
-                args.push_back(arg(env, i)->as_datum());
+                args.push_back(arg(env, i, flags)->as_datum());
             }
             r_sanity_check(!args[0].has());
             if (arg1->get_type().is_convertible(val_t::type_t::GROUPED_DATA)) {
