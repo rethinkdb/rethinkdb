@@ -1410,21 +1410,29 @@ void page_cache_t::remove_txn_set_from_graph(page_cache_t *page_cache,
                                              const std::set<page_txn_t *> &txns) {
     page_cache->assert_thread();
     for (auto it = txns.begin(); it != txns.end(); ++it) {
-        // ASSERT_FINITE_CORO_WAITING would be okay.  We want detaching the
-        // subsequers and preceders to happen at the same time that the
-        // flush_complete_cond_ is pulsed.  That way connect_preceder can check if
-        // flush_complete_cond_ has been pulsed.
-        ASSERT_NO_CORO_WAITING;
+        // We want detaching the subsequers and preceders to happen at the same time
+        // that the flush_complete_cond_ is pulsed.  That way connect_preceder can
+        // check if flush_complete_cond_ has been pulsed.
+        ASSERT_FINITE_CORO_WAITING;
         page_txn_t *txn = *it;
-        for (auto jt = txn->subseqers_.begin(); jt != txn->subseqers_.end(); ++jt) {
-            (*jt)->remove_preceder(txn);
-            if (txns.find(*jt) != txns.end()) {
-                if ((*jt)->began_waiting_for_flush_ && !(*jt)->spawned_flush_) {
-                    page_cache->im_waiting_for_flush(*jt);
+        {
+            std::vector<page_txn_t *> unblocked;
+            for (auto jt = txn->subseqers_.begin(); jt != txn->subseqers_.end(); ++jt) {
+                (*jt)->remove_preceder(txn);
+                if (txns.find(*jt) != txns.end()) {
+                    if ((*jt)->began_waiting_for_flush_ && !(*jt)->spawned_flush_) {
+                        unblocked.reserve(txn->subseqers_.size());
+                        unblocked.push_back(*jt);
+                    }
                 }
             }
+            txn->subseqers_.clear();
+
+            for (auto jt = unblocked.begin(); jt != unblocked.end(); ++jt) {
+                page_cache->im_waiting_for_flush(*jt);
+            }
         }
-        txn->subseqers_.clear();
+
 
         for (auto jt = txn->preceders_.begin(); jt != txn->preceders_.end(); ++jt) {
             (*jt)->remove_subseqer(txn);
@@ -1477,18 +1485,9 @@ struct ancillary_info_t {
     page_t *page;
 };
 
-void page_cache_t::do_flush_txn_set(page_cache_t *page_cache,
-                                    const std::set<page_txn_t *> &txns,
+void page_cache_t::do_flush_changes(page_cache_t *page_cache,
+                                    const std::map<block_id_t, block_change_t> &changes,
                                     fifo_enforcer_write_token_t index_write_token) {
-    page_cache->assert_thread();
-
-    // We're going to flush these transactions.  First we need to figure out what the
-    // set of changes we're actually doing is, since any transaction may have touched
-    // the same blocks.
-
-    std::map<block_id_t, block_change_t> changes
-        = page_cache_t::compute_changes(txns);
-
     std::vector<block_token_tstamp_t> blocks_by_tokens;
     blocks_by_tokens.reserve(changes.size());
 
@@ -1636,9 +1635,35 @@ void page_cache_t::do_flush_txn_set(page_cache_t *page_cache,
             page_cache->evicter().change_to_correct_eviction_bag(old_bag, it->page);
         }
     }
+}
 
-    // Flush complete, and we're back on the page cache's thread.
+void page_cache_t::do_flush_txn_set(page_cache_t *page_cache,
+                                    std::map<block_id_t, block_change_t> *changes_ptr,
+                                    const std::set<page_txn_t *> &txns) {
+    // This is called with spawn_now_dangerously!  The reason is partly so that we
+    // don't put a zillion coroutines on the message loop when doing a bunch of
+    // reads.  The other reason is that passing changes through a std::bind without
+    // copying it would be very annoying.
+    page_cache->assert_thread();
 
+    // We're going to flush these transactions.  First we need to figure out what the
+    // set of changes we're actually doing is, since any transaction may have touched
+    // the same blocks.
+
+    std::map<block_id_t, block_change_t> changes = std::move(*changes_ptr);
+    rassert(!changes.empty());
+
+    fifo_enforcer_write_token_t index_write_token
+        = page_cache->index_write_source_.enter_write();
+
+    // Okay, yield, thank you.
+    coro_t::yield();
+    do_flush_changes(page_cache, changes, index_write_token);
+
+    // Flush complete.
+
+    // KSI: Can't we remove_txn_set_from_graph before flushing?  Make pulsing
+    // flush_complete_cond_ a separate thing to do?
     page_cache_t::remove_txn_set_from_graph(page_cache, txns);
 }
 
@@ -1708,12 +1733,18 @@ void page_cache_t::im_waiting_for_flush(page_txn_t *txn) {
             (*it)->spawned_flush_ = true;
         }
 
-        fifo_enforcer_write_token_t token = index_write_source_.enter_write();
+        std::map<block_id_t, block_change_t> changes
+            = page_cache_t::compute_changes(flush_set);
 
-        coro_t::spawn_later_ordered(std::bind(&page_cache_t::do_flush_txn_set,
-                                              this,
-                                              flush_set,
-                                              token));
+        if (!changes.empty()) {
+            coro_t::spawn_now_dangerously(std::bind(&page_cache_t::do_flush_txn_set,
+                                                    this,
+                                                    &changes,
+                                                    flush_set));
+        } else {
+            // Flush complete.  do_flush_txn_set does this in the write case.
+            page_cache_t::remove_txn_set_from_graph(this, flush_set);
+        }
     }
 }
 
