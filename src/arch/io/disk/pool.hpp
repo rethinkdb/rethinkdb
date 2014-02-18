@@ -105,10 +105,10 @@ private:
     bool wrap_in_datasyncs;
     fd_t fd;
 
-    // Either buf_and_count.iov_base is used, or iovecs is used (for writev).  If
-    // iovecs is used, then buf_and_count.iov_len is the sum of the iovecs' iov_len
-    // fields.  Currently readv is not supported, but if you need it, it should be
-    // easy to add.
+    // Either type is ACTION_RESIZE, or buf_and_count.iov_base is used, or iovecs
+    // is used (for writev).  If iovecs is used, then buf_and_count.iov_len is the
+    // sum of the iovecs' iov_len fields.  Currently readv is not supported, but if
+    // you need it, it should be easy to add.
     scoped_array_t<iovec> iovecs;
     iovec buf_and_count;
     int64_t offset;
