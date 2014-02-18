@@ -1,6 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#ifndef BUFFER_CACHE_ALT_PAGE_HPP_
-#define BUFFER_CACHE_ALT_PAGE_HPP_
+#ifndef BUFFER_CACHE_ALT_PAGE_CACHE_HPP_
+#define BUFFER_CACHE_ALT_PAGE_CACHE_HPP_
 
 #include <map>
 #include <utility>
@@ -11,6 +11,7 @@
 #include "buffer_cache/alt/config.hpp"
 #include "buffer_cache/alt/evicter.hpp"
 #include "buffer_cache/alt/free_list.hpp"
+#include "buffer_cache/alt/page.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/access.hpp"
 #include "concurrency/auto_drainer.hpp"
@@ -82,161 +83,6 @@ private:
 
 namespace alt {
 
-// A page_t represents a page (a byte buffer of a specific size), having a definite
-// value known at the construction of the page_t (and possibly later modified
-// in-place, but still a definite known value).
-class page_t {
-public:
-    page_t(block_size_t block_size, scoped_malloc_t<ser_buffer_t> buf,
-           page_cache_t *page_cache);
-    page_t(scoped_malloc_t<ser_buffer_t> buf,
-           const counted_t<standard_block_token_t> &token,
-           page_cache_t *page_cache);
-    page_t(block_id_t block_id, page_cache_t *page_cache);
-    page_t(page_t *copyee, page_cache_t *page_cache);
-    ~page_t();
-
-    page_t *make_copy(page_cache_t *page_cache);
-
-    void add_waiter(page_acq_t *acq);
-    void remove_waiter(page_acq_t *acq);
-
-private:
-    friend class page_acq_t;
-    // These may not be called until the page_acq_t's buf_ready_signal is pulsed.
-    void *get_page_buf(page_cache_t *page_cache);
-    void reset_block_token();
-    uint32_t get_page_buf_size();
-
-    bool is_deleted();
-
-    friend class page_ptr_t;
-    void add_snapshotter();
-    void remove_snapshotter(page_cache_t *page_cache);
-    size_t num_snapshot_references();
-
-
-    void pulse_waiters_or_make_evictable(page_cache_t *page_cache);
-
-    static void load_with_block_id(page_t *page,
-                                   block_id_t block_id,
-                                   page_cache_t *page_cache);
-
-    static void load_from_copyee(page_t *page, page_t *copyee,
-                                 page_cache_t *page_cache);
-
-    static void load_using_block_token(page_t *page, page_cache_t *page_cache);
-
-    friend class page_cache_t;
-    friend class evicter_t;
-    friend class eviction_bag_t;
-    friend backindex_bag_index_t *access_backindex(page_t *page);
-
-    void evict_self();
-
-    // KSI: Explain this more.
-    // One of destroy_ptr_, buf_, or block_token_ is non-null.
-    bool *destroy_ptr_;
-    uint32_t ser_buf_size_;
-    scoped_malloc_t<ser_buffer_t> buf_;
-    counted_t<standard_block_token_t> block_token_;
-
-    uint64_t access_time_;
-
-    // How many page_ptr_t's point at this page, expecting nothing to modify it,
-    // other than themselves.
-    size_t snapshot_refcount_;
-
-    // A list of waiters that expect the value to be loaded, and (as long as there
-    // are waiters) expect the value to never be evicted.
-    // RSP: This could be a single pointer instead of two.
-    intrusive_list_t<page_acq_t> waiters_;
-
-    // This page_t's index into its eviction bag (managed by the page_cache_t -- one
-    // of unevictable_pages_, etc).  Which bag we should be in:
-    //
-    // if destroy_ptr_ is non-null:  unevictable_pages_
-    // else if waiters_ is non-empty: unevictable_pages_
-    // else if buf_ is null: evicted_pages_ (and block_token_ is non-null)
-    // else if block_token_ is non-null: evictable_disk_backed_pages_
-    // else: evictable_unbacked_pages_ (buf_ is non-null, block_token_ is null)
-    //
-    // So, when destroy_ptr_, waiters_, buf_, or block_token_ is touched, we might
-    // need to change this page's eviction bag.
-    //
-    // The logic above is implemented in page_cache_t::correct_eviction_category.
-    backindex_bag_index_t eviction_index_;
-
-    DISABLE_COPYING(page_t);
-};
-
-inline backindex_bag_index_t *access_backindex(page_t *page) {
-    return &page->eviction_index_;
-}
-
-// A page_ptr_t holds a pointer to a page_t.
-class page_ptr_t {
-public:
-    explicit page_ptr_t(page_t *page, page_cache_t *page_cache)
-        : page_(NULL), page_cache_(NULL) { init(page, page_cache); }
-    page_ptr_t();
-
-    // The page_ptr_t _should_ be reset ()) before the destructor is called, but
-    // it'll work right now without that.  Eventually, reset() will take a
-    // page_cache_t parameter, and the page_cache_ field will be removed.
-    ~page_ptr_t();
-
-    page_ptr_t(page_ptr_t &&movee);
-    page_ptr_t &operator=(page_ptr_t &&movee);
-
-    void init(page_t *page, page_cache_t *page_cache);
-
-    page_t *get_page_for_read() const;
-    page_t *get_page_for_write(page_cache_t *page_cache);
-
-    void reset();
-
-    bool has() const {
-        return page_ != NULL;
-    }
-
-private:
-    page_t *page_;
-    // KSI: Get rid of this variable.
-    page_cache_t *page_cache_;
-    DISABLE_COPYING(page_ptr_t);
-};
-
-// This type's purpose is to wait for the page to be loaded, and to prevent it from
-// being unloaded.
-class page_acq_t : public intrusive_list_node_t<page_acq_t> {
-public:
-    page_acq_t();
-    ~page_acq_t();
-
-    void init(page_t *page, page_cache_t *page_cache);
-
-    page_cache_t *page_cache() const {
-        rassert(page_cache_ != NULL);
-        return page_cache_;
-    }
-
-    signal_t *buf_ready_signal();
-    bool has() const;
-
-    // These block, uninterruptibly waiting for buf_ready_signal() to be pulsed.
-    uint32_t get_buf_size();
-    void *get_buf_write();
-    const void *get_buf_read();
-
-private:
-    friend class page_t;
-
-    page_t *page_;
-    page_cache_t *page_cache_;
-    cond_t buf_ready_signal_;
-    DISABLE_COPYING(page_acq_t);
-};
 
 // Has information necessary for the current_page_t to do certain things -- it's
 // known by the current_page_acq_t.
@@ -782,4 +628,4 @@ private:
 }  // namespace alt
 
 
-#endif  // BUFFER_CACHE_ALT_PAGE_HPP_
+#endif  // BUFFER_CACHE_ALT_PAGE_CACHE_HPP_
