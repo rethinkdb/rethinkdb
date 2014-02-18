@@ -1421,7 +1421,7 @@ void page_cache_t::remove_txn_set_from_graph(page_cache_t *page_cache,
         {
             for (auto jt = txn->subseqers_.begin(); jt != txn->subseqers_.end(); ++jt) {
                 (*jt)->remove_preceder(txn);
-                if (txns.find(*jt) != txns.end()) {
+                if (txns.find(*jt) == txns.end()) {
                     if ((*jt)->began_waiting_for_flush_ && !(*jt)->spawned_flush_) {
                         unblocked.insert(*jt);
                     }
