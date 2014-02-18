@@ -54,8 +54,8 @@ private:
     virtual bool should_send_batch() = 0;
 
     virtual void finish_impl(result_t *out) {
-        *out = grouped<T>();
-        boost::get<grouped<T> >(*out).swap(acc);
+        *out = grouped_t<T>();
+        boost::get<grouped_t<T> >(*out).swap(acc);
         guarantee(acc.size() == 0);
     }
 
@@ -65,7 +65,7 @@ private:
         std::map<counted_t<const datum_t>, std::vector<T *> > vecs;
         for (auto res = results.begin(); res != results.end(); ++res) {
             guarantee(*res);
-            grouped<T> *gres = boost::get<grouped<T> >(*res);
+            grouped_t<T> *gres = boost::get<grouped_t<T> >(*res);
             guarantee(gres);
             for (auto kv = gres->begin(); kv != gres->end(); ++kv) {
                 vecs[kv->first].push_back(&kv->second);
@@ -82,10 +82,10 @@ private:
 
 protected:
     const T *get_default_val() { return &default_val; }
-    grouped<T> *get_acc() { return &acc; }
+    grouped_t<T> *get_acc() { return &acc; }
 private:
     const T default_val;
-    grouped<T> acc;
+    grouped_t<T> acc;
 };
 
 class append_t : public grouped_accumulator_t<stream_t> {
@@ -179,7 +179,7 @@ private:
     }
 
     virtual void add_res(result_t *res) {
-        auto streams = boost::get<grouped<stream_t> >(res);
+        auto streams = boost::get<grouped_t<stream_t> >(res);
         r_sanity_check(streams);
         for (auto kv = streams->begin(); kv != streams->end(); ++kv) {
             datums_t *l = &groups[kv->first];
@@ -222,7 +222,7 @@ protected:
     terminal_t(T &&t) : grouped_accumulator_t<T>(std::move(t)) { }
 private:
     virtual void operator()(groups_t *groups) {
-        grouped<T> *acc = grouped_accumulator_t<T>::get_acc();
+        grouped_t<T> *acc = grouped_accumulator_t<T>::get_acc();
         const T *default_val = grouped_accumulator_t<T>::get_default_val();
         for (auto it = groups->begin(); it != groups->end(); ++it) {
             auto t_it = acc->insert(std::make_pair(it->first, *default_val)).first;
@@ -236,7 +236,7 @@ private:
     virtual counted_t<val_t> finish_eager(protob_t<const Backtrace> bt,
                                           bool is_grouped) {
         accumulator_t::mark_finished();
-        grouped<T> *acc = grouped_accumulator_t<T>::get_acc();
+        grouped_t<T> *acc = grouped_accumulator_t<T>::get_acc();
         const T *default_val = grouped_accumulator_t<T>::get_default_val();
         counted_t<val_t> retval;
         if (is_grouped) {
@@ -258,12 +258,12 @@ private:
     virtual counted_t<const datum_t> unpack(T *t) = 0;
 
     virtual void add_res(result_t *res) {
-        grouped<T> *acc = grouped_accumulator_t<T>::get_acc();
+        grouped_t<T> *acc = grouped_accumulator_t<T>::get_acc();
         const T *default_val = grouped_accumulator_t<T>::get_default_val();
         if (auto e = boost::get<exc_t>(res)) {
             throw *e;
         }
-        grouped<T> *gres = boost::get<grouped<T> >(res);
+        grouped_t<T> *gres = boost::get<grouped_t<T> >(res);
         r_sanity_check(gres);
         if (acc->size() == 0) {
             acc->swap(*gres);

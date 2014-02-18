@@ -43,7 +43,7 @@ struct rget_item_t {
 typedef std::vector<rget_item_t> stream_t;
 
 // We write all of these serializations and deserializations explicitly because:
-// * It stops people from inadvertently using a new `grouped<T>` without thinking.
+// * It stops people from inadvertently using a new `grouped_t<T>` without thinking.
 // * Some grouped elements need specialized serialization.
 static inline void serialize_grouped(
     write_message_t *msg, const counted_t<const datum_t> &d) {
@@ -94,7 +94,7 @@ static inline archive_result_t deserialize_grouped(read_stream_t *s, datums_t *d
 }
 
 template<class T>
-class grouped : public std::map<counted_t<const ql::datum_t>, T> {
+class grouped_t : public std::map<counted_t<const ql::datum_t>, T> {
 public:
     void rdb_serialize(write_message_t &msg) const { // NOLINT
         serialize_varint_uint64(
@@ -122,15 +122,15 @@ public:
     }
 };
 
-class grouped_data_t : public grouped<counted_t<const datum_t> >,
+class grouped_data_t : public grouped_t<counted_t<const datum_t> >,
                        public slow_atomic_countable_t<grouped_data_t> { };
 
 typedef boost::variant<
-    grouped<uint64_t>, // Count.
-    grouped<double>, // Sum.
-    grouped<std::pair<double, uint64_t> >, // Avg.
-    grouped<counted_t<const ql::datum_t> >, // Reduce (may be NULL), min, max.
-    grouped<stream_t>, // No terminal.,
+    grouped_t<uint64_t>, // Count.
+    grouped_t<double>, // Sum.
+    grouped_t<std::pair<double, uint64_t> >, // Avg.
+    grouped_t<counted_t<const ql::datum_t> >, // Reduce (may be NULL), min, max.
+    grouped_t<stream_t>, // No terminal.,
     exc_t // Don't re-order (we don't want this to initialize to an error.)
     > result_t;
 
