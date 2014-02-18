@@ -30,7 +30,7 @@ void accumulator_t::finish(result_t *out) {
 template<class T>
 class grouped_accumulator_t : public accumulator_t {
 protected:
-    grouped_accumulator_t(T &&_default_t) : default_t(std::move(_default_t)) { }
+    grouped_accumulator_t(T &&_default_val) : default_val(std::move(_default_val)) { }
     virtual ~grouped_accumulator_t() { }
 private:
     virtual done_t operator()(groups_t *groups,
@@ -38,7 +38,7 @@ private:
                               counted_t<const datum_t> &&sindex_val) {
         for (auto it = groups->begin(); it != groups->end(); ++it) {
             // If there's already an entry, this insert won't do anything.
-            auto t_it = acc.insert(std::make_pair(it->first, default_t)).first;
+            auto t_it = acc.insert(std::make_pair(it->first, default_val)).first;
             for (auto el = it->second.begin(); el != it->second.end(); ++el) {
                 accumulate(*el, &t_it->second, std::move(key), std::move(sindex_val));
             }
@@ -72,7 +72,7 @@ private:
             }
         }
         for (auto kv = vecs.begin(); kv != vecs.end(); ++kv) {
-            auto t_it = acc.insert(std::make_pair(kv->first, default_t)).first;
+            auto t_it = acc.insert(std::make_pair(kv->first, default_val)).first;
             unshard_impl(&t_it->second, last_key, kv->second);
         }
     }
@@ -81,10 +81,10 @@ private:
                               const std::vector<T *> &ts) = 0;
 
 protected:
-    const T *get_default_t() { return &default_t; }
+    const T *get_default_val() { return &default_val; }
     grouped<T> *get_acc() { return &acc; }
 private:
-    const T default_t;
+    const T default_val;
     grouped<T> acc;
 };
 
@@ -223,9 +223,9 @@ protected:
 private:
     virtual void operator()(groups_t *groups) {
         grouped<T> *acc = grouped_accumulator_t<T>::get_acc();
-        const T *default_t = grouped_accumulator_t<T>::get_default_t();
+        const T *default_val = grouped_accumulator_t<T>::get_default_val();
         for (auto it = groups->begin(); it != groups->end(); ++it) {
-            auto t_it = acc->insert(std::make_pair(it->first, *default_t)).first;
+            auto t_it = acc->insert(std::make_pair(it->first, *default_val)).first;
             for (auto el = it->second.begin(); el != it->second.end(); ++el) {
                 accumulate(*el, &t_it->second);
             }
@@ -237,7 +237,7 @@ private:
                                           bool is_grouped) {
         accumulator_t::mark_finished();
         grouped<T> *acc = grouped_accumulator_t<T>::get_acc();
-        const T *default_t = grouped_accumulator_t<T>::get_default_t();
+        const T *default_val = grouped_accumulator_t<T>::get_default_val();
         counted_t<val_t> retval;
         if (is_grouped) {
             counted_t<grouped_data_t> ret(new grouped_data_t());
@@ -246,7 +246,7 @@ private:
             }
             retval = make_counted<val_t>(std::move(ret), bt);
         } else if (acc->size() == 0) {
-            T t(*default_t);
+            T t(*default_val);
             retval = make_counted<val_t>(unpack(&t), bt);
         } else {
             r_sanity_check(acc->size() == 1 && !acc->begin()->first.has());
@@ -259,7 +259,7 @@ private:
 
     virtual void add_res(result_t *res) {
         grouped<T> *acc = grouped_accumulator_t<T>::get_acc();
-        const T *default_t = grouped_accumulator_t<T>::get_default_t();
+        const T *default_val = grouped_accumulator_t<T>::get_default_val();
         if (auto e = boost::get<exc_t>(res)) {
             throw *e;
         }
@@ -269,7 +269,7 @@ private:
             acc->swap(*gres);
         } else {
             for (auto kv = gres->begin(); kv != gres->end(); ++kv) {
-                auto t_it = acc->insert(std::make_pair(kv->first, *default_t)).first;
+                auto t_it = acc->insert(std::make_pair(kv->first, *default_val)).first;
                 unshard_impl(&t_it->second, &kv->second);
             }
         }
