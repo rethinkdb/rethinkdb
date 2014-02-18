@@ -45,7 +45,6 @@ void run_sindex_low_level_operations_test() {
     std::map<std::string, secondary_index_t> mirror;
 
     {
-        order_token_t otok = order_source.check_in("sindex unittest");
         scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
         get_btree_superblock_and_txn(&cache_conn, write_access_t::write, 1,
@@ -71,7 +70,6 @@ void run_sindex_low_level_operations_test() {
 
         mirror[id] = s;
 
-        order_token_t otok = order_source.check_in("sindex unittest");
         scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
         get_btree_superblock_and_txn(&cache_conn, write_access_t::write, 1,
@@ -86,7 +84,6 @@ void run_sindex_low_level_operations_test() {
     }
 
     {
-        order_token_t otok = order_source.check_in("sindex unittest");
         scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
         get_btree_superblock_and_txn(&cache_conn, write_access_t::write, 1,

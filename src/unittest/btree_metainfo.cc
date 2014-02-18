@@ -72,9 +72,6 @@ void run_metainfo_test() {
 
 
     for (int i = 0; i < 1000; i++) {
-
-        order_token_t otok = order_source.check_in("metainfo unittest");
-
         scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
         get_btree_superblock_and_txn(&cache_conn, write_access_t::write, 1,
