@@ -400,7 +400,7 @@ bool raw_type_is_convertible(val_t::type_t::raw_type_t _t1,
     case SINGLE_SELECTION: return t2 == SINGLE_SELECTION || t2 == DATUM;
     case DATUM:            return t2 == DATUM || t2 == SEQUENCE;
     case FUNC:             return t2 == FUNC;
-    case GROUPED_DATA:     return t2 == GROUPED_DATA; // RSI: more?
+    case GROUPED_DATA:     return t2 == GROUPED_DATA;
     default: unreachable();
     }
 }

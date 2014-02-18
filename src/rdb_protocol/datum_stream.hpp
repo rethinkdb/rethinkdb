@@ -76,8 +76,6 @@ private:
 };
 
 // This is a more selective subset of the list at the top of protocol.cc.
-// RSI typedef rdb_protocol_details::transform_t transform_t;
-// RSI typedef rdb_protocol_details::terminal_t terminal_t;
 typedef rdb_protocol_t::read_t read_t;
 typedef rdb_protocol_t::sindex_rangespec_t sindex_rangespec_t;
 typedef rdb_protocol_t::rget_read_t rget_read_t;
@@ -200,11 +198,11 @@ public:
 private:
     virtual bool is_array();
     virtual counted_t<const datum_t> as_array(env_t *env) {
+        // RSI: pass through.
         return is_array()
             ? eager_datum_stream_t::as_array(env)
             : counted_t<const datum_t>();
     }
-    // RSI: implement as_array()
     virtual std::vector<counted_t<const datum_t> >
     next_raw_batch(env_t *env, UNUSED const batchspec_t &batchspec);
     counted_t<const datum_t> next(env_t *env, const batchspec_t &batchspec);
@@ -385,7 +383,6 @@ public:
         bool use_outdated,
         scoped_ptr_t<readgen_t> &&readgen);
     void add_transformation(transform_variant_t &&tv);
-    // RSI: make work (also: rename transform_visitors.*)
     void accumulate(env_t *env, eager_acc_t *acc, const terminal_variant_t &tv);
     void accumulate_all(env_t *env, eager_acc_t *acc);
     std::vector<counted_t<const datum_t> >

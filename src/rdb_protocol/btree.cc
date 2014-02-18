@@ -616,8 +616,6 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
     // auto_drainer_t is destructed here so this waits for other coros to finish.
 }
 
-// RSI: nuke this
-
 // This is actually a kind of misleading name. This function estimates the size
 // of a datum, not a whole rget, though it is used for that purpose (by summing
 // up these responses).

@@ -233,7 +233,6 @@ private:
         groups->clear();
     }
 
-    // RSI: empty?
     virtual counted_t<val_t> finish_eager(protob_t<const Backtrace> bt,
                                           bool is_grouped) {
         accumulator_t::mark_finished();

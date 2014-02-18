@@ -684,8 +684,6 @@ bool lazy_datum_stream_t::is_exhausted() const {
     return reader.is_finished() && batch_cache_exhausted();
 }
 
-// RSI: fix `next` and `next_raw_batch` to take transformations into account
-// ARRAY_DATUM_STREAM_T
 array_datum_stream_t::array_datum_stream_t(counted_t<const datum_t> _arr,
                                            const protob_t<const Backtrace> &bt_source)
     : eager_datum_stream_t(bt_source), index(0), arr(_arr) { }
@@ -872,7 +870,6 @@ counted_t<datum_stream_t> union_datum_stream_t::add_transformation(
     return counted_from_this();
 }
 
-// RSI: double-check what happens when r.union(lst, empty_lst).reduce{...}
 void union_datum_stream_t::accumulate(
     env_t *env, eager_acc_t *acc, const terminal_variant_t &tv) {
     for (auto it = streams.begin(); it != streams.end(); ++it) {

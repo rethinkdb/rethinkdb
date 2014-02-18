@@ -155,7 +155,6 @@ public:
     virtual void operator()(groups_t *groups) = 0;
 };
 
-// RSI: does append keep track of the last considered key?
 class accumulator_t {
 public:
     accumulator_t();

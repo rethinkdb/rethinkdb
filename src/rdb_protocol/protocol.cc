@@ -634,7 +634,6 @@ void rdb_r_unshard_visitor_t::operator()(const rget_read_t &rg) {
     auto out = boost::get<rget_read_response_t>(&response_out->response);
     out->truncated = false;
     out->key_range = read_t(rg, profile_bool_t::DONT_PROFILE).get_region().inner;
-    // RSI: safe to kill? (out->last_key = out->key_range.left;)
 
     // Fill in `truncated` and `last_key`, get responses, abort if there's an error.
     std::vector<ql::result_t *> results(count);
@@ -674,7 +673,7 @@ void rdb_r_unshard_visitor_t::operator()(const distribution_read_t &dg) {
     for (size_t i = 0; i < count; ++i) {
         auto result = boost::get<distribution_read_response_t>(&responses[i].response);
         guarantee(result != NULL, "Bad boost::get\n");
-        results[i] = *result;
+        results[i] = *result; // TODO: move semantics.
     }
 
     std::sort(results.begin(), results.end(), distribution_read_response_less_t());
@@ -717,7 +716,7 @@ void rdb_r_unshard_visitor_t::operator()(const distribution_read_t &dg) {
                 mit->second = static_cast<int64_t>(mit->second * scale_factor);
             }
 
-            // RSI: move semantics
+            // TODO: move semantics.
             res.key_counts.insert(
                 results[largest_index].key_counts.begin(),
                 results[largest_index].key_counts.end());
