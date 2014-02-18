@@ -1,12 +1,6 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef HASH_REGION_HPP_
 #define HASH_REGION_HPP_
-
-
-// TODO: Find a good location for this file.
-#ifndef __STDC_FORMAT_MACROS
-#define __STDC_FORMAT_MACROS
-#endif
 
 #include <inttypes.h>
 

@@ -200,7 +200,7 @@ private:
     const bool should_exist;
 };
 
-TEST(RdbInterrupt, InsertOp) {
+TEST(RDBInterrupt, InsertOp) {
     ql::protob_t<Term> insert_proto = ql::make_counted_term();
     uint32_t eval_count;
 
@@ -245,7 +245,7 @@ public:
     }
 };
 
-TEST(RdbInterrupt, GetOp) {
+TEST(RDBInterrupt, GetOp) {
     ql::protob_t<Term> get_proto = ql::make_counted_term();
     uint32_t eval_count;
     std::set<std::map<std::string, std::string> > initial_data;
@@ -280,7 +280,7 @@ TEST(RdbInterrupt, GetOp) {
     }
 }
 
-TEST(RdbInterrupt, DeleteOp) {
+TEST(RDBInterrupt, DeleteOp) {
     ql::protob_t<Term> delete_proto = ql::make_counted_term();
     uint32_t eval_count;
     std::set<std::map<std::string, std::string> > initial_data;

@@ -1,18 +1,29 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
-#include "buffer_cache/blob.hpp"
+// Copyright 2010-2014 RethinkDB, all rights reserved.
+#include "buffer_cache/alt/blob.hpp"
+
+#include <stdint.h>
 
 #include <limits>
 
-#include "buffer_cache/buffer_cache.hpp"
-#include "serializer/types.hpp"
+#include "buffer_cache/alt/alt.hpp"
 #include "concurrency/pmap.hpp"
 #include "containers/buffer_group.hpp"
 #include "containers/scoped.hpp"
+#include "serializer/types.hpp"
+
+template <class T>
+void clear_and_delete(std::vector<T *> *vec) {
+    while (!vec->empty()) {
+        T *back = vec->back();
+        vec->pop_back();
+        delete back;
+    }
+}
 
 blob_acq_t::~blob_acq_t() {
-    for (int i = 0, e = bufs_.size(); i < e; ++i) {
-        delete bufs_[i];
-    }
+    clear_and_delete(&reads_);
+    clear_and_delete(&writes_);
+    clear_and_delete(&bufs_);
 }
 
 namespace blob {
@@ -29,8 +40,15 @@ int block_ids_offset(int maxreflen) {
     return big_offset_offset(maxreflen) + sizeof(int64_t);
 }
 
-temporary_acq_tree_node_t *make_tree_from_block_ids(transaction_t *txn, access_t mode, int levels, int64_t offset, int64_t size, const block_id_t *block_ids);
-void expose_tree_from_block_ids(transaction_t *txn, access_t mode, int levels, int64_t offset, int64_t size, temporary_acq_tree_node_t *tree, buffer_group_t *buffer_group_out, blob_acq_t *acq_group_out);
+temporary_acq_tree_node_t *
+make_tree_from_block_ids(buf_parent_t parent, access_t mode, int levels,
+                         int64_t offset, int64_t size, const block_id_t *block_ids);
+
+void expose_tree_from_block_ids(buf_parent_t parent, access_t mode,
+                                int levels, int64_t offset, int64_t size,
+                                temporary_acq_tree_node_t *tree,
+                                buffer_group_t *buffer_group_out,
+                                blob_acq_t *acq_group_out);
 
 
 int small_size(const char *ref, int maxreflen) {
@@ -121,7 +139,8 @@ block_id_t *internal_node_block_ids(void *buf) {
     return reinterpret_cast<block_id_t *>(reinterpret_cast<char *>(buf) + sizeof(block_magic_t));
 }
 
-ref_info_t big_ref_info(block_size_t block_size, int64_t offset, int64_t size, int maxreflen) {
+ref_info_t big_ref_info(block_size_t block_size, int64_t offset, int64_t size,
+                        int maxreflen, int64_t *blockid_count_out) {
     rassert(size > int64_t(maxreflen - big_size_offset(maxreflen)));
     int64_t max_blockid_count = (maxreflen - block_ids_offset(maxreflen)) / sizeof(block_id_t);
 
@@ -136,7 +155,14 @@ ref_info_t big_ref_info(block_size_t block_size, int64_t offset, int64_t size, i
     ref_info_t info;
     info.refsize = block_ids_offset(maxreflen) + sizeof(block_id_t) * block_count;
     info.levels = levels;
+    *blockid_count_out = block_count;
     return info;
+}
+
+ref_info_t big_ref_info(block_size_t block_size, int64_t offset, int64_t size,
+                        int maxreflen) {
+    int64_t blockid_count;
+    return big_ref_info(block_size, offset, size, maxreflen, &blockid_count);
 }
 
 ref_info_t ref_info(block_size_t block_size, const char *ref, int maxreflen) {
@@ -260,12 +286,34 @@ int64_t blob_t::valuesize() const {
     return blob::value_size(ref_, maxreflen_);
 }
 
+void blob_t::detach_subtrees(buf_parent_t root) {
+    if (blob::is_small(ref_, maxreflen_)) {
+        return;
+    }
+
+    int64_t blockid_count;
+    blob::big_ref_info(root.cache()->max_block_size(),
+                       blob::big_offset(ref_, maxreflen_),
+                       blob::big_size(ref_, maxreflen_),
+                       maxreflen_,
+                       &blockid_count);
+
+    const block_id_t *ids = blob::block_ids(ref_, maxreflen_);
+
+    for (int64_t i = 0; i < blockid_count; ++i) {
+        root.detach_child(ids[i]);
+    }
+}
+
 union temporary_acq_tree_node_t {
     buf_lock_t *buf;
     temporary_acq_tree_node_t *child;
 };
 
-void blob_t::expose_region(transaction_t *txn, access_t mode, int64_t offset, int64_t size, buffer_group_t *buffer_group_out, blob_acq_t *acq_group_out) {
+void blob_t::expose_region(buf_parent_t parent, access_t mode,
+                           int64_t offset, int64_t size,
+                           buffer_group_t *buffer_group_out,
+                           blob_acq_t *acq_group_out) {
     if (size == 0) {
         return;
     }
@@ -281,26 +329,37 @@ void blob_t::expose_region(transaction_t *txn, access_t mode, int64_t offset, in
     } else {
         // It's large.
 
-        int levels = blob::ref_info(txn->get_cache()->get_block_size(), ref_, maxreflen_).levels;
+        int levels = blob::ref_info(parent.cache()->max_block_size(),
+                                    ref_, maxreflen_).levels;
 
         int64_t real_offset = blob::big_offset(ref_, maxreflen_) + offset;
 
         // Acquiring is done recursively in parallel,
-        temporary_acq_tree_node_t *tree = blob::make_tree_from_block_ids(txn, mode, levels, real_offset, size, blob::block_ids(ref_, maxreflen_));
+        temporary_acq_tree_node_t *tree
+            = blob::make_tree_from_block_ids(parent, mode, levels, real_offset,
+                                             size,
+                                             blob::block_ids(ref_, maxreflen_));
 
         // Exposing and writing to the buffer group is done serially.
-        blob::expose_tree_from_block_ids(txn, mode, levels, real_offset, size, tree, buffer_group_out, acq_group_out);
+        blob::expose_tree_from_block_ids(parent, mode, levels, real_offset,
+                                         size, tree, buffer_group_out,
+                                         acq_group_out);
     }
 }
 
-void blob_t::expose_all(transaction_t *txn, access_t mode, buffer_group_t *buffer_group_out, blob_acq_t *acq_group_out) {
-    expose_region(txn, mode, 0, valuesize(), buffer_group_out, acq_group_out);
+void blob_t::expose_all(buf_parent_t parent, access_t mode,
+                        buffer_group_t *buffer_group_out,
+                        blob_acq_t *acq_group_out) {
+    expose_region(parent, mode, 0, valuesize(), buffer_group_out, acq_group_out);
 }
 
 namespace blob {
 
 struct region_tree_filler_t {
-    transaction_t *txn;
+    explicit region_tree_filler_t(buf_parent_t _parent)
+        : parent(_parent) { }
+
+    buf_parent_t parent;
     access_t mode;
     int levels;
     int64_t offset, size;
@@ -310,29 +369,38 @@ struct region_tree_filler_t {
 
     void operator()(int i) const {
         if (levels > 1) {
-            buf_lock_t lock(txn, block_ids[lo + i], mode);
-            const block_id_t *sub_ids = blob::internal_node_block_ids(lock.get_data_read());
+            buf_lock_t lock(parent, block_ids[lo + i], mode);
+            buf_read_t buf_read(&lock);
+            // KSI: Use this block size for an assertion or something.
+            uint32_t unused_block_size;
+            const block_id_t *sub_ids
+                = blob::internal_node_block_ids(buf_read.get_data_read(&unused_block_size));
 
             int64_t suboffset, subsize;
-            shrink(txn->get_cache()->get_block_size(), levels, offset, size, lo + i, &suboffset, &subsize);
-            nodes[i].child = blob::make_tree_from_block_ids(txn, mode, levels - 1, suboffset, subsize, sub_ids);
+            shrink(parent.cache()->max_block_size(), levels, offset, size, lo + i, &suboffset, &subsize);
+            nodes[i].child = blob::make_tree_from_block_ids(buf_parent_t(&lock),
+                                                            mode, levels - 1,
+                                                            suboffset, subsize,
+                                                            sub_ids);
         } else {
-            nodes[i].buf = new buf_lock_t(txn, block_ids[lo + i], mode);
+            nodes[i].buf = new buf_lock_t(parent, block_ids[lo + i], mode);
         }
     }
 };
 
-temporary_acq_tree_node_t *make_tree_from_block_ids(transaction_t *txn, access_t mode, int levels, int64_t offset, int64_t size, const block_id_t *block_ids) {
+temporary_acq_tree_node_t *
+make_tree_from_block_ids(buf_parent_t parent, access_t mode, int levels,
+                         int64_t offset, int64_t size, const block_id_t *block_ids) {
     rassert(size > 0);
 
-    region_tree_filler_t filler;
-    filler.txn = txn;
+    region_tree_filler_t filler(parent);
     filler.mode = mode;
     filler.levels = levels;
     filler.offset = offset;
     filler.size = size;
     filler.block_ids = block_ids;
-    compute_acquisition_offsets(txn->get_cache()->get_block_size(), levels, offset, size, &filler.lo, &filler.hi);
+    compute_acquisition_offsets(parent.cache()->max_block_size(), levels, offset,
+                                size, &filler.lo, &filler.hi);
 
     filler.nodes = new temporary_acq_tree_node_t[filler.hi - filler.lo];
 
@@ -341,32 +409,45 @@ temporary_acq_tree_node_t *make_tree_from_block_ids(transaction_t *txn, access_t
     return filler.nodes;
 }
 
-void expose_tree_from_block_ids(transaction_t *txn, access_t mode, int levels, int64_t offset, int64_t size, temporary_acq_tree_node_t *tree, buffer_group_t *buffer_group_out, blob_acq_t *acq_group_out) {
+void expose_tree_from_block_ids(buf_parent_t parent, access_t mode,
+                                int levels, int64_t offset, int64_t size,
+                                temporary_acq_tree_node_t *tree,
+                                buffer_group_t *buffer_group_out,
+                                blob_acq_t *acq_group_out) {
     rassert(size > 0);
 
     int lo, hi;
-    blob::compute_acquisition_offsets(txn->get_cache()->get_block_size(), levels, offset, size, &lo, &hi);
+    blob::compute_acquisition_offsets(parent.cache()->max_block_size(), levels,
+                                      offset, size, &lo, &hi);
 
     for (int i = 0; i < hi - lo; ++i) {
         int64_t suboffset, subsize;
-        blob::shrink(txn->get_cache()->get_block_size(), levels, offset, size, lo + i, &suboffset, &subsize);
+        blob::shrink(parent.cache()->max_block_size(), levels, offset, size,
+                     lo + i, &suboffset, &subsize);
         if (levels > 1) {
-            expose_tree_from_block_ids(txn, mode, levels - 1, suboffset, subsize, tree[i].child, buffer_group_out, acq_group_out);
+            expose_tree_from_block_ids(parent, mode, levels - 1, suboffset,
+                                       subsize, tree[i].child, buffer_group_out,
+                                       acq_group_out);
         } else {
-            rassert(0 < subsize && subsize <= blob::leaf_size(txn->get_cache()->get_block_size()));
-            rassert(0 <= suboffset && suboffset + subsize <= blob::leaf_size(txn->get_cache()->get_block_size()));
+            rassert(0 < subsize && subsize <= blob::leaf_size(parent.cache()->max_block_size()));
+            rassert(0 <= suboffset && suboffset + subsize <= blob::leaf_size(parent.cache()->max_block_size()));
 
             buf_lock_t *buf = tree[i].buf;
             void *leaf_buf;
-            if (is_read_mode(mode)) {
-                leaf_buf = const_cast<void *>(buf->get_data_read());
+            if (mode == access_t::read) {
+                buf_read_t *buf_read = new buf_read_t(buf);
+                // KSI: Could we use this block size somehow?  An assertion?
+                uint32_t block_size;
+                leaf_buf = const_cast<void *>(buf_read->get_data_read(&block_size));
+                acq_group_out->add_buf(buf, buf_read);
             } else {
-                leaf_buf = buf->get_data_write(suboffset + subsize + blob::LEAF_NODE_DATA_OFFSET);
+                buf_write_t *buf_write = new buf_write_t(buf);
+                leaf_buf = buf_write->get_data_write(suboffset + subsize
+                                                     + blob::LEAF_NODE_DATA_OFFSET);
+                acq_group_out->add_buf(buf, buf_write);
             }
 
             char *data = blob::leaf_node_data(leaf_buf);
-
-            acq_group_out->add_buf(buf);
             buffer_group_out->add_buffer(subsize, data + suboffset);
         }
     }
@@ -376,8 +457,8 @@ void expose_tree_from_block_ids(transaction_t *txn, access_t mode, int levels, i
 
 }  // namespace blob
 
-void blob_t::append_region(transaction_t *txn, int64_t size) {
-    block_size_t block_size = txn->get_cache()->get_block_size();
+void blob_t::append_region(buf_parent_t parent, int64_t size) {
+    const block_size_t block_size = parent.cache()->max_block_size();
     int levels = blob::ref_info(block_size, ref_, maxreflen_).levels;
 
     // Avoid the empty blob effect.
@@ -389,8 +470,10 @@ void blob_t::append_region(transaction_t *txn, int64_t size) {
         return;
     }
 
-    while (!allocate_to_dimensions(txn, levels, blob::ref_value_offset(ref_, maxreflen_), valuesize() + size)) {
-        levels = add_level(txn, levels);
+    while (!allocate_to_dimensions(parent, levels,
+                                   blob::ref_value_offset(ref_, maxreflen_),
+                                   valuesize() + size)) {
+        levels = add_level(parent, levels);
     }
 
     if (levels == 0) {
@@ -405,8 +488,8 @@ void blob_t::append_region(transaction_t *txn, int64_t size) {
     rassert(blob::ref_info(block_size, ref_, maxreflen_).levels == levels);
 }
 
-void blob_t::prepend_region(transaction_t *txn, int64_t size) {
-    block_size_t block_size = txn->get_cache()->get_block_size();
+void blob_t::prepend_region(buf_parent_t parent, int64_t size) {
+    const block_size_t block_size = parent.cache()->max_block_size();
     int levels = blob::ref_info(block_size, ref_, maxreflen_).levels;
 
     if (levels == 0) {
@@ -426,10 +509,13 @@ void blob_t::prepend_region(transaction_t *txn, int64_t size) {
     }
 
     for (;;) {
-        if (!shift_at_least(txn, levels, std::max<int64_t>(0, - (blob::ref_value_offset(ref_, maxreflen_) - size)))) {
-            levels = add_level(txn, levels);
-        } else if (!allocate_to_dimensions(txn, levels, blob::ref_value_offset(ref_, maxreflen_) - size, valuesize() + size)) {
-            levels = add_level(txn, levels);
+        if (!shift_at_least(parent, levels,
+                            std::max<int64_t>(0, - (blob::ref_value_offset(ref_, maxreflen_) - size)))) {
+            levels = add_level(parent, levels);
+        } else if (!allocate_to_dimensions(parent, levels,
+                                           blob::ref_value_offset(ref_, maxreflen_) - size,
+                                           valuesize() + size)) {
+            levels = add_level(parent, levels);
         } else {
             break;
         }
@@ -444,8 +530,8 @@ void blob_t::prepend_region(transaction_t *txn, int64_t size) {
     rassert(blob::ref_info(block_size, ref_, maxreflen_).levels == levels);
 }
 
-void blob_t::unappend_region(transaction_t *txn, int64_t size) {
-    block_size_t block_size = txn->get_cache()->get_block_size();
+void blob_t::unappend_region(buf_parent_t parent, int64_t size) {
+    const block_size_t block_size = parent.cache()->max_block_size();
     int levels = blob::ref_info(block_size, ref_, maxreflen_).levels;
 
     bool emptying = false;
@@ -455,11 +541,14 @@ void blob_t::unappend_region(transaction_t *txn, int64_t size) {
     }
 
     if (size != 0) {
-        deallocate_to_dimensions(txn, levels, blob::ref_value_offset(ref_, maxreflen_), valuesize() - size);
+        deallocate_to_dimensions(parent, levels,
+                                 blob::ref_value_offset(ref_, maxreflen_),
+                                 valuesize() - size);
         for (;;) {
-            shift_at_least(txn, levels, - blob::ref_value_offset(ref_, maxreflen_));
+            shift_at_least(parent, levels,
+                           - blob::ref_value_offset(ref_, maxreflen_));
 
-            if (!remove_level(txn, &levels)) {
+            if (!remove_level(parent, &levels)) {
                 break;
             }
         }
@@ -472,8 +561,8 @@ void blob_t::unappend_region(transaction_t *txn, int64_t size) {
     }
 }
 
-void blob_t::unprepend_region(transaction_t *txn, int64_t size) {
-    block_size_t block_size = txn->get_cache()->get_block_size();
+void blob_t::unprepend_region(buf_parent_t parent, int64_t size) {
+    const block_size_t block_size = parent.cache()->max_block_size();
     int levels = blob::ref_info(block_size, ref_, maxreflen_).levels;
 
     bool emptying = false;
@@ -483,10 +572,11 @@ void blob_t::unprepend_region(transaction_t *txn, int64_t size) {
     }
 
     if (size != 0) {
-        deallocate_to_dimensions(txn, levels, blob::ref_value_offset(ref_, maxreflen_) + size, valuesize() - size);
+        deallocate_to_dimensions(parent, levels,
+                                 blob::ref_value_offset(ref_, maxreflen_) + size, valuesize() - size);
         for (;;) {
-            shift_at_least(txn, levels, - blob::ref_value_offset(ref_, maxreflen_));
-            if (!remove_level(txn, &levels)) {
+            shift_at_least(parent, levels, - blob::ref_value_offset(ref_, maxreflen_));
+            if (!remove_level(parent, &levels)) {
                 break;
             }
         }
@@ -499,14 +589,15 @@ void blob_t::unprepend_region(transaction_t *txn, int64_t size) {
     }
 }
 
-void blob_t::clear(transaction_t *txn) {
-    unappend_region(txn, valuesize());
+void blob_t::clear(buf_parent_t parent) {
+    unappend_region(parent, valuesize());
 }
 
-void blob_t::write_from_string(const std::string &val, transaction_t *txn, int64_t offset) {
+void blob_t::write_from_string(const std::string &val,
+                               buf_parent_t parent, int64_t offset) {
     buffer_group_t dest;
     blob_acq_t acq;
-    expose_region(txn, rwi_write, offset, val.size(), &dest, &acq);
+    expose_region(parent, access_t::write, offset, val.size(), &dest, &acq);
 
     buffer_group_t src;
     src.add_buffer(val.size(), val.data());
@@ -516,48 +607,67 @@ void blob_t::write_from_string(const std::string &val, transaction_t *txn, int64
 namespace blob {
 
 struct traverse_helper_t {
-    virtual void preprocess(transaction_t *txn, int levels, buf_lock_t *lock_out, block_id_t *block_id) = 0;
+    virtual void preprocess(buf_parent_t parent, int levels,
+                            buf_lock_t *lock_out, block_id_t *block_id) = 0;
     virtual void postprocess(buf_lock_t *lock) = 0;
     virtual ~traverse_helper_t() { }
 };
 
-void traverse_recursively(transaction_t *txn, int levels, block_id_t *block_ids, int64_t old_offset, int64_t old_size, int64_t new_offset, int64_t new_size, traverse_helper_t *helper);
+void traverse_recursively(buf_parent_t parent, int levels,
+                          block_id_t *block_ids, int64_t old_offset,
+                          int64_t old_size, int64_t new_offset, int64_t new_size,
+                          traverse_helper_t *helper);
 
-void traverse_index(transaction_t *txn, int levels, block_id_t *block_ids, int index, int64_t old_offset, int64_t old_size, int64_t new_offset, int64_t new_size, traverse_helper_t *helper) {
-    block_size_t block_size = txn->get_cache()->get_block_size();
+void traverse_index(buf_parent_t parent, int levels, block_id_t *block_ids,
+                    int index, int64_t old_offset, int64_t old_size,
+                    int64_t new_offset, int64_t new_size,
+                    traverse_helper_t *helper) {
+    const block_size_t block_size = parent.cache()->max_block_size();
     int64_t sub_old_offset, sub_old_size, sub_new_offset, sub_new_size;
     blob::shrink(block_size, levels, old_offset, old_size, index, &sub_old_offset, &sub_old_size);
     blob::shrink(block_size, levels, new_offset, new_size, index, &sub_new_offset, &sub_new_size);
 
     if (sub_old_size > 0) {
         if (levels > 1) {
-            buf_lock_t lock(txn, block_ids[index], rwi_write);
-            void *b = lock.get_data_write();
+            buf_lock_t lock(parent, block_ids[index], access_t::write);
+            buf_write_t write(&lock);
+            void *b = write.get_data_write();
 
             block_id_t *subids = blob::internal_node_block_ids(b);
-            traverse_recursively(txn, levels - 1, subids, sub_old_offset, sub_old_size, sub_new_offset, sub_new_size, helper);
+            traverse_recursively(buf_parent_t(&lock), levels - 1, subids,
+                                 sub_old_offset, sub_old_size,
+                                 sub_new_offset, sub_new_size,
+                                 helper);
         }
 
     } else {
         buf_lock_t lock;
-        helper->preprocess(txn, levels, &lock, &block_ids[index]);
+        helper->preprocess(parent, levels, &lock, &block_ids[index]);
 
         if (levels > 1) {
-            void *b = lock.get_data_write();
+            buf_write_t write(&lock);
+            void *b = write.get_data_write();
             block_id_t *subids = blob::internal_node_block_ids(b);
-            traverse_recursively(txn, levels - 1, subids, sub_old_offset, sub_old_size, sub_new_offset, sub_new_size, helper);
+            traverse_recursively(buf_parent_t(&lock), levels - 1, subids,
+                                 sub_old_offset, sub_old_size,
+                                 sub_new_offset, sub_new_size,
+                                 helper);
         }
 
         helper->postprocess(&lock);
     }
 }
 
-void traverse_recursively(transaction_t *txn, int levels, block_id_t *block_ids, int64_t old_offset, int64_t old_size, int64_t new_offset, int64_t new_size, traverse_helper_t *helper) {
-    block_size_t block_size = txn->get_cache()->get_block_size();
+void traverse_recursively(buf_parent_t parent, int levels, block_id_t *block_ids,
+                          int64_t old_offset, int64_t old_size, int64_t new_offset,
+                          int64_t new_size, traverse_helper_t *helper) {
+    const block_size_t block_size = parent.cache()->max_block_size();
 
     int old_lo, old_hi, new_lo, new_hi;
-    compute_acquisition_offsets(block_size, levels, old_offset, old_size, &old_lo, &old_hi);
-    compute_acquisition_offsets(block_size, levels, new_offset, new_size, &new_lo, &new_hi);
+    compute_acquisition_offsets(block_size, levels, old_offset, old_size,
+                                &old_lo, &old_hi);
+    compute_acquisition_offsets(block_size, levels, new_offset, new_size,
+                                &new_lo, &new_hi);
 
     int64_t leafsize = leaf_size(block_size);
 
@@ -568,13 +678,16 @@ void traverse_recursively(transaction_t *txn, int levels, block_id_t *block_ids,
     if (new_offset / leafsize < old_offset / leafsize) {
         // See comment [1] below.
         for (int i = new_lo; i <= old_lo && i < new_hi; ++i) {
-            traverse_index(txn, levels, block_ids, i, old_offset, old_size, new_offset, new_size, helper);
+            traverse_index(parent, levels, block_ids, i, old_offset, old_size,
+                           new_offset, new_size, helper);
             highest_i = i;
         }
     }
-    if (ceil_divide(new_offset + new_size, leafsize) > ceil_divide(old_offset + old_size, leafsize)) {
+    if (ceil_divide(new_offset + new_size, leafsize)
+        > ceil_divide(old_offset + old_size, leafsize)) {
         for (int i = std::max(highest_i + 1, old_hi - 1); i < new_hi; ++i) {
-            traverse_index(txn, levels, block_ids, i, old_offset, old_size, new_offset, new_size, helper);
+            traverse_index(parent, levels, block_ids, i, old_offset,
+                           old_size, new_offset, new_size, helper);
         }
     }
 
@@ -593,14 +706,20 @@ void traverse_recursively(transaction_t *txn, int levels, block_id_t *block_ids,
 
 }  // namespace blob
 
-bool blob_t::traverse_to_dimensions(transaction_t *txn, int levels, int64_t old_offset, int64_t old_size, int64_t new_offset, int64_t new_size, blob::traverse_helper_t *helper) {
+bool blob_t::traverse_to_dimensions(buf_parent_t parent, int levels,
+                                    int64_t old_offset, int64_t old_size,
+                                    int64_t new_offset, int64_t new_size,
+                                    blob::traverse_helper_t *helper) {
     DEBUG_VAR int64_t old_end = old_offset + old_size;
     int64_t new_end = new_offset + new_size;
     rassert(new_offset <= old_offset && new_end >= old_end);
-    block_size_t block_size = txn->get_cache()->get_block_size();
+    const block_size_t block_size = parent.cache()->max_block_size();
     if (new_offset >= 0 && new_end <= blob::max_end_offset(block_size, levels, maxreflen_)) {
         if (levels != 0) {
-            blob::traverse_recursively(txn, levels, blob::block_ids(ref_, maxreflen_), old_offset, old_size, new_offset, new_size, helper);
+            blob::traverse_recursively(parent, levels,
+                                       blob::block_ids(ref_, maxreflen_),
+                                       old_offset, old_size, new_offset, new_size,
+                                       helper);
         }
         return true;
     } else {
@@ -609,11 +728,13 @@ bool blob_t::traverse_to_dimensions(transaction_t *txn, int levels, int64_t old_
 }
 
 struct allocate_helper_t : public blob::traverse_helper_t {
-    void preprocess(transaction_t *txn, int levels, buf_lock_t *lock_out, block_id_t *block_id) {
-        buf_lock_t temp_lock(txn);
+    void preprocess(buf_parent_t parent, int levels,
+                    buf_lock_t *lock_out, block_id_t *block_id) {
+        buf_lock_t temp_lock(parent, alt_create_t::create);
         lock_out->swap(temp_lock);
-        *block_id = lock_out->get_block_id();
-        void *b = lock_out->get_data_write();
+        *block_id = lock_out->block_id();
+        buf_write_t lock_write(lock_out);
+        void *b = lock_write.get_data_write();
         if (levels == 1) {
             *reinterpret_cast<block_magic_t *>(b) = blob::leaf_node_magic;
         } else {
@@ -623,14 +744,18 @@ struct allocate_helper_t : public blob::traverse_helper_t {
     void postprocess(UNUSED buf_lock_t *lock) { }
 };
 
-bool blob_t::allocate_to_dimensions(transaction_t *txn, int levels, int64_t new_offset, int64_t new_size) {
+bool blob_t::allocate_to_dimensions(buf_parent_t parent, int levels,
+                                    int64_t new_offset, int64_t new_size) {
     allocate_helper_t helper;
-    return traverse_to_dimensions(txn, levels, blob::ref_value_offset(ref_, maxreflen_), valuesize(), new_offset, new_size, &helper);
+    return traverse_to_dimensions(parent, levels,
+                                  blob::ref_value_offset(ref_, maxreflen_),
+                                  valuesize(), new_offset, new_size, &helper);
 }
 
 struct deallocate_helper_t : public blob::traverse_helper_t {
-    void preprocess(transaction_t *txn, UNUSED int levels, buf_lock_t *lock_out, block_id_t *block_id) {
-        buf_lock_t tmp(txn, *block_id, rwi_write);
+    void preprocess(buf_parent_t parent, UNUSED int levels,
+                    buf_lock_t *lock_out, block_id_t *block_id) {
+        buf_lock_t tmp(parent, *block_id, access_t::write);
         lock_out->swap(tmp);
     }
 
@@ -639,7 +764,8 @@ struct deallocate_helper_t : public blob::traverse_helper_t {
     }
 };
 
-void blob_t::deallocate_to_dimensions(transaction_t *txn, int levels, int64_t new_offset, int64_t new_size) {
+void blob_t::deallocate_to_dimensions(buf_parent_t parent, int levels,
+                                      int64_t new_offset, int64_t new_size) {
     deallocate_helper_t helper;
     if (levels == 0) {
         rassert(0 <= new_offset && 0 <= new_size);
@@ -648,7 +774,7 @@ void blob_t::deallocate_to_dimensions(transaction_t *txn, int levels, int64_t ne
         memmove(buf, buf + new_offset, new_size);
         blob::set_small_size(ref_, maxreflen_, new_size);
     } else {
-        DEBUG_VAR bool res = traverse_to_dimensions(txn, levels, new_offset, new_size, blob::ref_value_offset(ref_, maxreflen_), valuesize(), &helper);
+        DEBUG_VAR bool res = traverse_to_dimensions(parent, levels, new_offset, new_size, blob::ref_value_offset(ref_, maxreflen_), valuesize(), &helper);
         blob::set_big_offset(ref_, maxreflen_, new_offset);
         blob::set_big_size(ref_, maxreflen_, new_size);
         rassert(res);
@@ -656,21 +782,22 @@ void blob_t::deallocate_to_dimensions(transaction_t *txn, int levels, int64_t ne
 }
 
 
-bool blob_t::shift_at_least(transaction_t *txn, int levels, int64_t min_shift) {
+bool blob_t::shift_at_least(buf_parent_t parent, int levels, int64_t min_shift) {
     if (levels == 0) {
         // Can't change offset if there are zero levels.  Deal with it.
         return false;
     }
 
     int64_t shift = min_shift;
-    consider_small_shift(txn, levels, &shift);
-    consider_big_shift(txn, levels, &shift);
-    consider_small_shift(txn, levels, &shift);
+    consider_small_shift(parent, levels, &shift);
+    consider_big_shift(parent, levels, &shift);
+    consider_small_shift(parent, levels, &shift);
     return shift <= 0;
 }
 
-void blob_t::consider_big_shift(transaction_t *txn, int levels, int64_t *min_shift) {
-    block_size_t block_size = txn->get_cache()->get_block_size();
+void blob_t::consider_big_shift(buf_parent_t parent, int levels,
+                                int64_t *min_shift) {
+    const block_size_t block_size = parent.cache()->max_block_size();
     int64_t step = blob::stepsize(block_size, levels);
 
     int64_t offset = blob::big_offset(ref_, maxreflen_);
@@ -695,8 +822,9 @@ void blob_t::consider_big_shift(transaction_t *txn, int levels, int64_t *min_shi
     }
 }
 
-void blob_t::consider_small_shift(transaction_t *txn, int levels, int64_t *min_shift) {
-    block_size_t block_size = txn->get_cache()->get_block_size();
+void blob_t::consider_small_shift(buf_parent_t parent, int levels,
+                                  int64_t *min_shift) {
+    const block_size_t block_size = parent.cache()->max_block_size();
     int64_t step = blob::stepsize(block_size, levels);
     int64_t substep = levels == 1 ? 1 : blob::stepsize(block_size, levels - 1);
 
@@ -711,21 +839,30 @@ void blob_t::consider_small_shift(transaction_t *txn, int levels, int64_t *min_s
         if (practical_end_offset + min_conceivable_shift <= step) {
             if (practical_offset < step && practical_end_offset <= 2 * step) {
                 block_id_t *ids = blob::block_ids(ref_, maxreflen_);
-                buf_lock_t lobuf(txn, ids[0], rwi_write);
+                buf_lock_t lobuf(parent, ids[0], access_t::write);
+                buf_write_t lobuf_write(&lobuf);
 
                 int64_t physical_shift = (min_conceivable_shift / substep) * (levels == 1 ? 1 : sizeof(block_id_t));
                 int64_t physical_offset = (practical_offset / substep) * (levels == 1 ? 1 : sizeof(block_id_t));
                 int64_t physical_end_offset = (practical_end_offset / substep) * (levels == 1 ? 1 : sizeof(block_id_t));
 
-                char *data = blob::leaf_node_data(lobuf.get_data_write());
+                char *data = blob::leaf_node_data(lobuf_write.get_data_write());
                 int64_t low_copycount = std::min(physical_end_offset, int64_t(blob::leaf_size(block_size))) - physical_offset;
                 memmove(data + physical_offset + physical_shift, data + physical_offset, low_copycount);
 
                 if (physical_end_offset > blob::leaf_size(block_size)) {
-                    buf_lock_t hibuf(txn, ids[1], rwi_write);
-                    const char *data2 = blob::leaf_node_data(hibuf.get_data_read());
+                    buf_lock_t hibuf(parent, ids[1], access_t::write);
+                    {
+                        buf_read_t hibuf_read(&hibuf);
+                        // KSI: Use the block size for an assertion or something.
+                        uint32_t this_block_size;
+                        const char *data2
+                            = blob::leaf_node_data(hibuf_read.get_data_read(&this_block_size));
 
-                    memmove(data + physical_offset + physical_shift + low_copycount, data2, physical_end_offset - blob::leaf_size(block_size));
+                        memmove(data + physical_offset + physical_shift + low_copycount,
+                                data2,
+                                physical_end_offset - blob::leaf_size(block_size));
+                    }
                     hibuf.mark_deleted();
                 }
 
@@ -737,9 +874,10 @@ void blob_t::consider_small_shift(transaction_t *txn, int levels, int64_t *min_s
 }
 
 // Always returns levels + 1.
-int blob_t::add_level(transaction_t *txn, int levels) {
-    buf_lock_t lock(txn);
-    void *b = lock.get_data_write();
+int blob_t::add_level(buf_parent_t parent, int levels) {
+    buf_lock_t lock(parent, alt_create_t::create);
+    buf_write_t lock_write(&lock);
+    void *b = lock_write.get_data_write();
     if (levels == 0) {
         *reinterpret_cast<block_magic_t *>(b) = blob::leaf_node_magic;
 
@@ -751,7 +889,7 @@ int blob_t::add_level(transaction_t *txn, int levels) {
         blob::set_small_size_field(ref_, maxreflen_, maxreflen_);
         blob::set_big_offset(ref_, maxreflen_, 0);
         blob::set_big_size(ref_, maxreflen_, sz);
-        blob::block_ids(ref_, maxreflen_)[0] = lock.get_block_id();
+        blob::block_ids(ref_, maxreflen_)[0] = lock.block_id();
     } else {
         *reinterpret_cast<block_magic_t *>(b) = blob::internal_node_magic;
 
@@ -760,14 +898,14 @@ int blob_t::add_level(transaction_t *txn, int levels) {
         int sz = maxreflen_ - blob::block_ids_offset(maxreflen_);
 
         memcpy(blob::internal_node_block_ids(b), blob::block_ids(ref_, maxreflen_), sz);
-        blob::block_ids(ref_, maxreflen_)[0] = lock.get_block_id();
+        blob::block_ids(ref_, maxreflen_)[0] = lock.block_id();
     }
 
     return levels + 1;
 }
 
 
-bool blob_t::remove_level(transaction_t *txn, int *levels_ref) {
+bool blob_t::remove_level(buf_parent_t parent, int *levels_ref) {
     int levels = *levels_ref;
     if (levels == 0) {
         return false;
@@ -777,24 +915,32 @@ bool blob_t::remove_level(transaction_t *txn, int *levels_ref) {
     int64_t bigsize = blob::big_size(ref_, maxreflen_);
     rassert(0 <= bigsize);
     int64_t end_offset = bigoffset + bigsize;
-    if (end_offset > blob::max_end_offset(txn->get_cache()->get_block_size(), levels - 1, maxreflen_)) {
+    if (end_offset > blob::max_end_offset(parent.cache()->max_block_size(),
+                                          levels - 1, maxreflen_)) {
         return false;
     }
 
     // If the size is zero and the offset is zero, the entire tree will have already been deallocated.
-    rassert(!(bigoffset == end_offset && end_offset == blob::stepsize(txn->get_cache()->get_block_size(), levels)));
+    rassert(!(bigoffset == end_offset && end_offset == blob::stepsize(parent.cache()->max_block_size(), levels)));
     if (!(bigoffset == end_offset && end_offset == 0)) {
 
-        buf_lock_t lock(txn, blob::block_ids(ref_, maxreflen_)[0], rwi_write);
+        buf_lock_t lock(parent, blob::block_ids(ref_, maxreflen_)[0],
+                        access_t::write);
         if (levels == 1) {
             // We should tried shifting before removing a level.
             rassert(bigoffset == 0);
 
-            const char *b = blob::leaf_node_data(lock.get_data_read());
+            buf_read_t lock_read(&lock);
+            // KSI: Use the block size for an assert or something.
+            uint32_t unused_block_size;
+            const char *b = blob::leaf_node_data(lock_read.get_data_read(&unused_block_size));
             memcpy(blob::small_buffer(ref_, maxreflen_), b, maxreflen_ - blob::big_size_offset(maxreflen_));
             blob::set_small_size(ref_, maxreflen_, bigsize);
         } else {
-            const block_id_t *b = blob::internal_node_block_ids(lock.get_data_read());
+            buf_read_t lock_read(&lock);
+            // KSI: Use the block size for an assert or something.
+            uint32_t unused_block_size;
+            const block_id_t *b = blob::internal_node_block_ids(lock_read.get_data_read(&unused_block_size));
             memcpy(blob::block_ids(ref_, maxreflen_), b, maxreflen_ - blob::block_ids_offset(maxreflen_));
         }
 
@@ -804,3 +950,5 @@ bool blob_t::remove_level(transaction_t *txn, int *levels_ref) {
     *levels_ref = levels - 1;
     return true;
 }
+
+

@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef MEMCACHED_MEMCACHED_BTREE_APPEND_PREPEND_HPP_
 #define MEMCACHED_MEMCACHED_BTREE_APPEND_PREPEND_HPP_
 
@@ -8,6 +8,10 @@
 
 class superblock_t;
 
-append_prepend_result_t memcached_append_prepend(const store_key_t &key, btree_slice_t *slice, const counted_t<data_buffer_t>& data, bool append, cas_t proposed_cas, exptime_t effective_time, repli_timestamp_t timestamp, transaction_t *txn, superblock_t *superblock);
+append_prepend_result_t
+memcached_append_prepend(const store_key_t &key, btree_slice_t *slice,
+                         const counted_t<data_buffer_t>& data, bool append,
+                         cas_t proposed_cas, exptime_t effective_time,
+                         repli_timestamp_t timestamp, superblock_t *superblock);
 
 #endif /* MEMCACHED_MEMCACHED_BTREE_APPEND_PREPEND_HPP_ */

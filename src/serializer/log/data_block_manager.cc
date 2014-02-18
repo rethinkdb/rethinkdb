@@ -1,12 +1,10 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
-#define __STDC_FORMAT_MACROS
-#define __STDC_LIMIT_MACROS
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "serializer/log/data_block_manager.hpp"
 
 #include <inttypes.h>
 #include <sys/uio.h>
 
-#include "utils.hpp"
+#include "errors.hpp"
 #include <boost/bind.hpp>
 
 #include "arch/arch.hpp"
@@ -655,8 +653,7 @@ public:
                 parent->serializer->offer_buf_to_read_ahead_callbacks(
                         block_id,
                         std::move(data),
-                        token,
-                        info.recency);
+                        token);
             }
         }
 
@@ -739,7 +736,9 @@ data_block_manager_t::many_writes(const std::vector<buf_write_info_t> &writes,
     };
 
     intermediate_cb_t *const intermediate_cb = new intermediate_cb_t;
-    intermediate_cb->ops_remaining = token_groups.size();
+    // We add 1 for degenerate case where token_groups is empty -- we call
+    // intermediate_cb->on_io_complete later.
+    intermediate_cb->ops_remaining = token_groups.size() + 1;
     intermediate_cb->cb = cb;
 
     size_t write_number = 0;
@@ -779,6 +778,10 @@ data_block_manager_t::many_writes(const std::vector<buf_write_info_t> &writes,
         dbfile->writev_async(front_offset, write_size,
                              std::move(iovecs), io_account, intermediate_cb);
     }
+
+    // Call on_io_complete for degenerate case (we added 1 to ops_remaining
+    // earlier).
+    intermediate_cb->on_io_complete();
 
     std::vector<counted_t<ls_block_token_pointee_t> > ret;
     ret.reserve(writes.size());

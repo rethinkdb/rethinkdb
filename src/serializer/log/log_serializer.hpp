@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef SERIALIZER_LOG_LOG_SERIALIZER_HPP_
 #define SERIALIZER_LOG_LOG_SERIALIZER_HPP_
 
@@ -138,7 +138,6 @@ public:
 public:
     /* Implementation of the serializer_t API */
     scoped_malloc_t<ser_buffer_t> malloc();
-    scoped_malloc_t<ser_buffer_t> clone(const ser_buffer_t *);
 
 #ifndef SEMANTIC_SERIALIZER_CHECK
     using serializer_t::make_io_account;
@@ -148,7 +147,8 @@ public:
     void register_read_ahead_cb(serializer_read_ahead_callback_t *cb);
     void unregister_read_ahead_cb(serializer_read_ahead_callback_t *cb);
     block_id_t max_block_id();
-    repli_timestamp_t get_recency(block_id_t id);
+    segmented_vector_t<repli_timestamp_t> get_all_recencies(block_id_t first,
+                                                            block_id_t step);
 
     bool get_delete_bit(block_id_t id);
     counted_t<ls_block_token_pointee_t> index_read(block_id_t block_id);
@@ -160,7 +160,7 @@ public:
     std::vector<counted_t<ls_block_token_pointee_t> > block_writes(const std::vector<buf_write_info_t> &write_infos,
                                                                    file_account_t *io_account, iocallback_t *cb);
 
-    block_size_t get_block_size() const;
+    block_size_t max_block_size() const;
 
     bool coop_lock_and_check();
 
@@ -175,8 +175,7 @@ private:
     void offer_buf_to_read_ahead_callbacks(
             block_id_t block_id,
             scoped_malloc_t<ser_buffer_t> &&buf,
-            const counted_t<standard_block_token_t>& token,
-            repli_timestamp_t recency_timestamp);
+            const counted_t<standard_block_token_t>& token);
     bool should_perform_read_ahead();
 
     /* Starts a new transaction, updates perfmons etc. */

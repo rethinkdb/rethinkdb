@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef ARCH_RUNTIME_COROUTINES_HPP_
 #define ARCH_RUNTIME_COROUTINES_HPP_
 
@@ -60,13 +60,18 @@ public:
     }
 
     /* Whenever possible, `spawn_sometime()` should be used instead of
-    `spawn_later_ordered()`. `spawn_later_ordered()` does not honor scheduler
-    priorities. */
+    `spawn_later_ordered()` (or `spawn_ordered()`). `spawn_later_ordered()` does not
+    honor scheduler priorities. */
     template<class Callable>
     static coro_t *spawn_later_ordered(const Callable &action) {
         coro_t *coro = get_and_init_coro(action);
         coro->notify_later_ordered();
         return coro;
+    }
+
+    template<class Callable>
+    static void spawn_ordered(const Callable &action) {
+        spawn_later_ordered(action);
     }
 
     // Use coro_t::spawn_*(std::bind(...)) for spawning with parameters.
@@ -107,7 +112,13 @@ public:
     Returns immediately. If you call `notify_later_ordered()` on two coroutines
     that are on the same thread, they will run in the same order you call
     `notify_later_ordered()` in. */
+    // DEPRECATED:  Call notify_ordered, its name is shorter.
     void notify_later_ordered();
+
+    void notify_ordered() {
+        notify_later_ordered();
+    }
+
 
 #ifndef NDEBUG
     // A unique identifier for this particular instance of coro_t over
@@ -123,7 +134,7 @@ public:
     static void set_coroutine_stack_size(size_t size);
 
     coro_stack_t *get_stack();
-    
+
     void set_priority(int _priority) {
         linux_thread_message_t::set_priority(_priority);
     }

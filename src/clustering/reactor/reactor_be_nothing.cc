@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "clustering/reactor/reactor.hpp"
 
 #include "clustering/immediate_consistency/branch/backfiller.hpp"
@@ -131,7 +131,7 @@ void reactor_t<protocol_t>::be_nothing(typename protocol_t::region_t region,
             write_token_pair_t token_pair;
             svs->new_write_token_pair(&token_pair);
 
-            svs->reset_data(region, region_map_t<protocol_t, binary_blob_t>(region, binary_blob_t(version_range_t(version_t::zero()))), &token_pair, WRITE_DURABILITY_HARD, &ct_interruptor);
+            svs->reset_data(region, region_map_t<protocol_t, binary_blob_t>(region, binary_blob_t(version_range_t(version_t::zero()))), &token_pair, write_durability_t::HARD, &ct_interruptor);
         }
 
         /* Tell the other peers that we are officially nothing for this region,

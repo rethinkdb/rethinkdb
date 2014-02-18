@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_REACTOR_DRIVER_TCC_
 #define CLUSTERING_ADMINISTRATION_REACTOR_DRIVER_TCC_
 
@@ -234,7 +234,7 @@ public:
         if (it == translation_table_snapshot.end()) {
             // What should we do?  I have no idea.  Default to HARD, let somebody else handle
             // the peer not existing.
-            return WRITE_DURABILITY_HARD;
+            return write_durability_t::HARD;
         }
 
         const machine_id_t machine_id = it->second;
@@ -247,7 +247,7 @@ public:
             // Is there something smart to do?  Besides deleting this whole class and
             // refactoring clustering not to do O(n^2) work per request?  Default to HARD, let
             // somebody else handle the machine not existing.
-            return WRITE_DURABILITY_HARD;
+            return write_durability_t::HARD;
         }
 
         const datacenter_id_t dc = machine_map_it->second.get_ref().datacenter.get();
@@ -259,17 +259,17 @@ public:
 
         if (ns_it == nmd->namespaces.end() || ns_it->second.is_deleted() || ns_it->second.get_ref().ack_expectations.in_conflict()) {
             // Again, FML, we default to HARD.
-            return WRITE_DURABILITY_HARD;
+            return write_durability_t::HARD;
         }
 
         std::map<datacenter_id_t, ack_expectation_t> ack_expectations = ns_it->second.get_ref().ack_expectations.get();
         auto ack_it = ack_expectations.find(dc);
         if (ack_it == ack_expectations.end()) {
             // Yet again, FML, we default to HARD.
-            return WRITE_DURABILITY_HARD;
+            return write_durability_t::HARD;
         }
 
-        return ack_it->second.is_hardly_durable() ? WRITE_DURABILITY_HARD : WRITE_DURABILITY_SOFT;
+        return ack_it->second.is_hardly_durable() ? write_durability_t::HARD : write_durability_t::SOFT;
     }
 
     write_durability_t get_write_durability(const peer_id_t &peer) const {

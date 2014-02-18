@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "memcached/memcached_btree/get.hpp"
 
 #include "btree/internal_node.hpp"
@@ -8,10 +8,13 @@
 #include "memcached/memcached_btree/node.hpp"
 #include "memcached/memcached_btree/value.hpp"
 
-get_result_t memcached_get(const store_key_t &store_key, btree_slice_t *slice, exptime_t effective_time, transaction_t *txn, superblock_t *superblock) {
+get_result_t memcached_get(const store_key_t &store_key,
+                           btree_slice_t *slice, exptime_t effective_time,
+                           superblock_t *superblock) {
 
     keyvalue_location_t<memcached_value_t> kv_location;
-    find_keyvalue_location_for_read(txn, superblock, store_key.btree_key(), &kv_location, slice->root_eviction_priority, &slice->stats, NULL);
+    find_keyvalue_location_for_read(superblock, store_key.btree_key(),
+                                    &kv_location, &slice->stats, NULL);
 
     if (!kv_location.value.has()) {
         return get_result_t();
@@ -23,7 +26,10 @@ get_result_t memcached_get(const store_key_t &store_key, btree_slice_t *slice, e
         return get_result_t();
     }
 
-    counted_t<data_buffer_t> dp = value_to_data_buffer(value, txn);
+    // KSI: We could make this more efficient -- by releasing the leaf node while we
+    // acquire blobs as children of this.
+    counted_t<data_buffer_t> dp
+        = value_to_data_buffer(value, buf_parent_t(&kv_location.buf));
 
     return get_result_t(dp, value->mcflags(), 0);
 }

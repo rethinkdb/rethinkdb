@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef PROTOCOL_API_HPP_
 #define PROTOCOL_API_HPP_
 
@@ -11,7 +11,6 @@
 #include "buffer_cache/types.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/fifo_enforcer.hpp"
-#include "concurrency/rwi_lock.hpp"
 #include "concurrency/signal.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "containers/binary_blob.hpp"
@@ -317,20 +316,15 @@ private:
     DISABLE_COPYING(send_backfill_callback_t);
 };
 
-/* [read,write]_token_pair_t provide an exit_[read,write]_t for both the main
- * btree and the secondary btrees both require seperate synchronization because
- * you frequently need to update the secondary btrees based on something that
- * was done in the primary and our locking structure doesn't give us an easy
- * way to make sure that entities acquire the secondary block in the same order
- * they acquire the primary. This could in theory be acquired as 2 seperate
- * objects but this would be twice as much typing and runs the risk that people
- * pass one exit read in to a function that accesses the other. */
+/* {read,write}_token_pair_t hold the lock held when getting in line for the
+   superblock. */
+// KSI: Rename these to {read,write}_token_t or get rid of them altogether.
 struct read_token_pair_t {
-    object_buffer_t<fifo_enforcer_sink_t::exit_read_t> main_read_token, sindex_read_token;
+    object_buffer_t<fifo_enforcer_sink_t::exit_read_t> main_read_token;
 };
 
 struct write_token_pair_t {
-    object_buffer_t<fifo_enforcer_sink_t::exit_write_t> main_write_token, sindex_write_token;
+    object_buffer_t<fifo_enforcer_sink_t::exit_write_t> main_write_token;
 };
 
 // Specifies the durability requirements of a write operation.
@@ -364,8 +358,12 @@ public:
     virtual void new_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token_out) = 0;
     virtual void new_write_token(object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token_out) = 0;
 
-    virtual void new_read_token_pair(read_token_pair_t *token_pair_out) = 0;
-    virtual void new_write_token_pair(write_token_pair_t *token_pair_out) = 0;
+    void new_read_token_pair(read_token_pair_t *token_pair_out) {
+        new_read_token(&token_pair_out->main_read_token);
+    }
+    void new_write_token_pair(write_token_pair_t *token_pair_out) {
+        new_write_token(&token_pair_out->main_write_token);
+    }
 
     /* Gets the metainfo.
     [Postcondition] return_value.get_domain() == view->get_region()
@@ -520,16 +518,6 @@ public:
     void new_write_token(object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token_out) {
         home_thread_mixin_t::assert_thread();
         store_view->new_write_token(token_out);
-    }
-
-    void new_read_token_pair(read_token_pair_t *token_pair_out) {
-        home_thread_mixin_t::assert_thread();
-        store_view->new_read_token_pair(token_pair_out);
-    }
-
-    void new_write_token_pair(write_token_pair_t *token_pair_out) {
-        home_thread_mixin_t::assert_thread();
-        store_view->new_write_token_pair(token_pair_out);
     }
 
     void do_get_metainfo(order_token_t order_token,

@@ -1,9 +1,10 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef PERFMON_CORE_HPP_
 #define PERFMON_CORE_HPP_
 
 #include <map>
 #include <string>
+#include <type_traits>
 #include <utility>
 #include <vector>
 #include <set>
@@ -92,14 +93,55 @@ private:
     DISABLE_COPYING(perfmon_membership_t);
 };
 
+// check_perfmon_multi_membership_args_t<...>::value is true if and only if "..." is
+// comprised of the even-length sequence of types, "perfmon_t *, const char *,
+// perfmon_t *, const char *, ..." (with subclasses of perfmon_t acceptable in place
+// of perfmon_t).
+template <class... Args>
+struct check_perfmon_multi_membership_args_t;
+
+template <class... Args>
+struct flip_check_perfmon_multi_membership_args_t;
+
+template <>
+struct check_perfmon_multi_membership_args_t<> : public std::true_type { };
+
+template <class T, class... Args>
+struct check_perfmon_multi_membership_args_t<T, Args...>
+    : public std::conditional<std::is_convertible<T, perfmon_t *>::value,
+                              flip_check_perfmon_multi_membership_args_t<Args...>,
+                              std::false_type>::type {
+};
+
+template <>
+struct flip_check_perfmon_multi_membership_args_t<> : public std::false_type { };
+
+template <class T, class... Args>
+struct flip_check_perfmon_multi_membership_args_t<T, Args...>
+    : public std::conditional<std::is_convertible<T, const char *>::value,
+                              check_perfmon_multi_membership_args_t<Args...>,
+                              std::false_type>::type {
+};
+
+
+
 class perfmon_multi_membership_t {
 public:
+    template <class... Args>
     perfmon_multi_membership_t(perfmon_collection_t *collection,
-        perfmon_t *perfmon, const char *name,   // This block of (perfmon, name) is to be repeated as
-        ...);                                   // many times as needed, and then followed by NULL.
+                               // This block of (perfmon_t *perfmon, const char
+                               // *name, ) is to be repeated as many times as needed.
+                               Args... args) {
+        CT_ASSERT(check_perfmon_multi_membership_args_t<Args...>::value);
+        init(collection, sizeof...(Args) / 2, args...);
+    }
+
     ~perfmon_multi_membership_t();
+
 private:
-    std::vector<perfmon_membership_t*> memberships;
+    void init(perfmon_collection_t *collection, size_t count, ...);
+
+    std::vector<perfmon_membership_t *> memberships;
 
     DISABLE_COPYING(perfmon_multi_membership_t);
 };

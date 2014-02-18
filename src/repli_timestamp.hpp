@@ -32,6 +32,9 @@ public:
     static const repli_timestamp_t invalid;
 };
 
+// Returns the max of x and y, treating invalid as a negative infinity value.
+repli_timestamp_t superceding_recency(repli_timestamp_t x, repli_timestamp_t y);
+
 write_message_t &operator<<(write_message_t &msg, repli_timestamp_t tstamp);
 archive_result_t deserialize(read_stream_t *s, repli_timestamp_t *tstamp);
 

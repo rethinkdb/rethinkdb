@@ -1,9 +1,8 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
-#define __STDC_LIMIT_MACROS
+// Copyright 2010-2014 RethinkDB, all rights reserved.
+#include "extproc/js_runner.hpp"
 
 #include <map>
 
-#include "extproc/js_runner.hpp"
 #include "extproc/js_job.hpp"
 
 const size_t js_runner_t::CACHE_SIZE = 100;

@@ -13,8 +13,6 @@
 #include "rdb_protocol/op.hpp"
 #include "rdb_protocol/term_walker.hpp"
 
-#pragma GCC diagnostic ignored "-Wshadow"
-
 namespace ql {
 
 // NOTE: `asc` and `desc` don't fit into our type system (they're a hack for

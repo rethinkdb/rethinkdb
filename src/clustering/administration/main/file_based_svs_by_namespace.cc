@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "clustering/administration/main/file_based_svs_by_namespace.hpp"
 
 #include "clustering/immediate_consistency/branch/multistore.hpp"
@@ -83,7 +83,6 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
             stores_lifetimer_t<protocol_t> *stores_out,
             scoped_ptr_t<multistore_ptr_t<protocol_t> > *svs_out,
             typename protocol_t::context_t *ctx) {
-
     const int num_db_threads = get_num_db_threads();
 
     // TODO: If the server gets killed when starting up, we can
@@ -124,13 +123,16 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
             // TODO: Could we handle failure when loading the serializer?  Right
             // now, we don't.
 
-            serializer.init(new merger_serializer_t(
-                                scoped_ptr_t<serializer_t>(
-                                    new standard_serializer_t(
-                                        standard_serializer_t::dynamic_config_t(),
-                                        &file_opener,
-                                        serializers_perfmon_collection)),
-                                MERGER_SERIALIZER_MAX_ACTIVE_WRITES));
+            {
+                scoped_ptr_t<serializer_t> ser
+                    = make_scoped<standard_serializer_t>(
+                        standard_serializer_t::dynamic_config_t(),
+                        &file_opener,
+                        serializers_perfmon_collection);
+                ser = make_scoped<merger_serializer_t>(std::move(ser),
+                                                       MERGER_SERIALIZER_MAX_ACTIVE_WRITES);
+                serializer = std::move(ser);
+            }
 
             std::vector<serializer_t *> ptrs;
             ptrs.push_back(serializer.get());
@@ -147,13 +149,16 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
         } else {
             standard_serializer_t::create(&file_opener,
                                           standard_serializer_t::static_config_t());
-            serializer.init(new merger_serializer_t(
-                                scoped_ptr_t<serializer_t>(
-                                    new standard_serializer_t(
-                                    standard_serializer_t::dynamic_config_t(),
-                                    &file_opener,
-                                    serializers_perfmon_collection)),
-                            MERGER_SERIALIZER_MAX_ACTIVE_WRITES));
+            {
+                scoped_ptr_t<serializer_t> ser
+                    = make_scoped<standard_serializer_t>(
+                        standard_serializer_t::dynamic_config_t(),
+                        &file_opener,
+                        serializers_perfmon_collection);
+                ser = make_scoped<merger_serializer_t>(std::move(ser),
+                                                       MERGER_SERIALIZER_MAX_ACTIVE_WRITES);
+                serializer = std::move(ser);
+            }
 
             std::vector<serializer_t *> ptrs;
             ptrs.push_back(serializer.get());
