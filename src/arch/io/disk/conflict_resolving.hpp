@@ -109,8 +109,8 @@ private:
     /* `resize_waiter_queues` contains actions that are waiting for an ongoing
     resize to finish. Right now, a resize operation blocks the whole file. */
     std::map<fd_t, std::deque<action_t *> > resize_waiter_queues;
-    /* Contains an entry for as long as a resize operation is active. */
-    std::set<fd_t> resize_active;
+    /* Contains an entry > 0 for as long as a resize operation is active. */
+    std::map<fd_t, int> resize_active;
 
     perfmon_sampler_t conflict_sampler;
     perfmon_membership_t conflict_sampler_membership;

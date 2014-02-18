@@ -32,7 +32,9 @@ conflict_resolving_diskmgr_t::~conflict_resolving_diskmgr_t() {
          ++it) {
         rassert(it->second.empty());
     }
-    rassert(resize_active.empty());
+    for (auto it = resize_active.begin(); it != resize_active.end(); ++it) {
+        rassert(it->second == 0);
+    }
 }
 
 // Fills dest's bufs with data from source.  source's range is a superset of dest's.
@@ -54,14 +56,17 @@ void copy_full_action_buf(pool_diskmgr_action_t *dest, pool_diskmgr_action_t *so
 void conflict_resolving_diskmgr_t::submit(action_t *action) {
     action->conflict_count = 0;
 
-    if (resize_active.find(action->get_fd()) != resize_active.end()) {
+    if (resize_active[action->get_fd()] > 0) {
         /* There is a resizing operation going on. Get in line for it. */
 
-        ++action->conflict_count;
+        action->conflict_count += resize_active[action->get_fd()];
         resize_waiter_queues[action->get_fd()].push_back(action);
     }
 
-    if (!action->get_is_resize()) {
+    if (action->get_is_resize()) {
+        /* Block out subsequent operations; reads, writes and resizes alike. */
+        ++resize_active[action->get_fd()];
+    } else {
         std::map<int64_t, std::deque<action_t *> > *chunk_queues = &all_chunk_queues[action->get_fd()];
         /* Determine the range of file-blocks that this action spans */
         int64_t start;
@@ -178,11 +183,6 @@ void conflict_resolving_diskmgr_t::submit(action_t *action) {
 }
 
 void conflict_resolving_diskmgr_t::submit_action_downwards(action_t *action) {
-    if (action->get_is_resize()) {
-        bool inserted = resize_active.insert(action->get_fd()).second;
-        guarantee(inserted, "A resize action was submitted before the previous one"
-                            "completed.");
-    }
     accounting_diskmgr_action_t *action_payload =
         static_cast<accounting_diskmgr_action_t *>(action);
     submit_fun(action_payload);
@@ -194,17 +194,11 @@ void conflict_resolving_diskmgr_t::done(accounting_diskmgr_action_t *payload) {
     action_t *action = static_cast<action_t *>(payload);
 
     if (action->get_is_resize()) {
-        /* Mark the resize as done. We must do this before processing the
-        waiter_queue, because one of the actions on the queue could be another
-        resize. */
-        rassert(resize_active.find(action->get_fd()) != resize_active.end());
-        resize_active.erase(action->get_fd());
+        bool submitted_another_resize = false;
 
         /* Resume all operations that were waiting for us. */
         std::deque<action_t *> &waiter_queue = resize_waiter_queues[action->get_fd()];
         while (!waiter_queue.empty()) {
-            rassert(resize_active.find(action->get_fd()) == resize_active.end());
-
             /* Decrease the conflict count for the oldest remaining waiter. */
             action_t *waiter = waiter_queue.front();
             waiter_queue.pop_front();
@@ -212,18 +206,56 @@ void conflict_resolving_diskmgr_t::done(accounting_diskmgr_action_t *payload) {
             rassert(waiter->conflict_count > 0);
             waiter->conflict_count--;
 
+            /* Resizes only wait for other resizes. So if we get here, we must
+            be the last thing that `waiter` has been waiting for. */
+            rassert(!waiter->get_is_resize() || waiter->conflict_count == 0);
+
             if (waiter->conflict_count == 0) {
+                if (waiter->get_is_resize()) {
+                    /* We are about to submit another resize. waiters that come after
+                    this must remain on the resize_waiter_queue, because they
+                    are still waiting for that resize. Continue by
+                    just decrementing the conflict_count, but not
+                    popping the waiters off the queue. */
+                    for (auto it = waiter_queue.begin(); it != waiter_queue.end(); ++it) {
+                        --(*it)->conflict_count;
+                        /* The waiter must at least still be waiting for the
+                        resize we are about to submit now. */
+                        rassert((*it)->conflict_count > 0);
+                    }
+
+                    /* Mark resize as done. We are not going to unblock any waiters
+                    should they come in after this point. So let's make sure
+                    new waiters are not going to wait for us. */
+                    rassert(resize_active[action->get_fd()] > 0);
+                    --resize_active[action->get_fd()];
+                    submitted_another_resize = true;
+                }
+
                 /* The waiter isn't waiting on anything else. Submit it. */
                 submit_action_downwards(waiter);
 
-                /* If the resumed waiter was a resize, stop resuming waiters
-                for now. Those waiters will have to wait until the new resize
-                operation has completed. */
-                if (resize_active.find(action->get_fd()) != resize_active.end()) {
+                if (submitted_another_resize) {
+                    /* Sorry, the remaining waiters must wait for a little longer. */
                     break;
                 }
             }
         }
+
+        if (!submitted_another_resize) {
+            /* Mark the resize as done.
+            We cannot do that earlier for the following reason:
+            Suppose we have a second resize operation currently waiting for us to finish.
+            Now if `submit()` gets called in the middle of above loop (it probably
+            cannot happen, but who knows), the submitted operation's `conflict_count`
+            would incorporate all the resizes that are currently accounted for in
+            `resize_active`. If we already had removed ourselves from `resize_active`,
+            we would decrement the `conflict_count` of an operation that was actually
+            waiting for the later resize, not for us. */
+            rassert(resize_active[action->get_fd()] > 0);
+            --resize_active[action->get_fd()];
+        }
+
     } else {
         std::map<int64_t, std::deque<action_t *> > *chunk_queues = &all_chunk_queues[action->get_fd()];
 
