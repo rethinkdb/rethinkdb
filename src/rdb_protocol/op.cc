@@ -129,18 +129,15 @@ counted_t<val_t> op_term_t::arg(scope_env_t *env, size_t i, eval_flags_t flags) 
     }
 }
 
-
 counted_t<val_t> op_term_t::term_eval(scope_env_t *env, eval_flags_t eval_flags) {
     scoped_ptr_t<arg_verifier_t> av(new arg_verifier_t(&args, &arg_verifier));
     counted_t<val_t> ret;
     if (num_args() != 0) {
         arg0 = arg_verifier->consume(0)->eval(env, eval_flags);
-    } else {
-        arg0.reset();
     }
-    debugf("%s\n", arg0->trunc_print().c_str());
-    if (arg0->get_type().is_convertible(val_t::type_t::GROUPED_DATA)) {
-        debugf("BRANCH 1\n");
+    if (can_be_grouped()
+        && arg0.has()
+        && arg0->get_type().is_convertible(val_t::type_t::GROUPED_DATA)) {
         counted_t<grouped_data_t> gd = arg0->as_grouped_data();
         counted_t<grouped_data_t> out(new grouped_data_t());
         for (auto kv = gd->begin(); kv != gd->end(); ++kv) {
@@ -149,13 +146,10 @@ counted_t<val_t> op_term_t::term_eval(scope_env_t *env, eval_flags_t eval_flags)
             av.reset();
             av.init(new arg_verifier_t(&args, &arg_verifier));
         }
-        ret = make_counted<val_t>(out, backtrace());
+        return make_counted<val_t>(out, backtrace());
     } else {
-        debugf("BRANCH 2\n");
-        ret = eval_impl(env, eval_flags);
+        return eval_impl(env, eval_flags);
     }
-    r_sanity_check(ret.has());
-    return ret;
 }
 
 counted_t<val_t> op_term_t::optarg(scope_env_t *env, const std::string &key) {

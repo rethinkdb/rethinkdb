@@ -249,6 +249,7 @@ void run(protob_t<Query> q,
                     r_sanity_check(b);
                 }
             } else if (val->get_type().is_convertible(val_t::type_t::GROUPED_DATA)) {
+                // RSI: JSON response for speed.
                 auto grouped_data = val->as_grouped_data();
                 res->set_type(Response::SUCCESS_ATOM);
                 Datum *d = res->add_response();

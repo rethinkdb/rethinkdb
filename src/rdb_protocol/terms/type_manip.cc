@@ -274,15 +274,17 @@ private:
             return new_val(make_counted<const datum_t>("GROUPED_STREAM"));
         } else {
             return new_val(
-                make_counted<const datum_t>(get_name(val_type(arg(env, 0)))));
+                make_counted<const datum_t>(get_name(val_type(v))));
         }
     }
     virtual const char *name() const { return "typeof"; }
+    virtual bool can_be_grouped() { return false; }
 };
 
 class info_term_t : public op_term_t {
 public:
-    info_term_t(compile_env_t *env, const protob_t<const Term> &term) : op_term_t(env, term, argspec_t(1)) { }
+    info_term_t(compile_env_t *env, const protob_t<const Term> &term)
+        : op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         return new_val(val_info(env, arg(env, 0)));
@@ -325,6 +327,9 @@ private:
             b |= info.add("source_code",
                           make_counted<datum_t>(v->as_func()->print_source()));
         } break;
+        case GROUPED_DATA_TYPE: {
+            // RSI: info
+        } break;
 
         case R_NULL_TYPE:   // fallthru
         case R_BOOL_TYPE:   // fallthru
@@ -343,6 +348,7 @@ private:
     }
 
     virtual const char *name() const { return "info"; }
+    virtual bool can_be_grouped() { return false; }
 };
 
 counted_t<term_t> make_coerce_term(compile_env_t *env, const protob_t<const Term> &term) {

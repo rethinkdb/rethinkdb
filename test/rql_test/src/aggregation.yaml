@@ -142,6 +142,9 @@ tests:
     - cd: tbl.orderby(index:'id').filter{|row| row['id'].lt(10)}.group('a').map{|row| row['id']}.coerce_to('ARRAY')
       ot: ({0=>[0, 4, 8], 1=>[1, 5, 9], 2=>[2, 6], 3=>[3, 7]})
 
+    - cd: tbl.filter{|row| row['id'].lt(10)}.group('a').count.do{|x| x*x}
+      ot: ({0=>9, 1=>9, 2=>4, 3=>4})
+
     - rb: tbl.union(tbl).group('a').map{|x| x['id']}.reduce{|a,b| a+b}
       runopts:
         grouped_data_format: '"raw"'
