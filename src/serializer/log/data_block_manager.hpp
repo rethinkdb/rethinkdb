@@ -99,7 +99,6 @@ public:
 
     std::vector<counted_t<ls_block_token_pointee_t> >
     many_writes(const std::vector<buf_write_info_t> &writes,
-                bool assign_new_block_sequence_id,
                 file_account_t *io_account,
                 iocallback_t *cb);
 
