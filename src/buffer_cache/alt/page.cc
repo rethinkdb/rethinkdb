@@ -1342,7 +1342,9 @@ void page_txn_t::announce_waiting_for_flush() {
     rassert(live_acqs_.empty());
     rassert(!began_waiting_for_flush_);
     began_waiting_for_flush_ = true;
-    page_cache_->im_waiting_for_flush(this);
+    std::set<page_txn_t *> txns;
+    txns.insert(this);
+    page_cache_->im_waiting_for_flush(std::move(txns));
 }
 
 std::map<block_id_t, page_cache_t::block_change_t>
@@ -1406,8 +1408,9 @@ page_cache_t::compute_changes(const std::set<page_txn_t *> &txns) {
     return changes;
 }
 
-void page_cache_t::remove_txn_set_from_graph(page_cache_t *page_cache,
-                                             const std::set<page_txn_t *> &txns) {
+std::set<page_txn_t *>
+page_cache_t::remove_txn_set_from_graph(page_cache_t *page_cache,
+                                        const std::set<page_txn_t *> &txns) {
     page_cache->assert_thread();
 
     std::set<page_txn_t *> unblocked;
@@ -1457,10 +1460,7 @@ void page_cache_t::remove_txn_set_from_graph(page_cache_t *page_cache,
         txn->flush_complete_cond_.pulse();
     }
 
-    // Now pulse those txns whose flushes might no longer blocked by some preceder.
-    for (auto jt = unblocked.begin(); jt != unblocked.end(); ++jt) {
-        page_cache->im_waiting_for_flush(*jt);
-    }
+    return unblocked;
 }
 
 struct block_token_tstamp_t {
@@ -1667,7 +1667,10 @@ void page_cache_t::do_flush_txn_set(page_cache_t *page_cache,
 
     // KSI: Can't we remove_txn_set_from_graph before flushing?  Make pulsing
     // flush_complete_cond_ a separate thing to do?
-    page_cache_t::remove_txn_set_from_graph(page_cache, txns);
+    std::set<page_txn_t *> unblocked
+        = page_cache_t::remove_txn_set_from_graph(page_cache, txns);
+
+    page_cache->im_waiting_for_flush(std::move(unblocked));
 }
 
 bool page_cache_t::exists_flushable_txn_set(page_txn_t *txn,
@@ -1710,43 +1713,58 @@ bool page_cache_t::exists_flushable_txn_set(page_txn_t *txn,
     return true;
 }
 
-void page_cache_t::im_waiting_for_flush(page_txn_t *txn) {
+void page_cache_t::im_waiting_for_flush(std::set<page_txn_t *> queue) {
     assert_thread();
-    rassert(txn->began_waiting_for_flush_);
-    rassert(!txn->spawned_flush_);
-    rassert(txn->live_acqs_.empty());
 
-    // We have a new node that's waiting for flush.  Before this node is flushed, we
-    // will have started to flush all preceders (recursively) of this node (that are
-    // waiting for flush) that this node doesn't itself precede (recursively).  Now
-    // we need to ask: Are all this node's preceders (recursively) (that are ready to
-    // flush and haven't started flushing yet) ready to flush?  If so, this node must
-    // have been the one that pushed them over the line (since they haven't started
-    // flushing yet).  So we begin flushing this node and all of its preceders
-    // (recursively) in one atomic flush.
-
-
-    // LSI: Every transaction is getting its own flush, basically, the way things are
-    // right now.
-
-    std::set<page_txn_t *> flush_set;
-    if (exists_flushable_txn_set(txn, &flush_set)) {
-        for (auto it = flush_set.begin(); it != flush_set.end(); ++it) {
-            rassert(!(*it)->spawned_flush_);
-            (*it)->spawned_flush_ = true;
+    while (!queue.empty()) {
+        page_txn_t *txn;
+        {
+            auto it = queue.begin();
+            txn = *it;
+            queue.erase(it);
         }
 
-        std::map<block_id_t, block_change_t> changes
-            = page_cache_t::compute_changes(flush_set);
+        rassert(txn->began_waiting_for_flush_);
+        rassert(!txn->spawned_flush_);
+        rassert(txn->live_acqs_.empty());
 
-        if (!changes.empty()) {
-            coro_t::spawn_now_dangerously(std::bind(&page_cache_t::do_flush_txn_set,
-                                                    this,
-                                                    &changes,
-                                                    flush_set));
-        } else {
-            // Flush complete.  do_flush_txn_set does this in the write case.
-            page_cache_t::remove_txn_set_from_graph(this, flush_set);
+        // We have a new node that's waiting for flush.  Before this node is flushed, we
+        // will have started to flush all preceders (recursively) of this node (that are
+        // waiting for flush) that this node doesn't itself precede (recursively).  Now
+        // we need to ask: Are all this node's preceders (recursively) (that are ready to
+        // flush and haven't started flushing yet) ready to flush?  If so, this node must
+        // have been the one that pushed them over the line (since they haven't started
+        // flushing yet).  So we begin flushing this node and all of its preceders
+        // (recursively) in one atomic flush.
+
+
+        // LSI: Every transaction is getting its own flush, basically, the way things are
+        // right now.
+
+        std::set<page_txn_t *> flush_set;
+        if (exists_flushable_txn_set(txn, &flush_set)) {
+            for (auto it = flush_set.begin(); it != flush_set.end(); ++it) {
+                rassert(!(*it)->spawned_flush_);
+                (*it)->spawned_flush_ = true;
+            }
+
+            std::map<block_id_t, block_change_t> changes
+                = page_cache_t::compute_changes(flush_set);
+
+            if (!changes.empty()) {
+                coro_t::spawn_now_dangerously(std::bind(&page_cache_t::do_flush_txn_set,
+                                                        this,
+                                                        &changes,
+                                                        flush_set));
+            } else {
+                // Flush complete.  do_flush_txn_set does this in the write case.
+                std::set<page_txn_t *> unblocked
+                    = page_cache_t::remove_txn_set_from_graph(this, flush_set);
+
+                for (auto it = unblocked.begin(); it != unblocked.end(); ++it) {
+                    queue.insert(*it);
+                }
+            }
         }
     }
 }
