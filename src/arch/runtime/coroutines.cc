@@ -151,6 +151,15 @@ void coro_t::return_coro_to_free_list(coro_t *coro) {
     TLS_get_cglobals()->free_coros.push_back(coro);
 }
 
+void coro_t::maybe_evict_from_free_list() {
+    coro_globals_t *cglobals = TLS_get_cglobals();
+    while (cglobals->free_coros.size() > COROUTINE_FREE_LIST_SIZE) {
+        coro_t *coro_to_delete = cglobals->free_coros.tail();
+        cglobals->free_coros.remove(coro_to_delete);
+        delete coro_to_delete;
+    }
+}
+
 coro_t::~coro_t() {
     /* We never move contexts from one thread to another any more. */
     rassert(get_thread_id() == home_thread());
@@ -372,6 +381,18 @@ coro_t * coro_t::get_coro() {
     } else {
         coro = TLS_get_cglobals()->free_coros.tail();
         TLS_get_cglobals()->free_coros.remove(coro);
+
+        /* We cannot easily delete coroutines at the time where we return
+        them to the free list, because coro_t::run() requires the coro_t pointer to remain
+        valid until it switches out of the coroutine context.
+        We could use call_later_on_this_thread() to place a message on the message
+        hub that would delete the coroutine later, but that would make the shut down
+        process more complicated because we would have to wait for those messages
+        to get processed.
+        Instead, we delete unused coroutines from the free list here. It's not perfect,
+        but the important thing is that unused coroutines get evicted eventually
+        so we can reclaim the memory. */
+        maybe_evict_from_free_list();
     }
 
     rassert(!coro->intrusive_list_node_t<coro_t>::in_a_list());
