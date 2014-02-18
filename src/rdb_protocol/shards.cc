@@ -170,8 +170,8 @@ class to_array_t : public eager_acc_t {
 private:
     virtual void operator()(groups_t *gs) {
         for (auto kv = gs->begin(); kv != gs->end(); ++kv) {
-            lst_t *l1 = &groups[kv->first];
-            lst_t *l2 = &kv->second;
+            datums_t *l1 = &groups[kv->first];
+            datums_t *l2 = &kv->second;
             l1->reserve(l1->size() + l2->size());
             std::move(l2->begin(), l2->end(), std::back_inserter(*l1));
         }
@@ -182,7 +182,7 @@ private:
         auto streams = boost::get<grouped<stream_t> >(res);
         r_sanity_check(streams);
         for (auto kv = streams->begin(); kv != streams->end(); ++kv) {
-            lst_t *l = &groups[kv->first];
+            datums_t *l = &groups[kv->first];
             stream_t *s = &kv->second;
             l->reserve(l->size() + s->size());
             for (auto it = s->begin(); it != s->end(); ++it) {
@@ -472,7 +472,7 @@ private:
             }
         }
     }
-    virtual void lst_transform(lst_t *lst) = 0;
+    virtual void lst_transform(datums_t *lst) = 0;
 };
 
 class group_trans_t : public op_t {
@@ -485,8 +485,8 @@ private:
     virtual void operator()(groups_t *groups) {
         if (groups->size() == 0) return;
         r_sanity_check(groups->size() == 1 && !groups->begin()->first.has());
-        lst_t *lst = &groups->begin()->second;
-        for (auto el = lst->begin(); el != lst->end(); ++el) {
+        datums_t *ds = &groups->begin()->second;
+        for (auto el = ds->begin(); el != ds->end(); ++el) {
             std::vector<counted_t<const datum_t> > arr;
             arr.reserve(funcs.size());
             for (auto f = funcs.begin(); f != funcs.end(); ++f) {
@@ -528,7 +528,7 @@ public:
     map_trans_t(env_t *_env, const map_wire_func_t &_f)
         : env(_env), f(_f.compile_wire_func()) { }
 private:
-    virtual void lst_transform(lst_t *lst) {
+    virtual void lst_transform(datums_t *lst) {
         try {
             for (auto it = lst->begin(); it != lst->end(); ++it) {
                 *it = f->call(env, *it)->as_datum();
@@ -550,7 +550,7 @@ public:
                       ? _f.default_filter_val->compile_wire_func()
                       : counted_t<func_t>()) { }
 private:
-    virtual void lst_transform(lst_t *lst) {
+    virtual void lst_transform(datums_t *lst) {
         auto it = lst->begin();
         auto loc = it;
         try {
@@ -574,8 +574,8 @@ public:
     concatmap_trans_t(env_t *_env, const concatmap_wire_func_t &_f)
         : env(_env), f(_f.compile_wire_func()) { }
 private:
-    virtual void lst_transform(lst_t *lst) {
-        lst_t new_lst;
+    virtual void lst_transform(datums_t *lst) {
+        datums_t new_lst;
         batchspec_t bs = batchspec_t::user(batch_type_t::TERMINAL, env);
         profile::sampler_t sampler("Evaluating CONCAT_MAP elements.", env->trace);
         try {

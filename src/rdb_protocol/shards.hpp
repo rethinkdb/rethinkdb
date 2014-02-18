@@ -25,8 +25,8 @@ bool reversed(sorting_t sorting);
 
 // This stuff previously resided in the protocol, but has been broken out since
 // we want to use this logic in multiple places.
-typedef std::vector<counted_t<const ql::datum_t> > lst_t;
-typedef std::map<counted_t<const ql::datum_t>, lst_t> groups_t;
+typedef std::vector<counted_t<const ql::datum_t> > datums_t;
+typedef std::map<counted_t<const ql::datum_t>, datums_t> groups_t;
 
 struct rget_item_t {
     rget_item_t() { }
@@ -64,8 +64,8 @@ static inline void serialize_grouped(write_message_t *msg,
 static inline void serialize_grouped(write_message_t *msg, const stream_t &sz) {
     *msg << sz;
 }
-static inline void serialize_grouped(write_message_t *msg, const lst_t &l) {
-    *msg << l;
+static inline void serialize_grouped(write_message_t *msg, const datums_t &ds) {
+    *msg << ds;
 }
 
 static inline archive_result_t deserialize_grouped(
@@ -89,8 +89,8 @@ static inline archive_result_t deserialize_grouped(read_stream_t *s,
 static inline archive_result_t deserialize_grouped(read_stream_t *s, stream_t *sz) {
     return deserialize(s, sz);
 }
-static inline archive_result_t deserialize_grouped(read_stream_t *s, lst_t *l) {
-    return deserialize(s, l);
+static inline archive_result_t deserialize_grouped(read_stream_t *s, datums_t *ds) {
+    return deserialize(s, ds);
 }
 
 template<class T>
@@ -130,7 +130,6 @@ typedef boost::variant<
     grouped<double>, // Sum.
     grouped<std::pair<double, uint64_t> >, // Avg.
     grouped<counted_t<const ql::datum_t> >, // Reduce (may be NULL), min, max.
-    grouped<lst_t>, // To array.
     grouped<stream_t>, // No terminal.,
     exc_t // Don't re-order (we don't want this to initialize to an error.)
     > result_t;

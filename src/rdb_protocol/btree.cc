@@ -643,9 +643,6 @@ private:
     const sindex_multi_bool_t multi;
 };
 
-typedef std::vector<counted_t<const ql::datum_t> > lst_t;
-typedef std::map<counted_t<const ql::datum_t>, lst_t> groups_t;
-
 class job_data_t {
 public:
     job_data_t(ql::env_t *_env, const ql::batchspec_t &batchspec,
@@ -780,7 +777,7 @@ THROWS_ONLY(interrupted_exc_t) {
             }
         }
 
-        groups_t data{{counted_t<const ql::datum_t>(), lst_t{val}}};
+        ql::groups_t data{{counted_t<const ql::datum_t>(), ql::datums_t{val}}};
 
         for (auto it = job.transformers.begin(); it != job.transformers.end(); ++it) {
             (**it)(&data);
