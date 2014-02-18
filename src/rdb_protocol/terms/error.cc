@@ -80,6 +80,7 @@ private:
         }
     }
     virtual const char *name() const { return "error"; }
+    virtual bool can_be_grouped() { return false; }
 };
 
 counted_t<term_t> make_error_term(compile_env_t *env, const protob_t<const Term> &term) {

@@ -118,7 +118,7 @@ private:
 size_t op_term_t::num_args() const { return args.size(); }
 counted_t<val_t> op_term_t::arg(scope_env_t *env, size_t i, eval_flags_t flags) {
     if (i == 0) {
-        r_sanity_check(arg0.has());
+        if (!arg0.has()) arg0 = arg_verifier->consume(0)->eval(env, flags);
         counted_t<val_t> v;
         v.swap(arg0);
         r_sanity_check(!arg0.has());
@@ -132,24 +132,21 @@ counted_t<val_t> op_term_t::arg(scope_env_t *env, size_t i, eval_flags_t flags) 
 counted_t<val_t> op_term_t::term_eval(scope_env_t *env, eval_flags_t eval_flags) {
     scoped_ptr_t<arg_verifier_t> av(new arg_verifier_t(&args, &arg_verifier));
     counted_t<val_t> ret;
-    if (num_args() != 0) {
+    if (num_args() != 0 && can_be_grouped()) {
         arg0 = arg_verifier->consume(0)->eval(env, eval_flags);
-    }
-    if (can_be_grouped()
-        && arg0.has()
-        && arg0->get_type().is_convertible(val_t::type_t::GROUPED_DATA)) {
-        counted_t<grouped_data_t> gd = arg0->as_grouped_data();
-        counted_t<grouped_data_t> out(new grouped_data_t());
-        for (auto kv = gd->begin(); kv != gd->end(); ++kv) {
-            arg0 = make_counted<val_t>(kv->second, backtrace());
-            (*out)[kv->first] = eval_impl(env, eval_flags)->as_datum();
-            av.reset();
-            av.init(new arg_verifier_t(&args, &arg_verifier));
+        if (arg0->get_type().is_convertible(val_t::type_t::GROUPED_DATA)) {
+            counted_t<grouped_data_t> gd = arg0->as_grouped_data();
+            counted_t<grouped_data_t> out(new grouped_data_t());
+            for (auto kv = gd->begin(); kv != gd->end(); ++kv) {
+                arg0 = make_counted<val_t>(kv->second, backtrace());
+                (*out)[kv->first] = eval_impl(env, eval_flags)->as_datum();
+                av.reset();
+                av.init(new arg_verifier_t(&args, &arg_verifier));
+            }
+            return make_counted<val_t>(out, backtrace());
         }
-        return make_counted<val_t>(out, backtrace());
-    } else {
-        return eval_impl(env, eval_flags);
     }
+    return eval_impl(env, eval_flags);
 }
 
 counted_t<val_t> op_term_t::optarg(scope_env_t *env, const std::string &key) {

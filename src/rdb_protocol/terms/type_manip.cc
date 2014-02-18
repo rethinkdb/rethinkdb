@@ -327,9 +327,6 @@ private:
             b |= info.add("source_code",
                           make_counted<datum_t>(v->as_func()->print_source()));
         } break;
-        case GROUPED_DATA_TYPE: {
-            // RSI: info
-        } break;
 
         case R_NULL_TYPE:   // fallthru
         case R_BOOL_TYPE:   // fallthru

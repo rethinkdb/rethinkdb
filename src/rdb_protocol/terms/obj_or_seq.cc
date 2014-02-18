@@ -154,6 +154,7 @@ public:
         : op_term_t(env, term, argspec_t(0, 1)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t flags) {
+        BREAKPOINT;
         rcheck(flags & LITERAL_OK, base_exc_t::GENERIC,
                "Stray literal keyword found, literal can only be present inside merge "
                "and cannot nest inside other literals.");

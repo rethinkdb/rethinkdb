@@ -249,25 +249,13 @@ void run(protob_t<Query> q,
                     r_sanity_check(b);
                 }
             } else if (val->get_type().is_convertible(val_t::type_t::GROUPED_DATA)) {
-                // RSI: JSON response for speed.
-                auto grouped_data = val->as_grouped_data();
                 res->set_type(Response::SUCCESS_ATOM);
-                Datum *d = res->add_response();
-                d->set_type(Datum::R_OBJECT);
-                Datum::AssocPair *type_field = d->add_r_object();
-                type_field->set_key(datum_t::reql_type_string);
-                type_field->mutable_val()->set_type(Datum::R_STR);
-                type_field->mutable_val()->set_r_str("GROUPED_DATA");
-                Datum::AssocPair *data_field = d->add_r_object();
-                data_field->set_key("data");
-                Datum *arr = data_field->mutable_val();
-                arr->set_type(Datum::R_ARRAY);
-                for (auto it = grouped_data->begin(); it != grouped_data->end(); ++it) {
-                    r_sanity_check(it->first.has() && it->second.has());
-                    Datum *pair = arr->add_r_array();
-                    pair->set_type(Datum::R_ARRAY);
-                    it->first->write_to_protobuf(pair->add_r_array(), use_json);
-                    it->second->write_to_protobuf(pair->add_r_array(), use_json);
+                counted_t<grouped_data_t> gd = val->as_grouped_data();
+                datum_t d(std::move(*gd));
+                d.write_to_protobuf(res->add_response(), use_json);
+                if (env->trace.has()) {
+                    env->trace->as_datum()->write_to_protobuf(
+                        res->mutable_profile(), use_json);
                 }
             } else {
                 rfail_toplevel(base_exc_t::GENERIC,
