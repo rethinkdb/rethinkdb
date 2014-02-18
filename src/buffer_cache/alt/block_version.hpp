@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 
+// RSI: Put this in namespace alt.
 class block_version_t {
 public:
     block_version_t() : value_(0) { }
