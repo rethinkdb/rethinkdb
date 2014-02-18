@@ -170,10 +170,10 @@ class to_array_t : public eager_acc_t {
 private:
     virtual void operator()(groups_t *gs) {
         for (auto kv = gs->begin(); kv != gs->end(); ++kv) {
-            datums_t *l1 = &groups[kv->first];
-            datums_t *l2 = &kv->second;
-            l1->reserve(l1->size() + l2->size());
-            std::move(l2->begin(), l2->end(), std::back_inserter(*l1));
+            datums_t *lst1 = &groups[kv->first];
+            datums_t *lst2 = &kv->second;
+            lst1->reserve(lst1->size() + lst2->size());
+            std::move(lst2->begin(), lst2->end(), std::back_inserter(*lst1));
         }
         gs->clear();
     }
