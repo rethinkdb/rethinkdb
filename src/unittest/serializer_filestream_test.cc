@@ -39,6 +39,7 @@ void run_Boundaries() {
         int64_t lenread;
         while (0 < (lenread = stream.read(buf, count))) {
             builder.append(buf, lenread);
+            ASSERT_LE(builder.size(), text1.size() + text2.size());
         }
         ASSERT_EQ(0, lenread);
     }
