@@ -9,6 +9,7 @@
 
 #include "buffer_cache/alt/block_version.hpp"
 #include "buffer_cache/alt/config.hpp"
+#include "buffer_cache/alt/evicter.hpp"
 #include "buffer_cache/alt/free_list.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/access.hpp"
@@ -40,13 +41,6 @@ enum class page_create_t { no, yes };
 }  // namespace alt
 
 enum class alt_create_t { create };
-
-class memory_tracker_t {
-public:
-    virtual ~memory_tracker_t() { }
-    virtual void inform_memory_change(uint64_t in_memory_size,
-                                      uint64_t memory_limit) = 0;
-};
 
 class alt_cache_account_t {
 public:
@@ -409,84 +403,6 @@ private:
     bool dirtied_page_;
 
     DISABLE_COPYING(current_page_acq_t);
-};
-
-class eviction_bag_t {
-public:
-    eviction_bag_t();
-    ~eviction_bag_t();
-
-    // For adding a page that doesn't have a size yet -- its size is not yet
-    // accounted for, because its buf isn't loaded yet.
-    void add_without_size(page_t *page);
-
-    // Adds the size for a page that was added with add_without_size, now that it has
-    // been loaded and we know the size.
-    void add_size(uint32_t ser_buf_size);
-
-    // Adds the page with its known size.
-    void add(page_t *page, uint32_t ser_buf_size);
-
-    // Removes the page with its size.
-    void remove(page_t *page, uint32_t ser_buf_size);
-
-    // Returns true if this bag contains the given page.
-    bool has_page(page_t *page) const;
-
-    uint64_t size() const { return size_; }
-
-    bool remove_oldish(page_t **page_out, uint64_t access_time_offset);
-
-private:
-    backindex_bag_t<page_t *> bag_;
-    // The size in memory.
-    uint64_t size_;
-
-    DISABLE_COPYING(eviction_bag_t);
-};
-
-class evicter_t : public home_thread_mixin_debug_only_t {
-public:
-    void add_not_yet_loaded(page_t *page);
-    void add_now_loaded_size(uint32_t ser_buf_size);
-    void add_to_evictable_unbacked(page_t *page);
-    void add_to_evictable_disk_backed(page_t *page);
-    bool page_is_in_unevictable_bag(page_t *page) const;
-    void move_unevictable_to_evictable(page_t *page);
-    void change_to_correct_eviction_bag(eviction_bag_t *current_bag, page_t *page);
-    eviction_bag_t *correct_eviction_category(page_t *page);
-    void remove_page(page_t *page);
-
-    explicit evicter_t(memory_tracker_t *tracker,
-                       uint64_t memory_limit);
-    ~evicter_t();
-
-    bool interested_in_read_ahead_block(uint32_t ser_block_size) const;
-
-    uint64_t next_access_time() {
-        return ++access_time_counter_;
-    }
-
-private:
-    void evict_if_necessary();
-    uint64_t in_memory_size() const;
-
-    void inform_tracker() const;
-
-    // LSI: Implement issue 97.
-    memory_tracker_t *const tracker_;
-    uint64_t memory_limit_;
-
-    // This gets incremented every time a page is accessed.
-    uint64_t access_time_counter_;
-
-    // These track whether every page's eviction status.
-    eviction_bag_t unevictable_;
-    eviction_bag_t evictable_disk_backed_;
-    eviction_bag_t evictable_unbacked_;
-    eviction_bag_t evicted_;
-
-    DISABLE_COPYING(evicter_t);
 };
 
 // This object lives on the serializer thread.
