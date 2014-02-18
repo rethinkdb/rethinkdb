@@ -1435,6 +1435,8 @@ void page_cache_t::remove_txn_set_from_graph(page_cache_t *page_cache,
 
 
         for (auto jt = txn->preceders_.begin(); jt != txn->preceders_.end(); ++jt) {
+            // All our preceders should be from our own txn set.
+            rassert(txns.find(*jt) != txns.end());
             (*jt)->remove_subseqer(txn);
         }
         txn->preceders_.clear();
