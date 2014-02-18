@@ -1490,6 +1490,7 @@ struct ancillary_info_t {
 void page_cache_t::do_flush_changes(page_cache_t *page_cache,
                                     const std::map<block_id_t, block_change_t> &changes,
                                     fifo_enforcer_write_token_t index_write_token) {
+    rassert(!changes.empty());
     std::vector<block_token_tstamp_t> blocks_by_tokens;
     blocks_by_tokens.reserve(changes.size());
 
@@ -1601,7 +1602,7 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
 
         blocks_releasable_cb.wait();
 
-        // KSI: Pass in the exiter to index_write, so that subsequent index_write
+        // LSI: Pass in the exiter to index_write, so that subsequent index_write
         // operations don't have to wait for one another to finish.  (Note: Doing
         // this requires some sort of semaphore to prevent a zillion index_writes to
         // queue up.)
@@ -1609,10 +1610,9 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
                                                   index_write_token);
         exiter.wait();
 
-        if (!write_ops.empty()) {
-            page_cache->serializer_->index_write(write_ops,
-                                                 page_cache->writes_io_account_.get());
-        }
+        rassert(!write_ops.empty());
+        page_cache->serializer_->index_write(write_ops,
+                                             page_cache->writes_io_account_.get());
     }
 
     // Set the page_t's block token field to their new block tokens.  KSI: Can we
