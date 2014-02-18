@@ -106,7 +106,7 @@ struct test_driver_t {
             a->get_bufs(&a_vecs, &a_size);
             iovec source_vecs[1] = { { data.data(), data.size() } };
             fill_bufs_from_source(a_vecs, a_size, source_vecs, 1, a->get_offset());
-        } else {
+        } else if (a->get_is_write()) {
             iovec *a_vecs;
             size_t a_size;
             a->get_bufs(&a_vecs, &a_size);
@@ -184,6 +184,34 @@ struct write_test_t {
         ASSERT_TRUE(was_completed());
     }
     ~write_test_t() {
+        EXPECT_TRUE(was_completed());
+    }
+};
+
+struct resize_test_t {
+
+    resize_test_t(test_driver_t *_driver) :
+        driver(_driver),
+        action(driver->make_action()) {
+        action->make_resize(IRRELEVANT_DEFAULT_FD, DEVICE_BLOCK_SIZE, false);
+        driver->submit(action);
+    }
+
+    test_driver_t *driver;
+    test_driver_t::action_t *action;
+
+    bool was_sent() {
+        return driver->action_is_done(action) || driver->action_has_begun(action);
+    }
+    bool was_completed() {
+        return driver->action_is_done(action);
+    }
+    void go() {
+        ASSERT_TRUE(was_sent());
+        driver->permit(action);
+        ASSERT_TRUE(was_completed());
+    }
+    ~resize_test_t() {
         EXPECT_TRUE(was_completed());
     }
 };
@@ -276,6 +304,106 @@ TEST(DiskConflictTest, WriteReadSuperrange) {
     initial_write.go();
     w.go();
     r.go();
+}
+
+/* ResizeResizeConflict verifies that a resize operation waits for a previous resize */
+
+TEST(DiskConflictTest, ResizeResizeConflict) {
+    test_driver_t d;
+    resize_test_t resize1(&d);
+    resize_test_t resize2(&d);
+    ASSERT_TRUE(resize1.was_sent());
+    ASSERT_FALSE(resize2.was_sent());
+    resize1.go();
+    ASSERT_TRUE(resize2.was_sent());
+    resize2.go();
+}
+
+/* WriteResizeNonConflict verifies that resize doesn't wait for a previous write
+(while waiting would be ok, the current conflict_resolving queue doesn't do that
+and it is important for its implementation to work correctly) */
+
+TEST(DiskConflictTest, WriteResizeNonConflict) {
+    test_driver_t d;
+    write_test_t w(&d, 0, "foo");
+    resize_test_t resize(&d);
+    ASSERT_TRUE(w.was_sent());
+    ASSERT_TRUE(resize.was_sent());
+    w.go();
+    resize.go();
+}
+
+/* ReadResizeNonConflict verifies that resize doesn't wait for a previous read
+(while waiting would be ok, the current conflict_resolving queue doesn't do that
+and it is important for its implementation to work correctly) */
+
+TEST(DiskConflictTest, ReadResizeNonConflict) {
+    test_driver_t d;
+    write_test_t initial_write(&d, 0, "foo");
+    initial_write.go();
+    read_test_t r(&d, 0, "foo");
+    resize_test_t resize(&d);
+    ASSERT_TRUE(r.was_sent());
+    ASSERT_TRUE(resize.was_sent());
+    r.go();
+    resize.go();
+}
+
+/* ResizeWriteConflict verifies that a write waits for a previous resize */
+
+TEST(DiskConflictTest, ResizeWriteConflict) {
+    test_driver_t d;
+    resize_test_t resize(&d);
+    write_test_t w(&d, 0, "foo");
+    ASSERT_FALSE(w.was_sent());
+    ASSERT_TRUE(resize.was_sent());
+    resize.go();
+    w.go();
+}
+
+/* ResizeReadConflict verifies that a read waits for a previous resize */
+
+TEST(DiskConflictTest, ResizeReadConflict) {
+    test_driver_t d;
+    write_test_t initial_write(&d, 0, "foo");
+    initial_write.go();
+    resize_test_t resize(&d);
+    read_test_t r(&d, 0, "foo");
+    ASSERT_FALSE(r.was_sent());
+    ASSERT_TRUE(resize.was_sent());
+    resize.go();
+    r.go();
+}
+
+/* ResizeSequenceConflict verifies that in case of multiple resize operations,
+writes wait exactly for all previous resizes. */
+
+TEST(DiskConflictTest, ResizeSequenceConflict) {
+    test_driver_t d;
+    resize_test_t resize1(&d);
+    write_test_t w1(&d, 0, "foo");
+    resize_test_t resize2(&d);
+    write_test_t w2(&d, 0, "foo");
+    ASSERT_TRUE(resize1.was_sent());
+    ASSERT_FALSE(w1.was_sent());
+    ASSERT_FALSE(resize2.was_sent());
+    ASSERT_FALSE(w2.was_sent());
+    resize1.go();
+    ASSERT_TRUE(resize1.was_sent());
+    ASSERT_TRUE(w1.was_sent());
+    ASSERT_TRUE(resize2.was_sent());
+    ASSERT_FALSE(w2.was_sent());
+    w1.go();
+    ASSERT_TRUE(resize1.was_sent());
+    ASSERT_TRUE(w1.was_sent());
+    ASSERT_TRUE(resize2.was_sent());
+    ASSERT_FALSE(w2.was_sent());
+    resize2.go();
+    ASSERT_TRUE(resize1.was_sent());
+    ASSERT_TRUE(w1.was_sent());
+    ASSERT_TRUE(resize2.was_sent());
+    ASSERT_TRUE(w2.was_sent());
+    w2.go();
 }
 
 /* MetaTest is a sanity check to make sure that the above tests are actually testing something. */
