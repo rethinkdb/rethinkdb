@@ -103,7 +103,7 @@ serializer_file_write_stream_t::serializer_file_write_stream_t(serializer_t *ser
 serializer_file_write_stream_t::~serializer_file_write_stream_t() { }
 
 MUST_USE int64_t serializer_file_write_stream_t::write(const void *p, int64_t n) {
-    const char *chp = static_cast<const char *>(p);
+    const char *const chp = static_cast<const char *>(p);
     const int block_size = cache_->get_block_size().value();
 
     txn_t txn(cache_conn_.get(), write_durability_t::HARD, repli_timestamp_t::invalid,
