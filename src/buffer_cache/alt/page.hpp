@@ -7,6 +7,7 @@
 #include <vector>
 #include <set>
 
+#include "buffer_cache/alt/block_version.hpp"
 #include "buffer_cache/alt/config.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/access.hpp"
@@ -57,42 +58,6 @@ private:
     threadnum_t thread_;
     file_account_t *io_account_;
     DISABLE_COPYING(alt_cache_account_t);
-};
-
-class block_version_t {
-public:
-    block_version_t() : value_(0) { }
-
-    block_version_t subsequent() const {
-        block_version_t ret;
-        ret.value_ = value_ + 1;
-        return ret;
-    }
-
-    bool operator<(block_version_t other) const {
-        return value_ < other.value_;
-    }
-
-    bool operator<=(block_version_t other) const {
-        return value_ <= other.value_;
-    }
-
-    bool operator>=(block_version_t other) const {
-        return value_ >= other.value_;
-    }
-
-    bool operator==(block_version_t other) const {
-        return value_ == other.value_;
-    }
-
-    bool operator!=(block_version_t other) const {
-        return !operator==(other);
-    }
-
-    uint64_t debug_value() const { return value_; }
-
-private:
-    uint64_t value_;
 };
 
 class cache_conn_t {
