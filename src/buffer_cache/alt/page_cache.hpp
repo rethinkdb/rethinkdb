@@ -33,7 +33,6 @@ class file_account_t;
 
 namespace alt {
 class current_page_acq_t;
-class page_acq_t;
 class page_cache_t;
 class page_txn_t;
 
