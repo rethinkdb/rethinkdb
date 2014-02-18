@@ -2,7 +2,7 @@
 
 #include <inttypes.h>
 
-#include "buffer_cache/alt/page.hpp"
+#include "buffer_cache/alt/page_cache.hpp"
 #include "utils.hpp"
 
 namespace alt {

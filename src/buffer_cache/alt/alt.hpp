@@ -6,7 +6,7 @@
 #include <vector>
 #include <utility>
 
-#include "buffer_cache/alt/page.hpp"
+#include "buffer_cache/alt/page_cache.hpp"
 #include "buffer_cache/types.hpp"
 #include "containers/two_level_array.hpp"
 #include "repli_timestamp.hpp"

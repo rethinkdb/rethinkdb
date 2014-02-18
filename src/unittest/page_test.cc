@@ -1,7 +1,7 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "arch/runtime/coroutines.hpp"
 #include "arch/timing.hpp"
-#include "buffer_cache/alt/page.hpp"
+#include "buffer_cache/alt/page_cache.hpp"
 // For alt_memory_tracker_t.  KSI: We'll want a mock memory_tracker_t subclass.
 #include "buffer_cache/alt/alt.hpp"
 #include "concurrency/auto_drainer.hpp"

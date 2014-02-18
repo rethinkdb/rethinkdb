@@ -1,5 +1,5 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#include "buffer_cache/alt/page.hpp"
+#include "buffer_cache/alt/page_cache.hpp"
 
 #include <algorithm>
 #include <stack>

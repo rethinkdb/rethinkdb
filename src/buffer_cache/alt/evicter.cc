@@ -1,6 +1,6 @@
 #include "buffer_cache/alt/evicter.hpp"
 
-#include "buffer_cache/alt/page.hpp"
+#include "buffer_cache/alt/page_cache.hpp"
 
 namespace alt {
 
