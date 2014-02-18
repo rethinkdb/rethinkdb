@@ -214,7 +214,7 @@ module 'NamespaceView', ->
             'click .reconnect_link': 'init_connection'
             'click .close_hide': 'hide_alert'
         error_interval: 5*1000 # In case of an error, we try to retrieve the secondary index in 5 seconds
-        normal_interval: 60*1000 # Retrieve secondary indexes every minute
+        normal_interval: 10*1000 # Retrieve secondary indexes every minute
         short_interval: 1000 # Interval when an index is being created
 
         initialize: (args) =>
@@ -246,17 +246,36 @@ module 'NamespaceView', ->
 
             @loading = true
             @driver_handler = new DataExplorerView.DriverHandler
-                on_success: =>
-                    @get_indexes
-                        timer: true
-                on_fail: @on_fail_to_connect
-                dont_timeout_connection: true
+                container: @
+            @get_indexes
+                timer: true
+
+        error_on_connect: (error) =>
+            console.log '*************** error ***************'
+            console.log error
+            @render_error
+                index_list_fail: true
+            @timeout = setTimeout @get_indexes, @error_interval
 
         get_indexes: (args) =>
-            if args?.timer is true
-                r.db(@db_name).table(@table).indexStatus().private_run @driver_handler.connection, @on_index_list_repeat
-            else
-                r.db(@db_name).table(@table).indexStatus().private_run @driver_handler.connection, @on_index_list
+            #@driver_handler.close_connection()
+            @driver_handler.create_connection (error, connection) =>
+                if (error)
+                    @error_on_connect error
+                else
+                    if args?.timer is true
+                        r.db(@db_name).table(@table).indexStatus().private_run connection, (err, result) =>
+                            @on_index_list_repeat err, result
+                            setTimeout ->
+                                connection.close()
+                            , 0
+                    else
+                        r.db(@db_name).table(@table).indexStatus().private_run connection, (err, result) =>
+                            @on_index_list err, result
+                            setTimeout ->
+                                connection.close()
+                            , 0
+            , 0, @error_on_connect
 
         on_index_list_repeat: (err, result) =>
             @on_index_list err, result, true
@@ -332,8 +351,20 @@ module 'NamespaceView', ->
 
         # Delete a secondary index
         delete_index: (index) =>
-            r.db(@db_name).table(@table).indexDrop(index).private_run @driver_handler.connection, (err, result) =>
-                @on_drop err, result, index
+            #@driver_handler.close_connection()
+            @driver_handler.create_connection (error, connection) =>
+                if (error)
+                    @error_on_connect error
+                else
+                    r.db(@db_name).table(@table).indexDrop(index).private_run connection, (err, result) =>
+                        @on_drop err, result, index
+                        setTimeout ->
+                            connection.close()
+                        , 0
+
+
+            , @id_execution, @error_on_connect
+
 
         remove_index: (index) =>
             @$('.index_container[data-name="'+index+'"]').slideUp 200, ->
@@ -402,8 +433,20 @@ module 'NamespaceView', ->
             @$('.cancel_btn').prop 'disabled', 'disabled'
 
             index_name = $('.new_index_name').val()
-            r.db(@db_name).table(@table).indexCreate(index_name).private_run @driver_handler.connection, (err, result) =>
-                @on_create err, result, index_name
+            #@driver_handler.close_connection()
+            @driver_handler.create_connection (error, connection) =>
+                if (error)
+                    @error_on_connect error
+                else
+                    r.db(@db_name).table(@table).indexCreate(index_name).private_run connection, (err, result) =>
+                        @on_create err, result, index_name, index_name
+                        # We need a setimeout to avoid running two queries on the same connection
+                        setTimeout ->
+                            connection.close()
+                        , 0
+
+            , 0, @error_on_connect
+
 
         # Callback on indexCreate()
         on_create: (err, result, index_name) =>
