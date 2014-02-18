@@ -370,7 +370,7 @@ counted_t<val_t> term_t::eval(scope_env_t *env, eval_flags_t eval_flags) {
 
     try {
         try {
-            counted_t<val_t> ret = eval_impl(env, eval_flags);
+            counted_t<val_t> ret = term_eval(env, eval_flags);
             DEC_DEPTH;
             DBG("%s returned %s\n", name(), ret->print().c_str());
             return ret;

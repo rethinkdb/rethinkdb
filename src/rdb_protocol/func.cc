@@ -204,7 +204,7 @@ void func_term_t::accumulate_captures(var_captures_t *captures) const {
     captures->implicit_is_captured |= external_captures.implicit_is_captured;
 }
 
-counted_t<val_t> func_term_t::eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+counted_t<val_t> func_term_t::term_eval(scope_env_t *env, UNUSED eval_flags_t flags) {
     return new_val(eval_to_func(env->scope));
 }
 
