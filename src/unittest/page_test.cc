@@ -263,6 +263,55 @@ TEST(PageTest, ReadAfterWrite) {
     run_in_thread_pool(run_ReadAfterWrite, 4);
 }
 
+struct WriteWaitForFlush_state_t {
+    block_id_t block_id;
+    cond_t coro_1_begin;
+    cond_t coro_0_flush;
+};
+
+void WriteWaitForFlush_cases(WriteWaitForFlush_state_t *s, test_cache_t *cache, int i) {
+    if (i == 0) {
+        auto txn = make_scoped<test_txn_t>(cache);
+        {
+            current_page_acq_t acq(txn.get(), alt_create_t::create);
+            s->block_id = acq.block_id();
+            s->coro_1_begin.pulse();
+            // Acquire the page so that we actually surely need to flush (this is
+            // redundant though since we created the page).
+            page_acq_t page_acq;
+            page_acq.init(acq.current_page_for_write(), cache);
+            page_acq.get_buf_write();
+        }
+        s->coro_0_flush.wait();
+        cache->flush(std::move(txn));
+    } else if (i == 1) {
+        s->coro_1_begin.wait();
+        auto txn = make_scoped<test_txn_t>(cache);
+        {
+            current_page_acq_t acq(txn.get(), s->block_id, access_t::write);
+            // "Write" the page.
+            page_acq_t page_acq;
+            page_acq.init(acq.current_page_for_write(), cache);
+            page_acq.get_buf_write();
+        }
+
+        // Now flush immediately after pulsing the condition variable.
+        s->coro_0_flush.pulse();
+        cache->flush(std::move(txn));
+    }
+}
+
+void run_WriteWaitForFlush() {
+    mock_ser_t mock;
+    test_cache_t page_cache(mock.ser.get(), mock.tracker.get());
+    WriteWaitForFlush_state_t s;
+    pmap(2, std::bind(&WriteWaitForFlush_cases, &s, &page_cache, ph::_1));
+}
+
+TEST(PageTest, WriteWaitForFlush) {
+    run_in_thread_pool(run_WriteWaitForFlush, 4);
+}
+
 class bigger_test_t {
 public:
     explicit bigger_test_t(uint64_t _memory_limit)
