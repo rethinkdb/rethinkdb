@@ -24,8 +24,6 @@
 #include "repli_timestamp.hpp"
 #include "serializer/types.hpp"
 
-// LSI: Move some of this stuff (the free list, etc) to a different file.
-
 class alt_memory_tracker_t;
 class auto_drainer_t;
 class cache_t;
@@ -57,7 +55,7 @@ private:
 
 class cache_conn_t {
 public:
-    cache_conn_t(cache_t *cache)
+    explicit cache_conn_t(cache_t *cache)
         : cache_(cache),
           newest_txn_(NULL) { }
     ~cache_conn_t();
