@@ -175,6 +175,7 @@ private:
             l1->reserve(l1->size() + l2->size());
             std::move(l2->begin(), l2->end(), std::back_inserter(*l1));
         }
+        gs->clear();
     }
 
     virtual void add_res(result_t *res) {

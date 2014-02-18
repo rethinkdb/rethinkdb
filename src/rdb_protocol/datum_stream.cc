@@ -617,11 +617,14 @@ void eager_datum_stream_t::accumulate(
 }
 
 void eager_datum_stream_t::accumulate_all(env_t *env, eager_acc_t *acc) {
-    batchspec_t bs = batchspec_t::all();
     groups_t data;
-    done_t done = next_grouped_batch(env, bs, &data);
-    r_sanity_check(done == done_t::YES);
+    done_t done = next_grouped_batch(env, batchspec_t::all(), &data);
     (*acc)(&data);
+    if (done == done_t::NO) {
+        done_t must_be_yes = next_grouped_batch(env, batchspec_t::all(), &data);
+        r_sanity_check(data.size() == 0);
+        r_sanity_check(must_be_yes == done_t::YES);
+    }
 }
 
 std::vector<counted_t<const datum_t> >
