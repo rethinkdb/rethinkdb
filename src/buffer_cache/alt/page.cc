@@ -1715,8 +1715,12 @@ bool page_cache_t::exists_flushable_txn_set(page_txn_t *txn,
 
 void page_cache_t::im_waiting_for_flush(std::set<page_txn_t *> queue) {
     assert_thread();
+    ASSERT_FINITE_CORO_WAITING;
 
     while (!queue.empty()) {
+        // The only reason we know this page_txn_t isn't destructed is because we
+        // know the coroutine doesn't block, and destructing the page_txn_t doesn't
+        // happen after some condition variable gets pulsed.
         page_txn_t *txn;
         {
             auto it = queue.begin();
