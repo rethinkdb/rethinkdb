@@ -198,9 +198,8 @@ public:
 private:
     virtual bool is_array();
     virtual counted_t<const datum_t> as_array(env_t *env) {
-        // RSI: pass through.
         return is_array()
-            ? eager_datum_stream_t::as_array(env)
+            ? (ops_to_do() ? eager_datum_stream_t::as_array(env) : arr)
             : counted_t<const datum_t>();
     }
     virtual std::vector<counted_t<const datum_t> >
