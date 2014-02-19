@@ -5,6 +5,8 @@
 #include "containers/backindex_bag.hpp"
 #include "serializer/types.hpp"
 
+class cache_account_t;
+
 namespace alt {
 
 class page_cache_t;
@@ -15,18 +17,18 @@ class page_acq_t;
 // in-place, but still a definite known value).
 class page_t {
 public:
+    page_t(block_id_t block_id, page_cache_t *page_cache, cache_account_t *account);
     page_t(block_size_t block_size, scoped_malloc_t<ser_buffer_t> buf,
            page_cache_t *page_cache);
     page_t(scoped_malloc_t<ser_buffer_t> buf,
            const counted_t<standard_block_token_t> &token,
            page_cache_t *page_cache);
-    page_t(block_id_t block_id, page_cache_t *page_cache);
-    page_t(page_t *copyee, page_cache_t *page_cache);
+    page_t(page_t *copyee, page_cache_t *page_cache, cache_account_t *account);
     ~page_t();
 
-    page_t *make_copy(page_cache_t *page_cache);
+    page_t *make_copy(page_cache_t *page_cache, cache_account_t *account);
 
-    void add_waiter(page_acq_t *acq);
+    void add_waiter(page_acq_t *acq, cache_account_t *account);
     void remove_waiter(page_acq_t *acq);
 
 private:
@@ -48,12 +50,15 @@ private:
 
     static void load_with_block_id(page_t *page,
                                    block_id_t block_id,
-                                   page_cache_t *page_cache);
+                                   page_cache_t *page_cache,
+                                   cache_account_t *account);
 
     static void load_from_copyee(page_t *page, page_t *copyee,
-                                 page_cache_t *page_cache);
+                                 page_cache_t *page_cache,
+                                 cache_account_t *account);
 
-    static void load_using_block_token(page_t *page, page_cache_t *page_cache);
+    static void load_using_block_token(page_t *page, page_cache_t *page_cache,
+                                       cache_account_t *account);
 
     friend class page_cache_t;
     friend class evicter_t;
@@ -120,7 +125,8 @@ public:
     void init(page_t *page, page_cache_t *page_cache);
 
     page_t *get_page_for_read() const;
-    page_t *get_page_for_write(page_cache_t *page_cache);
+    page_t *get_page_for_write(page_cache_t *page_cache,
+                               cache_account_t *account);
 
     void reset();
 
@@ -142,7 +148,7 @@ public:
     page_acq_t();
     ~page_acq_t();
 
-    void init(page_t *page, page_cache_t *page_cache);
+    void init(page_t *page, page_cache_t *page_cache, cache_account_t *account);
 
     page_cache_t *page_cache() const {
         rassert(page_cache_ != NULL);

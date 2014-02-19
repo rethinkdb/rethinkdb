@@ -10,7 +10,7 @@
 
 namespace unittest {
 
-static const int expected_cache_block_size = 4080;
+static const int expected_cache_block_size = 4088;
 static const int size_after_magic = expected_cache_block_size - sizeof(block_magic_t);
 
 class blob_tracker_t {
