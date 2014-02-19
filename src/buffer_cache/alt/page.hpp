@@ -5,8 +5,6 @@
 #include "containers/backindex_bag.hpp"
 #include "serializer/types.hpp"
 
-class file_account_t;
-
 namespace alt {
 
 class page_cache_t;
@@ -22,7 +20,7 @@ public:
     page_t(scoped_malloc_t<ser_buffer_t> buf,
            const counted_t<standard_block_token_t> &token,
            page_cache_t *page_cache);
-    page_t(block_id_t block_id, page_cache_t *page_cache, file_account_t *io_account);
+    page_t(block_id_t block_id, page_cache_t *page_cache);
     page_t(page_t *copyee, page_cache_t *page_cache);
     ~page_t();
 
@@ -50,8 +48,7 @@ private:
 
     static void load_with_block_id(page_t *page,
                                    block_id_t block_id,
-                                   page_cache_t *page_cache,
-                                   file_account_t *io_account);
+                                   page_cache_t *page_cache);
 
     static void load_from_copyee(page_t *page, page_t *copyee,
                                  page_cache_t *page_cache);

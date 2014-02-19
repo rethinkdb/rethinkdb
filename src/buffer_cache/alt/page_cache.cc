@@ -332,13 +332,10 @@ void page_cache_t::create_cache_account(int priority,
 
 
 struct current_page_help_t {
-    current_page_help_t(block_id_t _block_id, page_cache_t *_page_cache,
-                        file_account_t *_io_account)
-        : block_id(_block_id), page_cache(_page_cache),
-          io_account(_io_account) { }
+    current_page_help_t(block_id_t _block_id, page_cache_t *_page_cache)
+        : block_id(_block_id), page_cache(_page_cache) { }
     block_id_t block_id;
     page_cache_t *page_cache;
-    file_account_t *io_account;
 };
 
 current_page_acq_t::current_page_acq_t()
@@ -527,7 +524,7 @@ page_cache_t *current_page_acq_t::page_cache() const {
 
 current_page_help_t current_page_acq_t::help() const {
     assert_thread();
-    return current_page_help_t(block_id(), page_cache_, reads_io_account_);
+    return current_page_help_t(block_id(), page_cache_);
 }
 
 void current_page_acq_t::pulse_read_available() {
@@ -729,8 +726,7 @@ void current_page_t::mark_deleted(current_page_help_t help) {
 void current_page_t::convert_from_serializer_if_necessary(current_page_help_t help) {
     rassert(!is_deleted_);
     if (!page_.has()) {
-        page_.init(new page_t(help.block_id, help.page_cache, help.io_account),
-                   help.page_cache);
+        page_.init(new page_t(help.block_id, help.page_cache), help.page_cache);
     }
 }
 
