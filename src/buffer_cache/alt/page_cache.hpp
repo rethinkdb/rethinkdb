@@ -40,7 +40,6 @@ enum class page_create_t { no, yes };
 
 enum class alt_create_t { create };
 
-// RSI: Rename to cache_account_t.
 class cache_account_t {
 public:
     ~cache_account_t();
