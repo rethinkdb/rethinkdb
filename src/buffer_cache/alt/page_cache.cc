@@ -158,7 +158,7 @@ page_cache_t::page_cache_t(serializer_t *serializer,
             read_ahead_cb_ = new page_read_ahead_cb_t(serializer, this,
                                                       config.memory_limit);
         }
-        reads_io_account_.init(serializer->make_io_account(config.io_priority_reads));
+        default_reads_io_account_.init(serializer->make_io_account(config.io_priority_reads));
         writes_io_account_.init(serializer->make_io_account(config.io_priority_writes));
         index_write_sink_.init(new fifo_enforcer_sink_t);
         recencies_ = serializer->get_all_recencies();
@@ -178,7 +178,7 @@ page_cache_t::~page_cache_t() {
     {
         /* IO accounts must be destroyed on the thread they were created on */
         on_thread_t thread_switcher(serializer_->home_thread());
-        reads_io_account_.reset();
+        default_reads_io_account_.reset();
         writes_io_account_.reset();
         index_write_sink_.reset();
     }
@@ -359,7 +359,8 @@ current_page_acq_t::current_page_acq_t(page_cache_t *page_cache,
                                        block_id_t block_id,
                                        read_access_t read)
     : page_cache_(NULL), the_txn_(NULL), reads_io_account_(NULL) {
-    init(page_cache, page_cache->reads_io_account_.get(), block_id, read);
+    // RSI: When does this constructor get called, again?
+    init(page_cache, page_cache->default_reads_io_account_.get(), block_id, read);
 }
 
 void current_page_acq_t::init(page_txn_t *txn,
@@ -781,7 +782,7 @@ page_txn_t::page_txn_t(page_cache_t *page_cache,
 file_account_t *page_txn_t::reads_io_account() {
     return cache_account_ != NULL
         ? cache_account_->io_account_
-        : page_cache_->reads_io_account_.get();
+        : page_cache_->default_reads_io_account_.get();
 }
 
 void page_txn_t::connect_preceder(page_txn_t *preceder) {
