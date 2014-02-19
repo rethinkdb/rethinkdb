@@ -182,11 +182,11 @@ private:
         auto streams = boost::get<grouped_t<stream_t> >(res);
         r_sanity_check(streams);
         for (auto kv = streams->begin(); kv != streams->end(); ++kv) {
-            datums_t *l = &groups[kv->first];
-            stream_t *s = &kv->second;
-            l->reserve(l->size() + s->size());
-            for (auto it = s->begin(); it != s->end(); ++it) {
-                l->push_back(std::move(it->data));
+            datums_t *lst = &groups[kv->first];
+            stream_t *stream = &kv->second;
+            lst->reserve(lst->size() + stream->size());
+            for (auto it = stream->begin(); it != stream->end(); ++it) {
+                lst->push_back(std::move(it->data));
             }
         }
     }
