@@ -1331,7 +1331,7 @@ void post_construct_secondary_indexes(
     // The superblock must be released before txn (`btree_parallel_traversal`
     // usually already takes care of that).
     // The txn must be destructed before the cache_account.
-    scoped_ptr_t<alt_cache_account_t> cache_account;
+    scoped_ptr_t<cache_account_t> cache_account;
     scoped_ptr_t<txn_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
 

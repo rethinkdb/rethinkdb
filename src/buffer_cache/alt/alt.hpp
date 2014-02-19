@@ -55,7 +55,8 @@ public:
     // throttling systems.  TODO: Come up with a consistent priority scheme,
     // i.e. define a "default" priority etc.  TODO: As soon as we can support it, we
     // might consider supporting a mem_cap paremeter.
-    void create_cache_account(int priority, scoped_ptr_t<alt_cache_account_t> *out);
+    // RSI: No need for the scoped_ptr_t!  Also, use a move constructor.
+    void create_cache_account(int priority, scoped_ptr_t<cache_account_t> *out);
 
 private:
     friend class txn_t;
@@ -97,7 +98,7 @@ public:
     alt::page_txn_t *page_txn() { return page_txn_.get(); }
     access_t access() const { return access_; }
 
-    void set_account(alt_cache_account_t *cache_account);
+    void set_account(cache_account_t *cache_account);
 
 private:
     static void inform_tracker(cache_t *cache,
@@ -115,7 +116,7 @@ private:
     cache_t *const cache_;
 
     // NULL unless the user has specified the cache account with set_account.
-    alt_cache_account_t *cache_account_;
+    cache_account_t *cache_account_;
 
     const access_t access_;
 

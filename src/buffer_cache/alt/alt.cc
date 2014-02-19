@@ -87,7 +87,7 @@ block_size_t cache_t::max_block_size() const {
 }
 
 void cache_t::create_cache_account(int priority,
-                                   scoped_ptr_t<alt_cache_account_t> *out) {
+                                   scoped_ptr_t<cache_account_t> *out) {
     page_cache_.create_cache_account(priority, out);
 }
 
@@ -223,7 +223,7 @@ txn_t::~txn_t() {
     }
 }
 
-void txn_t::set_account(alt_cache_account_t *cache_account) {
+void txn_t::set_account(cache_account_t *cache_account) {
     // There's nothing intrinsically wrong with trying to set an already-set cache
     // account, but setting it twice probably means you should have some interface
     // where you push and pop cache accounts.

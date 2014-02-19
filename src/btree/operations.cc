@@ -604,7 +604,7 @@ void get_btree_superblock_and_txn(cache_conn_t *cache_conn,
 }
 
 void get_btree_superblock_and_txn_for_backfilling(cache_conn_t *cache_conn,
-                                                  alt_cache_account_t *backfill_account,
+                                                  cache_account_t *backfill_account,
                                                   scoped_ptr_t<real_superblock_t> *got_superblock_out,
                                                   scoped_ptr_t<txn_t> *txn_out) {
     txn_t *txn = new txn_t(cache_conn, read_access_t::read);
