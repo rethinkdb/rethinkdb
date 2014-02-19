@@ -6,7 +6,7 @@
 #include <vector>
 #include <utility>
 
-#include "buffer_cache/alt/page.hpp"
+#include "buffer_cache/alt/page_cache.hpp"
 #include "buffer_cache/types.hpp"
 #include "containers/two_level_array.hpp"
 #include "repli_timestamp.hpp"
@@ -35,7 +35,7 @@ private:
     void inform_memory_change(uint64_t in_memory_size,
                               uint64_t memory_limit);
 
-    new_semaphore_t semaphore_;
+    new_semaphore_t unwritten_changes_semaphore_;
     DISABLE_COPYING(alt_memory_tracker_t);
 };
 
@@ -219,9 +219,6 @@ private:
     void help_construct(buf_parent_t parent, alt_create_t create);
     void help_construct(buf_parent_t parent, block_id_t block_id, alt_create_t create);
 
-    static alt_snapshot_node_t *
-    find_matching_version(intrusive_list_t<alt_snapshot_node_t> *list,
-                          block_version_t version);
     static alt_snapshot_node_t *help_make_child(cache_t *cache, block_id_t child_id);
 
 
@@ -230,14 +227,14 @@ private:
     get_or_create_child_snapshot_node(cache_t *cache,
                                       alt_snapshot_node_t *parent,
                                       block_id_t child_id);
-    static void create_empty_child_snapshot_nodes(cache_t *cache,
+    static void create_empty_child_snapshot_attachments(cache_t *cache,
+                                                        block_version_t parent_version,
+                                                        block_id_t parent_id,
+                                                        block_id_t child_id);
+    static void create_child_snapshot_attachments(cache_t *cache,
                                                   block_version_t parent_version,
                                                   block_id_t parent_id,
                                                   block_id_t child_id);
-    static void create_child_snapshot_nodes(cache_t *cache,
-                                            block_version_t parent_version,
-                                            block_id_t parent_id,
-                                            block_id_t child_id);
     alt::current_page_acq_t *current_page_acq() const;
 
     friend class buf_read_t;  // for get_held_page_for_read, access_ref_count_.

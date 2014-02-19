@@ -16,6 +16,8 @@ using alt::page_t;
 using alt::page_txn_t;
 using alt::tracker_acq_t;
 
+const int SOFT_UNWRITTEN_CHANGES_LIMIT = 200;
+
 // There are very few ASSERT_NO_CORO_WAITING calls (instead we have
 // ASSERT_FINITE_CORO_WAITING) because most of the time we're at the mercy of the
 // page cache, which often may need to load or evict blocks, which may involve a
@@ -51,7 +53,7 @@ private:
 };
 
 alt_memory_tracker_t::alt_memory_tracker_t()
-    : semaphore_(200) { }
+    : unwritten_changes_semaphore_(SOFT_UNWRITTEN_CHANGES_LIMIT) { }
 alt_memory_tracker_t::~alt_memory_tracker_t() { }
 
 void alt_memory_tracker_t::inform_memory_change(UNUSED uint64_t in_memory_size,
@@ -63,7 +65,7 @@ void alt_memory_tracker_t::inform_memory_change(UNUSED uint64_t in_memory_size,
 // inform_memory_change is measured in bytes.
 tracker_acq_t alt_memory_tracker_t::begin_txn_or_throttle(int64_t expected_change_count) {
     tracker_acq_t acq;
-    acq.semaphore_acq_.init(&semaphore_, expected_change_count);
+    acq.semaphore_acq_.init(&unwritten_changes_semaphore_, expected_change_count);
     acq.semaphore_acq_.acquisition_signal()->wait();
     return acq;
 }
@@ -255,25 +257,14 @@ const char *show(access_t access) {
 }
 #endif
 
-alt_snapshot_node_t *
-buf_lock_t::find_matching_version(intrusive_list_t<alt_snapshot_node_t> *list,
-                                  block_version_t version) {
-    for (alt_snapshot_node_t *p = list->head(); p != NULL; p = list->next(p)) {
-        if (p->current_page_acq_->block_version() == version) {
-            return p;
-        }
-    }
-    return NULL;
-}
-
 alt_snapshot_node_t *buf_lock_t::help_make_child(cache_t *cache,
                                                  block_id_t child_id) {
+    // KSI: This allocation is sometimes just unnecessary, right?
     auto acq = make_scoped<current_page_acq_t>(&cache->page_cache_, child_id,
                                                read_access_t::read);
 
     alt_snapshot_node_t *child
-        = find_matching_version(&cache->snapshot_nodes_by_block_id_[child_id],
-                                acq->block_version());
+        = cache->matching_snapshot_node_or_null(child_id, acq->block_version());
 
     if (child != NULL) {
         acq.reset();
@@ -285,6 +276,8 @@ alt_snapshot_node_t *buf_lock_t::help_make_child(cache_t *cache,
     return child;
 }
 
+// Returns a child snapshot node (using the current version of the block) for the
+// specified child block id.
 alt_snapshot_node_t *
 buf_lock_t::get_or_create_child_snapshot_node(cache_t *cache,
                                               alt_snapshot_node_t *parent,
@@ -292,6 +285,12 @@ buf_lock_t::get_or_create_child_snapshot_node(cache_t *cache,
     ASSERT_FINITE_CORO_WAITING;
     auto it = parent->children_.find(child_id);
     if (it == parent->children_.end()) {
+        // There's no child for the snapshot node for this child id.  That means a
+        // write transaction has not yet acquired [1].  So we create a child using
+        // the current version of the block.
+        //
+        // [1] assuming the cache is used proprely, with the child always acquired
+        // via the parent, or detached, before modification
         alt_snapshot_node_t *child = help_make_child(cache, child_id);
 
         child->ref_count_++;
@@ -302,10 +301,23 @@ buf_lock_t::get_or_create_child_snapshot_node(cache_t *cache,
     }
 }
 
-void buf_lock_t::create_child_snapshot_nodes(cache_t *cache,
-                                             block_version_t parent_version,
-                                             block_id_t parent_id,
-                                             block_id_t child_id) {
+// When a write transaction acquires a child of a parent node (for write), it needs
+// to save the current value of the child buf and attach it to any of the parent's
+// snapshot nodes (but only those that aren't newer than our acquisition of the
+// parent [1]).
+//
+// [1] We might need to be careful about this because if you have two write
+// acquisitions, W_X and W_Y of block B1 (where W_X acquires B1 before W_Y does),
+// which then both acquire the child B2, you only want the child of acquisition W1 to
+// attach to children of snapshot nodes that happened _before_ W_X and not after.
+// This can happen -- the snapshot nodes that happen _after_ W_X wouldn't have
+// acquired the block yet, but they'd exist, and they'd be in line, waiting for their
+// turn.
+
+void buf_lock_t::create_child_snapshot_attachments(cache_t *cache,
+                                                   block_version_t parent_version,
+                                                   block_id_t parent_id,
+                                                   block_id_t child_id) {
     ASSERT_FINITE_CORO_WAITING;
     // We create at most one child snapshot node.
 
@@ -333,10 +345,10 @@ void buf_lock_t::create_child_snapshot_nodes(cache_t *cache,
 }
 
 // Puts markers in the parent saying that no such child exists.
-void buf_lock_t::create_empty_child_snapshot_nodes(cache_t *cache,
-                                                   block_version_t parent_version,
-                                                   block_id_t parent_id,
-                                                   block_id_t child_id) {
+void buf_lock_t::create_empty_child_snapshot_attachments(cache_t *cache,
+                                                         block_version_t parent_version,
+                                                         block_id_t parent_id,
+                                                         block_id_t child_id) {
     ASSERT_NO_CORO_WAITING;
     intrusive_list_t<alt_snapshot_node_t> *list
         = &cache->snapshot_nodes_by_block_id_[parent_id];
@@ -375,10 +387,10 @@ void buf_lock_t::help_construct(buf_parent_t parent, block_id_t block_id,
         ++snapshot_node_->ref_count_;
     } else {
         if (access == access_t::write && parent.lock_or_null_ != NULL) {
-            create_child_snapshot_nodes(txn_->cache(),
-                                        parent.lock_or_null_->current_page_acq()->block_version(),
-                                        parent.lock_or_null_->block_id(),
-                                        block_id);
+            create_child_snapshot_attachments(txn_->cache(),
+                                              parent.lock_or_null_->current_page_acq()->block_version(),
+                                              parent.lock_or_null_->block_id(),
+                                              block_id);
         }
         current_page_acq_.init(new current_page_acq_t(txn_->page_txn(), block_id, access));
     }
@@ -418,7 +430,8 @@ void buf_lock_t::help_construct(buf_parent_t parent, block_id_t block_id,
 
     // Makes sure nothing funny can happen in current_page_acq_t constructor.
     // Otherwise, we'd need to make choosing a block id a separate function, and call
-    // create_empty_child_snapshot_nodes before constructing the current_page_acq_t.
+    // create_empty_child_snapshot_attachments before constructing the
+    // current_page_acq_t.
     // KSI: Probably we should do that anyway.
     ASSERT_FINITE_CORO_WAITING;
 
@@ -428,7 +441,7 @@ void buf_lock_t::help_construct(buf_parent_t parent, block_id_t block_id,
                                                   alt::page_create_t::yes));
 
     if (parent.lock_or_null_ != NULL) {
-        create_empty_child_snapshot_nodes(txn_->cache(),
+        create_empty_child_snapshot_attachments(txn_->cache(),
                                           parent.lock_or_null_->current_page_acq()->block_version(),
                                           parent.lock_or_null_->block_id(),
                                           current_page_acq_->block_id());
@@ -492,7 +505,8 @@ void buf_lock_t::help_construct(buf_parent_t parent, alt_create_t) {
 
     // Makes sure nothing funny can happen in current_page_acq_t constructor.
     // Otherwise, we'd need to make choosing a block id a separate function, and call
-    // create_empty_child_snapshot_nodes before constructing the current_page_acq_t.
+    // create_empty_child_snapshot_attachments before constructing the
+    // current_page_acq_t.
     // KSI: Probably we should do that anyway.
     ASSERT_FINITE_CORO_WAITING;
 
@@ -500,7 +514,7 @@ void buf_lock_t::help_construct(buf_parent_t parent, alt_create_t) {
                                                   alt_create_t::create));
 
     if (parent.lock_or_null_ != NULL) {
-        create_empty_child_snapshot_nodes(txn_->cache(),
+        create_empty_child_snapshot_attachments(txn_->cache(),
                                           parent.lock_or_null_->current_page_acq()->block_version(),
                                           parent.lock_or_null_->block_id(),
                                           current_page_acq_->block_id());
@@ -635,10 +649,10 @@ void buf_lock_t::detach_child(block_id_t child_id) {
     guarantee(!empty());
     guarantee(access() == access_t::write);
 
-    buf_lock_t::create_child_snapshot_nodes(cache(),
-                                            current_page_acq()->block_version(),
-                                            block_id(),
-                                            child_id);
+    buf_lock_t::create_child_snapshot_attachments(cache(),
+                                                  current_page_acq()->block_version(),
+                                                  block_id(),
+                                                  child_id);
 }
 
 repli_timestamp_t buf_lock_t::get_recency() const {

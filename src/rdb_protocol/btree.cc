@@ -1342,7 +1342,6 @@ void post_construct_secondary_indexes(
         interruptor,
         true /* USE_SNAPSHOT */);
 
-    // KSI: Is this high(?) priority why making an sindex slows stuff down a lot?
     txn->cache()->create_cache_account(SINDEX_POST_CONSTRUCTION_CACHE_PRIORITY,
                                        &cache_account);
     txn->set_account(cache_account.get());

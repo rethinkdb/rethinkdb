@@ -58,6 +58,7 @@ MUST_USE int64_t serializer_file_read_stream_t::read(void *p, int64_t n) {
     buf_read_t block_read(&block);
     const char *data = static_cast<const char *>(block_read.get_data_read());
     memcpy(p, data + block_offset, num_copied);
+    position_ += num_copied;
     return num_copied;
 }
 
@@ -102,7 +103,7 @@ serializer_file_write_stream_t::serializer_file_write_stream_t(serializer_t *ser
 serializer_file_write_stream_t::~serializer_file_write_stream_t() { }
 
 MUST_USE int64_t serializer_file_write_stream_t::write(const void *p, int64_t n) {
-    const char *chp = static_cast<const char *>(p);
+    const char *const chp = static_cast<const char *>(p);
     const int block_size = cache_->get_block_size().value();
 
     txn_t txn(cache_conn_.get(), write_durability_t::HARD, repli_timestamp_t::invalid,
@@ -114,7 +115,8 @@ MUST_USE int64_t serializer_file_write_stream_t::write(const void *p, int64_t n)
         const int64_t *size_ptr = static_cast<const int64_t *>(z_read.get_data_read());
         guarantee(*size_ptr == size_);
     }
-    int64_t offset = size_ + sizeof(int64_t);
+    const int64_t start_offset = size_ + sizeof(int64_t);
+    int64_t offset = start_offset;
     const int64_t end_offset = offset + n;
     while (offset < end_offset) {
         int64_t block_id = offset / block_size;
@@ -138,7 +140,7 @@ MUST_USE int64_t serializer_file_write_stream_t::write(const void *p, int64_t n)
         {
             buf_write_t b_read(b);
             char *buf = static_cast<char *>(b_read.get_data_write());
-            memcpy(buf + block_offset, chp, num_written);
+            memcpy(buf + block_offset, chp + (offset - start_offset), num_written);
         }
         offset += num_written;
     }

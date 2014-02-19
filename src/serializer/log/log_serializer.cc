@@ -162,8 +162,6 @@ void log_serializer_t::create(serializer_file_opener_t *file_opener, static_conf
     data_block_manager_t::prepare_initial_metablock(&metablock.data_block_manager_part);
     lba_list_t::prepare_initial_metablock(&metablock.lba_index_part);
 
-    metablock.block_sequence_id = NULL_BLOCK_SEQUENCE_ID;
-
     mb_manager_t::create(file.get(), static_config.extent_size(), &metablock);
 }
 
@@ -257,8 +255,6 @@ struct ls_start_existing_fsm_t :
         if (start_existing_state == state_start_lba) {
             // STATE G
             guarantee(metablock_found, "Could not find any valid metablock.");
-
-            ser->latest_block_sequence_id = metablock_buffer.block_sequence_id;
 
             // STATE H
             if (ser->lba_index->start_existing(ser->dbfile, &metablock_buffer.lba_index_part, this)) {
@@ -409,8 +405,6 @@ scoped_malloc_t<ser_buffer_t> log_serializer_t::malloc() {
         malloc_aligned(static_config.block_size().ser_value(),
                        DEVICE_BLOCK_SIZE));
 
-    // Initialize the block sequence id...
-    buf->ser_header.block_sequence_id = NULL_BLOCK_SEQUENCE_ID;
     return buf;
 }
 
@@ -607,7 +601,7 @@ log_serializer_t::block_writes(const std::vector<buf_write_info_t> &write_infos,
     stats->pm_serializer_block_writes += write_infos.size();
 
     std::vector<counted_t<ls_block_token_pointee_t> > result
-        = data_block_manager->many_writes(write_infos, true, io_account, cb);
+        = data_block_manager->many_writes(write_infos, io_account, cb);
     guarantee(result.size() == write_infos.size());
     return result;
 }
@@ -853,7 +847,6 @@ void log_serializer_t::prepare_metablock(metablock_t *mb_buffer) {
     extent_manager->prepare_metablock(&mb_buffer->extent_manager_part);
     data_block_manager->prepare_metablock(&mb_buffer->data_block_manager_part);
     lba_index->prepare_metablock(&mb_buffer->lba_index_part);
-    mb_buffer->block_sequence_id = latest_block_sequence_id;
 }
 
 

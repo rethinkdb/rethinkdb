@@ -32,7 +32,8 @@ public:
  to be provided at the time of construction. */
 
 // DEPRECATED.  Why not use new_semaphore_t?  It doesn't have starvation issues.  It
-// doesn't have starvation issues, obeys first-in/first-out semantics.
+// doesn't have starvation issues, obeys first-in/first-out semantics.  You wouldn't
+// want starvation issues.
 class static_semaphore_t : public semaphore_t {
     struct lock_request_t : public intrusive_list_node_t<lock_request_t> {
         semaphore_available_callback_t *cb;
