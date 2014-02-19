@@ -114,10 +114,11 @@ private:
     void remove_acquirer(current_page_acq_t *acq);
     void pulse_pulsables(current_page_acq_t *acq);
 
-    page_t *the_page_for_write(current_page_help_t help);
-    page_t *the_page_for_read(current_page_help_t help);
+    page_t *the_page_for_write(current_page_help_t help, cache_account_t *account);
+    page_t *the_page_for_read(current_page_help_t help, cache_account_t *account);
 
-    void convert_from_serializer_if_necessary(current_page_help_t help);
+    void convert_from_serializer_if_necessary(current_page_help_t help,
+                                              cache_account_t *account);
 
     void mark_deleted(current_page_help_t help);
 
@@ -128,7 +129,8 @@ private:
     page_txn_t *change_last_modifier(page_txn_t *new_last_modifier);
 
     // Returns NULL if the page was deleted.
-    page_t *the_page_for_read_or_deleted(current_page_help_t help);
+    page_t *the_page_for_read_or_deleted(current_page_help_t help,
+                                         cache_account_t *account);
 
     // Has access to our fields.
     friend class page_cache_t;
@@ -189,8 +191,8 @@ public:
     signal_t *read_acq_signal();
     signal_t *write_acq_signal();
 
-    page_t *current_page_for_read();
-    page_t *current_page_for_write();
+    page_t *current_page_for_read(cache_account_t *account);
+    page_t *current_page_for_write(cache_account_t *account);
 
     // Returns current_page_for_read, except it guarantees that the page acq has
     // already snapshotted the page and is not waiting for the page_t *.
@@ -203,6 +205,8 @@ public:
     void mark_deleted();
 
     block_version_t block_version() const;
+
+    page_cache_t *page_cache() const;
 
 private:
     void init(page_txn_t *txn,
@@ -223,7 +227,6 @@ private:
     void declare_readonly();
 
     current_page_help_t help() const;
-    page_cache_t *page_cache() const;
 
     void pulse_read_available();
     void pulse_write_available();

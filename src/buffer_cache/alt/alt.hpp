@@ -99,6 +99,7 @@ public:
     access_t access() const { return access_; }
 
     void set_account(cache_account_t *cache_account);
+    cache_account_t *account() { return cache_account_; }
 
 private:
     static void inform_tracker(cache_t *cache,

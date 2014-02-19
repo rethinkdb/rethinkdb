@@ -663,7 +663,7 @@ page_t *buf_lock_t::get_held_page_for_read() {
 
     ASSERT_FINITE_CORO_WAITING;
     guarantee(!empty());
-    return cpa->current_page_for_read();
+    return cpa->current_page_for_read(txn()->account());
 }
 
 page_t *buf_lock_t::get_held_page_for_write() {
@@ -673,7 +673,7 @@ page_t *buf_lock_t::get_held_page_for_write() {
 
     ASSERT_FINITE_CORO_WAITING;
     guarantee(!empty());
-    return current_page_acq_->current_page_for_write();
+    return current_page_acq_->current_page_for_write(txn()->account());
 }
 
 buf_read_t::buf_read_t(buf_lock_t *lock)
@@ -690,7 +690,8 @@ buf_read_t::~buf_read_t() {
 const void *buf_read_t::get_data_read(uint32_t *block_size_out) {
     page_t *page = lock_->get_held_page_for_read();
     if (!page_acq_.has()) {
-        page_acq_.init(page, &lock_->cache()->page_cache_);
+        page_acq_.init(page, &lock_->cache()->page_cache_,
+                       lock_->txn()->account());
     }
     page_acq_.buf_ready_signal()->wait();
     *block_size_out = page_acq_.get_buf_size();
@@ -713,7 +714,8 @@ void *buf_write_t::get_data_write(uint32_t block_size) {
     (void)block_size;
     page_t *page = lock_->get_held_page_for_write();
     if (!page_acq_.has()) {
-        page_acq_.init(page, &lock_->cache()->page_cache_);
+        page_acq_.init(page, &lock_->cache()->page_cache_,
+                       lock_->txn()->account());
     }
     page_acq_.buf_ready_signal()->wait();
     return page_acq_.get_buf_write();

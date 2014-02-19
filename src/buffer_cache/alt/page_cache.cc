@@ -504,7 +504,7 @@ signal_t *current_page_acq_t::write_acq_signal() {
     return &write_cond_;
 }
 
-page_t *current_page_acq_t::current_page_for_read() {
+page_t *current_page_acq_t::current_page_for_read(cache_account_t *account) {
     assert_thread();
     rassert(snapshotted_page_.has() || current_page_ != NULL);
     read_cond_.wait();
@@ -512,7 +512,7 @@ page_t *current_page_acq_t::current_page_for_read() {
         return snapshotted_page_.get_page_for_read();
     }
     rassert(current_page_ != NULL);
-    return current_page_->the_page_for_read(help());
+    return current_page_->the_page_for_read(help(), account);
 }
 
 repli_timestamp_t current_page_acq_t::recency() const {
@@ -520,14 +520,14 @@ repli_timestamp_t current_page_acq_t::recency() const {
     return recency_;
 }
 
-page_t *current_page_acq_t::current_page_for_write() {
+page_t *current_page_acq_t::current_page_for_write(cache_account_t *account) {
     assert_thread();
     rassert(access_ == access_t::write);
     rassert(current_page_ != NULL);
     write_cond_.wait();
     rassert(current_page_ != NULL);
     dirtied_page_ = true;
-    return current_page_->the_page_for_write(help());
+    return current_page_->the_page_for_write(help(), account);
 }
 
 void current_page_acq_t::mark_deleted() {
@@ -701,8 +701,13 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq) {
                 // downgrade itself to readonly and snapshotted for the sake of
                 // flushing its version of the page -- and if it deleted the page,
                 // this is how it learns.
-                cur->snapshotted_page_.init(the_page_for_read_or_deleted(help),
-                                            cur->page_cache());
+
+                // We use the default_reads_account() here because ugh.  RSI: Take
+                // the account as a param?
+                cur->snapshotted_page_.init(
+                        the_page_for_read_or_deleted(help,
+                                                     help.page_cache->default_reads_account()),
+                        help.page_cache);
                 cur->current_page_ = NULL;
                 acquirers_.remove(cur);
                 // KSI: Dedup this with remove_acquirer.
@@ -740,7 +745,7 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq) {
                     is_deleted_ = false;
                 }
                 block_version_ = cur->block_version_;
-                acq->page_cache()->set_recency_for_block_id(acq->block_id(),
+                help.page_cache->set_recency_for_block_id(acq->block_id(),
                                                             cur->recency_);
                 cur->pulse_write_available();
             }
@@ -757,30 +762,35 @@ void current_page_t::mark_deleted(current_page_help_t help) {
     page_.reset();
 }
 
-void current_page_t::convert_from_serializer_if_necessary(current_page_help_t help) {
+void current_page_t::convert_from_serializer_if_necessary(current_page_help_t help,
+                                                          cache_account_t *account) {
     rassert(!is_deleted_);
     if (!page_.has()) {
-        page_.init(new page_t(help.block_id, help.page_cache), help.page_cache);
+        page_.init(new page_t(help.block_id, help.page_cache, account),
+                   help.page_cache);
     }
 }
 
-page_t *current_page_t::the_page_for_read(current_page_help_t help) {
+page_t *current_page_t::the_page_for_read(current_page_help_t help,
+                                          cache_account_t *account) {
     guarantee(!is_deleted_);
-    convert_from_serializer_if_necessary(help);
+    convert_from_serializer_if_necessary(help, account);
     return page_.get_page_for_read();
 }
 
-page_t *current_page_t::the_page_for_read_or_deleted(current_page_help_t help) {
+page_t *current_page_t::the_page_for_read_or_deleted(current_page_help_t help,
+                                                     cache_account_t *account) {
     if (is_deleted_) {
         return NULL;
     } else {
-        return the_page_for_read(help);
+        return the_page_for_read(help, account);
     }
 }
 
-page_t *current_page_t::the_page_for_write(current_page_help_t help) {
+page_t *current_page_t::the_page_for_write(current_page_help_t help,
+                                           cache_account_t *account) {
     guarantee(!is_deleted_);
-    convert_from_serializer_if_necessary(help);
+    convert_from_serializer_if_necessary(help, account);
     return page_.get_page_for_write(help.page_cache);
 }
 
