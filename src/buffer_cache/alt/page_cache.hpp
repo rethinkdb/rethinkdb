@@ -8,6 +8,7 @@
 #include <set>
 
 #include "buffer_cache/alt/block_version.hpp"
+#include "buffer_cache/alt/cache_account.hpp"
 #include "buffer_cache/alt/config.hpp"
 #include "buffer_cache/alt/evicter.hpp"
 #include "buffer_cache/alt/free_list.hpp"
@@ -39,19 +40,6 @@ enum class page_create_t { no, yes };
 }  // namespace alt
 
 enum class alt_create_t { create };
-
-class alt_cache_account_t {
-public:
-    ~alt_cache_account_t();
-private:
-    friend class alt::page_cache_t;
-    alt_cache_account_t(threadnum_t thread, file_account_t *io_account);
-    // KSI: I hate having this thread_ variable, and it looks like the file_account_t
-    // already worries about going to the right thread anyway.
-    threadnum_t thread_;
-    file_account_t *io_account_;
-    DISABLE_COPYING(alt_cache_account_t);
-};
 
 class cache_conn_t {
 public:
@@ -101,14 +89,15 @@ public:
 private:
     // current_page_acq_t should not access our fields directly.
     friend class current_page_acq_t;
-    void add_acquirer(current_page_acq_t *acq);
+    void add_acquirer(current_page_acq_t *acq, cache_account_t *account);
     void remove_acquirer(current_page_acq_t *acq);
-    void pulse_pulsables(current_page_acq_t *acq);
+    void pulse_pulsables(current_page_acq_t *acq, cache_account_t *account);
 
-    page_t *the_page_for_write(current_page_help_t help);
-    page_t *the_page_for_read(current_page_help_t help);
+    page_t *the_page_for_write(current_page_help_t help, cache_account_t *account);
+    page_t *the_page_for_read(current_page_help_t help, cache_account_t *account);
 
-    void convert_from_serializer_if_necessary(current_page_help_t help);
+    void convert_from_serializer_if_necessary(current_page_help_t help,
+                                              cache_account_t *account);
 
     void mark_deleted(current_page_help_t help);
 
@@ -119,7 +108,8 @@ private:
     page_txn_t *change_last_modifier(page_txn_t *new_last_modifier);
 
     // Returns NULL if the page was deleted.
-    page_t *the_page_for_read_or_deleted(current_page_help_t help);
+    page_t *the_page_for_read_or_deleted(current_page_help_t help,
+                                         cache_account_t *account);
 
     // Has access to our fields.
     friend class page_cache_t;
@@ -166,11 +156,13 @@ public:
     current_page_acq_t(page_txn_t *txn,
                        block_id_t block_id,
                        access_t access,
+                       cache_account_t *account,
                        page_create_t create = page_create_t::no);
     current_page_acq_t(page_txn_t *txn,
                        alt_create_t create);
     current_page_acq_t(page_cache_t *cache,
                        block_id_t block_id,
+                       cache_account_t *account,
                        read_access_t read);
     ~current_page_acq_t();
 
@@ -180,8 +172,8 @@ public:
     signal_t *read_acq_signal();
     signal_t *write_acq_signal();
 
-    page_t *current_page_for_read();
-    page_t *current_page_for_write();
+    page_t *current_page_for_read(cache_account_t *account);
+    page_t *current_page_for_write(cache_account_t *account);
 
     // Returns current_page_for_read, except it guarantees that the page acq has
     // already snapshotted the page and is not waiting for the page_t *.
@@ -195,15 +187,19 @@ public:
 
     block_version_t block_version() const;
 
+    page_cache_t *page_cache() const;
+
 private:
     void init(page_txn_t *txn,
               block_id_t block_id,
               access_t access,
+              cache_account_t *account,
               page_create_t create);
     void init(page_txn_t *txn,
               alt_create_t create);
     void init(page_cache_t *page_cache,
               block_id_t block_id,
+              cache_account_t *account,
               read_access_t read);
     friend class page_txn_t;
     friend class current_page_t;
@@ -214,7 +210,6 @@ private:
     void declare_readonly();
 
     current_page_help_t help() const;
-    page_cache_t *page_cache() const;
 
     void pulse_read_available();
     void pulse_write_available();
@@ -320,7 +315,11 @@ public:
 
     block_size_t max_block_size() const;
 
-    void create_cache_account(int priority, scoped_ptr_t<alt_cache_account_t> *out);
+    cache_account_t create_cache_account(int priority);
+
+    cache_account_t *default_reads_account() {
+        return &default_reads_account_;
+    }
 
 private:
     friend class page_read_ahead_cb_t;
@@ -408,7 +407,7 @@ private:
     // other hand, write transactions often (always, actually, thanks metainfo block)
     // have to wait for previous ones to flush before they can proceed, so this
     // separation might be tricky in practice.
-    scoped_ptr_t<file_account_t> reads_io_account_;
+    cache_account_t default_reads_account_;
     scoped_ptr_t<file_account_t> writes_io_account_;
 
     // This fifo enforcement pair ensures ordering of index_write operations after we
@@ -533,8 +532,6 @@ public:
 
     page_cache_t *page_cache() const { return page_cache_; }
 
-    void set_account(alt_cache_account_t *cache_account);
-
 private:
     // To set cache_conn_ to NULL.
     friend class ::cache_conn_t;
@@ -572,9 +569,6 @@ private:
     tracker_acq_t tracker_acq_;
 
     repli_timestamp_t this_txn_recency_;
-
-    // KSI: This is ugh-ish and the design is borrowed from the mirrored cache.
-    alt_cache_account_t *cache_account_;
 
     // page_txn_t's form a directed graph.  preceders_ and subseqers_ represent the
     // inward-pointing and outward-pointing arrows.  (I'll let you decide which

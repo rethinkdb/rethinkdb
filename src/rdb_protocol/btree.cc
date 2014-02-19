@@ -1331,7 +1331,7 @@ void post_construct_secondary_indexes(
     // The superblock must be released before txn (`btree_parallel_traversal`
     // usually already takes care of that).
     // The txn must be destructed before the cache_account.
-    scoped_ptr_t<alt_cache_account_t> cache_account;
+    cache_account_t cache_account;
     scoped_ptr_t<txn_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
 
@@ -1342,9 +1342,9 @@ void post_construct_secondary_indexes(
         interruptor,
         true /* USE_SNAPSHOT */);
 
-    txn->cache()->create_cache_account(SINDEX_POST_CONSTRUCTION_CACHE_PRIORITY,
-                                       &cache_account);
-    txn->set_account(cache_account.get());
+    cache_account
+        = txn->cache()->create_cache_account(SINDEX_POST_CONSTRUCTION_CACHE_PRIORITY);
+    txn->set_account(&cache_account);
 
     btree_parallel_traversal(superblock.get(), &helper, &wait_any);
 }
