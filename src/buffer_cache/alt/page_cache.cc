@@ -702,8 +702,9 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq) {
                 // flushing its version of the page -- and if it deleted the page,
                 // this is how it learns.
 
-                // We use the default_reads_account() here because ugh.  RSI: Take
-                // the account as a param?
+                // We use the default_reads_account() here because ugh.
+
+                // RSI: We should just gather block tokens up front.
                 cur->snapshotted_page_.init(
                         the_page_for_read_or_deleted(help,
                                                      help.page_cache->default_reads_account()),
