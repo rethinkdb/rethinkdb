@@ -184,7 +184,7 @@ std::vector<rget_item_t> reader_t::do_range_read(env_t *env, const read_t &read)
 
     shards_exhausted = readgen->update_range(&active_range, res.last_key);
     grouped_t<stream_t> *gs = boost::get<grouped_t<stream_t> >(&res.result);
-    return groups_to_batch(gs);
+    return groups_to_batch(gs->get_underlying_map());
 }
 
 bool reader_t::load_items(env_t *env, const batchspec_t &batchspec) {

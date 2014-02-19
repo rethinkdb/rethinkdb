@@ -93,34 +93,54 @@ static inline archive_result_t deserialize_grouped(read_stream_t *s, datums_t *d
     return deserialize(s, ds);
 }
 
+#define PASSTHRU(F)                                                     \
+    template<class... Args>                                             \
+    auto F(Args... args) -> decltype(                                   \
+        std::map<counted_t<const ql::datum_t>, T>().F(std::forward<Args>(args)...)) \
+    { return m.F(std::forward<Args>(args)...); }
+
+// This is basically a templated typedef with special serialization.  (We use
+// this PASSTHRU bullshit instead of inheritance because STL containers don't
+// have virtual destructors.)
 template<class T>
-class grouped_t : public std::map<counted_t<const ql::datum_t>, T> {
+class grouped_t {
 public:
     void rdb_serialize(write_message_t &msg) const { // NOLINT
-        serialize_varint_uint64(
-            &msg, std::map<counted_t<const ql::datum_t>, T>::size());
-        auto b = std::map<counted_t<const ql::datum_t>, T>::begin();
-        auto e = std::map<counted_t<const ql::datum_t>, T>::end();
-        for (auto it = std::move(b); it != e; ++it) {
+        serialize_varint_uint64(&msg, m.size());
+        for (auto it = m.begin(); it != m.end(); ++it) {
             serialize_grouped(&msg, it->first);
             serialize_grouped(&msg, it->second);
         }
     }
     archive_result_t rdb_deserialize(read_stream_t *s) {
-        uint64_t sz = std::map<counted_t<const ql::datum_t>, T>::size();
+        uint64_t sz = size();
         guarantee(sz == 0);
         if (auto res = deserialize_varint_uint64(s, &sz)) return res;
         if (sz > std::numeric_limits<size_t>::max()) return ARCHIVE_RANGE_ERROR;
-        auto pos = std::map<counted_t<const ql::datum_t>, T>::begin();
+        auto pos = begin();
         for (uint64_t i = 0; i < sz; ++i) {
             std::pair<counted_t<const datum_t>, T> el;
             if (auto res = deserialize_grouped(s, &el.first)) return res;
             if (auto res = deserialize_grouped(s, &el.second)) return res;
-            pos = std::map<counted_t<const ql::datum_t>, T>::insert(pos, std::move(el));
+            pos = insert(pos, std::move(el));
         }
         return ARCHIVE_SUCCESS;
     }
+
+    PASSTHRU(size)
+    PASSTHRU(begin)
+    PASSTHRU(end)
+    PASSTHRU(insert)
+    PASSTHRU(clear)
+    PASSTHRU(operator[])
+
+    void swap(grouped_t<T> &other) { m.swap(other.m); } // NOLINT
+    std::map<counted_t<const ql::datum_t>, T> *get_underlying_map() { return &m; }
+private:
+    std::map<counted_t<const ql::datum_t>, T> m;
 };
+
+#undef PASSTHRU
 
 class grouped_data_t : public grouped_t<counted_t<const datum_t> >,
                        public slow_atomic_countable_t<grouped_data_t> { };
