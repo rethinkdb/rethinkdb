@@ -26,7 +26,7 @@ public:
     page_t(page_t *copyee, page_cache_t *page_cache, cache_account_t *account);
     ~page_t();
 
-    page_t *make_copy(page_cache_t *page_cache);
+    page_t *make_copy(page_cache_t *page_cache, cache_account_t *account);
 
     void add_waiter(page_acq_t *acq, cache_account_t *account);
     void remove_waiter(page_acq_t *acq);
@@ -125,7 +125,8 @@ public:
     void init(page_t *page, page_cache_t *page_cache);
 
     page_t *get_page_for_read() const;
-    page_t *get_page_for_write(page_cache_t *page_cache);
+    page_t *get_page_for_write(page_cache_t *page_cache,
+                               cache_account_t *account);
 
     void reset();
 

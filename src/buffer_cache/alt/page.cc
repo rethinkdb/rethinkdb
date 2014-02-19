@@ -181,9 +181,8 @@ size_t page_t::num_snapshot_references() {
     return snapshot_refcount_;
 }
 
-page_t *page_t::make_copy(page_cache_t *page_cache) {
-    // RSI: The default_reads_account() here is wrong?
-    page_t *ret = new page_t(this, page_cache, page_cache->default_reads_account());
+page_t *page_t::make_copy(page_cache_t *page_cache, cache_account_t *account) {
+    page_t *ret = new page_t(this, page_cache, account);
     return ret;
 }
 
@@ -387,10 +386,11 @@ page_t *page_ptr_t::get_page_for_read() const {
     return page_;
 }
 
-page_t *page_ptr_t::get_page_for_write(page_cache_t *page_cache) {
+page_t *page_ptr_t::get_page_for_write(page_cache_t *page_cache,
+                                       cache_account_t *account) {
     rassert(page_ != NULL);
     if (page_->num_snapshot_references() > 1) {
-        page_ptr_t tmp(page_->make_copy(page_cache), page_cache);
+        page_ptr_t tmp(page_->make_copy(page_cache, account), page_cache);
         *this = std::move(tmp);
     }
     return page_;

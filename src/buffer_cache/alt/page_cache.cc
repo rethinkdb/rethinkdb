@@ -758,7 +758,7 @@ page_t *current_page_t::the_page_for_write(current_page_help_t help,
                                            cache_account_t *account) {
     guarantee(!is_deleted_);
     convert_from_serializer_if_necessary(help, account);
-    return page_.get_page_for_write(help.page_cache);
+    return page_.get_page_for_write(help.page_cache, account);
 }
 
 page_txn_t *current_page_t::change_last_modifier(page_txn_t *new_last_modifier) {
