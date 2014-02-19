@@ -533,8 +533,6 @@ public:
 
     page_cache_t *page_cache() const { return page_cache_; }
 
-    void set_account(alt_cache_account_t *cache_account);
-
 private:
     // To set cache_conn_ to NULL.
     friend class ::cache_conn_t;
@@ -572,9 +570,6 @@ private:
     tracker_acq_t tracker_acq_;
 
     repli_timestamp_t this_txn_recency_;
-
-    // KSI: This is ugh-ish and the design is borrowed from the mirrored cache.
-    alt_cache_account_t *cache_account_;
 
     // page_txn_t's form a directed graph.  preceders_ and subseqers_ represent the
     // inward-pointing and outward-pointing arrows.  (I'll let you decide which

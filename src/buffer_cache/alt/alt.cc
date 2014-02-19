@@ -165,6 +165,7 @@ alt_cache_account_t::~alt_cache_account_t() {
 txn_t::txn_t(cache_conn_t *cache_conn,
              read_access_t)
     : cache_(cache_conn->cache()),
+      cache_account_(NULL),
       access_(access_t::read),
       durability_(write_durability_t::SOFT) {
     // Right now, cache_conn is only used to control flushing of write txns.  When we
@@ -179,6 +180,7 @@ txn_t::txn_t(cache_conn_t *cache_conn,
              repli_timestamp_t txn_timestamp,
              int64_t expected_change_count)
     : cache_(cache_conn->cache()),
+      cache_account_(NULL),
       access_(access_t::write),
       durability_(durability) {
     help_construct(txn_timestamp, expected_change_count, cache_conn);
@@ -230,7 +232,11 @@ txn_t::~txn_t() {
 }
 
 void txn_t::set_account(alt_cache_account_t *cache_account) {
-    page_txn_->set_account(cache_account);
+    // There's nothing intrinsically wrong with trying to set an already-set cache
+    // account, but setting it twice probably means you should have some interface
+    // where you push and pop cache accounts.
+    guarantee(cache_account_ == NULL, "Tried to set already-set cache account.");
+    cache_account_ = cache_account;
 }
 
 

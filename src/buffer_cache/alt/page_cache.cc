@@ -760,7 +760,6 @@ page_txn_t::page_txn_t(page_cache_t *page_cache,
       cache_conn_(cache_conn),
       tracker_acq_(std::move(tracker_acq)),
       this_txn_recency_(txn_recency),
-      cache_account_(NULL),
       began_waiting_for_flush_(false),
       spawned_flush_(false) {
     if (cache_conn != NULL) {
@@ -808,24 +807,6 @@ page_txn_t::~page_txn_t() {
 
     guarantee(preceders_.empty());
     guarantee(subseqers_.empty());
-}
-
-void page_txn_t::set_account(alt_cache_account_t *cache_account) {
-    // There's nothing intrinsically wrong with trying to set an already-set cache
-    // account, but setting it twice probably means you should have some interface
-    // where you push and pop cache accounts.
-    guarantee(cache_account_ == NULL, "Tried to set already-set cache account.");
-    cache_account_ = cache_account;
-
-    // KSI: We don't actually _use_ cache_account -- right now read operations don't
-    // have a page_txn_t kept around, you see.  Generally speaking, snapshotted
-    // operations don't have a particular page_txn_t associated with them, and,
-    // generally speaking, the account we want to use to unevict a page would be the
-    // maximum (or "sum"?) of the accounts currently waiting on the page (but it
-    // would probably be fine to use whatever txn wants to unevict the page first).
-    // So, right now, backfilling operations don't get to read with a higher priority
-    // than other things.  It would be interesting to reexamine whether this is a bad
-    // thing.
 }
 
 void page_txn_t::add_acquirer(current_page_acq_t *acq) {

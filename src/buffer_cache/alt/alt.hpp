@@ -114,6 +114,9 @@ private:
 
     cache_t *const cache_;
 
+    // NULL unless the user has specified the cache account with set_account.
+    alt_cache_account_t *cache_account_;
+
     const access_t access_;
 
     // Only applicable if access_ == write.
