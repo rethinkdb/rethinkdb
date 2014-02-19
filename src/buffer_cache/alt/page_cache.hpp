@@ -45,6 +45,7 @@ public:
     ~alt_cache_account_t();
 private:
     friend class alt::page_cache_t;
+    friend class alt::page_txn_t;
     alt_cache_account_t(threadnum_t thread, file_account_t *io_account);
     // KSI: I hate having this thread_ variable, and it looks like the file_account_t
     // already worries about going to the right thread anyway.
@@ -203,6 +204,7 @@ private:
     void init(page_txn_t *txn,
               alt_create_t create);
     void init(page_cache_t *page_cache,
+              file_account_t *reads_io_account,
               block_id_t block_id,
               read_access_t read);
     friend class page_txn_t;
@@ -220,7 +222,12 @@ private:
     void pulse_write_available();
 
     page_cache_t *page_cache_;
+    // This is NULL for read transactions.
     page_txn_t *the_txn_;
+    // This is not NULL -- it's either gotten from the page_txn_t or
+    // page_cache_t's reads_io_account_.get().
+    // RSI: Rename page_cache_t's var to default_reads_io_account_.
+    file_account_t *reads_io_account_;
     access_t access_;
     bool declared_snapshotted_;
     // The block id of the page we acquired.
@@ -396,6 +403,8 @@ private:
 
     void resize_current_pages_to_id(block_id_t block_id);
 
+    friend class current_page_acq_t;
+
     const page_cache_config_t dynamic_config_;
 
     // We use separate I/O accounts for reads and writes, so reads can pass ahead of
@@ -547,6 +556,8 @@ private:
 
     // For access to this_txn_recency_.
     friend class current_page_t;
+
+    file_account_t *reads_io_account();
 
     // Adds and connects a preceder.
     void connect_preceder(page_txn_t *preceder);
