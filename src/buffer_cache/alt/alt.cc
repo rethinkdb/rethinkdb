@@ -9,6 +9,7 @@
 
 #define ALT_DEBUG 0
 
+using alt::block_version_t;
 using alt::current_page_acq_t;
 using alt::page_acq_t;
 using alt::page_cache_t;

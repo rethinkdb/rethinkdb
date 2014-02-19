@@ -64,8 +64,9 @@ private:
     friend class buf_write_t;
     friend class buf_lock_t;
 
-    alt_snapshot_node_t *matching_snapshot_node_or_null(block_id_t block_id,
-                                                        block_version_t block_version);
+    alt_snapshot_node_t *matching_snapshot_node_or_null(
+            block_id_t block_id,
+            alt::block_version_t block_version);
     void add_snapshot_node(block_id_t block_id, alt_snapshot_node_t *node);
     void remove_snapshot_node(block_id_t block_id, alt_snapshot_node_t *node);
 
@@ -232,12 +233,13 @@ private:
     get_or_create_child_snapshot_node(cache_t *cache,
                                       alt_snapshot_node_t *parent,
                                       block_id_t child_id);
-    static void create_empty_child_snapshot_attachments(cache_t *cache,
-                                                        block_version_t parent_version,
-                                                        block_id_t parent_id,
-                                                        block_id_t child_id);
+    static void create_empty_child_snapshot_attachments(
+            cache_t *cache,
+            alt::block_version_t parent_version,
+            block_id_t parent_id,
+            block_id_t child_id);
     static void create_child_snapshot_attachments(cache_t *cache,
-                                                  block_version_t parent_version,
+                                                  alt::block_version_t parent_version,
                                                   block_id_t parent_id,
                                                   block_id_t child_id);
     alt::current_page_acq_t *current_page_acq() const;

@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+namespace alt {
+
 class block_version_t {
 public:
     block_version_t() : value_(0) { }
@@ -39,5 +41,6 @@ private:
     uint64_t value_;
 };
 
+}  // namsepace alt
 
 #endif  // BUFFER_CACHE_ALT_BLOCK_VERSION_HPP_
