@@ -93,15 +93,7 @@ static inline archive_result_t deserialize_grouped(read_stream_t *s, datums_t *d
     return deserialize(s, ds);
 }
 
-#define PASSTHRU(F)                                                     \
-    template<class... Args>                                             \
-    auto F(Args... args) -> decltype(                                   \
-        std::map<counted_t<const ql::datum_t>, T>().F(std::forward<Args>(args)...)) \
-    { return m.F(std::forward<Args>(args)...); }
-
-// This is basically a templated typedef with special serialization.  (We use
-// this PASSTHRU bullshit instead of inheritance because STL containers don't
-// have virtual destructors.)
+// This is basically a templated typedef with special serialization.
 template<class T>
 class grouped_t {
 public:
@@ -114,34 +106,42 @@ public:
         }
     }
     archive_result_t rdb_deserialize(read_stream_t *s) {
-        uint64_t sz = size();
+        uint64_t sz = m.size();
         guarantee(sz == 0);
         if (auto res = deserialize_varint_uint64(s, &sz)) return res;
         if (sz > std::numeric_limits<size_t>::max()) return ARCHIVE_RANGE_ERROR;
-        auto pos = begin();
+        auto pos = m.begin();
         for (uint64_t i = 0; i < sz; ++i) {
             std::pair<counted_t<const datum_t>, T> el;
             if (auto res = deserialize_grouped(s, &el.first)) return res;
             if (auto res = deserialize_grouped(s, &el.second)) return res;
-            pos = insert(pos, std::move(el));
+            pos = m.insert(pos, std::move(el));
         }
         return ARCHIVE_SUCCESS;
     }
 
-    PASSTHRU(size)
-    PASSTHRU(begin)
-    PASSTHRU(end)
-    PASSTHRU(insert)
-    PASSTHRU(clear)
-    PASSTHRU(operator[])
+
+    // We pass these through manually rather than using inheritance because
+    // `std::map` lacks a virtual destructor.
+    typename std::map<counted_t<const datum_t>, T>::iterator
+    begin() { return m.begin(); }
+    typename std::map<counted_t<const datum_t>, T>::iterator
+    end() { return m.end(); }
+
+    std::pair<typename std::map<counted_t<const datum_t>, T>::iterator, bool>
+    insert(std::pair<counted_t<const datum_t>, T> &&val) {
+        return m.insert(std::move(val));
+    }
+
+    size_t size() { return m.size(); }
+    void clear() { return m.clear(); }
+    T &operator[](const counted_t<const datum_t> &k) { return m[k]; }
 
     void swap(grouped_t<T> &other) { m.swap(other.m); } // NOLINT
-    std::map<counted_t<const ql::datum_t>, T> *get_underlying_map() { return &m; }
+    std::map<counted_t<const datum_t>, T> *get_underlying_map() { return &m; }
 private:
-    std::map<counted_t<const ql::datum_t>, T> m;
+    std::map<counted_t<const datum_t>, T> m;
 };
-
-#undef PASSTHRU
 
 // We need a separate class for this because inheriting from
 // `slow_atomic_countable_t` deletes our copy constructor, but boost variants
