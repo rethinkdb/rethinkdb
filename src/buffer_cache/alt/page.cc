@@ -13,7 +13,8 @@ namespace alt {
 static const uint64_t READ_AHEAD_ACCESS_TIME = evicter_t::INITIAL_ACCESS_TIME - 1;
 
 
-page_t::page_t(block_id_t block_id, page_cache_t *page_cache)
+page_t::page_t(block_id_t block_id, page_cache_t *page_cache,
+               cache_account_t *account)
     : destroy_ptr_(NULL),
       ser_buf_size_(0),
       access_time_(page_cache->evicter().next_access_time()),
@@ -22,7 +23,8 @@ page_t::page_t(block_id_t block_id, page_cache_t *page_cache)
     coro_t::spawn_now_dangerously(std::bind(&page_t::load_with_block_id,
                                             this,
                                             block_id,
-                                            page_cache));
+                                            page_cache,
+                                            account));
 }
 
 page_t::page_t(block_size_t block_size, scoped_malloc_t<ser_buffer_t> buf,
@@ -49,7 +51,7 @@ page_t::page_t(scoped_malloc_t<ser_buffer_t> buf,
     page_cache->evicter().add_to_evictable_disk_backed(this);
 }
 
-page_t::page_t(page_t *copyee, page_cache_t *page_cache)
+page_t::page_t(page_t *copyee, page_cache_t *page_cache, cache_account_t *account)
     : destroy_ptr_(NULL),
       ser_buf_size_(0),
       access_time_(page_cache->evicter().next_access_time()),
@@ -58,7 +60,8 @@ page_t::page_t(page_t *copyee, page_cache_t *page_cache)
     coro_t::spawn_now_dangerously(std::bind(&page_t::load_from_copyee,
                                             this,
                                             copyee,
-                                            page_cache));
+                                            page_cache,
+                                            account));
 }
 
 page_t::~page_t() {
@@ -68,7 +71,8 @@ page_t::~page_t() {
 }
 
 void page_t::load_from_copyee(page_t *page, page_t *copyee,
-                              page_cache_t *page_cache) {
+                              page_cache_t *page_cache,
+                              cache_account_t *account) {
     // This is called using spawn_now_dangerously.  We need to atomically set
     // destroy_ptr_ and do some other things.
     bool page_destroyed = false;
@@ -81,7 +85,7 @@ void page_t::load_from_copyee(page_t *page, page_t *copyee,
     // Okay, it's safe to block.
     {
         page_acq_t acq;
-        acq.init(copyee, page_cache);
+        acq.init(copyee, page_cache, account);
         acq.buf_ready_signal()->wait();
 
         ASSERT_FINITE_CORO_WAITING;
@@ -110,7 +114,8 @@ void page_t::load_from_copyee(page_t *page, page_t *copyee,
 
 
 void page_t::load_with_block_id(page_t *page, block_id_t block_id,
-                                page_cache_t *page_cache) {
+                                page_cache_t *page_cache,
+                                cache_account_t *account) {
     // This is called using spawn_now_dangerously.  We need to set
     // destroy_ptr_ before blocking the coroutine.
     bool page_destroyed = false;
@@ -131,7 +136,7 @@ void page_t::load_with_block_id(page_t *page, block_id_t block_id,
         rassert(block_token.has());
         serializer->block_read(block_token,
                                buf.get(),
-                               page_cache->reads_io_account_.get());
+                               account->get());
     }
 
     ASSERT_FINITE_CORO_WAITING;
@@ -176,8 +181,8 @@ size_t page_t::num_snapshot_references() {
     return snapshot_refcount_;
 }
 
-page_t *page_t::make_copy(page_cache_t *page_cache) {
-    page_t *ret = new page_t(this, page_cache);
+page_t *page_t::make_copy(page_cache_t *page_cache, cache_account_t *account) {
+    page_t *ret = new page_t(this, page_cache, account);
     return ret;
 }
 
@@ -193,7 +198,7 @@ void page_t::pulse_waiters_or_make_evictable(page_cache_t *page_cache) {
     }
 }
 
-void page_t::add_waiter(page_acq_t *acq) {
+void page_t::add_waiter(page_acq_t *acq, cache_account_t *account) {
     eviction_bag_t *old_bag
         = acq->page_cache()->evicter().correct_eviction_category(this);
     waiters_.push_back(acq);
@@ -205,14 +210,16 @@ void page_t::add_waiter(page_acq_t *acq) {
     } else if (block_token_.has()) {
         coro_t::spawn_now_dangerously(std::bind(&page_t::load_using_block_token,
                                                 this,
-                                                acq->page_cache()));
+                                                acq->page_cache(),
+                                                account));
     } else {
         crash("An unloaded block is not in a loadable state.");
     }
 }
 
 // Unevicts page.
-void page_t::load_using_block_token(page_t *page, page_cache_t *page_cache) {
+void page_t::load_using_block_token(page_t *page, page_cache_t *page_cache,
+                                    cache_account_t *account) {
     // This is called using spawn_now_dangerously.  We need to set
     // destroy_ptr_ before blocking the coroutine.
     bool page_destroyed = false;
@@ -233,7 +240,7 @@ void page_t::load_using_block_token(page_t *page, page_cache_t *page_cache) {
         on_thread_t th(serializer->home_thread());
         serializer->block_read(block_token,
                                buf.get(),
-                               page_cache->reads_io_account_.get());
+                               account->get());
     }
 
     ASSERT_FINITE_CORO_WAITING;
@@ -294,13 +301,14 @@ void page_t::evict_self() {
 page_acq_t::page_acq_t() : page_(NULL), page_cache_(NULL) {
 }
 
-void page_acq_t::init(page_t *page, page_cache_t *page_cache) {
+void page_acq_t::init(page_t *page, page_cache_t *page_cache,
+                      cache_account_t *account) {
     rassert(page_ == NULL);
     rassert(page_cache_ == NULL);
     rassert(!buf_ready_signal_.is_pulsed());
     page_ = page;
     page_cache_ = page_cache;
-    page_->add_waiter(this);
+    page_->add_waiter(this, account);
 }
 
 page_acq_t::~page_acq_t() {
@@ -378,10 +386,11 @@ page_t *page_ptr_t::get_page_for_read() const {
     return page_;
 }
 
-page_t *page_ptr_t::get_page_for_write(page_cache_t *page_cache) {
+page_t *page_ptr_t::get_page_for_write(page_cache_t *page_cache,
+                                       cache_account_t *account) {
     rassert(page_ != NULL);
     if (page_->num_snapshot_references() > 1) {
-        page_ptr_t tmp(page_->make_copy(page_cache), page_cache);
+        page_ptr_t tmp(page_->make_copy(page_cache, account), page_cache);
         *this = std::move(tmp);
     }
     return page_;

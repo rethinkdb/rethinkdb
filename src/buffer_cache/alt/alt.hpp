@@ -55,7 +55,7 @@ public:
     // throttling systems.  TODO: Come up with a consistent priority scheme,
     // i.e. define a "default" priority etc.  TODO: As soon as we can support it, we
     // might consider supporting a mem_cap paremeter.
-    void create_cache_account(int priority, scoped_ptr_t<alt_cache_account_t> *out);
+    cache_account_t create_cache_account(int priority);
 
 private:
     friend class txn_t;
@@ -63,8 +63,9 @@ private:
     friend class buf_write_t;
     friend class buf_lock_t;
 
-    alt_snapshot_node_t *matching_snapshot_node_or_null(block_id_t block_id,
-                                                        block_version_t block_version);
+    alt_snapshot_node_t *matching_snapshot_node_or_null(
+            block_id_t block_id,
+            alt::block_version_t block_version);
     void add_snapshot_node(block_id_t block_id, alt_snapshot_node_t *node);
     void remove_snapshot_node(block_id_t block_id, alt_snapshot_node_t *node);
 
@@ -97,7 +98,8 @@ public:
     alt::page_txn_t *page_txn() { return page_txn_.get(); }
     access_t access() const { return access_; }
 
-    void set_account(alt_cache_account_t *cache_account);
+    void set_account(cache_account_t *cache_account);
+    cache_account_t *account() { return cache_account_; }
 
 private:
     static void inform_tracker(cache_t *cache,
@@ -113,6 +115,10 @@ private:
                         cache_conn_t *cache_conn);
 
     cache_t *const cache_;
+
+    // Initialized to cache()->page_cache_.default_cache_account(), and modified by
+    // set_account().
+    cache_account_t *cache_account_;
 
     const access_t access_;
 
@@ -219,22 +225,26 @@ private:
     void help_construct(buf_parent_t parent, alt_create_t create);
     void help_construct(buf_parent_t parent, block_id_t block_id, alt_create_t create);
 
-    static alt_snapshot_node_t *help_make_child(cache_t *cache, block_id_t child_id);
+    static alt_snapshot_node_t *help_make_child(cache_t *cache, block_id_t child_id,
+                                                cache_account_t *account);
 
 
     static void wait_for_parent(buf_parent_t parent, access_t access);
     static alt_snapshot_node_t *
     get_or_create_child_snapshot_node(cache_t *cache,
                                       alt_snapshot_node_t *parent,
-                                      block_id_t child_id);
-    static void create_empty_child_snapshot_attachments(cache_t *cache,
-                                                        block_version_t parent_version,
-                                                        block_id_t parent_id,
-                                                        block_id_t child_id);
+                                      block_id_t child_id,
+                                      cache_account_t *account);
+    static void create_empty_child_snapshot_attachments(
+            cache_t *cache,
+            alt::block_version_t parent_version,
+            block_id_t parent_id,
+            block_id_t child_id);
     static void create_child_snapshot_attachments(cache_t *cache,
-                                                  block_version_t parent_version,
+                                                  alt::block_version_t parent_version,
                                                   block_id_t parent_id,
-                                                  block_id_t child_id);
+                                                  block_id_t child_id,
+                                                  cache_account_t *account);
     alt::current_page_acq_t *current_page_acq() const;
 
     friend class buf_read_t;  // for get_held_page_for_read, access_ref_count_.
