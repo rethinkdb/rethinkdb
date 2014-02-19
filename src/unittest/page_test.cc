@@ -78,9 +78,20 @@ public:
 
 class current_test_acq_t : public current_page_acq_t {
 public:
-    template <class... Args>
-    current_test_acq_t(Args &&... args)
-        : current_page_acq_t(std::forward<Args>(args)...) { }
+    current_test_acq_t(page_txn_t *txn,
+                       block_id_t block_id,
+                       access_t access,
+                       page_create_t create = page_create_t::no)
+        : current_page_acq_t(txn, block_id, access,
+                             txn->page_cache()->default_reads_account(),
+                             create) { }
+    current_test_acq_t(page_txn_t *txn,
+                       alt_create_t create)
+        : current_page_acq_t(txn, create) { }
+    current_test_acq_t(page_cache_t *cache,
+                       block_id_t block_id,
+                       read_access_t read)
+        : current_page_acq_t(cache, block_id, cache->default_reads_account(), read) { }
 
     page_t *current_page_for_write() {
         return current_page_acq_t::current_page_for_write(
