@@ -57,8 +57,8 @@ class TermBase
         # Parse out run options from connOrOptions object
         if connOrOptions? and connOrOptions.constructor is Object
             for own key of connOrOptions
-                unless key in ['connection', 'useOutdated', 'noreply', 'timeFormat', 'profile', 'durability']
-                    throw new err.RqlDriverError "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, profile: <bool>, durability: <string>}."
+                unless key in ['connection', 'useOutdated', 'noreply', 'timeFormat', 'groupedDataFormat', 'profile', 'durability']
+                    throw new err.RqlDriverError "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, groupedDataFormat: <string>, profile: <bool>, durability: <string>}."
             conn = connOrOptions.connection
             opts = connOrOptions
         else
@@ -68,7 +68,7 @@ class TermBase
         # This only checks that the argument is of the right type, connection
         # closed errors will be handled elsewhere
         unless conn? and conn._start?
-            throw new err.RqlDriverError "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, profile: <bool>, durability: <string>}."
+            throw new err.RqlDriverError "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, groupedDataFormat: <string>, profile: <bool>, durability: <string>}."
 
         # We only require a callback if noreply isn't set
         if not opts.noreply and typeof(cb) isnt 'function'
@@ -144,7 +144,6 @@ class RDBVal extends TermBase
     upcase: ar () -> new Upcase {}, @
     downcase: ar () -> new Downcase {}, @
     isEmpty: ar () -> new IsEmpty {}, @
-    groupedMapReduce: varar(3, 4, (group, map, reduce) -> new GroupedMapReduce {}, @, funcWrap(group), funcWrap(map), funcWrap(reduce))
     innerJoin: ar (other, predicate) -> new InnerJoin {}, @, other, predicate
     outerJoin: ar (other, predicate) -> new OuterJoin {}, @, other, predicate
     eqJoin: aropt (left_attr, right, opts) -> new EqJoin opts, @, funcWrap(left_attr), right
@@ -162,11 +161,11 @@ class RDBVal extends TermBase
 
     forEach: ar (func) -> new ForEach {}, @, funcWrap(func)
 
-    groupBy: (attrs..., collector) ->
-        unless collector? and attrs.length >= 1
-            numArgs = attrs.length + (if collector? then 1 else 0)
-            throw new err.RqlDriverError "Expected 2 or more argument(s) but found #{numArgs}."
-        new GroupBy {}, @, attrs, collector
+    group: varar(1, null, (fields...) -> new Group {}, @, fields.map(funcWrap)...)
+    sum: varar(0, null, (fields...) -> new Sum {}, @, fields.map(funcWrap)...)
+    avg: varar(0, null, (fields...) -> new Avg {}, @, fields.map(funcWrap)...)
+    min: varar(0, null, (fields...) -> new Min {}, @, fields.map(funcWrap)...)
+    max: varar(0, null, (fields...) -> new Max {}, @, fields.map(funcWrap)...)
 
     info: ar () -> new Info {}, @
     sample: ar (count) -> new Sample {}, @, count
@@ -640,17 +639,25 @@ class IsEmpty extends RDBOp
     tt: "IS_EMPTY"
     mt: 'isEmpty'
 
-class GroupedMapReduce extends RDBOp
-    tt: "GROUPED_MAP_REDUCE"
-    mt: 'groupedMapReduce'
+class Group extends RDBOp
+    tt: "GROUP"
+    mt: 'group'
 
-class GroupBy extends RDBOp
-    tt: "GROUPBY"
-    mt: 'groupBy'
+class Sum extends RDBOp
+    tt: "SUM"
+    mt: 'sum'
 
-class GroupBy extends RDBOp
-    tt: "GROUPBY"
-    mt: 'groupBy'
+class Avg extends RDBOp
+    tt: "AVG"
+    mt: 'avg'
+
+class Min extends RDBOp
+    tt: "MIN"
+    mt: 'min'
+
+class Max extends RDBOp
+    tt: "MAX"
+    mt: 'max'
 
 class InnerJoin extends RDBOp
     tt: "INNER_JOIN"
@@ -996,10 +1003,6 @@ rethinkdb.do = varar 1, null, (args...) ->
     new FunCall {}, funcWrap(args[-1..][0]), args[...-1]...
 
 rethinkdb.branch = ar (test, trueBranch, falseBranch) -> new Branch {}, test, trueBranch, falseBranch
-
-rethinkdb.count =              {'COUNT': true}
-rethinkdb.sum   = ar (attr) -> {'SUM': attr}
-rethinkdb.avg   = ar (attr) -> {'AVG': attr}
 
 rethinkdb.asc = (attr) -> new Asc {}, funcWrap(attr)
 rethinkdb.desc = (attr) -> new Desc {}, funcWrap(attr)

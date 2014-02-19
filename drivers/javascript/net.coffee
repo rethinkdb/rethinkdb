@@ -15,7 +15,6 @@ aropt = util.aropt
 deconstructDatum = util.deconstructDatum
 mkAtom = util.mkAtom
 mkErr = util.mkErr
-mkSeq = util.mkSeq
 
 class Connection extends events.EventEmitter
     DEFAULT_HOST: 'localhost'

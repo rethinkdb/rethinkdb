@@ -610,9 +610,9 @@ def reql_type_time_to_datetime(obj):
 # they do a simple iteration over the result
 def recursively_make_hashable(obj):
     if isinstance(obj, list):
-        return tuple([make_hashable(i) for i in obj])
+        return tuple([recursively_make_hashable(i) for i in obj])
     elif isinstance(obj, dict):
-        return frozenset([(k, make_hashable(v)) for (k,v) in obj.items()])
+        return frozenset([(k, recursively_make_hashable(v)) for (k,v) in obj.items()])
     return obj
 
 def reql_type_grouped_data_to_object(obj):
@@ -666,7 +666,7 @@ class Datum(RqlQuery):
                     return reql_type_time_to_datetime(obj)
                 elif time_format != 'raw':
                     raise RqlDriverError("Unknown time_format run option \"%s\"." % time_format)
-            if reql_type == 'GROUPED_DATA':
+            elif reql_type == 'GROUPED_DATA':
                 grouped_data_format = format_opts.get('grouped_data_format')
                 if grouped_data_format is None or grouped_data_format == 'native':
                     return reql_type_grouped_data_to_object(obj)

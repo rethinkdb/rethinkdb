@@ -61,6 +61,12 @@ convertPseudotype = (obj, opts) ->
                     obj
                 else
                     throw new err.RqlDriverError "Unknown timeFormat run option #{opts.timeFormat}."
+        when 'GROUPED_DATA'
+            switch opts.groupedDataFormat
+                when 'raw', undefined
+                    obj
+                else
+                    throw new err.RqlDriverError "Unknown groupedDataFormat run option #{opts.groupedDataFormat}."
         else
             # Regular object or unknown pseudo type
             obj
