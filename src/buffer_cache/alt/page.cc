@@ -131,7 +131,7 @@ void page_t::load_with_block_id(page_t *page, block_id_t block_id,
         rassert(block_token.has());
         serializer->block_read(block_token,
                                buf.get(),
-                               page_cache->default_reads_io_account_.get());  // RSI
+                               page_cache->reads_io_account_.get());
     }
 
     ASSERT_FINITE_CORO_WAITING;
@@ -233,7 +233,7 @@ void page_t::load_using_block_token(page_t *page, page_cache_t *page_cache) {
         on_thread_t th(serializer->home_thread());
         serializer->block_read(block_token,
                                buf.get(),
-                               page_cache->default_reads_io_account_.get());  // RSI
+                               page_cache->reads_io_account_.get());
     }
 
     ASSERT_FINITE_CORO_WAITING;
