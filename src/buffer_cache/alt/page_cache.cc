@@ -670,7 +670,10 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq) {
 
                 // We use the default_reads_account() here because ugh.
 
-                // RSI: We should just gather block tokens up front.
+                // LSI: We're using the default_reads_account here.  We should just
+                // gather block tokens up front, like we do with recencies, so that
+                // page_t construction never loads a page, and then the most-accurate
+                // account can be used.
                 cur->snapshotted_page_.init(
                         the_page_for_read_or_deleted(help,
                                                      help.page_cache->default_reads_account()),
