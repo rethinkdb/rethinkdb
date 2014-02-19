@@ -13,7 +13,8 @@ namespace alt {
 static const uint64_t READ_AHEAD_ACCESS_TIME = evicter_t::INITIAL_ACCESS_TIME - 1;
 
 
-page_t::page_t(block_id_t block_id, page_cache_t *page_cache)
+page_t::page_t(block_id_t block_id, page_cache_t *page_cache,
+               file_account_t *io_account)
     : destroy_ptr_(NULL),
       ser_buf_size_(0),
       access_time_(page_cache->evicter().next_access_time()),
@@ -22,7 +23,8 @@ page_t::page_t(block_id_t block_id, page_cache_t *page_cache)
     coro_t::spawn_now_dangerously(std::bind(&page_t::load_with_block_id,
                                             this,
                                             block_id,
-                                            page_cache));
+                                            page_cache,
+                                            io_account));
 }
 
 page_t::page_t(block_size_t block_size, scoped_malloc_t<ser_buffer_t> buf,
@@ -110,7 +112,8 @@ void page_t::load_from_copyee(page_t *page, page_t *copyee,
 
 
 void page_t::load_with_block_id(page_t *page, block_id_t block_id,
-                                page_cache_t *page_cache) {
+                                page_cache_t *page_cache,
+                                file_account_t *io_account) {
     // This is called using spawn_now_dangerously.  We need to set
     // destroy_ptr_ before blocking the coroutine.
     bool page_destroyed = false;
@@ -131,7 +134,7 @@ void page_t::load_with_block_id(page_t *page, block_id_t block_id,
         rassert(block_token.has());
         serializer->block_read(block_token,
                                buf.get(),
-                               page_cache->default_reads_io_account_.get());  // RSI
+                               io_account);
     }
 
     ASSERT_FINITE_CORO_WAITING;
