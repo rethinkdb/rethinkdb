@@ -87,9 +87,8 @@ block_size_t cache_t::max_block_size() const {
     return page_cache_.max_block_size();
 }
 
-void cache_t::create_cache_account(int priority,
-                                   scoped_ptr_t<cache_account_t> *out) {
-    page_cache_.create_cache_account(priority, out);
+cache_account_t cache_t::create_cache_account(int priority) {
+    return page_cache_.create_cache_account(priority);
 }
 
 alt_snapshot_node_t *

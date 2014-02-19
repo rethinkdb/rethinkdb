@@ -55,8 +55,7 @@ public:
     // throttling systems.  TODO: Come up with a consistent priority scheme,
     // i.e. define a "default" priority etc.  TODO: As soon as we can support it, we
     // might consider supporting a mem_cap paremeter.
-    // RSI: No need for the scoped_ptr_t!  Also, use a move constructor.
-    void create_cache_account(int priority, scoped_ptr_t<cache_account_t> *out);
+    cache_account_t create_cache_account(int priority);
 
 private:
     friend class txn_t;

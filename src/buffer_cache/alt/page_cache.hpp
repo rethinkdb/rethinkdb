@@ -8,6 +8,7 @@
 #include <set>
 
 #include "buffer_cache/alt/block_version.hpp"
+#include "buffer_cache/alt/cache_account.hpp"
 #include "buffer_cache/alt/config.hpp"
 #include "buffer_cache/alt/evicter.hpp"
 #include "buffer_cache/alt/free_list.hpp"
@@ -39,27 +40,6 @@ enum class page_create_t { no, yes };
 }  // namespace alt
 
 enum class alt_create_t { create };
-
-class cache_account_t {
-public:
-    ~cache_account_t();
-
-    file_account_t *get() const {
-        return io_account_;
-    }
-private:
-    friend class alt::page_cache_t;
-    cache_account_t();
-    void init(threadnum_t thread, file_account_t *io_account);
-    cache_account_t(threadnum_t thread, file_account_t *io_account);
-    void reset();
-
-    // KSI: I hate having this thread_ variable, and it looks like the file_account_t
-    // already worries about going to the right thread anyway.
-    threadnum_t thread_;
-    file_account_t *io_account_;
-    DISABLE_COPYING(cache_account_t);
-};
 
 class cache_conn_t {
 public:
@@ -331,7 +311,7 @@ public:
 
     block_size_t max_block_size() const;
 
-    void create_cache_account(int priority, scoped_ptr_t<cache_account_t> *out);
+    cache_account_t create_cache_account(int priority);
 
     cache_account_t *default_reads_account() {
         return &default_reads_account_;

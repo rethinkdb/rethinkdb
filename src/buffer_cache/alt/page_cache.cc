@@ -22,39 +22,6 @@ cache_conn_t::~cache_conn_t() {
     }
 }
 
-cache_account_t::cache_account_t()
-    : thread_(-1), io_account_(NULL) { }
-
-void cache_account_t::init(threadnum_t thread, file_account_t *io_account) {
-    rassert(io_account_ == NULL);
-    rassert(io_account != NULL);
-    io_account_ = io_account;
-    thread_ = thread;
-}
-
-
-cache_account_t::cache_account_t(threadnum_t thread, file_account_t *io_account)
-    : thread_(thread), io_account_(io_account) {
-    rassert(io_account != NULL);
-}
-
-void cache_account_t::reset() {
-    if (io_account_ != NULL) {
-        threadnum_t local_thread = thread_;
-        file_account_t *local_account = io_account_;
-        thread_ = threadnum_t(-1);
-        io_account_ = NULL;
-        {
-            on_thread_t th(local_thread);
-            delete local_account;
-        }
-    }
-}
-
-cache_account_t::~cache_account_t() {
-    reset();
-}
-
 
 namespace alt {
 
@@ -344,8 +311,7 @@ block_size_t page_cache_t::max_block_size() const {
     return serializer_->max_block_size();
 }
 
-void page_cache_t::create_cache_account(int priority,
-                                        scoped_ptr_t<cache_account_t> *out) {
+cache_account_t page_cache_t::create_cache_account(int priority) {
     // We assume that a priority of 100 means that the transaction should have the
     // same priority as all the non-accounted transactions together. Not sure if this
     // makes sense.
@@ -366,7 +332,7 @@ void page_cache_t::create_cache_account(int priority,
                                                   outstanding_requests_limit);
     }
 
-    out->init(new cache_account_t(serializer_->home_thread(), io_account));
+    return cache_account_t(serializer_->home_thread(), io_account);
 }
 
 
