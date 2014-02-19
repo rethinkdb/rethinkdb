@@ -26,15 +26,15 @@ table_queries = [
     },
     {
         "query": "r.db('test').table(table['name']).get_all(str(i), index='field0')",
-        "tag": "single-_read_sindex0"
+        "tag": "single_read_sindex0"
     },
     {
         "query": "r.db('test').table(table['name']).get_all(str(i), index='field1')",
-        "tag": "single-_read_sindex1"
+        "tag": "single_read_sindex1"
     },
     {
         "query": "r.db('test').table(table['name']).between(table['ids'][i], table['ids'][i+100])",
-        "tag": "single-_read_sindex1",
+        "tag": "range_read_sindex1",
         "imax": 100
     },
     {
@@ -99,7 +99,7 @@ table_queries = [
         "tag": "concat_map_array_str"
     },
     {
-        "query": "r.db('test').table(table['name']).limit(90000).order_by(r.row['id'])",
+        "query": "r.db('test').table(table['name']).limit(900).order_by(r.row['id'])",
         "tag": "order_by_id"
     },
     {
