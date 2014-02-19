@@ -37,7 +37,9 @@ struct mock_ser_t {
     }
 };
 
-void nop(alt::tracker_acq_t) { }
+void reset_tracker_acq(alt::tracker_acq_t *acq) {
+    alt::tracker_acq_t movee(std::move(*acq));
+}
 
 class test_txn_t;
 
@@ -52,7 +54,7 @@ public:
           tracker_(tracker) { }
 
     void flush(scoped_ptr_t<test_txn_t> txn) {
-        flush_and_destroy_txn(std::move(txn), &nop);
+        flush_and_destroy_txn(std::move(txn), &reset_tracker_acq);
     }
 
     alt::tracker_acq_t make_tracker_acq() {
