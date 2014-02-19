@@ -161,8 +161,7 @@ page_cache_t::page_cache_t(serializer_t *serializer,
         }
         default_reads_account_.init(serializer->home_thread(),
                                     serializer->make_io_account(config.io_priority_reads));
-        writes_account_.init(serializer->home_thread(),
-                             serializer->make_io_account(config.io_priority_writes));
+        writes_io_account_.init(serializer->make_io_account(config.io_priority_writes));
         index_write_sink_.init(new fifo_enforcer_sink_t);
         recencies_ = serializer->get_all_recencies();
     }
@@ -181,11 +180,11 @@ page_cache_t::~page_cache_t() {
     {
         /* IO accounts must be destroyed on the thread they were created on */
         on_thread_t thread_switcher(serializer_->home_thread());
-        // Resetting default_reads_account_ and writes_account_ is opportunistically
-        // done here, instead of making their destructors switch back to the
-        // serializer thread a second and third time.
+        // Resetting default_reads_account_ is opportunistically done here, instead
+        // of making its destructor switch back to the serializer thread a second
+        // time.
         default_reads_account_.reset();
-        writes_account_.reset();
+        writes_io_account_.reset();
         index_write_sink_.reset();
     }
 }
@@ -1153,7 +1152,7 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
 
         std::vector<counted_t<standard_block_token_t> > tokens
             = page_cache->serializer_->block_writes(write_infos,
-                                                    page_cache->writes_account_.get(),
+                                                    page_cache->writes_io_account_.get(),
                                                     &blocks_releasable_cb);
 
         rassert(tokens.size() == write_infos.size());
@@ -1200,7 +1199,7 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
 
         rassert(!write_ops.empty());
         page_cache->serializer_->index_write(write_ops,
-                                             page_cache->writes_account_.get());
+                                             page_cache->writes_io_account_.get());
     }
 
     // Set the page_t's block token field to their new block tokens.  KSI: Can we

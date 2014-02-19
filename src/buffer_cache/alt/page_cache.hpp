@@ -408,7 +408,7 @@ private:
     // have to wait for previous ones to flush before they can proceed, so this
     // separation might be tricky in practice.
     cache_account_t default_reads_account_;
-    cache_account_t writes_account_;
+    scoped_ptr_t<file_account_t> writes_io_account_;
 
     // This fifo enforcement pair ensures ordering of index_write operations after we
     // move to the serializer thread and get a bunch of blocks written.
