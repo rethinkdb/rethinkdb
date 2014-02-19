@@ -116,7 +116,8 @@ private:
 
     cache_t *const cache_;
 
-    // NULL unless the user has specified the cache account with set_account.
+    // Initialized to cache()->page_cache_.default_cache_account(), and modified by
+    // set_account().
     cache_account_t *cache_account_;
 
     const access_t access_;
