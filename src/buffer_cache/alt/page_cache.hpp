@@ -332,7 +332,7 @@ public:
     void create_cache_account(int priority, scoped_ptr_t<cache_account_t> *out);
 
     cache_account_t *default_reads_account() {
-        return &reads_account_;
+        return &default_reads_account_;
     }
 
 private:
@@ -421,7 +421,7 @@ private:
     // other hand, write transactions often (always, actually, thanks metainfo block)
     // have to wait for previous ones to flush before they can proceed, so this
     // separation might be tricky in practice.
-    cache_account_t reads_account_;
+    cache_account_t default_reads_account_;
     cache_account_t writes_account_;
 
     // This fifo enforcement pair ensures ordering of index_write operations after we

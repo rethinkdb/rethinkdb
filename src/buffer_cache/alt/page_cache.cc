@@ -192,8 +192,8 @@ page_cache_t::page_cache_t(serializer_t *serializer,
             read_ahead_cb_ = new page_read_ahead_cb_t(serializer, this,
                                                       config.memory_limit);
         }
-        reads_account_.init(serializer->home_thread(),
-                            serializer->make_io_account(config.io_priority_reads));
+        default_reads_account_.init(serializer->home_thread(),
+                                    serializer->make_io_account(config.io_priority_reads));
         writes_account_.init(serializer->home_thread(),
                              serializer->make_io_account(config.io_priority_writes));
         index_write_sink_.init(new fifo_enforcer_sink_t);
@@ -214,10 +214,10 @@ page_cache_t::~page_cache_t() {
     {
         /* IO accounts must be destroyed on the thread they were created on */
         on_thread_t thread_switcher(serializer_->home_thread());
-        // Resetting reads_account_ and writes_account_ is opportunistically done
-        // here, instead of making their destructors switch back to the serializer
-        // thread a second and third time.
-        reads_account_.reset();
+        // Resetting default_reads_account_ and writes_account_ is opportunistically
+        // done here, instead of making their destructors switch back to the
+        // serializer thread a second and third time.
+        default_reads_account_.reset();
         writes_account_.reset();
         index_write_sink_.reset();
     }
