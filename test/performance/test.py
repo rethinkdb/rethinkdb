@@ -196,16 +196,21 @@ def execute_queries():
                 max_i = 1
 
             while (time.time()-start < time_per_query) & (count < executions_per_query):
-                cursor = eval(table_queries[p]["query"]).run(connection)
-                if isinstance(cursor, r.net.Cursor):
-                    list(cursor)
-                    cursor.close()
+                try:
+                    cursor = eval(table_queries[p]["query"]).run(connection)
+                    if isinstance(cursor, r.net.Cursor):
+                        list(cursor)
+                        cursor.close()
 
-                if i >= len(table["ids"])-max_i:
-                    i = 0
-                else:
-                     i+= 1
-
+                    if i >= len(table["ids"])-max_i:
+                        i = 0
+                    else:
+                         i+= 1
+                except:
+                    print "Query failed"
+                    print constant_queries[p]
+                    sys.stdout.flush()
+                    break
 
                 count+=1
 
