@@ -217,7 +217,7 @@ r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
                             } else if (!exp_fun(cpp_res)) {
                                 printTestFailure(testName, src,
                                                  ["CPP result is not equal to expected result:",
-                                                  "\n\tVALUE: ",cpp_res,"\n\tEXPECTED: ",exp_val]);
+                                                  "\n\tVALUE: ",JSON.stringify(cpp_res),"\n\tEXPECTED: ",exp_val]);
                             }
 
                             // Continue to next test. Tests are fully sequential
