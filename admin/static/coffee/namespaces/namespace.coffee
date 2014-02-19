@@ -214,7 +214,7 @@ module 'NamespaceView', ->
             'click .reconnect_link': 'init_connection'
             'click .close_hide': 'hide_alert'
         error_interval: 5*1000 # In case of an error, we try to retrieve the secondary index in 5 seconds
-        normal_interval: 10*1000 # Retrieve secondary indexes every minute
+        normal_interval: 10*1000 # Retrieve secondary indexes every 10 seconds
         short_interval: 1000 # Interval when an index is being created
 
         initialize: (args) =>
@@ -251,31 +251,29 @@ module 'NamespaceView', ->
                 timer: true
 
         error_on_connect: (error) =>
-            console.log '*************** error ***************'
-            console.log error
             @render_error
                 index_list_fail: true
             @timeout = setTimeout @get_indexes, @error_interval
 
+        # Retrieve all the indexes of this table
+        # `args` can be an object with the field `timer`.
+        # If `timer` is `true`, we set a timeout after having retrieved the statuses
         get_indexes: (args) =>
-            #@driver_handler.close_connection()
             @driver_handler.create_connection (error, connection) =>
                 if (error)
+                    # There was an error when we opened the connection
                     @error_on_connect error
                 else
-                    if args?.timer is true
-                        r.db(@db_name).table(@table).indexStatus().private_run connection, (err, result) =>
+                    r.db(@db_name).table(@table).indexStatus().private_run connection, (err, result) =>
+                        if args?.timer is true
                             @on_index_list_repeat err, result
-                            setTimeout ->
-                                connection.close()
-                            , 0
-                    else
-                        r.db(@db_name).table(@table).indexStatus().private_run connection, (err, result) =>
+                        else
                             @on_index_list err, result
-                            setTimeout ->
-                                connection.close()
-                            , 0
-            , 0, @error_on_connect
+                        # We have a seTimeout here to give the driver some time to release the connection before we close it.
+                        setTimeout ->
+                            connection.close()
+                        , 0
+            , 0, @error_on_connect # This callback is fore create_connection is bind to connection.on('error', ...)
 
         on_index_list_repeat: (err, result) =>
             @on_index_list err, result, true
