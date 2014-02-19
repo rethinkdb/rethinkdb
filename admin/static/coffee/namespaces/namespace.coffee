@@ -247,37 +247,39 @@ module 'NamespaceView', ->
             @loading = true
             @driver_handler = new DataExplorerView.DriverHandler
                 container: @
-            @get_indexes
-                timer: true
+            @get_indexes()
 
+        # Callback if an error occurred when opening a connection (or if connection emits an error)
         error_on_connect: (error) =>
             @render_error
                 index_list_fail: true
-            @timeout = setTimeout @get_indexes, @error_interval
+            @get_indexes_with_delay @error_interval
+
+        # Retrieve the indexes after `interval`
+        # `interval` is the time (in seconds) we wait before executing get_indexes
+        get_indexes_with_delay: (interval) =>
+            if @timeout?
+                clearTimeout @timeout
+            @timeout = setTimeout @get_indexes, interval
 
         # Retrieve all the indexes of this table
-        # `args` can be an object with the field `timer`.
-        # If `timer` is `true`, we set a timeout after having retrieved the statuses
-        get_indexes: (args) =>
+        get_indexes: =>
             @driver_handler.create_connection (error, connection) =>
                 if (error)
                     # There was an error when we opened the connection
                     @error_on_connect error
                 else
                     r.db(@db_name).table(@table).indexStatus().private_run connection, (err, result) =>
-                        if args?.timer is true
-                            @on_index_list_repeat err, result
-                        else
-                            @on_index_list err, result
-                        # We have a seTimeout here to give the driver some time to release the connection before we close it.
+                        @on_index_list err, result
+
+                        # We have a setTimeout here to give the driver some time to release the connection before we close it.
                         setTimeout ->
                             connection.close()
                         , 0
-            , 0, @error_on_connect # This callback is fore create_connection is bind to connection.on('error', ...)
+            , 0, @error_on_connect # @error_on_connect is the last argument of create_connection, and is executed if the connection emits an error
 
-        on_index_list_repeat: (err, result) =>
-            @on_index_list err, result, true
 
+        # Callback executed when we retrieve the list of indexes
         on_index_list: (err, result, timer) =>
             if @loading is true
                 @loading = false
@@ -285,7 +287,7 @@ module 'NamespaceView', ->
             if err?
                 @render_error
                     index_list_fail: true
-                @timeout = setTimeout @get_indexes, @error_interval
+                @get_indexes_with_delay @error_interval
             else
                 index_hash = {}
                 indexes_not_ready = 0
@@ -310,20 +312,12 @@ module 'NamespaceView', ->
                         else
                             @$('.index_container').eq(position_new_index).after @indexes[index.index].render().$el
 
-                if timer
-                    if @timeout?
-                        clearTimeout @timeout
-                    if indexes_not_ready > 0
-                        @timeout = setTimeout =>
-                            @get_indexes
-                                timer: true
-                        , @short_interval
-                    else
-                        @timeout = setTimeout =>
-                            @get_indexes
-                                timer: true
-                        , @normal_interval
-
+                # If some indexes are not ready, we want a more responsive progress bar
+                # so we refresh with a smaller interval (@short_interval)
+                if indexes_not_ready > 0
+                    @get_indexes_with_delay @short_interval
+                else
+                    @get_indexes_with_delay @normal_interval
 
                 count = 0
                 for name, index of @indexes
@@ -477,12 +471,8 @@ module 'NamespaceView', ->
                         @$('.index_container').eq(position_new_index).after @indexes[index_name].render().$el
 
 
-                if @timeout?
-                    clearTimeout @timeout
-                @timeout = setTimeout =>
-                    @get_indexes
-                        timer: true
-                , 1000 # We delay the call of 1 second to retrieve a better estimate of the total number of blocks
+                # We delay the call of 1 second to retrieve a better estimate of the total number of blocks
+                @get_indexes_with_delay @short_interval
 
                 @render_feedback
                     create_ok: true
