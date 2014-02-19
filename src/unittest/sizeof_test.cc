@@ -15,9 +15,9 @@ TEST(SizeofTest, Sizes) {
 
 TEST(SizeofTest, SerBuffer) {
     // These values depend on what sizeof(block_id_t) is.
-    EXPECT_EQ(16u, sizeof(ls_buf_data_t));
-    EXPECT_EQ(16u, sizeof(ser_buffer_t));
-    EXPECT_EQ(16u, offsetof(ser_buffer_t, cache_data));
+    EXPECT_EQ(8u, sizeof(ls_buf_data_t));
+    EXPECT_EQ(8u, sizeof(ser_buffer_t));
+    EXPECT_EQ(8u, offsetof(ser_buffer_t, cache_data));
 }
 
 

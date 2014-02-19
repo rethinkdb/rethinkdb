@@ -1082,13 +1082,13 @@ private:
         page_acq_t page_acq;
         page_acq.init(acq->current_page_for_write(), c);
         const uint32_t n = page_acq.get_buf_size();
-        ASSERT_EQ(4080u, n);
+        ASSERT_EQ(4088u, n);
         memset(page_acq.get_buf_write(), 0, n);
     }
 
     void check_page_acq(page_acq_t *page_acq, const std::string &expected) {
         const uint32_t n = page_acq->get_buf_size();
-        ASSERT_EQ(4080u, n);
+        ASSERT_EQ(4088u, n);
         const char *const p = static_cast<const char *>(page_acq->get_buf_read());
 
         ASSERT_LE(expected.size() + 1, n);
@@ -1121,7 +1121,7 @@ private:
             check_page_acq(&page_acq, expected);
 
             char *const p = static_cast<char *>(page_acq.get_buf_write());
-            ASSERT_EQ(4080u, page_acq.get_buf_size());
+            ASSERT_EQ(4088u, page_acq.get_buf_size());
             ASSERT_LE(expected.size() + append.size() + 1, page_acq.get_buf_size());
             memcpy(p + expected.size(), append.c_str(), append.size() + 1);
         }
