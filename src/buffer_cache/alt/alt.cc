@@ -200,14 +200,14 @@ void txn_t::help_construct(repli_timestamp_t txn_timestamp,
                                   cache_conn));
 }
 
-void txn_t::inform_tracker(cache_t *cache, tracker_acq_t tracker_acq) {
-    cache->tracker_.end_txn(std::move(tracker_acq));
+void txn_t::inform_tracker(cache_t *cache, tracker_acq_t *tracker_acq) {
+    cache->tracker_.end_txn(std::move(*tracker_acq));
 }
 
 void txn_t::pulse_and_inform_tracker(cache_t *cache,
-                                     tracker_acq_t tracker_acq,
+                                     tracker_acq_t *tracker_acq,
                                      cond_t *pulsee) {
-    inform_tracker(cache, std::move(tracker_acq));
+    inform_tracker(cache, tracker_acq);
     pulsee->pulse();
 }
 
