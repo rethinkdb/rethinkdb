@@ -105,6 +105,7 @@ static inline archive_result_t deserialize_grouped(read_stream_t *s, datums_t *d
 template<class T>
 class grouped_t {
 public:
+    virtual ~grouped_t() { } // See grouped_data_t below.
     void rdb_serialize(write_message_t &msg) const { // NOLINT
         serialize_varint_uint64(&msg, m.size());
         for (auto it = m.begin(); it != m.end(); ++it) {
@@ -142,6 +143,9 @@ private:
 
 #undef PASSTHRU
 
+// We need a separate class for this because inheriting from
+// `slow_atomic_countable_t` deletes our copy constructor, but boost variants
+// want us to have a copy constructor.
 class grouped_data_t : public grouped_t<counted_t<const datum_t> >,
                        public slow_atomic_countable_t<grouped_data_t> { };
 
