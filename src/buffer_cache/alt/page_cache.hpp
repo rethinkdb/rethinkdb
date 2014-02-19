@@ -331,6 +331,10 @@ public:
 
     void create_cache_account(int priority, scoped_ptr_t<cache_account_t> *out);
 
+    cache_account_t *default_reads_account() {
+        return &reads_account_;
+    }
+
 private:
     friend class page_read_ahead_cb_t;
     void add_read_ahead_buf(block_id_t block_id,
