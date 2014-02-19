@@ -154,14 +154,6 @@ void cache_t::remove_snapshot_node(block_id_t block_id, alt_snapshot_node_t *nod
     }
 }
 
-alt_cache_account_t::alt_cache_account_t(threadnum_t thread, file_account_t *io_account)
-    : thread_(thread), io_account_(io_account) { }
-
-alt_cache_account_t::~alt_cache_account_t() {
-    on_thread_t thread_switcher(thread_);
-    delete io_account_;
-}
-
 txn_t::txn_t(cache_conn_t *cache_conn,
              read_access_t)
     : cache_(cache_conn->cache()),

@@ -22,6 +22,40 @@ cache_conn_t::~cache_conn_t() {
     }
 }
 
+alt_cache_account_t::alt_cache_account_t()
+    : thread_(-1), io_account_(NULL) { }
+
+void alt_cache_account_t::init(threadnum_t thread, file_account_t *io_account) {
+    rassert(io_account_ == NULL);
+    rassert(io_account != NULL);
+    io_account_ = io_account;
+    thread_ = thread;
+}
+
+
+alt_cache_account_t::alt_cache_account_t(threadnum_t thread, file_account_t *io_account)
+    : thread_(thread), io_account_(io_account) {
+    rassert(io_account != NULL);
+}
+
+void alt_cache_account_t::reset() {
+    if (io_account_ != NULL) {
+        threadnum_t local_thread = thread_;
+        file_account_t *local_account = io_account_;
+        thread_ = threadnum_t(-1);
+        io_account_ = NULL;
+        {
+            on_thread_t th(local_thread);
+            delete local_account;
+        }
+    }
+}
+
+alt_cache_account_t::~alt_cache_account_t() {
+    reset();
+}
+
+
 namespace alt {
 
 void tracker_acq_t::update_dirty_page_count(int64_t new_count) {
@@ -158,8 +192,10 @@ page_cache_t::page_cache_t(serializer_t *serializer,
             read_ahead_cb_ = new page_read_ahead_cb_t(serializer, this,
                                                       config.memory_limit);
         }
-        reads_io_account_.init(serializer->make_io_account(config.io_priority_reads));
-        writes_io_account_.init(serializer->make_io_account(config.io_priority_writes));
+        reads_account_.init(serializer->home_thread(),
+                            serializer->make_io_account(config.io_priority_reads));
+        writes_account_.init(serializer->home_thread(),
+                             serializer->make_io_account(config.io_priority_writes));
         index_write_sink_.init(new fifo_enforcer_sink_t);
         recencies_ = serializer->get_all_recencies();
     }
@@ -178,8 +214,11 @@ page_cache_t::~page_cache_t() {
     {
         /* IO accounts must be destroyed on the thread they were created on */
         on_thread_t thread_switcher(serializer_->home_thread());
-        reads_io_account_.reset();
-        writes_io_account_.reset();
+        // Resetting reads_account_ and writes_account_ is opportunistically done
+        // here, instead of making their destructors switch back to the serializer
+        // thread a second and third time.
+        reads_account_.reset();
+        writes_account_.reset();
         index_write_sink_.reset();
     }
 }
@@ -1118,7 +1157,7 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
 
         std::vector<counted_t<standard_block_token_t> > tokens
             = page_cache->serializer_->block_writes(write_infos,
-                                                    page_cache->writes_io_account_.get(),
+                                                    page_cache->writes_account_.get(),
                                                     &blocks_releasable_cb);
 
         rassert(tokens.size() == write_infos.size());
@@ -1165,7 +1204,7 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
 
         rassert(!write_ops.empty());
         page_cache->serializer_->index_write(write_ops,
-                                             page_cache->writes_io_account_.get());
+                                             page_cache->writes_account_.get());
     }
 
     // Set the page_t's block token field to their new block tokens.  KSI: Can we

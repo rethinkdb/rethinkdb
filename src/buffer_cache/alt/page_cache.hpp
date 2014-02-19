@@ -40,12 +40,21 @@ enum class page_create_t { no, yes };
 
 enum class alt_create_t { create };
 
+// RSI: Rename to cache_account_t.
 class alt_cache_account_t {
 public:
     ~alt_cache_account_t();
+
+    file_account_t *get() const {
+        return io_account_;
+    }
 private:
     friend class alt::page_cache_t;
+    alt_cache_account_t();
+    void init(threadnum_t thread, file_account_t *io_account);
     alt_cache_account_t(threadnum_t thread, file_account_t *io_account);
+    void reset();
+
     // KSI: I hate having this thread_ variable, and it looks like the file_account_t
     // already worries about going to the right thread anyway.
     threadnum_t thread_;
@@ -408,8 +417,8 @@ private:
     // other hand, write transactions often (always, actually, thanks metainfo block)
     // have to wait for previous ones to flush before they can proceed, so this
     // separation might be tricky in practice.
-    scoped_ptr_t<file_account_t> reads_io_account_;
-    scoped_ptr_t<file_account_t> writes_io_account_;
+    alt_cache_account_t reads_account_;
+    alt_cache_account_t writes_account_;
 
     // This fifo enforcement pair ensures ordering of index_write operations after we
     // move to the serializer thread and get a bunch of blocks written.
