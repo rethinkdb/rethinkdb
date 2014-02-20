@@ -8,6 +8,7 @@
 #include "rpc/semilattice/view.hpp"
 #include "stl_utils.hpp"
 
+// TODO! Reduce this value? Chunks are larger now.
 #define MAX_CHUNKS_OUT 5000
 
 inline state_timestamp_t get_earliest_timestamp_of_version_range(const version_range_t &vr) {

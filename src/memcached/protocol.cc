@@ -640,18 +640,18 @@ void store_t::protocol_send_backfill(const region_map_t<memcached_protocol_t, st
 namespace {
 
 struct receive_backfill_visitor_t : public boost::static_visitor<> {
-    receive_backfill_visitor_t(btree_slice_t *_btree, superblock_t *_superblock,
+    receive_backfill_visitor_t(btree_slice_t *_btree, scoped_ptr_t<superblock_t> &&_superblock,
                                signal_t *_interruptor)
-        : btree(_btree), superblock(_superblock), interruptor(_interruptor) { }
+        : btree(_btree), superblock(std::move(_superblock)), interruptor(_interruptor) { }
 
     void operator()(const backfill_chunk_t::delete_key_t& delete_key) const {
         memcached_delete(delete_key.key, true, btree, 0, delete_key.recency,
-                         superblock);
+                         superblock.get());
     }
     void operator()(const backfill_chunk_t::delete_range_t& delete_range) const {
         hash_range_key_tester_t tester(&delete_range.range);
         memcached_erase_range(&tester, delete_range.range.inner,
-                              superblock, interruptor);
+                              superblock.get(), interruptor);
     }
     void operator()(const backfill_chunk_t::key_value_pairs_t& kv) const {
         for (size_t i = 0; i < kv.backfill_atoms.size(); ++i) {
@@ -660,7 +660,7 @@ struct receive_backfill_visitor_t : public boost::static_visitor<> {
                 bf_atom.value, bf_atom.flags, bf_atom.exptime,
                 add_policy_yes, replace_policy_yes, INVALID_CAS,
                 bf_atom.cas_or_zero, 0, bf_atom.recency,
-                superblock);
+                superblock.get());
         }
     }
 
@@ -681,17 +681,17 @@ private:
     };
 
     btree_slice_t *btree;
-    superblock_t *superblock;
+    scoped_ptr_t<superblock_t> superblock;
     signal_t *interruptor;
 };
 
 }   /* anonymous namespace */
 
 void store_t::protocol_receive_backfill(btree_slice_t *btree,
-                                        superblock_t *superblock,
+                                        scoped_ptr_t<superblock_t> &&superblock,
                                         signal_t *interruptor,
                                         const backfill_chunk_t &chunk) {
-    boost::apply_visitor(receive_backfill_visitor_t(btree, superblock, interruptor),
+    boost::apply_visitor(receive_backfill_visitor_t(btree, std::move(superblock), interruptor),
                          chunk.val);
 }
 

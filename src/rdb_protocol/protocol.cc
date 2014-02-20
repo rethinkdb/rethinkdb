@@ -1841,9 +1841,9 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
     rdb_receive_backfill_visitor_t(btree_store_t<rdb_protocol_t> *_store,
                                    btree_slice_t *_btree,
                                    txn_t *_txn,
-                                   superblock_t *_superblock,
+                                   scoped_ptr_t<superblock_t> &&_superblock,
                                    signal_t *_interruptor) :
-        store(_store), btree(_btree), txn(_txn), superblock(_superblock),
+        store(_store), btree(_btree), txn(_txn), superblock(std::move(_superblock)),
         interruptor(_interruptor) {
         sindex_block =
             store->acquire_sindex_block_for_write(superblock->expose_buf(),
@@ -1854,7 +1854,7 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
         point_delete_response_t response;
         rdb_modification_report_t mod_report(delete_key.key);
         rdb_delete(delete_key.key, btree, delete_key.recency,
-                   superblock, &response, &mod_report.info,
+                   superblock.get(), &response, &mod_report.info,
                    static_cast<profile::trace_t *>(NULL));
 
         update_sindexes(&mod_report);
@@ -1864,24 +1864,44 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
         range_key_tester_t tester(&delete_range.range);
         rdb_erase_range(&tester, delete_range.range.inner,
                         &sindex_block,
-                        superblock, store,
+                        superblock.get(), store,
                         interruptor);
     }
 
     void operator()(const backfill_chunk_t::key_value_pairs_t &kv) {
-        // TODO! Update multiple
-        // TODO! This is inefficient. Though probably better than before.
+        // TODO! This is illegal. Do a batched replace.
+        rdb_modification_report_cb_t sindex_cb(
+            store,
+            &sindex_block,
+            auto_drainer_t::lock_t(&store->drainer));
+
+        std::vector<store_key_t> keys;
+        keys.reserve(kv.backfill_atoms.size());
+        std::vector<counted_t<const ql::datum_t> > values;
+        values.reserve(kv.backfill_atoms.size());
+        // TODO! This recency logic is messed up. Only submit one per chunk in the first place.
+        repli_timestamp_t max_recency = repli_timestamp_t::invalid;
         for (size_t i = 0; i < kv.backfill_atoms.size(); ++i) {
             const rdb_backfill_atom_t& bf_atom = kv.backfill_atoms[i];
-            point_write_response_t response;
-            rdb_modification_report_t mod_report(bf_atom.key);
-            rdb_set(bf_atom.key, bf_atom.value, true,
-                    btree, bf_atom.recency,
-                    superblock, &response,
-                    &mod_report.info, static_cast<profile::trace_t *>(NULL));
-
-            update_sindexes(&mod_report);
+            keys.push_back(bf_atom.key);
+            values.push_back(bf_atom.value);
+            if (max_recency == repli_timestamp_t::invalid
+                || bf_atom.recency > max_recency) {
+                max_recency = bf_atom.recency;
+            }
         }
+
+        const std::string pkey = "id"; // TODO! Hard-coded pkey!!
+        datum_replacer_t replacer(&values, true, pkey, false);
+
+        UNUSED batched_replace_response_t response =
+            rdb_batched_replace(
+                btree_info_t(btree, max_recency,
+                             &pkey),
+                &superblock, keys, &replacer, &sindex_cb,
+                NULL);
+
+        // TODO! Check the response
     }
 
     void operator()(const backfill_chunk_t::sindexes_t &s) {
@@ -1921,7 +1941,7 @@ private:
     btree_store_t<rdb_protocol_t> *store;
     btree_slice_t *btree;
     txn_t *txn;
-    superblock_t *superblock;
+    scoped_ptr_t<superblock_t> superblock;
     signal_t *interruptor;
     buf_lock_t sindex_block;
 
@@ -1929,13 +1949,14 @@ private:
 };
 
 void store_t::protocol_receive_backfill(btree_slice_t *btree,
-                                        superblock_t *superblock,
+                                        scoped_ptr_t<superblock_t> &&_superblock,
                                         signal_t *interruptor,
                                         const backfill_chunk_t &chunk) {
+    scoped_ptr_t<superblock_t> superblock(std::move(_superblock));
     with_priority_t p(CORO_PRIORITY_BACKFILL_RECEIVER);
     rdb_receive_backfill_visitor_t v(this, btree,
                                      superblock->expose_buf().txn(),
-                                     superblock,
+                                     std::move(superblock),
                                      interruptor);
     boost::apply_visitor(v, chunk.val);
 }

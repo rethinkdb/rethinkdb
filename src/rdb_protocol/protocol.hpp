@@ -840,7 +840,7 @@ struct rdb_protocol_t {
                                     THROWS_ONLY(interrupted_exc_t);
 
         void protocol_receive_backfill(btree_slice_t *btree,
-                                       superblock_t *superblock,
+                                       scoped_ptr_t<superblock_t> &&superblock,
                                        signal_t *interruptor,
                                        const backfill_chunk_t &chunk);
 

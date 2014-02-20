@@ -196,7 +196,7 @@ void btree_store_t<protocol_t>::receive_backfill(
                                  interruptor);
 
     protocol_receive_backfill(btree.get(),
-                              superblock.get(),
+                              std::move(superblock),
                               interruptor,
                               chunk);
 }
