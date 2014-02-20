@@ -1493,11 +1493,14 @@ void dump_entries_since_time(value_sizer_t<void> *sizer, const leaf_node_t *node
     {
         entry_iter_t iter = entry_iter_t::make(node);
         repli_timestamp_t last_seen_tstamp = maximum_possible_timestamp;
+
         // Collect key_value pairs so we can send a bunch of them at a time.
-        // TODO! Reserve and stuff
         std::vector<const btree_key_t *> keys;
         std::vector<const void *> values;
         std::vector<repli_timestamp_t> tstamps;
+        keys.reserve(node->num_pairs);
+        values.reserve(node->num_pairs);
+        tstamps.reserve(node->num_pairs);
         while (iter.offset < stop_offset) {
             repli_timestamp_t tstamp;
             if (iter.offset < node->tstamp_cutpoint) {

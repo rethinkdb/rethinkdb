@@ -1766,19 +1766,23 @@ public:
         : chunk_fun_cb(_chunk_fun_cb) { }
     ~rdb_backfill_callback_impl_t() { }
 
-    void on_delete_range(const key_range_t &range, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    void on_delete_range(const key_range_t &range,
+                         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
         chunk_fun_cb->send_chunk(chunk_t::delete_range(region_t(range)), interruptor);
     }
 
-    void on_deletion(const btree_key_t *key, repli_timestamp_t recency, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    void on_deletion(const btree_key_t *key, repli_timestamp_t recency,
+                     signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
         chunk_fun_cb->send_chunk(chunk_t::delete_key(to_store_key(key), recency), interruptor);
     }
 
-    void on_keyvalues(const std::vector<rdb_backfill_atom_t> &atoms, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        chunk_fun_cb->send_chunk(chunk_t::set_keys(atoms), interruptor);
+    void on_keyvalues(std::vector<rdb_backfill_atom_t> &&atoms,
+                      signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+        chunk_fun_cb->send_chunk(chunk_t::set_keys(std::move(atoms)), interruptor);
     }
 
-    void on_sindexes(const std::map<std::string, secondary_index_t> &sindexes, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    void on_sindexes(const std::map<std::string, secondary_index_t> &sindexes,
+                     signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
         chunk_fun_cb->send_chunk(chunk_t::sindexes(sindexes), interruptor);
     }
 
@@ -1869,7 +1873,6 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const backfill_chunk_t::key_value_pairs_t &kv) {
-        // TODO! This is illegal. Do a batched replace.
         rdb_modification_report_cb_t sindex_cb(
             store,
             &sindex_block,
@@ -1879,29 +1882,43 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
         keys.reserve(kv.backfill_atoms.size());
         std::vector<counted_t<const ql::datum_t> > values;
         values.reserve(kv.backfill_atoms.size());
-        // TODO! This recency logic is messed up. Only submit one per chunk in the first place.
         repli_timestamp_t max_recency = repli_timestamp_t::invalid;
-        for (size_t i = 0; i < kv.backfill_atoms.size(); ++i) {
+        for (size_t i = 0; i < kv.backfill_atoms.size(); ++i) {           
             const rdb_backfill_atom_t& bf_atom = kv.backfill_atoms[i];
             keys.push_back(bf_atom.key);
             values.push_back(bf_atom.value);
             if (max_recency == repli_timestamp_t::invalid
-                || bf_atom.recency > max_recency) {
+                || max_recency < bf_atom.recency) {
                 max_recency = bf_atom.recency;
             }
         }
 
+        // TODO! I'm not at all happy with this logic.
+        // Can we call rdb_replace_and_return_superblock directly?
+
         const std::string pkey = "id"; // TODO! Hard-coded pkey!!
         datum_replacer_t replacer(&values, true, pkey, false);
 
-        UNUSED batched_replace_response_t response =
+        batched_replace_response_t result =
             rdb_batched_replace(
                 btree_info_t(btree, max_recency,
                              &pkey),
                 &superblock, keys, &replacer, &sindex_cb,
                 NULL);
 
-        // TODO! Check the response
+        // This should never fail. But just in case, let's at least try to print
+        // why it failed.
+        counted_t<const ql::datum_t> errors_result = result->get("errors", ql::throw_bool_t::NOTHROW);
+        guarantee(errors_result.has() && errors_result->get_type() == ql::datum_t::R_NUM,
+                  "batched_replace_response_t has no numeric field `errors`.");
+        if (errors_result->as_int() == 0) {
+            counted_t<const ql::datum_t> first_error_result = result->get("first_error", ql::throw_bool_t::NOTHROW);
+            guarantee(first_error_result.has() && first_error_result->get_type() == ql::datum_t::R_STR,
+                      "batched_replace_response_t reported error, but has no string"
+                      " field `first_error`.");
+            crash("Error while inserting backfill chunk: %s",
+                  first_error_result->as_str().c_str());
+        }
     }
 
     void operator()(const backfill_chunk_t::sindexes_t &s) {

@@ -133,7 +133,8 @@ public:
             repli_timestamp_t recency;
 
             delete_key_t() { }
-            delete_key_t(const store_key_t& _key, const repli_timestamp_t& _recency) : key(_key), recency(_recency) { }
+            delete_key_t(const store_key_t& _key, const repli_timestamp_t& _recency)
+                : key(_key), recency(_recency) { }
         };
         struct delete_range_t {
             region_t range;
@@ -145,7 +146,8 @@ public:
             std::vector<backfill_atom_t> backfill_atoms;
 
             key_value_pairs_t() { }
-            explicit key_value_pairs_t(const std::vector<backfill_atom_t>& _backfill_atoms) : backfill_atoms(_backfill_atoms) { }
+            explicit key_value_pairs_t(const std::vector<backfill_atom_t>& _backfill_atoms)
+                : backfill_atoms(_backfill_atoms) { }
         };
 
         backfill_chunk_t() { }
@@ -163,8 +165,8 @@ public:
         static backfill_chunk_t delete_key(const store_key_t& key, const repli_timestamp_t& recency) {
             return backfill_chunk_t(delete_key_t(key, recency));
         }
-        static backfill_chunk_t set_keys(const std::vector<backfill_atom_t>& keys) {
-            return backfill_chunk_t(key_value_pairs_t(keys));
+        static backfill_chunk_t set_keys(std::vector<backfill_atom_t> &&keys) {
+            return backfill_chunk_t(key_value_pairs_t(std::move(keys)));
         }
     };
 

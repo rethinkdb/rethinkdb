@@ -43,9 +43,12 @@ void debug_print(printf_buffer_t *buf, const backfill_atom_t& atom);
 // on_keyvalues calls for keys within that range.
 class backfill_callback_t {
 public:
-    virtual void on_delete_range(const key_range_t &range, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
-    virtual void on_deletion(const btree_key_t *key, repli_timestamp_t recency, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
-    virtual void on_keyvalues(const std::vector<backfill_atom_t>& atoms, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
+    virtual void on_delete_range(const key_range_t &range,
+                                 signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
+    virtual void on_deletion(const btree_key_t *key, repli_timestamp_t recency,
+                             signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
+    virtual void on_keyvalues(std::vector<backfill_atom_t> &&atoms,
+                              signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
 protected:
     virtual ~backfill_callback_t() { }
 };

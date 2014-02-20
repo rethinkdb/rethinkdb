@@ -8,8 +8,9 @@
 #include "rpc/semilattice/view.hpp"
 #include "stl_utils.hpp"
 
-// TODO! Reduce this value? Chunks are larger now.
-#define MAX_CHUNKS_OUT 5000
+// The number of backfill chunks that may be sent but now yet processed by the receiver.
+// Keep in mind that each chunk can contain multiple key/value pairs.
+#define MAX_CHUNKS_OUT 2
 
 inline state_timestamp_t get_earliest_timestamp_of_version_range(const version_range_t &vr) {
     return vr.earliest.timestamp;

@@ -25,7 +25,8 @@ public:
     }
 
     void on_pairs(buf_parent_t parent, const std::vector<repli_timestamp_t> &recencies,
-                  const std::vector<const btree_key_t *> &keys, const std::vector<const void *> &vals,
+                  const std::vector<const btree_key_t *> &keys,
+                  const std::vector<const void *> &vals,
                   signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
         std::vector<backfill_atom_t> atoms(keys.size());
         for (size_t i = 0; i < keys.size(); ++i) {
@@ -39,7 +40,7 @@ public:
             atoms[i].recency = recencies[i];
             atoms[i].cas_or_zero = value->has_cas() ? value->cas() : 0;
         }
-        cb_->on_keyvalues(atoms, interruptor);
+        cb_->on_keyvalues(std::move(atoms), interruptor);
     }
 
     void on_sindexes(const std::map<std::string, secondary_index_t> &, signal_t *) THROWS_ONLY(interrupted_exc_t) {

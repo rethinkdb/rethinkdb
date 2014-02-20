@@ -562,16 +562,19 @@ public:
     explicit memcached_backfill_callback_t(chunk_fun_callback_t<memcached_protocol_t> *chunk_fun_cb)
         : chunk_fun_cb_(chunk_fun_cb) { }
 
-    void on_delete_range(const key_range_t &range, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    void on_delete_range(const key_range_t &range,
+                         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
         chunk_fun_cb_->send_chunk(chunk_t::delete_range(region_t(range)), interruptor);
     }
 
-    void on_deletion(const btree_key_t *key, repli_timestamp_t recency, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    void on_deletion(const btree_key_t *key, repli_timestamp_t recency,
+                     signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
         chunk_fun_cb_->send_chunk(chunk_t::delete_key(to_store_key(key), recency), interruptor);
     }
 
-    void on_keyvalues(const std::vector<backfill_atom_t>& atoms, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        chunk_fun_cb_->send_chunk(chunk_t::set_keys(atoms), interruptor);
+    void on_keyvalues(std::vector<backfill_atom_t> &&atoms,
+                      signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+        chunk_fun_cb_->send_chunk(chunk_t::set_keys(std::move(atoms)), interruptor);
     }
     ~memcached_backfill_callback_t() { }
 

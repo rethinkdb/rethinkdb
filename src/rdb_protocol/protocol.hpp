@@ -760,7 +760,8 @@ struct rdb_protocol_t {
             std::vector<rdb_protocol_details::backfill_atom_t> backfill_atoms;
 
             key_value_pairs_t() { }
-            explicit key_value_pairs_t(const std::vector<rdb_protocol_details::backfill_atom_t>& _backfill_atoms) : backfill_atoms(_backfill_atoms) { }
+            explicit key_value_pairs_t(std::vector<rdb_protocol_details::backfill_atom_t> &&_backfill_atoms)
+                : backfill_atoms(std::move(_backfill_atoms)) { }
 
             RDB_DECLARE_ME_SERIALIZABLE;
         };
@@ -786,8 +787,8 @@ struct rdb_protocol_t {
         static backfill_chunk_t delete_key(const store_key_t& key, const repli_timestamp_t& recency) {
             return backfill_chunk_t(delete_key_t(key, recency));
         }
-        static backfill_chunk_t set_keys(const std::vector<rdb_protocol_details::backfill_atom_t>& keys) {
-            return backfill_chunk_t(key_value_pairs_t(keys));
+        static backfill_chunk_t set_keys(std::vector<rdb_protocol_details::backfill_atom_t> &&keys) {
+            return backfill_chunk_t(key_value_pairs_t(std::move(keys)));
         }
 
         static backfill_chunk_t sindexes(const std::map<std::string, secondary_index_t> &sindexes) {
