@@ -1888,6 +1888,7 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
                     &superblock_promise);
             superblock.init(superblock_promise.wait());
         }
+        superblock->release();
         update_sindexes(mod_reports);
     }
 
