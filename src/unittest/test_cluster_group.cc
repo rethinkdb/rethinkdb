@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "unittest/test_cluster_group.hpp"
 
 #include <map>
@@ -92,7 +92,7 @@ public:
     ~test_reactor_t();
     bool is_acceptable_ack_set(const std::set<peer_id_t> &acks);
     write_durability_t get_write_durability(const peer_id_t &) const {
-        return WRITE_DURABILITY_SOFT;
+        return write_durability_t::SOFT;
     }
 
     watchable_variable_t<blueprint_t<protocol_t> > blueprint_watchable;

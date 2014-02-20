@@ -1,11 +1,4 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
-#ifndef __STDC_FORMAT_MACROS
-#define __STDC_FORMAT_MACROS
-#endif
-#ifndef __STDC_LIMIT_MACROS
-#define __STDC_LIMIT_MACROS
-#endif
-
 #include "http/json/json_adapter.hpp"
 
 #include <inttypes.h>

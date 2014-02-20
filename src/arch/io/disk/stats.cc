@@ -5,8 +5,7 @@ stats_diskmgr_t::stats_diskmgr_t(perfmon_collection_t *stats, const std::string 
     write_sampler(secs_to_ticks(1)),
     stats_membership(stats,
                      &read_sampler, (name + "_read").c_str(),
-                     &write_sampler, (name + "_write").c_str(),
-                     NULLPTR) { }
+                     &write_sampler, (name + "_write").c_str()) { }
 
 
 void stats_diskmgr_t::submit(action_t *a) {

@@ -1,6 +1,6 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
+#include "extproc/js_job.hpp"
 
-#define __STDC_LIMIT_MACROS
 #include <stdint.h>
 
 #if defined(__GNUC__) && (100 * __GNUC__ + __GNUC_MINOR__ >= 406)
@@ -14,7 +14,6 @@
 
 #include <cmath>
 
-#include "extproc/js_job.hpp"
 #include "rdb_protocol/rdb_protocol_json.hpp"
 #include "rdb_protocol/pseudo_time.hpp"
 #include "containers/archive/boost_types.hpp"

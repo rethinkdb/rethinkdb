@@ -1,5 +1,4 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
-#define __STDC_FORMAT_MACROS
 #include "arch/runtime/runtime_utils.hpp"
 
 #include <unistd.h>

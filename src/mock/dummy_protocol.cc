@@ -1,11 +1,10 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "mock/dummy_protocol.hpp"
 
 // TODO: Move version_range_t out of clustering/immediate_consistency/branch/metadata.hpp.
 #include "arch/timing.hpp"
 #include "btree/btree_store.hpp"
 #include "clustering/immediate_consistency/branch/metadata.hpp"
-#include "concurrency/rwi_lock.hpp"
 #include "concurrency/signal.hpp"
 #include "concurrency/wait_any.hpp"
 #include "containers/printf_buffer.hpp"
@@ -256,22 +255,6 @@ void dummy_protocol_t::store_t::new_write_token(object_buffer_t<fifo_enforcer_si
     token_out->create(&main_token_sink, token);
 }
 
-void dummy_protocol_t::store_t::new_read_token_pair(read_token_pair_t *token_pair_out) THROWS_NOTHING {
-    assert_thread();
-    fifo_enforcer_read_token_t main_token = main_token_source.enter_read(),
-                                secondary_token = secondary_token_source.enter_read();
-    token_pair_out->main_read_token.create(&main_token_sink, main_token);
-    token_pair_out->sindex_read_token.create(&secondary_token_sink, secondary_token);
-}
-
-void dummy_protocol_t::store_t::new_write_token_pair(write_token_pair_t *token_pair_out) THROWS_NOTHING {
-    assert_thread();
-    fifo_enforcer_write_token_t main_token = main_token_source.enter_write(),
-                                secondary_token = secondary_token_source.enter_write();
-    token_pair_out->main_write_token.create(&main_token_sink, main_token);
-    token_pair_out->sindex_write_token.create(&secondary_token_sink, secondary_token);
-}
-
 void dummy_protocol_t::store_t::do_get_metainfo(order_token_t order_token,
                                                 object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
                                                 signal_t *interruptor,
@@ -319,7 +302,6 @@ void dummy_protocol_t::store_t::read(DEBUG_ONLY(const metainfo_checker_t<dummy_p
 
     {
         object_buffer_t<fifo_enforcer_sink_t::exit_read_t>::destruction_sentinel_t destroyer(&token_pair->main_read_token);
-        object_buffer_t<fifo_enforcer_sink_t::exit_read_t>::destruction_sentinel_t destroyer2(&token_pair->sindex_read_token);
 
         wait_interruptible(token_pair->main_read_token.get(), interruptor);
         order_sink.check_out(order_token);
@@ -385,7 +367,6 @@ void dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_checker_t<dummy_
 
     {
         object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer(&token_pair->main_write_token);
-        object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer2(&token_pair->sindex_write_token);
 
         wait_interruptible(token_pair->main_write_token.get(), interruptor);
 
@@ -425,7 +406,6 @@ bool dummy_protocol_t::store_t::send_backfill(const region_map_t<dummy_protocol_
     rassert(region_is_superset(get_region(), start_point.get_domain()));
 
     object_buffer_t<fifo_enforcer_sink_t::exit_read_t>::destruction_sentinel_t destroyer(&token_pair->main_read_token);
-    object_buffer_t<fifo_enforcer_sink_t::exit_read_t>::destruction_sentinel_t destroyer2(&token_pair->sindex_read_token);
 
     wait_interruptible(token_pair->main_read_token.get(), interruptor);
 
@@ -463,7 +443,6 @@ bool dummy_protocol_t::store_t::send_backfill(const region_map_t<dummy_protocol_
 
 void dummy_protocol_t::store_t::receive_backfill(const dummy_protocol_t::backfill_chunk_t &chunk, write_token_pair_t *token_pair, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer(&token_pair->main_write_token);
-    object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer2(&token_pair->sindex_write_token);
 
     rassert(get_region().keys.count(chunk.key) != 0);
 
@@ -482,7 +461,6 @@ void dummy_protocol_t::store_t::reset_data(const dummy_protocol_t::region_t &sub
     rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
 
     object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer(&token_pair->main_write_token);
-    object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer2(&token_pair->sindex_write_token);
 
     wait_interruptible(token_pair->main_write_token.get(), interruptor);
 

@@ -1,8 +1,5 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "unittest/gtest.hpp"
-
-// These unit tests need to access some private methods.
-#define private public
 
 #include "clustering/administration/metadata.hpp"
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
@@ -21,8 +18,6 @@
 #include "unittest/clustering_utils.hpp"
 #include "unittest/dummy_metadata_controller.hpp"
 #include "unittest/unittest_utils.hpp"
-
-#pragma GCC diagnostic ignored "-Wshadow"
 
 namespace unittest {
 

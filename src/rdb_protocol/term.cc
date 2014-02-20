@@ -14,8 +14,6 @@
 #include "thread_local.hpp"
 #include "protob/protob.hpp"
 
-#pragma GCC diagnostic ignored "-Wshadow"
-
 namespace ql {
 
 counted_t<term_t> compile_term(compile_env_t *env, protob_t<const Term> t) {

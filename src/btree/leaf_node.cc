@@ -1,14 +1,12 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
-#define __STDC_FORMAT_MACROS
-
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "btree/leaf_node.hpp"
 
 #include <inttypes.h>
 
 #include <algorithm>
 
-#include "buffer_cache/buffer_cache.hpp"
 #include "btree/node.hpp"
+#include "repli_timestamp.hpp"
 
 namespace leaf {
 

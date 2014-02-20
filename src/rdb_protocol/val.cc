@@ -7,8 +7,6 @@
 #include "rdb_protocol/minidriver.hpp"
 #include "rdb_protocol/term.hpp"
 
-#pragma GCC diagnostic ignored "-Wshadow"
-
 namespace ql {
 
 table_t::table_t(env_t *env,

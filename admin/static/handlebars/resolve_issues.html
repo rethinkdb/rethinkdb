@@ -10,13 +10,45 @@
 </script>
 
 <script id="declare_machine_dead-modal-template" type="text/x-handlebars-template">
-    <div class="alert alert-error">
-        <h4 class="title_center">Warning</h4>
-        <p>If you declare this server dead, you will not be able to reconnect it later, even if it does reconnect, it will consider itself dead and will stop working.</p>
-        <p>All the data on the server will be lost.</p>
-    </div>
     <div class="alert alert-error error_answer"></div>
-    <p>Are you sure you want to declare <strong>{{machine_name}}</strong> dead?</p>
+
+
+    <p class="first_question"><strong>How can service availability be restored?</strong></p>
+
+    <p>
+        To restore service availability, this server either needs to rejoin
+        the cluster or be permanently removed.
+    </p>
+
+    <p><strong>What does removing a server do?</strong></p>
+
+    <p>The server will be dropped from the cluster, service availability
+        will resume, and its data will be destroyed to maintain cluster
+        integrity.
+    </p>
+
+    <hr>
+
+    <div class="input">
+        <h3>
+            Are you sure you want to permanently remove <strong>{{machine_name}}</strong>?
+        </h3>
+
+        <div class="alert alert-error displayed_alert">
+            <strong>Warning:</strong> Removing this server will destroy its
+            data, proceed with caution.
+        </div>
+
+        <p>
+            <div class="error_verification">
+                Please type "remove" to confirm
+            </div>
+        </p>
+        <input class="verification" name="name"
+            placeholder='Type "remove" to confirm' size="30" type=
+            "text">
+    </div>
+
 </script>
 
 <script id="fail_solve_issue-template" type="text/x-handlebars-template">
@@ -55,7 +87,7 @@
             <p>You successfully solved the name conflict.</p>
         {{/if}}
         {{#if machine_dead}}
-            <p>You successfully declared server <span class="name">{{machine_name}}</span> dead.</p>
+            <p>You successfully removed the server <span class="name">{{machine_name}}</span>.</p>
         {{/if}}
         {{#if vclock_conflict}}
             <p>You successfully resolved the configuration value to <span class="name">{{final_value}}</span>.</p>
@@ -69,7 +101,7 @@
 <script id="resolve_issues-machine_down-template" type="text/x-handlebars-template">
     <div class="issue {{#if critical }}critical{{/if}}">
         <div class="issue-header">
-            <button class="btn btn-danger solve-issue">Declare Dead</button>
+            <button class="btn btn-danger solve-issue">Permanently remove</button>
             <p class="issue-type">Server down</p>
             <p class="message">{{name}} is unreachable</p>
             <p class="datetime"><abbr class="timeago" title="{{datetime}}">{{datetime}}</abbr></p>
@@ -124,15 +156,14 @@
 <script id="resolve_issues-logfile_write-template" type="text/x-handlebars-template">
     <div class="issue {{#if critical }}critical{{/if}} name-conflict">
         <div class="issue-header">
-            <button class="btn btn-danger solve-issue">Declare Dead</button>
+            <button class="btn btn-danger solve-issue">Permanently remove</button>
             <p class="issue-type">Cannot write logs</p>
             <p class="message">File cannot be written on server <a class="change-route" href="/#servers/{{machine_uuid}}">{{machine_name}}</a></p>
             <p class="datetime"><abbr class="timeago" title="{{datetime}}">{{datetime}}</abbr></p>
         </div>
         <hr />
         <div class="issue-details">
-            <p>Log file is inaccessible on server <a class="change-route" href="/#servers/{{machine_uuid}}">{{machine_name}}</a>. Please resolve the issue on the server, or declare it dead.<p>
-        </div>
+            <p>Log file is inaccessible on server <a class="change-route" href="/#servers/{{machine_uuid}}">{{machine_name}}</a>. Please resolve the issue on the server, or declare remove it from the cluster.<p> </div>
     </div>
 </script>
 
@@ -215,7 +246,7 @@
         </div>
         <hr />
         <div class="issue-details">
-            <p>A server was declared dead, but is now connected to the cluster.</p>
+            <p>A server was permanently removed, but is now connected to the cluster.</p>
             <p class="description">Server's id: <a class="change-route" href="#servers/{{machine_id}}">{{machine_id}}</a></p>
             <p>Please manually remove it (e.g. by killing the RethinkDB process on the server).</p>
         </div>

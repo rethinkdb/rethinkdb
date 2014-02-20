@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef UNITTEST_CLUSTERING_UTILS_HPP_
 #define UNITTEST_CLUSTERING_UTILS_HPP_
 
@@ -27,7 +27,7 @@ class spawn_write_fake_ack_checker_t : public ack_checker_t {
         return false;
     }
     write_durability_t get_write_durability(const peer_id_t &) const {
-        return WRITE_DURABILITY_SOFT;
+        return write_durability_t::SOFT;
     }
 };
 
