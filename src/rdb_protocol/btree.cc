@@ -390,10 +390,11 @@ void rdb_set(const store_key_t &key,
              superblock_t *superblock,
              point_write_response_t *response_out,
              rdb_modification_info_t *mod_info,
-             profile::trace_t *trace) {
+             profile::trace_t *trace,
+             promise_t<superblock_t *> *pass_back_superblock) {
     keyvalue_location_t<rdb_value_t> kv_location;
     find_keyvalue_location_for_write(superblock, key.btree_key(), &kv_location,
-                                     &slice->stats, trace);
+                                     &slice->stats, trace, pass_back_superblock);
     const bool had_value = kv_location.value.has();
 
     /* update the modification report */

@@ -15,6 +15,7 @@
 #include "clustering/reactor/reactor.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
 #include "concurrency/pmap.hpp"
+#include "concurrency/promise.hpp"
 #include "concurrency/wait_any.hpp"
 #include "containers/archive/archive.hpp"
 #include "containers/archive/vector_stream.hpp"
@@ -1856,12 +1857,13 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
 
     void operator()(const backfill_chunk_t::delete_key_t &delete_key) {
         point_delete_response_t response;
-        rdb_modification_report_t mod_report(delete_key.key);
+        std::vector<rdb_modification_report_t> mod_reports(1);
+        mod_reports[0].primary_key = delete_key.key;
         rdb_delete(delete_key.key, btree, delete_key.recency,
-                   superblock.get(), &response, &mod_report.info,
+                   superblock.get(), &response, &mod_reports[0].info,
                    static_cast<profile::trace_t *>(NULL));
 
-        update_sindexes(&mod_report);
+        update_sindexes(mod_reports);
     }
 
     void operator()(const backfill_chunk_t::delete_range_t &delete_range) {
@@ -1873,52 +1875,20 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const backfill_chunk_t::key_value_pairs_t &kv) {
-        rdb_modification_report_cb_t sindex_cb(
-            store,
-            &sindex_block,
-            auto_drainer_t::lock_t(&store->drainer));
-
-        std::vector<store_key_t> keys;
-        keys.reserve(kv.backfill_atoms.size());
-        std::vector<counted_t<const ql::datum_t> > values;
-        values.reserve(kv.backfill_atoms.size());
-        repli_timestamp_t max_recency = repli_timestamp_t::invalid;
-        for (size_t i = 0; i < kv.backfill_atoms.size(); ++i) {           
+        std::vector<rdb_modification_report_t> mod_reports(kv.backfill_atoms.size());
+        for (size_t i = 0; i < kv.backfill_atoms.size(); ++i) {
             const rdb_backfill_atom_t& bf_atom = kv.backfill_atoms[i];
-            keys.push_back(bf_atom.key);
-            values.push_back(bf_atom.value);
-            if (max_recency == repli_timestamp_t::invalid
-                || max_recency < bf_atom.recency) {
-                max_recency = bf_atom.recency;
-            }
+            point_write_response_t response;
+            mod_reports[i].primary_key = bf_atom.key;
+            promise_t<superblock_t *> superblock_promise;
+            rdb_set(bf_atom.key, bf_atom.value, true,
+                    btree, bf_atom.recency,
+                    superblock.release(), &response,
+                    &mod_reports[i].info, static_cast<profile::trace_t *>(NULL),
+                    &superblock_promise);
+            superblock.init(superblock_promise.wait());
         }
-
-        // TODO! I'm not at all happy with this logic.
-        // Can we call rdb_replace_and_return_superblock directly?
-
-        const std::string pkey = "id"; // TODO! Hard-coded pkey!!
-        datum_replacer_t replacer(&values, true, pkey, false);
-
-        batched_replace_response_t result =
-            rdb_batched_replace(
-                btree_info_t(btree, max_recency,
-                             &pkey),
-                &superblock, keys, &replacer, &sindex_cb,
-                NULL);
-
-        // This should never fail. But just in case, let's at least try to print
-        // why it failed.
-        counted_t<const ql::datum_t> errors_result = result->get("errors", ql::throw_bool_t::NOTHROW);
-        guarantee(errors_result.has() && errors_result->get_type() == ql::datum_t::R_NUM,
-                  "batched_replace_response_t has no numeric field `errors`.");
-        if (errors_result->as_int() == 0) {
-            counted_t<const ql::datum_t> first_error_result = result->get("first_error", ql::throw_bool_t::NOTHROW);
-            guarantee(first_error_result.has() && first_error_result->get_type() == ql::datum_t::R_STR,
-                      "batched_replace_response_t reported error, but has no string"
-                      " field `first_error`.");
-            crash("Error while inserting backfill chunk: %s",
-                  first_error_result->as_str().c_str());
-        }
+        update_sindexes(mod_reports);
     }
 
     void operator()(const backfill_chunk_t::sindexes_t &s) {
@@ -1941,18 +1911,20 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
     }
 
 private:
-    void update_sindexes(rdb_modification_report_t *mod_report) {
-        mutex_t::acq_t acq;
-        store->lock_sindex_queue(&sindex_block, &acq);
-
-        write_message_t wm;
-        wm << rdb_sindex_change_t(*mod_report);
-        store->sindex_queue_push(wm, &acq);
-
+    void update_sindexes(const std::vector<rdb_modification_report_t> &mod_reports) {
         sindex_access_vector_t sindexes;
         store->acquire_post_constructed_sindex_superblocks_for_write(
                 &sindex_block, &sindexes);
-        rdb_update_sindexes(sindexes, mod_report, txn);
+
+        mutex_t::acq_t acq;
+        store->lock_sindex_queue(&sindex_block, &acq);
+        for (size_t i = 0; i < mod_reports.size(); ++i) {
+            write_message_t wm;
+            wm << rdb_sindex_change_t(mod_reports[i]);
+            store->sindex_queue_push(wm, &acq);
+
+            rdb_update_sindexes(sindexes, &mod_reports[i], txn);
+        }
     }
 
     btree_store_t<rdb_protocol_t> *store;
