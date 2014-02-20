@@ -1735,8 +1735,17 @@ struct rdb_backfill_chunk_get_btree_repli_timestamp_visitor_t : public boost::st
         return repli_timestamp_t::invalid;
     }
 
-    repli_timestamp_t operator()(const backfill_chunk_t::key_value_pair_t &kv) {
-        return kv.backfill_atom.recency;
+    repli_timestamp_t operator()(const backfill_chunk_t::key_value_pairs_t &kv) {
+        repli_timestamp_t most_recent = repli_timestamp_t::invalid;
+        rassert(!kv.backfill_atoms.empty());
+        for (size_t i = 0; i < kv.backfill_atoms.size(); ++i) {
+            if (most_recent == repli_timestamp_t::invalid
+                || most_recent < kv.backfill_atoms[i].recency) {
+
+                most_recent = kv.backfill_atoms[i].recency;
+            }
+        }
+        return most_recent;
     }
 
     repli_timestamp_t operator()(const backfill_chunk_t::sindexes_t &) {
@@ -1765,8 +1774,8 @@ public:
         chunk_fun_cb->send_chunk(chunk_t::delete_key(to_store_key(key), recency), interruptor);
     }
 
-    void on_keyvalue(const rdb_backfill_atom_t &atom, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        chunk_fun_cb->send_chunk(chunk_t::set_key(atom), interruptor);
+    void on_keyvalues(const std::vector<rdb_backfill_atom_t> &atoms, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+        chunk_fun_cb->send_chunk(chunk_t::set_keys(atoms), interruptor);
     }
 
     void on_sindexes(const std::map<std::string, secondary_index_t> &sindexes, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
@@ -1859,16 +1868,20 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
                         interruptor);
     }
 
-    void operator()(const backfill_chunk_t::key_value_pair_t &kv) {
-        const rdb_backfill_atom_t& bf_atom = kv.backfill_atom;
-        point_write_response_t response;
-        rdb_modification_report_t mod_report(bf_atom.key);
-        rdb_set(bf_atom.key, bf_atom.value, true,
-                btree, bf_atom.recency,
-                superblock, &response,
-                &mod_report.info, static_cast<profile::trace_t *>(NULL));
+    void operator()(const backfill_chunk_t::key_value_pairs_t &kv) {
+        // TODO! Update multiple
+        // TODO! This is inefficient. Though probably better than before.
+        for (size_t i = 0; i < kv.backfill_atoms.size(); ++i) {
+            const rdb_backfill_atom_t& bf_atom = kv.backfill_atoms[i];
+            point_write_response_t response;
+            rdb_modification_report_t mod_report(bf_atom.key);
+            rdb_set(bf_atom.key, bf_atom.value, true,
+                    btree, bf_atom.recency,
+                    superblock, &response,
+                    &mod_report.info, static_cast<profile::trace_t *>(NULL));
 
-        update_sindexes(&mod_report);
+            update_sindexes(&mod_report);
+        }
     }
 
     void operator()(const backfill_chunk_t::sindexes_t &s) {
@@ -2018,8 +2031,8 @@ RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::delete_key_t, key);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::delete_range_t, range);
 
-RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::key_value_pair_t,
-                           backfill_atom);
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::key_value_pairs_t,
+                           backfill_atoms);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::sindexes_t, sindexes);
 

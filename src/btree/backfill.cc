@@ -45,10 +45,19 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
                 }
             }
 
-            void key_value(const btree_key_t *k, const void *value, repli_timestamp_t tstamp) {
-                if (range.contains_key(k->contents, k->size)) {
-                    cb->on_pair(parent, tstamp, k, value, interruptor);
+            void keys_values(const std::vector<const btree_key_t *> &ks, const std::vector<const void *> &values, const std::vector<repli_timestamp_t> &tstamps) {
+                // TODO! Inefficient
+                std::vector<const btree_key_t *> filtered_ks;
+                std::vector<const void *> filtered_values;
+                std::vector<repli_timestamp_t> filtered_tstamps;
+                for (size_t i = 0; i < ks.size(); ++i) {
+                    if (range.contains_key(ks[i]->contents, ks[i]->size)) {
+                        filtered_ks.push_back(ks[i]);
+                        filtered_values.push_back(values[i]);
+                        filtered_tstamps.push_back(tstamps[i]);
+                    }
                 }
+                cb->on_pairs(parent, filtered_tstamps, filtered_ks, filtered_values, interruptor);
             }
 
             agnostic_backfill_callback_t *cb;

@@ -141,21 +141,21 @@ public:
             delete_range_t() { }
             explicit delete_range_t(const region_t& _range) : range(_range) { }
         };
-        struct key_value_pair_t {
-            backfill_atom_t backfill_atom;
+        struct key_value_pairs_t {
+            std::vector<backfill_atom_t> backfill_atoms;
 
-            key_value_pair_t() { }
-            explicit key_value_pair_t(const backfill_atom_t& _backfill_atom) : backfill_atom(_backfill_atom) { }
+            key_value_pairs_t() { }
+            explicit key_value_pairs_t(const std::vector<backfill_atom_t>& _backfill_atoms) : backfill_atoms(_backfill_atoms) { }
         };
 
         backfill_chunk_t() { }
-        explicit backfill_chunk_t(boost::variant<delete_range_t, delete_key_t, key_value_pair_t> _val) : val(_val) { }
+        explicit backfill_chunk_t(boost::variant<delete_range_t, delete_key_t, key_value_pairs_t> _val) : val(_val) { }
 
         /* This is called by `btree_store_t`; it's not part of the ICL protocol
         API. */
         repli_timestamp_t get_btree_repli_timestamp() const THROWS_NOTHING;
 
-        boost::variant<delete_range_t, delete_key_t, key_value_pair_t> val;
+        boost::variant<delete_range_t, delete_key_t, key_value_pairs_t> val;
 
         static backfill_chunk_t delete_range(const region_t &range) {
             return backfill_chunk_t(delete_range_t(range));
@@ -163,8 +163,8 @@ public:
         static backfill_chunk_t delete_key(const store_key_t& key, const repli_timestamp_t& recency) {
             return backfill_chunk_t(delete_key_t(key, recency));
         }
-        static backfill_chunk_t set_key(const backfill_atom_t& key) {
-            return backfill_chunk_t(key_value_pair_t(key));
+        static backfill_chunk_t set_keys(const std::vector<backfill_atom_t>& keys) {
+            return backfill_chunk_t(key_value_pairs_t(keys));
         }
     };
 
@@ -226,7 +226,7 @@ RDB_DECLARE_SERIALIZABLE(memcached_protocol_t::write_response_t);
 RDB_DECLARE_SERIALIZABLE(memcached_protocol_t::write_t);
 RDB_DECLARE_SERIALIZABLE(memcached_protocol_t::backfill_chunk_t::delete_key_t);
 RDB_DECLARE_SERIALIZABLE(memcached_protocol_t::backfill_chunk_t::delete_range_t);
-RDB_DECLARE_SERIALIZABLE(memcached_protocol_t::backfill_chunk_t::key_value_pair_t);
+RDB_DECLARE_SERIALIZABLE(memcached_protocol_t::backfill_chunk_t::key_value_pairs_t);
 RDB_DECLARE_SERIALIZABLE(memcached_protocol_t::backfill_chunk_t);
 
 

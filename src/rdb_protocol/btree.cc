@@ -430,19 +430,20 @@ public:
         cb_->on_deletion(key, recency, interruptor);
     }
 
-    void on_pair(buf_parent_t leaf_node, repli_timestamp_t recency,
-                 const btree_key_t *key, const void *val,
-                 signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        rassert(kr_.contains_key(key->contents, key->size));
-        const rdb_value_t *value = static_cast<const rdb_value_t *>(val);
+    void on_pairs(buf_parent_t leaf_node, const std::vector<repli_timestamp_t> &recencies,
+                  const std::vector<const btree_key_t *> &keys, const std::vector<const void *> &vals,
+                  signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+        std::vector<rdb_protocol_details::backfill_atom_t> atoms(keys.size());
+        for (size_t i = 0; i < keys.size(); ++i) {
+            rassert(kr_.contains_key(keys[i]->contents, keys[i]->size));
+            const rdb_value_t *value = static_cast<const rdb_value_t *>(vals[i]);
 
-        slice_->stats.pm_keys_read.record();
-
-        rdb_protocol_details::backfill_atom_t atom;
-        atom.key.assign(key->size, key->contents);
-        atom.value = get_data(value, leaf_node);
-        atom.recency = recency;
-        cb_->on_keyvalue(atom, interruptor);
+            atoms[i].key.assign(keys[i]->size, keys[i]->contents);
+            atoms[i].value = get_data(value, leaf_node);
+            atoms[i].recency = recencies[i];
+        }
+        slice_->stats.pm_keys_read.record(keys.size());
+        cb_->on_keyvalues(atoms, interruptor);
     }
 
     void on_sindexes(const std::map<std::string, secondary_index_t> &sindexes, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {

@@ -24,20 +24,22 @@ public:
         cb_->on_deletion(key, recency, interruptor);
     }
 
-    void on_pair(buf_parent_t parent, repli_timestamp_t recency,
-                 const btree_key_t *key, const void *val,
-                 signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        rassert(kr_.contains_key(key->contents, key->size));
-        const memcached_value_t *value = static_cast<const memcached_value_t *>(val);
-        counted_t<data_buffer_t> data_provider = value_to_data_buffer(value, parent);
-        backfill_atom_t atom;
-        atom.key.assign(key->size, key->contents);
-        atom.value = data_provider;
-        atom.flags = value->mcflags();
-        atom.exptime = value->exptime();
-        atom.recency = recency;
-        atom.cas_or_zero = value->has_cas() ? value->cas() : 0;
-        cb_->on_keyvalue(atom, interruptor);
+    void on_pairs(buf_parent_t parent, const std::vector<repli_timestamp_t> &recencies,
+                  const std::vector<const btree_key_t *> &keys, const std::vector<const void *> &vals,
+                  signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+        std::vector<backfill_atom_t> atoms(keys.size());
+        for (size_t i = 0; i < keys.size(); ++i) {
+            rassert(kr_.contains_key(keys[i]->contents, keys[i]->size));
+            const memcached_value_t *value = static_cast<const memcached_value_t *>(vals[i]);
+            counted_t<data_buffer_t> data_provider = value_to_data_buffer(value, parent);
+            atoms[i].key.assign(keys[i]->size, keys[i]->contents);
+            atoms[i].value = data_provider;
+            atoms[i].flags = value->mcflags();
+            atoms[i].exptime = value->exptime();
+            atoms[i].recency = recencies[i];
+            atoms[i].cas_or_zero = value->has_cas() ? value->cas() : 0;
+        }
+        cb_->on_keyvalues(atoms, interruptor);
     }
 
     void on_sindexes(const std::map<std::string, secondary_index_t> &, signal_t *) THROWS_ONLY(interrupted_exc_t) {
