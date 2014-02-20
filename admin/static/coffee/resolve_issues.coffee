@@ -412,7 +412,6 @@ module 'ResolveIssuesView', ->
                 namespace_name: namespaces.get(@model.get('namespace_id')).get('name')
                 datacenters_with_issues: []
 
-
             namespace = namespaces.get(@model.get('namespace_id'))
             if @model.get('primary_datacenter') isnt universe_datacenter.get('id') and not datacenters.get(@model.get('primary_datacenter'))?
                 json.no_primary = true
@@ -447,14 +446,17 @@ module 'ResolveIssuesView', ->
                         else
                             number_machines_in_datacenter = 0
                         if datacenter_id isnt universe_datacenter.get('id') and number_replicas > number_machines_in_datacenter
-                            datacenter_name = datacenters.get(datacenter_id).get('name') # That's safe, datacenters.get(datacenter_id) is defined
+                            if datacenter_id is @model.get('primary_datacenter') and number_machines_in_datacenter is 0
+                                json.primary_empty = true
+                            else
+                                datacenter_name = datacenters.get(datacenter_id).get('name') # That's safe, datacenters.get(datacenter_id) is defined
 
-                            json.datacenters_with_issues.push
-                                datacenter_id: datacenter_id
-                                datacenter_name: datacenter_name
-                                num_replicas: number_replicas
-                                num_machines: number_machines_in_datacenter
-                                change_ack: namespace.get('ack_expectations')[datacenter_id].expectation > number_machines_in_datacenter
+                                json.datacenters_with_issues.push
+                                    datacenter_id: datacenter_id
+                                    datacenter_name: datacenter_name
+                                    num_replicas: number_replicas
+                                    num_machines: number_machines_in_datacenter
+                                    change_ack: namespace.get('ack_expectations')[datacenter_id].expectation > number_machines_in_datacenter
 
                         # We substract the number of machines used by the datacenter if we solve the issue
                         if datacenter_id isnt universe_datacenter.get('id')
@@ -477,12 +479,15 @@ module 'ResolveIssuesView', ->
                         else
                             number_machines_in_datacenter = 0
 
-                        json.datacenters_with_issues.push
-                            datacenter_id: datacenter_id
-                            datacenter_name: datacenters.get(datacenter_id).get('name') # Safe since it cannot be universe
-                            num_replicas: number_replicas
-                            num_machines: 0
-                            change_ack: namespace.get('ack_expectations')[datacenter_id].expectation > number_machines_in_datacenter
+                        if datacenter_id is @model.get('primary_datacenter') and number_machines_in_datacenter is 0
+                            json.primary_empty = true
+                        else
+                            json.datacenters_with_issues.push
+                                datacenter_id: datacenter_id
+                                datacenter_name: datacenters.get(datacenter_id).get('name') # Safe since it cannot be universe
+                                num_replicas: number_replicas
+                                num_machines: 0
+                                change_ack: namespace.get('ack_expectations')[datacenter_id].expectation > number_machines_in_datacenter
 
 
                 number_machines_requested_by_universe = @model.get('replica_affinities')[universe_datacenter.get('id')]
@@ -540,6 +545,7 @@ module 'ResolveIssuesView', ->
 
 
                 json.can_solve_issue = json.datacenters_with_issues.length > 0
+
             @.$el.html _template(json)
 
             # bind resolution events
