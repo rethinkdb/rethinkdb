@@ -1937,7 +1937,6 @@ private:
 
         mutex_t::acq_t acq;
         store->lock_sindex_queue(&sindex_block, &acq);
-        // TODO! This should also be parallel
         for (size_t i = 0; i < mod_reports.size(); ++i) {
             write_message_t wm;
             wm << rdb_sindex_change_t(mod_reports[i]);
