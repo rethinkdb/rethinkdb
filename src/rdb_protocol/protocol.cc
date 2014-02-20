@@ -1895,14 +1895,12 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
             auto_drainer_t drainer;
             for (size_t i = 0; i < kv.backfill_atoms.size(); ++i) {
                 promise_t<superblock_t *> superblock_promise;
-                // `spawn_now_dangerously` so that we don't have to wait for the
-                // superblock if it's immediately available.
-                coro_t::spawn_now_dangerously(std::bind(&backfill_chunk_single_rdb_set,
-                                                        kv.backfill_atoms[i], btree,
-                                                        superblock.release(),
-                                                        auto_drainer_t::lock_t(&drainer),
-                                                        &mod_reports[i],
-                                                        &superblock_promise));
+                coro_t::spawn_sometime(std::bind(&backfill_chunk_single_rdb_set,
+                                                 kv.backfill_atoms[i], btree,
+                                                 superblock.release(),
+                                                 auto_drainer_t::lock_t(&drainer),
+                                                 &mod_reports[i],
+                                                 &superblock_promise));
                 superblock.init(superblock_promise.wait());
             }
             superblock->release();
