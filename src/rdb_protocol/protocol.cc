@@ -2,6 +2,7 @@
 #include "rdb_protocol/protocol.hpp"
 
 #include <algorithm>
+#include <functional>
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
@@ -1842,6 +1843,20 @@ void store_t::protocol_send_backfill(const region_map_t<rdb_protocol_t, state_ti
     }
 }
 
+void backfill_chunk_single_rdb_set(const rdb_backfill_atom_t &bf_atom,
+                                   btree_slice_t *btree, superblock_t *superblock,
+                                   UNUSED auto_drainer_t::lock_t drainer_acq,
+                                   rdb_modification_report_t *mod_report_out,
+                                   promise_t<superblock_t *> *superblock_promise_out) {
+    mod_report_out->primary_key = bf_atom.key;
+    point_write_response_t response;
+    rdb_set(bf_atom.key, bf_atom.value, true,
+            btree, bf_atom.recency,
+            superblock, &response,
+            &mod_report_out->info, static_cast<profile::trace_t *>(NULL),
+            superblock_promise_out);
+}
+
 struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
     rdb_receive_backfill_visitor_t(btree_store_t<rdb_protocol_t> *_store,
                                    btree_slice_t *_btree,
@@ -1876,19 +1891,20 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
 
     void operator()(const backfill_chunk_t::key_value_pairs_t &kv) {
         std::vector<rdb_modification_report_t> mod_reports(kv.backfill_atoms.size());
-        for (size_t i = 0; i < kv.backfill_atoms.size(); ++i) {
-            const rdb_backfill_atom_t& bf_atom = kv.backfill_atoms[i];
-            point_write_response_t response;
-            mod_reports[i].primary_key = bf_atom.key;
-            promise_t<superblock_t *> superblock_promise;
-            rdb_set(bf_atom.key, bf_atom.value, true,
-                    btree, bf_atom.recency,
-                    superblock.release(), &response,
-                    &mod_reports[i].info, static_cast<profile::trace_t *>(NULL),
-                    &superblock_promise);
-            superblock.init(superblock_promise.wait());
+        {
+            auto_drainer_t drainer;
+            for (size_t i = 0; i < kv.backfill_atoms.size(); ++i) {
+                promise_t<superblock_t *> superblock_promise;
+                coro_t::spawn_sometime(std::bind(&backfill_chunk_single_rdb_set,
+                                                 kv.backfill_atoms[i], btree,
+                                                 superblock.release(),
+                                                 auto_drainer_t::lock_t(&drainer),
+                                                 &mod_reports[i],
+                                                 &superblock_promise));
+                superblock.init(superblock_promise.wait());
+            }
+            superblock->release();
         }
-        superblock->release();
         update_sindexes(mod_reports);
     }
 
@@ -1919,6 +1935,7 @@ private:
 
         mutex_t::acq_t acq;
         store->lock_sindex_queue(&sindex_block, &acq);
+        // TODO! This should also be parallel
         for (size_t i = 0; i < mod_reports.size(); ++i) {
             write_message_t wm;
             wm << rdb_sindex_change_t(mod_reports[i]);
