@@ -57,7 +57,7 @@ class TermBase
         # Parse out run options from connOrOptions object
         if connOrOptions? and connOrOptions.constructor is Object
             for own key of connOrOptions
-                unless key in ['connection', 'useOutdated', 'noreply', 'timeFormat', 'groupedDataFormat', 'profile', 'durability']
+                unless key in ['connection', 'useOutdated', 'noreply', 'timeFormat', 'groupedDataFormat', 'profile', 'durability', 'batchConf']
                     throw new err.RqlDriverError "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, groupedDataFormat: <string>, profile: <bool>, durability: <string>}."
             conn = connOrOptions.connection
             opts = connOrOptions

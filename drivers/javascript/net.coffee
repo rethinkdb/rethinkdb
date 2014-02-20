@@ -256,6 +256,12 @@ class Connection extends events.EventEmitter
                 val: r.expr(opts.durability).build()
             query.global_optargs.push(pair)
 
+        if opts.batchConf?
+            pair =
+                key: 'batch_conf'
+                val: r.expr(opts.batchConf).build()
+            query.global_optargs.push(pair)
+
         # Save callback
         if (not opts.noreply?) or !opts.noreply
             @outstandingCallbacks[token] = {cb:cb, root:term, opts:opts}
