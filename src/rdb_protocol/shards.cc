@@ -293,7 +293,8 @@ private:
 
 class count_terminal_t : public terminal_t<uint64_t> {
 public:
-    count_terminal_t(env_t *, const count_wire_func_t &) : terminal_t(0) { }
+    count_terminal_t(env_t *, const count_wire_func_t &)
+        : terminal_t<uint64_t>(0) { }
 private:
     virtual bool uses_val() { return false; }
     virtual void accumulate(const counted_t<const datum_t> &, uint64_t *out) {
@@ -310,7 +311,7 @@ private:
 class sum_terminal_t : public terminal_t<double> {
 public:
     sum_terminal_t(env_t *, const sum_wire_func_t &f)
-        : terminal_t(0.0L), bt(f.get_bt()) { }
+        : terminal_t<double>(0.0L), bt(f.get_bt()) { }
 private:
     virtual void accumulate(const counted_t<const datum_t> &el, double *out) {
         try {
@@ -331,7 +332,8 @@ private:
 class avg_terminal_t : public terminal_t<std::pair<double, uint64_t> > {
 public:
     avg_terminal_t(env_t *, const avg_wire_func_t &f)
-        : terminal_t(std::make_pair(0.0L, 0ULL)), bt(f.get_bt()) { }
+        : terminal_t<std::pair<double, uint64_t> >(
+            std::make_pair(0.0L, 0ULL)), bt(f.get_bt()) { }
 private:
     virtual void accumulate(const counted_t<const datum_t> &el,
                             std::pair<double, uint64_t> *out) {
@@ -359,7 +361,7 @@ private:
 class min_terminal_t : public terminal_t<counted_t<const datum_t> > {
 public:
     min_terminal_t(env_t *, const min_wire_func_t &)
-        : terminal_t(counted_t<const datum_t>()) { }
+        : terminal_t<counted_t<const datum_t> >(counted_t<const datum_t>()) { }
 private:
     virtual void accumulate(const counted_t<const datum_t> &el,
                             counted_t<const datum_t> *out) {
@@ -379,7 +381,7 @@ private:
 class max_terminal_t : public terminal_t<counted_t<const datum_t> > {
 public:
     max_terminal_t(env_t *, const max_wire_func_t &)
-        : terminal_t(counted_t<const datum_t>()) { }
+        : terminal_t<counted_t<const datum_t> >(counted_t<const datum_t>()) { }
 private:
     virtual void accumulate(const counted_t<const datum_t> &el,
                             counted_t<const datum_t> *out) {
@@ -402,7 +404,7 @@ const char *const empty_stream_msg =
 class reduce_terminal_t : public terminal_t<counted_t<const datum_t> > {
 public:
     reduce_terminal_t(env_t *_env, const reduce_wire_func_t &_f)
-        : terminal_t(counted_t<const datum_t>()),
+        : terminal_t<counted_t<const datum_t> >(counted_t<const datum_t>()),
           env(_env),
           f(_f.compile_wire_func()) { }
 private:

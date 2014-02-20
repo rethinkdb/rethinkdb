@@ -32,25 +32,29 @@ private:
 
 class sum_term_t : public map_acc_term_t<sum_wire_func_t> {
 public:
-    template<class... Args> sum_term_t(Args... args) : map_acc_term_t(args...) { }
+    template<class... Args> sum_term_t(Args... args)
+        : map_acc_term_t<sum_wire_func_t>(args...) { }
 private:
     virtual const char *name() const { return "sum"; }
 };
 class avg_term_t : public map_acc_term_t<avg_wire_func_t> {
 public:
-    template<class... Args> avg_term_t(Args... args) : map_acc_term_t(args...) { }
+    template<class... Args> avg_term_t(Args... args)
+        : map_acc_term_t<avg_wire_func_t>(args...) { }
 private:
     virtual const char *name() const { return "avg"; }
 };
 class min_term_t : public map_acc_term_t<min_wire_func_t> {
 public:
-    template<class... Args> min_term_t(Args... args) : map_acc_term_t(args...) { }
+    template<class... Args> min_term_t(Args... args)
+        : map_acc_term_t<min_wire_func_t>(args...) { }
 private:
     virtual const char *name() const { return "min"; }
 };
 class max_term_t : public map_acc_term_t<max_wire_func_t> {
 public:
-    template<class... Args> max_term_t(Args... args) : map_acc_term_t(args...) { }
+    template<class... Args> max_term_t(Args... args)
+        : map_acc_term_t<max_wire_func_t>(args...) { }
 private:
     virtual const char *name() const { return "max"; }
 };

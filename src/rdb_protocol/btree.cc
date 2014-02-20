@@ -649,17 +649,22 @@ public:
                sorting_t _sorting)
         : env(_env),
           batcher(batchspec.to_batcher()),
-          transformers(_transforms.size()),
           sorting(_sorting),
           accumulator(_terminal
                       ? ql::make_terminal(env, *_terminal)
                       : ql::make_append(sorting, &batcher)) {
-        guarantee(transformers.size() == _transforms.size());
         for (size_t i = 0; i < _transforms.size(); ++i) {
-            transformers[i].init(ql::make_op(env, _transforms[i]));
+            transformers.emplace_back(ql::make_op(env, _transforms[i]));
         }
+        guarantee(transformers.size() == _transforms.size());
     }
-    job_data_t(job_data_t &&) = default;
+    job_data_t(job_data_t &&jd)
+        : env(jd.env),
+          batcher(std::move(jd.batcher)),
+          transformers(std::move(jd.transformers)),
+          sorting(jd.sorting),
+          accumulator(jd.accumulator.release()) {
+    }
 private:
     friend class rget_cb_t;
     ql::env_t *const env;
