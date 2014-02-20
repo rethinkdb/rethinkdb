@@ -173,7 +173,7 @@ class TestGroup:
             out.write(', "' + '-'.join(self.path) + '-' + str(index) + '"')
 
             if runopts:
-                runoptsrepr = Langs.translate_expected_for(lang, repr(runopts))
+                runoptsrepr = Langs.translate_query_for(lang, repr(runopts))
                 out.write(', '+runoptsrepr)
 
             out.write(')\n')

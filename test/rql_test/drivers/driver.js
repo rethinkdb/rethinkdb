@@ -111,7 +111,14 @@ r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
                     testName = testPair[2];
                     runopts = testPair[3];
                     if (!runopts) {
-                        runopts = {batch_conf: {max_els: 3}}
+                        runopts = {batchConf: {max_els: 3}}
+                    } else {
+                        for (var opt in runopts) {
+                            runopts[opt] = eval(runopts[opt])
+                        }
+                        if (!("batchConf" in runopts)) {
+                            runopts.batchConf = {max_els: 3}
+                        }
                     }
 
                     try {
@@ -157,8 +164,11 @@ r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
                     // Run test first on cpp server
                     try {
                         var opts = {connection:cpp_conn};
-                        if (runopts && ('noreply' in runopts))
-                            opts.noreply = runopts.noreply
+                        if (runopts) {
+                            for (var key in runopts) {
+                                opts[key] = runopts[key]
+                            }
+                        }
                         test.run(opts, cpp_cont);
 
                     } catch(err) {

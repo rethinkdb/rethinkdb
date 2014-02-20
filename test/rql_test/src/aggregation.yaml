@@ -345,12 +345,12 @@ tests:
     - py: tbl4.group('time').coerce_to('array')
       runopts:
         time_format: '"raw"'
-      ot: ({frozenset([('$reql_type$','TIME'),('timezone','+00:00'),('epoch_time',1000)]):[{'id':0,'time':{'timezone':'+00:00','$reql_type$':'TIME','epoch_time':1000}}],frozenset([('$reql_type$','TIME'),('timezone','+00:00'),('epoch_time',2000)]):[{'id':1,'time':{'timezone':'+00:00','$reql_type$':'TIME','epoch_time':2000}}]})
+      ot: ({frozenset([('$reql_type$','TIME'),('timezone','+00:00'),('epoch_time',1375115782.24)]):[{'id':0,'time':{'timezone':'+00:00','$reql_type$':'TIME','epoch_time':1375115782.24}}],frozenset([('$reql_type$','TIME'),('timezone','+00:00'),('epoch_time',1375147296.68)]):[{'id':1,'time':{'timezone':'+00:00','$reql_type$':'TIME','epoch_time':1375147296.68}}]})
 
     - js: tbl4.group('time').coerce_to('array')
       runopts:
         timeFormat: '"raw"'
-      ot: ({})
+      ot: ([[{"$reql_type$":"TIME","epoch_time":1375115782240,"timezone":"+00:00"},[{"id":0,"time":{"$reql_type$":"TIME","epoch_time":1375115782240,"timezone":"+00:00"}}]],[{"$reql_type$":"TIME","epoch_time":1375147296680,"timezone":"+00:00"},[{"id":1,"time":{"$reql_type$":"TIME","epoch_time":1375147296680,"timezone":"+00:00"}}]]])
 
     # Distinct
     - py: tbl.map(lambda row:row['a']).distinct().count()
