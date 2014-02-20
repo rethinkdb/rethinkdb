@@ -680,12 +680,10 @@ private:
 
 class io_data_t {
 public:
-    io_data_t(transaction_t *_transaction, rget_read_response_t *_response,
-              btree_slice_t *_slice)
-        : transaction(_transaction), response(_response), slice(_slice) { }
+    io_data_t(rget_read_response_t *_response, btree_slice_t *_slice)
+        : response(_response), slice(_slice) { }
 private:
     friend class rget_cb_t;
-    transaction_t *const transaction;
     rget_read_response_t *const response;
     btree_slice_t *const slice;
 };

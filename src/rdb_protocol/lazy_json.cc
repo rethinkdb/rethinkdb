@@ -4,12 +4,10 @@
 #include "containers/archive/buffer_group_stream.hpp"
 #include "rdb_protocol/blob_wrapper.hpp"
 
-counted_t<const ql::datum_t> get_data(const rdb_value_t *value,
-                                      transaction_t *txn) {
-    rdb_blob_wrapper_t blob(
-        txn->get_cache()->get_block_size(),
-        const_cast<rdb_value_t *>(value)->value_ref(),
-        blob::btree_maxreflen);
+counted_t<const ql::datum_t> get_data(const rdb_value_t *value, buf_parent_t parent) {
+    rdb_blob_wrapper_t blob(parent.cache()->get_block_size(),
+                            const_cast<rdb_value_t *>(value)->value_ref(),
+                            blob::btree_maxreflen);
 
     counted_t<const ql::datum_t> data;
 

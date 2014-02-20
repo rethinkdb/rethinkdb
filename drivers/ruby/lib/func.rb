@@ -22,7 +22,6 @@ module RethinkDB
       :delete => -1,
       :reduce => -1,
       :between => 2,
-      :grouped_map_reduce => -1,
       :table => -1,
       :table_create => -1,
       :get_all => -1,
@@ -48,7 +47,6 @@ module RethinkDB
       :any => [:"|", :or],
       :all => [:"&", :and],
       :orderby => :order_by,
-      :groupby => :group_by,
       :concatmap => :concat_map,
       :foreach => :for_each,
       :javascript => :js,
@@ -105,14 +103,6 @@ module RethinkDB
         define_method method_alias, method
       }
     }
-
-    define_method :_group_by, instance_method(:group_by)
-    protected :_group_by
-    def group_by(*a, &b)
-      a = [self] + a if @body
-      RQL.new._group_by(a[0], a[1..-2], a[-1], &b)
-    end
-    def groupby(*a, &b); group_by(*a, &b); end
 
     def connect(*args, &b)
       unbound_if @body

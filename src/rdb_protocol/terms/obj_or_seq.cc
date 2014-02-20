@@ -79,18 +79,18 @@ private:
             compile_env_t compile_env(env->scope.compute_visibility());
             counted_t<func_term_t> func_term
                 = make_counted<func_term_t>(&compile_env, func);
-            counted_t<func_t> func = func_term->eval_to_func(env->scope);
+            counted_t<func_t> f = func_term->eval_to_func(env->scope);
 
             switch (poly_type) {
             case MAP:
                 return new_val(env->env, v0->as_seq(env->env)->add_transformation(
-                                   env->env, map_wire_func_t(func)));
+                                   env->env, map_wire_func_t(f)));
             case FILTER:
                 return new_val(env->env, v0->as_seq(env->env)->add_transformation(
-                                   env->env, filter_wire_func_t(func, boost::none)));
+                                   env->env, filter_wire_func_t(f, boost::none)));
             case SKIP_MAP:
                 return new_val(env->env, v0->as_seq(env->env)->add_transformation(
-                                   env->env, concatmap_wire_func_t(func)));
+                                   env->env, concatmap_wire_func_t(f)));
             default: unreachable();
             }
         }
