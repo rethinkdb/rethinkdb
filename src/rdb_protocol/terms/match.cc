@@ -14,8 +14,8 @@ public:
         : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
-        std::string str = arg(env, 0)->as_str();
-        RE2 regexp(arg(env, 1)->as_str());
+        std::string str = arg(env, 0)->as_str().to_std();
+        RE2 regexp(arg(env, 1)->as_str().c_str());
         if (!regexp.ok()) {
             rfail(base_exc_t::GENERIC,
                   "Error in regexp `%s` (portion `%s`): %s",

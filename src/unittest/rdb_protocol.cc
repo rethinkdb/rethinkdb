@@ -1,10 +1,8 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "errors.hpp"
-#include <boost/make_shared.hpp>
+#include <boost/shared_ptr.hpp>
 
-#include "buffer_cache/buffer_cache.hpp"
 #include "clustering/administration/metadata.hpp"
-#include "containers/iterators.hpp"
 #include "extproc/extproc_pool.hpp"
 #include "extproc/extproc_spawner.hpp"
 #include "memcached/protocol.hpp"
@@ -19,8 +17,6 @@
 #include "rdb_protocol/minidriver.hpp"
 
 #include "memcached/protocol_json_adapter.hpp"
-
-#pragma GCC diagnostic ignored "-Wshadow"
 
 namespace unittest {
 namespace {
@@ -215,6 +211,9 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
     /* Create a secondary index. */
     std::string id = create_sindex(nsi, osource);
 
+    // KSI: Ugh, why is sindex creation so slow that we need a nap?
+    nap(100);
+
     std::shared_ptr<const scoped_cJSON_t> data(
         new scoped_cJSON_t(cJSON_Parse("{\"id\" : 0, \"sid\" : 1}")));
     counted_t<const ql::datum_t> d(
@@ -267,9 +266,9 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
 
     {
         /* Delete the data. */
-        rdb_protocol_t::point_delete_t d(pk);
+        rdb_protocol_t::point_delete_t del(pk);
         rdb_protocol_t::write_t write(
-                d, DURABILITY_REQUIREMENT_DEFAULT, profile_bool_t::PROFILE);
+                del, DURABILITY_REQUIREMENT_DEFAULT, profile_bool_t::PROFILE);
         rdb_protocol_t::write_response_t response;
 
         cond_t interruptor;
@@ -299,7 +298,10 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
         }
     }
 
-    ASSERT_TRUE(drop_sindex(nsi, osource, id));
+    {
+        const bool drop_sindex_res = drop_sindex(nsi, osource, id);
+        ASSERT_TRUE(drop_sindex_res);
+    }
 }
 
 TEST(RDBProtocol, SindexCreateDrop) {
@@ -361,6 +363,9 @@ TEST(RDBProtocol, OvershardedSindexList) {
 
 void run_sindex_oversized_keys_test(namespace_interface_t<rdb_protocol_t> *nsi, order_source_t *osource) {
     std::string sindex_id = create_sindex(nsi, osource);
+
+    // KSI: Ugh, why is sindex creation so slow that we need a nap?
+    nap(100);
 
     for (size_t i = 0; i < 20; ++i) {
         for (size_t j = 100; j < 200; j += 5) {

@@ -1,10 +1,11 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "btree/erase_range.hpp"
+
+#include "buffer_cache/alt/alt.hpp"
 #include "btree/leaf_node.hpp"
 #include "btree/node.hpp"
 #include "btree/parallel_traversal.hpp"
 #include "btree/slice.hpp"
-#include "buffer_cache/buffer_cache.hpp"
 #include "concurrency/fifo_checker.hpp"
 
 class erase_range_helper_t : public btree_traversal_helper_t {
@@ -18,12 +19,13 @@ public:
           right_inclusive_or_null_(right_inclusive_or_null)
     { }
 
-    void process_a_leaf(transaction_t *txn, buf_lock_t *leaf_node_buf,
+    void process_a_leaf(buf_lock_t *leaf_node_buf,
                         const btree_key_t *l_excl,
                         const btree_key_t *r_incl,
                         signal_t *,
                         int *population_change_out) THROWS_ONLY(interrupted_exc_t) {
-        leaf_node_t *node = reinterpret_cast<leaf_node_t *>(leaf_node_buf->get_data_write());
+        buf_write_t write(leaf_node_buf);
+        leaf_node_t *node = static_cast<leaf_node_t *>(write.get_data_write());
 
         std::vector<store_key_t> keys_to_delete;
 
@@ -47,7 +49,7 @@ public:
         for (size_t i = 0; i < keys_to_delete.size(); ++i) {
             bool found = leaf::lookup(sizer_, node, keys_to_delete[i].btree_key(), value.get());
             guarantee(found);
-            deleter_->delete_value(txn, value.get());
+            deleter_->delete_value(buf_parent_t(leaf_node_buf), value.get());
             leaf::erase_presence(sizer_, node, keys_to_delete[i].btree_key(),
                                  key_modification_proof_t::real_proof());
         }
@@ -59,7 +61,9 @@ public:
         // We don't want to do anything here.
     }
 
-    void filter_interesting_children(UNUSED transaction_t *txn, ranged_block_ids_t *ids_source, interesting_children_callback_t *cb) {
+    void filter_interesting_children(buf_parent_t,
+                                     ranged_block_ids_t *ids_source,
+                                     interesting_children_callback_t *cb) {
         for (int i = 0, e = ids_source->num_block_ids(); i < e; ++i) {
             block_id_t block_id;
             const btree_key_t *left, *right;
@@ -73,8 +77,8 @@ public:
         cb->no_more_interesting_children();
     }
 
-    access_t btree_superblock_mode() { return rwi_write; }
-    access_t btree_node_mode() { return rwi_write; }
+    access_t btree_superblock_mode() { return access_t::write; }
+    access_t btree_node_mode() { return access_t::write; }
 
     ~erase_range_helper_t() { }
 
@@ -109,20 +113,22 @@ private:
     DISABLE_COPYING(erase_range_helper_t);
 };
 
-void btree_erase_range_generic(value_sizer_t<void> *sizer, btree_slice_t *slice,
-                               key_tester_t *tester,
-                               value_deleter_t *deleter,
-                               const btree_key_t *left_exclusive_or_null,
-                               const btree_key_t *right_inclusive_or_null,
-                               transaction_t *txn, superblock_t *superblock,
-                               signal_t *interruptor,
-                               bool release_superblock) {
-    erase_range_helper_t helper(sizer, tester, deleter, left_exclusive_or_null, right_inclusive_or_null);
-    btree_parallel_traversal(txn, superblock, slice, &helper, interruptor, release_superblock);
+void btree_erase_range_generic(value_sizer_t<void> *sizer,
+        key_tester_t *tester, value_deleter_t *deleter,
+        const btree_key_t *left_exclusive_or_null,
+        const btree_key_t *right_inclusive_or_null,
+        superblock_t *superblock, signal_t *interruptor, bool release_superblock) {
+    erase_range_helper_t helper(sizer, tester, deleter,
+                                left_exclusive_or_null, right_inclusive_or_null);
+    btree_parallel_traversal(superblock, &helper, interruptor,
+                             release_superblock);
 }
 
-void erase_all(value_sizer_t<void> *sizer, btree_slice_t *slice,
-               value_deleter_t *deleter, transaction_t *txn,
+// KSI: Wait, seriously?  Is it actually correct and proper for our
+// partially-completed btree erasure operation to be interrupted?  If the tree is
+// already detached, the worst that would happen is that we leak blocks, yes.
+void erase_all(value_sizer_t<void> *sizer,
+               value_deleter_t *deleter,
                superblock_t *superblock,
                signal_t *interruptor,
                bool release_superblock) {
@@ -130,7 +136,8 @@ void erase_all(value_sizer_t<void> *sizer, btree_slice_t *slice,
         bool key_should_be_erased(const btree_key_t *) { return true; }
     } always_true_tester;
 
-    btree_erase_range_generic(sizer, slice, &always_true_tester,
-                              deleter, NULL, NULL, txn, superblock,
+    btree_erase_range_generic(sizer, &always_true_tester,
+                              deleter, NULL, NULL,
+                              superblock,
                               interruptor, release_superblock);
 }

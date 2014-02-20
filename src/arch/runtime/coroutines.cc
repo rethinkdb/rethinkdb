@@ -1,27 +1,24 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "arch/runtime/coroutines.hpp"
 
 #include <stdio.h>
 #include <string.h>
 
+#include <functional>
 #ifndef NDEBUG
-#include <stack>   /* the data structure, not the run-time concept */
+#include <stack>
 #endif
 
-#include "errors.hpp"
-#include <boost/bind.hpp>
-
 #include "arch/runtime/context_switching.hpp"
-#include "arch/runtime/thread_pool.hpp"
+#include "arch/runtime/coro_profiler.hpp"
 #include "arch/runtime/runtime.hpp"
+#include "arch/runtime/thread_pool.hpp"
 #include "config/args.hpp"
 #include "do_on_thread.hpp"
-#include "thread_local.hpp"
-
 #include "perfmon/perfmon.hpp"
-#include "utils.hpp"
 #include "rethinkdb_backtrace.hpp"
-#include "arch/runtime/coro_profiler.hpp"
+#include "thread_local.hpp"
+#include "utils.hpp"
 
 size_t coro_stack_size = COROUTINE_STACK_SIZE; //Default, setable by command-line parameter
 
@@ -97,8 +94,7 @@ TLS_with_init(coro_globals_t *, cglobals, NULL);
 static perfmon_counter_t pm_active_coroutines, pm_allocated_coroutines;
 static perfmon_multi_membership_t pm_coroutines_membership(&get_global_perfmon_collection(),
     &pm_active_coroutines, "active_coroutines",
-    &pm_allocated_coroutines, "allocated_coroutines",
-    NULLPTR);
+    &pm_allocated_coroutines, "allocated_coroutines");
 
 coro_runtime_t::coro_runtime_t() {
     rassert(!TLS_get_cglobals(), "coro runtime initialized twice on this thread");
@@ -154,6 +150,15 @@ void coro_t::return_coro_to_free_list(coro_t *coro) {
     TLS_get_cglobals()->free_coros.push_back(coro);
 }
 
+void coro_t::maybe_evict_from_free_list() {
+    coro_globals_t *cglobals = TLS_get_cglobals();
+    while (cglobals->free_coros.size() > COROUTINE_FREE_LIST_SIZE) {
+        coro_t *coro_to_delete = cglobals->free_coros.tail();
+        cglobals->free_coros.remove(coro_to_delete);
+        delete coro_to_delete;
+    }
+}
+
 coro_t::~coro_t() {
     /* We never move contexts from one thread to another any more. */
     rassert(get_thread_id() == home_thread());
@@ -199,7 +204,7 @@ void coro_t::run() {
         coro->action_wrapper.reset();
 
         /* Return the context to the free-contexts list we took it from. */
-        do_on_thread(coro->home_thread(), boost::bind(coro_t::return_coro_to_free_list, coro));
+        do_on_thread(coro->home_thread(), std::bind(&coro_t::return_coro_to_free_list, coro));
         --pm_active_coroutines;
 
         if (TLS_get_cglobals()->prev_coro) {
@@ -211,7 +216,7 @@ void coro_t::run() {
 }
 
 #ifndef NDEBUG
-// This function parses out the type that a coroutine was created with (usually a boost::bind), by
+// This function parses out the type that a coroutine was created with (usually a std::bind), by
 //  parsing it out of the __PRETTY_FUNCTION__ string of a templated function.  This makes some
 //  assumptions about the format of that string, but if get_and_init_coro is changed, this may
 //  need to be updated.  The only reason we do this is so we don't have to enable RTTI to figure
@@ -375,6 +380,18 @@ coro_t * coro_t::get_coro() {
     } else {
         coro = TLS_get_cglobals()->free_coros.tail();
         TLS_get_cglobals()->free_coros.remove(coro);
+
+        /* We cannot easily delete coroutines at the time where we return
+        them to the free list, because coro_t::run() requires the coro_t pointer to remain
+        valid until it switches out of the coroutine context.
+        We could use call_later_on_this_thread() to place a message on the message
+        hub that would delete the coroutine later, but that would make the shut down
+        process more complicated because we would have to wait for those messages
+        to get processed.
+        Instead, we delete unused coroutines from the free list here. It's not perfect,
+        but the important thing is that unused coroutines get evicted eventually
+        so we can reclaim the memory. */
+        maybe_evict_from_free_list();
     }
 
     rassert(!coro->intrusive_list_node_t<coro_t>::in_a_list());

@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_REACTOR_REACTOR_HPP_
 #define CLUSTERING_REACTOR_REACTOR_HPP_
 
@@ -13,10 +13,6 @@
 #include "concurrency/watchable.hpp"
 #include "rpc/connectivity/connectivity.hpp"
 #include "rpc/semilattice/view.hpp"
-
-// This "must" be hard-coded because a cluster cannot run with
-// differing cpu sharding factors.
-const int CPU_SHARDING_FACTOR = 4;
 
 class io_backender_t;
 template <class> class multistore_ptr_t;
@@ -209,7 +205,7 @@ boost::optional<boost::optional<activity_t> > extract_activity_from_reactor_bcar
 template <class protocol_t>
 template <class activity_t>
 clone_ptr_t<watchable_t<boost::optional<boost::optional<activity_t> > > > reactor_t<protocol_t>::get_directory_entry_view(peer_id_t p_id, const reactor_activity_id_t &ra_id) {
-    return directory_echo_mirror.get_internal()->subview(boost::bind(&extract_activity_from_reactor_bcard<protocol_t, activity_t>, _1, p_id, ra_id));
+    return directory_echo_mirror.get_internal()->subview(std::bind(&extract_activity_from_reactor_bcard<protocol_t, activity_t>, ph::_1, p_id, ra_id));
 }
 
 

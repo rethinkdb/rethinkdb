@@ -13,8 +13,6 @@
 #include "rdb_protocol/op.hpp"
 #include "rdb_protocol/term_walker.hpp"
 
-#pragma GCC diagnostic ignored "-Wshadow"
-
 namespace ql {
 
 // NOTE: `asc` and `desc` don't fit into our type system (they're a hack for
@@ -154,8 +152,9 @@ private:
                 }
             }
             r_sanity_check(sorting != sorting_t::UNORDERED);
-            tbl->add_sorting(index->as_str(), sorting, this);
-            if (index->as_str() != tbl->get_pkey()
+            std::string index_str = index->as_str().to_std();
+            tbl->add_sorting(index_str, sorting, this);
+            if (index_str != tbl->get_pkey()
                 && !comparisons.empty()) {
                 seq = make_counted<indexed_sort_datum_stream_t>(
                     tbl->as_datum_stream(env->env, backtrace()), lt_cmp);
@@ -221,7 +220,7 @@ private:
         }
         std::sort(arr.begin(), arr.end(),
                   std::bind(lt_cmp, env->env,
-                            std::placeholders::_1, std::placeholders::_2));
+                            ph::_1, ph::_2));
         std::vector<counted_t<const datum_t> > toret;
         for (auto it = arr.begin(); it != arr.end(); ++it) {
             if (toret.size() == 0 || **it != *toret[toret.size()-1]) {

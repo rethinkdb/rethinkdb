@@ -13,18 +13,17 @@ void issues_http_app_t::get_root(scoped_cJSON_t *json_out) {
     }
 }
 
-http_res_t issues_http_app_t::handle(const http_req_t &req) {
+void issues_http_app_t::handle(const http_req_t &req, http_res_t *result, signal_t *) {
     if (req.method != GET) {
-        return http_res_t(HTTP_METHOD_NOT_ALLOWED);
+        *result = http_res_t(HTTP_METHOD_NOT_ALLOWED);
+    } else {
+        std::string resource = req.resource.as_string();
+        if (resource != "/" && resource != "") {
+            *result = http_res_t(HTTP_NOT_FOUND);
+        } else {
+            scoped_cJSON_t json(NULL);
+            get_root(&json);
+            http_json_res(json.get(), result);
+        }
     }
-
-    std::string resource = req.resource.as_string();
-    if (resource != "/" && resource != "") {
-        return http_res_t(HTTP_NOT_FOUND);
-    }
-
-    scoped_cJSON_t json(NULL);
-    get_root(&json);
-
-    return http_json_res(json.get());
 }

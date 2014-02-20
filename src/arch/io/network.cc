@@ -74,13 +74,26 @@ int connect_ipv6_internal(fd_t socket, int local_port, const in6_addr &addr, int
     return res;
 }
 
+int create_socket_wrapper(int address_family) {
+    int res = socket(address_family, SOCK_STREAM, 0);
+    if (res == INVALID_FD) {
+        // Let the user know something is wrong - except in the case where
+        // TCP doesn't support AF_INET6, which may be fairly common and spammy
+        if (get_errno() != EAFNOSUPPORT || address_family == AF_INET) {
+            logERR("Failed to create socket: %s", strerror(get_errno()));
+        }
+        throw linux_tcp_conn_t::connect_failed_exc_t(get_errno());
+    }
+    return res;
+}
+
 // Network connection object
 linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &peer,
                                    int port,
                                    signal_t *interruptor,
                                    int local_port) THROWS_ONLY(connect_failed_exc_t, interrupted_exc_t) :
         write_perfmon(NULL),
-        sock(socket(peer.get_address_family(), SOCK_STREAM, 0)),
+        sock(create_socket_wrapper(peer.get_address_family())),
         event_watcher(new linux_event_watcher_t(sock.get(), this)),
         read_in_progress(false), write_in_progress(false),
         write_handler(this),
@@ -625,15 +638,18 @@ linux_nonthrowing_tcp_listener_t::linux_nonthrowing_tcp_listener_t(
     local_addresses(bind_addresses),
     port(_port),
     bound(false),
-    socks(std::max<size_t>(bind_addresses.size(), 1)), // Without a bind address, we still want a socket
+    socks(),
     last_used_socket_index(0),
-    event_watchers(socks.size()),
+    event_watchers(),
     log_next_error(true)
 {
     // If no addresses were supplied, default to 'any'
     if (local_addresses.empty()) {
         local_addresses.insert(ip_address_t::any(AF_INET6));
     }
+
+    socks.init(local_addresses.size());
+    event_watchers.init(local_addresses.size());
 }
 
 bool linux_nonthrowing_tcp_listener_t::begin_listening() {
@@ -654,7 +670,7 @@ bool linux_nonthrowing_tcp_listener_t::begin_listening() {
 
     // Start the accept loop
     accept_loop_drainer.init(new auto_drainer_t);
-    coro_t::spawn_sometime(boost::bind(
+    coro_t::spawn_sometime(std::bind(
         &linux_nonthrowing_tcp_listener_t::accept_loop, this, auto_drainer_t::lock_t(accept_loop_drainer.get())));
 
     return true;
@@ -668,7 +684,7 @@ int linux_nonthrowing_tcp_listener_t::get_port() const {
     return port;
 }
 
-void linux_nonthrowing_tcp_listener_t::init_sockets() {
+int linux_nonthrowing_tcp_listener_t::init_sockets() {
     rassert(local_addresses.size() == socks.size());
 
     size_t i = 0;
@@ -678,6 +694,10 @@ void linux_nonthrowing_tcp_listener_t::init_sockets() {
         }
 
         socks[i].reset(socket(addr->get_address_family(), SOCK_STREAM, 0));
+        if (socks[i].get() == INVALID_FD) {
+            return get_errno();
+        }
+
         event_watchers[i].init(new linux_event_watcher_t(socks[i].get(), this));
 
         int sock_fd = socks[i].get();
@@ -701,6 +721,7 @@ void linux_nonthrowing_tcp_listener_t::init_sockets() {
         res = setsockopt(sock_fd, IPPROTO_TCP, TCP_NODELAY, &sockoptval, sizeof(sockoptval));
         guarantee_err(res != -1, "Could not set TCP_NODELAY option");
     }
+    return 0;
 }
 
 bool linux_nonthrowing_tcp_listener_t::bind_sockets() {
@@ -779,7 +800,35 @@ bool bind_ipv6_interface(fd_t sock, int *port_out, const ip_address_t &addr) {
 }
 
 bool linux_nonthrowing_tcp_listener_t::bind_sockets_internal(int *port_out) {
-    init_sockets();
+    int socket_res = init_sockets();
+    if (socket_res == EAFNOSUPPORT) {
+        logERR("Failed to create sockets for listener on port %d, falling back to IPv4 only", *port_out);
+        // Fallback to IPv4 only - remove any IPv6 addresses and resize dependant arrays
+        for (auto it = local_addresses.begin(); it != local_addresses.end();) {
+            if (it->get_address_family() == AF_INET6) {
+                if (it->is_any()) {
+                    local_addresses.insert(ip_address_t::any(AF_INET));
+                }
+                local_addresses.erase(*(it++));
+            } else {
+                ++it;
+            }
+        }
+        event_watchers.reset();
+        event_watchers.init(local_addresses.size());
+        socks.reset();
+        socks.init(local_addresses.size());
+
+        // If this doesn't work, then we have no way to open sockets
+        socket_res = init_sockets();
+        if (socket_res != 0) {
+            throw tcp_socket_exc_t(socket_res);
+        }
+    } else if (socket_res != 0) {
+        // Some other error happened on the sockets, not much we can do
+        throw tcp_socket_exc_t(socket_res);
+    }
+
     bool result = true;
 
     rassert(local_addresses.size() == static_cast<size_t>(socks.size()));
@@ -837,7 +886,7 @@ void linux_nonthrowing_tcp_listener_t::accept_loop(auto_drainer_t::lock_t lock) 
         fd_t new_sock = accept(active_fd, NULL, NULL);
 
         if (new_sock != INVALID_FD) {
-            coro_t::spawn_now_dangerously(boost::bind(&linux_nonthrowing_tcp_listener_t::handle, this, new_sock));
+            coro_t::spawn_now_dangerously(std::bind(&linux_nonthrowing_tcp_listener_t::handle, this, new_sock));
 
             /* If we backed off before, un-backoff now that the problem seems to be
             resolved. */
@@ -940,7 +989,7 @@ int linux_repeated_nonthrowing_tcp_listener_t::get_port() const {
 void linux_repeated_nonthrowing_tcp_listener_t::begin_repeated_listening_attempts() {
     auto_drainer_t::lock_t lock(&drainer);
     coro_t::spawn_sometime(
-        boost::bind(&linux_repeated_nonthrowing_tcp_listener_t::retry_loop, this, lock));
+        std::bind(&linux_repeated_nonthrowing_tcp_listener_t::retry_loop, this, lock));
 }
 
 void linux_repeated_nonthrowing_tcp_listener_t::retry_loop(auto_drainer_t::lock_t lock) {

@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include <stdarg.h>
 
 #include "errors.hpp"
@@ -20,36 +20,29 @@ perfmon_t::~perfmon_t() {
 
 struct stats_collection_context_t : public home_thread_mixin_t {
 private:
-    rwi_lock_t::read_acq_t lock_sentry;
+    // This could be a read lock ... if we used a read-write lock instead of a mutex.
+    cross_thread_mutex_t::acq_t lock_sentry;
 public:
-    DEBUG_ONLY(size_t size;)
-    void **contexts;
+    scoped_array_t<void *> contexts;
 
-    stats_collection_context_t(rwi_lock_t *constituents_lock,
+    stats_collection_context_t(cross_thread_mutex_t *constituents_lock,
                                const intrusive_list_t<perfmon_membership_t> &constituents) :
         lock_sentry(constituents_lock),
-        DEBUG_ONLY(size(constituents.size()), )
-        contexts(new void *[constituents.size()])
-    { }
+        contexts(new void *[constituents.size()](),
+                 constituents.size()) { }
 
-    ~stats_collection_context_t() {
-        delete[] contexts;
-    }
+    ~stats_collection_context_t() { }
 };
 
-perfmon_collection_t::perfmon_collection_t() { }
+perfmon_collection_t::perfmon_collection_t() : constituents_access(true) { }
 perfmon_collection_t::~perfmon_collection_t() { }
 
 void *perfmon_collection_t::begin_stats() {
-    stats_collection_context_t *ctx;
-    {
-        on_thread_t thread_switcher(home_thread());
-        ctx = new stats_collection_context_t(&constituents_access, constituents);
-    }
+    stats_collection_context_t *ctx =
+        new stats_collection_context_t(&constituents_access, constituents);
 
     size_t i = 0;
     for (perfmon_membership_t *p = constituents.head(); p != NULL; p = constituents.next(p), ++i) {
-        rassert(i < ctx->size);
         ctx->contexts[i] = p->get()->begin_stats();
     }
     return ctx;
@@ -59,7 +52,6 @@ void perfmon_collection_t::visit_stats(void *_context) {
     stats_collection_context_t *ctx = reinterpret_cast<stats_collection_context_t*>(_context);
     size_t i = 0;
     for (perfmon_membership_t *p = constituents.head(); p != NULL; p = constituents.next(p), ++i) {
-        rassert(i < ctx->size);
         p->get()->visit_stats(ctx->contexts[i]);
     }
 }
@@ -71,7 +63,6 @@ scoped_ptr_t<perfmon_result_t> perfmon_collection_t::end_stats(void *_context) {
 
     size_t i = 0;
     for (perfmon_membership_t *p = constituents.head(); p != NULL; p = constituents.next(p), ++i) {
-        rassert(i < ctx->size);
         scoped_ptr_t<perfmon_result_t> stat = p->get()->end_stats(ctx->contexts[i]);
         if (p->splice()) {
             stat->splice_into(map.get());
@@ -80,10 +71,7 @@ scoped_ptr_t<perfmon_result_t> perfmon_collection_t::end_stats(void *_context) {
         }
     }
 
-    {
-        on_thread_t thread_switcher(home_thread());
-        delete ctx; // cleans up, unlocks
-    }
+    delete ctx; // cleans up, unlocks
 
     return map;
 }
@@ -94,7 +82,7 @@ void perfmon_collection_t::add(perfmon_membership_t *perfmon) {
         thread_switcher.init(new on_thread_t(home_thread()));
     }
 
-    rwi_lock_t::write_acq_t write_acq(&constituents_access);
+    cross_thread_mutex_t::acq_t write_acq(&constituents_access);
     constituents.push_back(perfmon);
 }
 
@@ -104,7 +92,7 @@ void perfmon_collection_t::remove(perfmon_membership_t *perfmon) {
         thread_switcher.init(new on_thread_t(home_thread()));
     }
 
-    rwi_lock_t::write_acq_t write_acq(&constituents_access);
+    cross_thread_mutex_t::acq_t write_acq(&constituents_access);
     constituents.remove(perfmon);
 }
 
@@ -134,15 +122,15 @@ bool perfmon_membership_t::splice() {
     return name.length() == 0;
 }
 
-perfmon_multi_membership_t::perfmon_multi_membership_t(perfmon_collection_t *collection, perfmon_t *perfmon, const char *name, ...) {
-    // Create membership for the first provided perfmon first
-    memberships.push_back(new perfmon_membership_t(collection, perfmon, name));
-
+void perfmon_multi_membership_t::init(perfmon_collection_t *collection,
+                                      size_t count, ...) {
     va_list args;
-    va_start(args, name);
+    va_start(args, count);
 
-    // Now go through varargs list until we read NULL
-    while ((perfmon = va_arg(args, perfmon_t *)) != NULL) {
+    perfmon_t *perfmon;
+    const char *name;
+    for (size_t i = 0; i < count; ++i) {
+        perfmon = va_arg(args, perfmon_t *);
         name = va_arg(args, const char *);
         memberships.push_back(new perfmon_membership_t(collection, perfmon, name));
     }

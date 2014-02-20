@@ -8,8 +8,6 @@
 #include "rdb_protocol/term_walker.hpp"
 #include "stl_utils.hpp"
 
-#pragma GCC diagnostic ignored "-Wshadow"
-
 namespace ql {
 
 func_t::func_t(const protob_t<const Backtrace> &bt_source)

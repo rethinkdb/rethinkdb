@@ -39,12 +39,17 @@ datum_t::datum_t(double _num) : type(R_NUM), r_num(_num) {
 }
 
 datum_t::datum_t(std::string &&_str)
-    : type(R_STR), r_str(new std::string(std::move(_str))) {
-    check_str_validity(*r_str);
+    : type(R_STR), r_str(wire_string_t::create_and_init(_str.size(), _str.data())) {
+    check_str_validity(r_str);
+}
+
+datum_t::datum_t(wire_string_t *str)
+    : type(R_STR), r_str(str) {
+    check_str_validity(r_str);
 }
 
 datum_t::datum_t(const char *cstr)
-    : type(R_STR), r_str(new std::string(cstr)) { }
+    : type(R_STR), r_str(wire_string_t::create_and_init(::strlen(cstr), cstr)) { }
 
 datum_t::datum_t(std::vector<counted_t<const datum_t> > &&_array)
     : type(R_ARRAY),
@@ -117,9 +122,9 @@ datum_t::~datum_t() {
     }
 }
 
-void datum_t::init_str() {
+void datum_t::init_str(size_t size, const char *data) {
     type = R_STR;
-    r_str = new std::string();
+    r_str = wire_string_t::create_and_init(size, data);
 }
 
 void datum_t::init_array() {
@@ -154,9 +159,8 @@ void datum_t::init_json(cJSON *json) {
                strprintf("Non-finite value `%lf` in JSON.", r_num));
     } break;
     case cJSON_String: {
-        init_str();
-        *r_str = json->valuestring;
-        check_str_validity(*r_str);
+        init_str(strlen(json->valuestring), json->valuestring);
+        check_str_validity(r_str);
     } break;
     case cJSON_Array: {
         init_array();
@@ -176,6 +180,18 @@ void datum_t::init_json(cJSON *json) {
         maybe_sanitize_ptype();
     } break;
     default: unreachable();
+    }
+}
+
+void datum_t::check_str_validity(const wire_string_t *str) {
+    for (size_t i = 0; i < str->size(); ++i) {
+        if (str->data()[i] == '\0') {
+            rfail(base_exc_t::GENERIC,
+                  // We truncate because lots of other places can call `c_str` on the
+                  // error message.
+                  "String `%.20s` (truncated) contains NULL byte at offset %zu.",
+                  str->c_str(), i);
+        }
     }
 }
 
@@ -217,7 +233,7 @@ std::string datum_t::get_reql_type() const {
                      maybe_reql_type->second->trunc_print().c_str(),
                      maybe_reql_type->second->get_type_name().c_str(),
                      trunc_print().c_str()));
-    return maybe_reql_type->second->as_str();
+    return maybe_reql_type->second->as_str().to_std();
 }
 
 std::string raw_type_name(datum_t::type_t type) {
@@ -296,7 +312,7 @@ void datum_t::num_to_str_key(std::string *str_out) const {
 void datum_t::str_to_str_key(std::string *str_out) const {
     r_sanity_check(type == R_STR);
     str_out->append("S");
-    str_out->append(as_str());
+    str_out->append(as_str().to_std());
 }
 
 void datum_t::bool_to_str_key(std::string *str_out) const {
@@ -647,7 +663,7 @@ int64_t datum_t::as_int() const {
     return checked_convert_to_int(&target, as_num());
 }
 
-const std::string &datum_t::as_str() const {
+const wire_string_t &datum_t::as_str() const {
     check_type(R_STR);
     return *r_str;
 }
@@ -965,9 +981,8 @@ void datum_t::init_from_pb(const Datum *d) {
                strprintf("Illegal non-finite number `" DBLPRI "`.", r_num));
     } break;
     case Datum::R_STR: {
-        init_str();
-        *r_str = d->r_str();
-        check_str_validity(*r_str);
+        init_str(d->r_str().size(), d->r_str().data());
+        check_str_validity(r_str);
     } break;
     case Datum::R_JSON: {
         scoped_cJSON_t cjson(cJSON_Parse(d->r_str().c_str()));
@@ -1037,7 +1052,7 @@ void datum_t::write_to_protobuf(Datum *d, use_json_t use_json) const {
         } break;
         case R_STR: {
             d->set_type(Datum::R_STR);
-            d->set_r_str(*r_str);
+            d->set_r_str(r_str->data(), r_str->size());
         } break;
         case R_ARRAY: {
             d->set_type(Datum::R_ARRAY);
@@ -1159,7 +1174,7 @@ write_message_t &operator<<(write_message_t &wm,
     } break;
     case datum_t::R_STR: {
         wm << datum_serialized_type_t::R_STR;
-        const std::string &value = datum->as_str();
+        const wire_string_t &value = datum->as_str();
         wm << value;
     } break;
     case datum_t::UNINITIALIZED:  // fall through
@@ -1253,13 +1268,14 @@ archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum) 
         }
     } break;
     case datum_serialized_type_t::R_STR: {
-        std::string value;
+        wire_string_t *value;
         res = deserialize(s, &value);
         if (res) {
+            guarantee(value == NULL);
             return res;
         }
         try {
-            datum->reset(new datum_t(std::move(value)));
+            datum->reset(new datum_t(value));
         } catch (const base_exc_t &) {
             return ARCHIVE_RANGE_ERROR;
         }

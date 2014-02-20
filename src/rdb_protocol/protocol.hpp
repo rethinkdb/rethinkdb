@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_PROTOCOL_HPP_
 #define RDB_PROTOCOL_PROTOCOL_HPP_
 
@@ -16,7 +16,6 @@
 #include <boost/optional.hpp>
 
 #include "btree/btree_store.hpp"
-#include "btree/depth_first_traversal.hpp"
 #include "btree/keys.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/cond_var.hpp"
@@ -154,8 +153,7 @@ RDB_DECLARE_SERIALIZABLE(backfill_atom_t);
 void bring_sindexes_up_to_date(
         const std::set<std::string> &sindexes_to_bring_up_to_date,
         btree_store_t<rdb_protocol_t> *store,
-        buf_lock_t *sindex_block,
-        transaction_t *txn)
+        buf_lock_t *sindex_block)
     THROWS_NOTHING;
 
 struct single_sindex_status_t {
@@ -772,9 +770,7 @@ struct rdb_protocol_t {
         void protocol_read(const read_t &read,
                            read_response_t *response,
                            btree_slice_t *btree,
-                           transaction_t *txn,
                            superblock_t *superblock,
-                           read_token_pair_t *token_pair,
                            signal_t *interruptor);
 
         friend struct write_visitor_t;
@@ -782,9 +778,7 @@ struct rdb_protocol_t {
                             write_response_t *response,
                             transition_timestamp_t timestamp,
                             btree_slice_t *btree,
-                            transaction_t *txn,
                             scoped_ptr_t<superblock_t> *superblock,
-                            write_token_pair_t *token_pair,
                             signal_t *interruptor);
 
         void protocol_send_backfill(const region_map_t<rdb_protocol_t, state_timestamp_t> &start_point,
@@ -792,23 +786,18 @@ struct rdb_protocol_t {
                                     superblock_t *superblock,
                                     buf_lock_t *sindex_block,
                                     btree_slice_t *btree,
-                                    transaction_t *txn,
                                     backfill_progress_t *progress,
                                     signal_t *interruptor)
                                     THROWS_ONLY(interrupted_exc_t);
 
         void protocol_receive_backfill(btree_slice_t *btree,
-                                       transaction_t *txn,
                                        superblock_t *superblock,
-                                       write_token_pair_t *token_pair,
                                        signal_t *interruptor,
                                        const backfill_chunk_t &chunk);
 
         void protocol_reset_data(const region_t& subregion,
                                  btree_slice_t *btree,
-                                 transaction_t *txn,
                                  superblock_t *superblock,
-                                 write_token_pair_t *token_pair,
                                  signal_t *interruptor);
         context_t *ctx;
     };

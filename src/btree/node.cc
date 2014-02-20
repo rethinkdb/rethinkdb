@@ -1,9 +1,8 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "btree/node.hpp"
 
 #include "btree/leaf_node.hpp"
 #include "btree/internal_node.hpp"
-#include "buffer_cache/buffer_cache.hpp"
 
 const block_magic_t btree_superblock_t::expected_magic = { { 's', 'u', 'p', 'e' } };
 const block_magic_t internal_node_t::expected_magic = { { 'i', 'n', 't', 'e' } };

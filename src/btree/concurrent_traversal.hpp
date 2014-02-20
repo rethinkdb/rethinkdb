@@ -43,7 +43,7 @@ private:
     DISABLE_COPYING(concurrent_traversal_callback_t);
 };
 
-bool btree_concurrent_traversal(btree_slice_t *slice, transaction_t *transaction,
+bool btree_concurrent_traversal(btree_slice_t *slice,
                                 superblock_t *superblock, const key_range_t &range,
                                 concurrent_traversal_callback_t *cb,
                                 direction_t direction);

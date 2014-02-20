@@ -37,9 +37,12 @@ public:
     /* Wrapper around a `publisher_t<signal_t::subscription_t>::subscription_t`
     */
 
-    class subscription_t : public home_thread_mixin_t {
+    class subscription_t {
     public:
         subscription_t() : subs(this) { }
+        subscription_t(subscription_t &&movee)
+            : subs(std::move(movee.subs)) { }
+
         virtual ~subscription_t() { }
 
         void reset(signal_t *s = NULL) {
@@ -84,14 +87,18 @@ public:
 
 protected:
     signal_t() : pulsed(false) { }
-    ~signal_t() { }
+    signal_t(signal_t &&movee);
+    ~signal_t() { reset(); }
 
     void pulse() THROWS_NOTHING {
+        assert_thread();
         mutex_assertion_t::acq_t acq(&lock);
         rassert(!is_pulsed());
         pulsed = true;
         publisher_controller.publish(&signal_t::call);
     }
+
+    void reset();
 
 private:
     static void call(subscription_t *subscription) THROWS_NOTHING {

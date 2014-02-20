@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef UNITTEST_CLUSTERING_UTILS_HPP_
 #define UNITTEST_CLUSTERING_UTILS_HPP_
 
@@ -27,7 +27,7 @@ class spawn_write_fake_ack_checker_t : public ack_checker_t {
         return false;
     }
     write_durability_t get_write_durability(const peer_id_t &) const {
-        return WRITE_DURABILITY_SOFT;
+        return write_durability_t::SOFT;
     }
 };
 
@@ -112,34 +112,34 @@ public:
                     order_source_t *_osource, const std::string& tag, state_t *state)
         : values_inserted(state), drainer(new auto_drainer_t), wfun(_wfun), rfun(_rfun), key_gen_fun(_key_gen_fun), osource(_osource)
     {
-        coro_t::spawn_sometime(boost::bind(&test_inserter_t::insert_forever,
-                                           this, tag, auto_drainer_t::lock_t(drainer.get())));
+        coro_t::spawn_sometime(std::bind(&test_inserter_t::insert_forever,
+                                         this, tag, auto_drainer_t::lock_t(drainer.get())));
     }
 
     template <class protocol_t>
     test_inserter_t(namespace_interface_t<protocol_t> *namespace_if, boost::function<std::string()> _key_gen_fun, order_source_t *_osource, const std::string& tag, state_t *state)
         : values_inserted(state),
           drainer(new auto_drainer_t),
-          wfun(boost::bind(&test_inserter_t::write_namespace_if<protocol_t>, namespace_if, _1, _2, _3, _4)),
-          rfun(boost::bind(&test_inserter_t::read_namespace_if<protocol_t>, namespace_if, _1, _2, _3)),
+          wfun(std::bind(&test_inserter_t::write_namespace_if<protocol_t>, namespace_if, ph::_1, ph::_2, ph::_3, ph::_4)),
+          rfun(std::bind(&test_inserter_t::read_namespace_if<protocol_t>, namespace_if, ph::_1, ph::_2, ph::_3)),
           key_gen_fun(_key_gen_fun),
           osource(_osource)
     {
-        coro_t::spawn_sometime(boost::bind(&test_inserter_t::insert_forever,
-                                           this, tag, auto_drainer_t::lock_t(drainer.get())));
+        coro_t::spawn_sometime(std::bind(&test_inserter_t::insert_forever,
+                                         this, tag, auto_drainer_t::lock_t(drainer.get())));
     }
 
     template <class protocol_t>
     test_inserter_t(master_access_t<protocol_t> *master_access, boost::function<std::string()> _key_gen_fun, order_source_t *_osource, const std::string& tag, state_t *state)
         : values_inserted(state),
           drainer(new auto_drainer_t),
-          wfun(boost::bind(&test_inserter_t::write_master_access<protocol_t>, master_access, _1, _2, _3, _4)),
-          rfun(boost::bind(&test_inserter_t::read_master_access<protocol_t>, master_access, _1, _2, _3)),
+          wfun(std::bind(&test_inserter_t::write_master_access<protocol_t>, master_access, ph::_1, ph::_2, ph::_3, ph::_4)),
+          rfun(std::bind(&test_inserter_t::read_master_access<protocol_t>, master_access, ph::_1, ph::_2, ph::_3)),
           key_gen_fun(_key_gen_fun),
           osource(_osource)
     {
-        coro_t::spawn_sometime(boost::bind(&test_inserter_t::insert_forever,
-                                           this, tag, auto_drainer_t::lock_t(drainer.get())));
+        coro_t::spawn_sometime(std::bind(&test_inserter_t::insert_forever,
+                                         this, tag, auto_drainer_t::lock_t(drainer.get())));
     }
 
     void stop() {

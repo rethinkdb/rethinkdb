@@ -60,7 +60,7 @@ $(WEB_ASSETS_BUILD_DIR)/js/rethinkdb.js: $(JS_BUILD_DIR)/rethinkdb.js | $(WEB_AS
 	$P CP
 	cp -pRP $< $@
 
-$(WEB_ASSETS_BUILD_DIR)/js/template.js: $(HANDLEBAR_HTML_FILES) $(HANDLEBARS) $(TOP)/scripts/build_handlebars_templates.py | $(WEB_ASSETS_BUILD_DIR)/js/.
+$(WEB_ASSETS_BUILD_DIR)/js/template.js: $(HANDLEBAR_HTML_FILES) $(HANDLEBARS_BIN_DEP) $(TOP)/scripts/build_handlebars_templates.py | $(WEB_ASSETS_BUILD_DIR)/js/.
 	$P HANDLEBARS $@
 	env TC_HANDLEBARS_EXE=$(HANDLEBARS) $(TOP)/scripts/build_handlebars_templates.py $(WEB_SOURCE_DIR)/static/handlebars $(BUILD_DIR) $(WEB_ASSETS_BUILD_DIR)/js
 
@@ -71,11 +71,11 @@ $(WEB_ASSETS_OBJ_DIR)/cluster-min.concat.coffee: $(COFFEE_VERSION_FILE) $(COFFEE
 	$P CONCAT $@
 	cat $+ > $@
 
-$(WEB_ASSETS_BUILD_DIR)/cluster-min.js: $(WEB_ASSETS_OBJ_DIR)/cluster-min.concat.coffee $(COFFEE) | $(WEB_ASSETS_BUILD_DIR)/.
+$(WEB_ASSETS_BUILD_DIR)/cluster-min.js: $(WEB_ASSETS_OBJ_DIR)/cluster-min.concat.coffee $(COFFEE_BIN_DEP) | $(WEB_ASSETS_BUILD_DIR)/.
 	$P COFFEE $@
 	$(COFFEE) -bp --stdio < $(WEB_ASSETS_OBJ_DIR)/cluster-min.concat.coffee > $@
 
-$(WEB_ASSETS_BUILD_DIR)/cluster.css: $(LESS_MAIN) $(LESSC) | $(WEB_ASSETS_BUILD_DIR)/.
+$(WEB_ASSETS_BUILD_DIR)/cluster.css: $(LESS_MAIN) $(LESSC_BIN_DEP) | $(WEB_ASSETS_BUILD_DIR)/.
 	$P LESSC $@
 	$(LESSC) $(LESS_MAIN) > $@
 

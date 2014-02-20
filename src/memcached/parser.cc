@@ -1,9 +1,5 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "memcached/parser.hpp"
-
-#ifndef __STDC_FORMAT_MACROS
-#define __STDC_FORMAT_MACROS
-#endif
 
 #include <inttypes.h>
 #include <stdarg.h>
@@ -24,7 +20,6 @@
 #include "concurrency/pmap.hpp"
 #include "concurrency/promise.hpp"
 #include "containers/buffer_group.hpp"
-#include "containers/iterators.hpp"
 #include "containers/printf_buffer.hpp"
 #include "containers/scoped.hpp"
 #include "logger.hpp"

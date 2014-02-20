@@ -69,7 +69,7 @@ void network_logger_t::on_change() {
                                          &servers_seen,
                                          &proxies_seen,
                                          this,
-                                         std::placeholders::_1));
+                                         ph::_1));
 
     std::set<machine_id_t> connected_servers_copy = connected_servers;
     for (std::set<machine_id_t>::iterator it = connected_servers_copy.begin(); it != connected_servers_copy.end(); it++) {

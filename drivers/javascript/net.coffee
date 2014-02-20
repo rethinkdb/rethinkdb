@@ -48,7 +48,7 @@ class Connection extends events.EventEmitter
             if e instanceof err.RqlDriverError
                 callback e
             else
-                callback new err.RqlDriverError "Could not connect to #{@host}:#{@port}."
+                callback new err.RqlDriverError "Could not connect to #{@host}:#{@port}.\n#{e.message}"
         @once 'error', errCallback
 
         conCallback = =>
@@ -138,6 +138,7 @@ class Connection extends events.EventEmitter
             @emit 'error', new err.RqlDriverError "Unexpected token #{token}."
 
     close: (varar 0, 2, (optsOrCallback, callback) ->
+        @open = false
         if callback?
             opts = optsOrCallback
             unless Object::toString.call(opts) is '[object Object]'
@@ -157,7 +158,6 @@ class Connection extends events.EventEmitter
             throw new err.RqlDriverError "Final argument to `close` must be a callback function or object."
 
         wrappedCb = (args...) =>
-            @open = false
             if cb?
                 cb(args...)
 
@@ -286,25 +286,10 @@ class Connection extends events.EventEmitter
         # Serialize protobuf
         data = pb.SerializeQuery(query)
 
+        lengthBuffer = new Buffer(4)
+        lengthBuffer.writeUInt32LE(data.length, 0)
 
-        if pb.protobuf_implementation is 'cpp'
-            # The CPP backend can send back a SlowBuffer, which doesn't support .get() and .set()
-            lengthBuffer = new Buffer(4)
-            lengthBuffer.writeUInt32LE(data.length, 0)
-
-            totalBuf = Buffer.concat([lengthBuffer, data])
-        else
-            # Prepend length
-            totalBuf = new Buffer(data.length + 4)
-            totalBuf.writeUInt32LE(data.length, 0)
-
-            # Why loop and not just use Buffer.concat? Good question,
-            # The browserify implementation of Buffer.concat seems to
-            # be broken.
-            i = 0
-            while i < data.length
-                totalBuf.set(i+4, data.get(i))
-                i++
+        totalBuf = Buffer.concat([lengthBuffer, data])
 
         @write totalBuf
 
@@ -368,6 +353,9 @@ class TcpConnection extends Connection
 
         @rawSocket.on 'close', => @open = false; @emit 'close', {noreplyWait: false}
 
+        # In case the raw socket timesout, we close it and re-emit the event for the user
+        @rawSocket.on 'timeout', => @open = false; @emit 'timeout'
+
     close: (varar 0, 2, (optsOrCallback, callback) ->
         if callback?
             opts = optsOrCallback
@@ -423,13 +411,41 @@ class HttpConnection extends Connection
                     @emit 'error', new err.RqlDriverError "XHR error, http status #{xhr.status}."
         xhr.send()
 
+        @xhr = xhr # We allow only one query at a time per HTTP connection
+
     cancel: ->
+        @xhr.abort()
         xhr = new XMLHttpRequest
         xhr.open("POST", "#{@_url}close-connection?conn_id=#{@_connId}", true)
         xhr.send()
         @_url = null
         @_connId = null
         super()
+
+    close: (varar 0, 2, (optsOrCallback, callback) ->
+        if callback?
+            opts = optsOrCallback
+            cb = callback
+        else if Object::toString.call(optsOrCallback) is '[object Object]'
+            opts = optsOrCallback
+            cb = null
+        else
+            opts = {}
+            cb = optsOrCallback
+        unless not cb? or typeof cb is 'function'
+            throw new err.RqlDriverError "Final argument to `close` must be a callback function or object."
+
+        wrappedCb = (args...) =>
+            @cancel()
+            if cb?
+                cb(args...)
+
+        # This would simply be super(opts, wrappedCb), if we were not in the varar
+        # anonymous function
+        HttpConnection.__super__.close.call(this, opts, wrappedCb)
+    )
+
+
 
     write: (chunk) ->
         xhr = new XMLHttpRequest
@@ -448,10 +464,11 @@ class HttpConnection extends Connection
         view = new Uint8Array(array)
         i = 0
         while i < chunk.length
-            view[i] = chunk.get(i)
+            view[i] = chunk[i]
             i++
 
         xhr.send array
+        @xhr = xhr # We allow only one query at a time per HTTP connection
 
 # The only exported function of this module
 module.exports.connect = ar (host, callback) ->

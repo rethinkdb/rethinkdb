@@ -4,8 +4,6 @@
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/minidriver.hpp"
 
-#pragma GCC diagnostic ignored "-Wshadow"
-
 namespace ql {
 argspec_t::argspec_t(int n) : min(n), max(n) { }
 argspec_t::argspec_t(int _min, int _max) : min(_min), max(_max) { }
@@ -209,7 +207,7 @@ bool bounded_op_term_t::right_open(scope_env_t *env) {
 bool bounded_op_term_t::open_bool(scope_env_t *env, const std::string &key, bool def/*ault*/) {
     counted_t<val_t> v = optarg(env, key);
     if (!v.has()) return def;
-    const std::string &s = v->as_str();
+    const wire_string_t &s = v->as_str();
     if (s == "open") {
         return true;
     } else if (s == "closed") {

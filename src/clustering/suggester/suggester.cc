@@ -5,6 +5,16 @@
 #include "containers/priority_queue.hpp"
 #include "clustering/generic/nonoverlapping_regions.hpp"
 
+// Because being primary for a shard usually comes with a higher cost than
+// being secondary, we want to consider that difference in the replica assignment.
+// The concrete value of these doesn't matter, only their ratio
+// (float)PRIMARY_USAGE_COST/(float)SECONDARY_USAGE_COST is important.
+// As long as PRIMARY_USAGE_COST > SECONDARY_USAGE_COST, this is a solution to
+// https://github.com/rethinkdb/rethinkdb/issues/344 (if the machine roles are
+// otherwise equal).
+#define PRIMARY_USAGE_COST  10
+#define SECONDARY_USAGE_COST  8
+
 namespace {
 
 struct priority_t {
@@ -222,7 +232,7 @@ std::map<machine_id_t, blueprint_role_t> suggest_blueprint_for_shard(
         sub_blueprint[primary] = blueprint_role_primary;
 
         //Update primary_usage
-        ++(*usage)[primary];
+        (*usage)[primary] += PRIMARY_USAGE_COST;
     }
 
 
@@ -243,7 +253,7 @@ std::map<machine_id_t, blueprint_role_t> suggest_blueprint_for_shard(
 
         for (std::vector<machine_id_t>::iterator jt = secondaries.begin(); jt != secondaries.end(); jt++) {
             //Update secondary usage
-            ++(*usage)[*jt];
+            (*usage)[*jt] += SECONDARY_USAGE_COST;
             sub_blueprint[*jt] = blueprint_role_secondary;
             unused_machines.erase(*jt);
         }
@@ -265,7 +275,7 @@ std::map<machine_id_t, blueprint_role_t> suggest_blueprint_for_shard(
         sub_blueprint[primary] = blueprint_role_primary;
 
         //Update primary_usage
-        ++(*usage)[primary];
+        (*usage)[primary] += PRIMARY_USAGE_COST;
     }
 
     /* Finally pick the secondaries for the nil datacenter */
@@ -280,7 +290,7 @@ std::map<machine_id_t, blueprint_role_t> suggest_blueprint_for_shard(
 
         for (std::vector<machine_id_t>::iterator jt = secondaries.begin(); jt != secondaries.end(); jt++) {
             //Update secondary usage
-            ++(*usage)[*jt];
+            (*usage)[*jt] += SECONDARY_USAGE_COST;
             sub_blueprint[*jt] = blueprint_role_secondary;
             unused_machines.erase(*jt);
         }

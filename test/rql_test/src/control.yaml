@@ -48,11 +48,11 @@ tests:
 
     - js: r.do(1, function(x) {})
       cd: []
-      ot: err("RqlDriverError", 'Annonymous function returned `undefined`. Did you forget a `return`?', [1])
+      ot: err("RqlDriverError", 'Anonymous function returned `undefined`. Did you forget a `return`?', [1])
 
     - js: r.do(1, function(x) { return undefined; })
       cd: []
-      ot: err("RqlDriverError", 'Annonymous function returned `undefined`. Did you forget a `return`?', [1])
+      ot: err("RqlDriverError", 'Anonymous function returned `undefined`. Did you forget a `return`?', [1])
 
     - cd: r.do()
       py: [] # Case handled by native python error
@@ -266,7 +266,7 @@ tests:
       # This is only relevant in JS -- what happens when we return undefined
     - js: "r([1, 2, 3]).forEach(function (row) {})"
       cd: []
-      ot: err("RqlDriverError", 'Annonymous function returned `undefined`. Did you forget a `return`?', [1])
+      ot: err("RqlDriverError", 'Anonymous function returned `undefined`. Did you forget a `return`?', [1])
 
     # Make sure write queries can't be nested into stream ops
     - cd: r.expr(1).do(tbl.insert({'foo':r.row}))

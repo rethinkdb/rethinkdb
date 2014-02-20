@@ -26,7 +26,7 @@ about value_t:
 template <class value_t>
 class two_level_array_t {
 private:
-    static const size_t CHUNK_SIZE = 1 << 16;
+    static const size_t CHUNK_SIZE = 1 << 14;
 
     struct chunk_t {
         chunk_t()

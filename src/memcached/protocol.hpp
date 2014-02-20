@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef MEMCACHED_PROTOCOL_HPP_
 #define MEMCACHED_PROTOCOL_HPP_
 
@@ -188,18 +188,14 @@ public:
         void protocol_read(const read_t &read,
                            read_response_t *response,
                            btree_slice_t *btree,
-                           transaction_t *txn,
                            superblock_t *superblock,
-                           read_token_pair_t *token,
                            signal_t *interruptor);
 
         void protocol_write(const write_t &write,
                             write_response_t *response,
                             transition_timestamp_t timestamp,
                             btree_slice_t *btree,
-                            transaction_t *txn,
                             scoped_ptr_t<superblock_t> *superblock,
-                            write_token_pair_t *token,
                             signal_t *interruptor);
 
         void protocol_send_backfill(const region_map_t<memcached_protocol_t, state_timestamp_t> &start_point,
@@ -207,23 +203,18 @@ public:
                                     superblock_t *superblock,
                                     buf_lock_t *sindex_block,
                                     btree_slice_t *btree,
-                                    transaction_t *txn,
                                     backfill_progress_t *progress,
                                     signal_t *interruptor)
                                     THROWS_ONLY(interrupted_exc_t);
 
         void protocol_receive_backfill(btree_slice_t *btree,
-                                       transaction_t *txn,
                                        superblock_t *superblock,
-                                       write_token_pair_t *token_pair,
                                        signal_t *interruptor,
                                        const backfill_chunk_t &chunk);
 
-        void protocol_reset_data(const region_t& subregion,
+        void protocol_reset_data(const region_t &subregion,
                                  btree_slice_t *btree,
-                                 transaction_t *txn,
                                  superblock_t *superblock,
-                                 write_token_pair_t *token_pair,
                                  signal_t *interruptor);
     };
 

@@ -1,7 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
-#define __STDC_LIMIT_MACROS
-#define __STDC_FORMAT_MACROS
-
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "utils.hpp"
 
 #include <ftw.h>
@@ -419,6 +416,17 @@ int randint(int n) {
     long x = nrand48(buffer.xsubi);  // NOLINT(runtime/int)
     TLS_set_rng_data(buffer);
     return x % n;
+}
+
+size_t randsize(size_t n) {
+    size_t ret = 0;
+    size_t i = SIZE_MAX;
+    while (i != 0) {
+        int x = randint(0x10000);
+        ret = ret * 0x10000 + x;
+        i /= 0x10000;
+    }
+    return ret % n;
 }
 
 double randdouble() {

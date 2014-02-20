@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef MEMCACHED_MEMCACHED_BTREE_BACKFILL_HPP_
 #define MEMCACHED_MEMCACHED_BTREE_BACKFILL_HPP_
 
@@ -7,6 +7,7 @@
 #include "repli_timestamp.hpp"
 #include "memcached/queries.hpp"
 
+class buf_lock_t;
 class btree_slice_t;
 class parallel_traversal_progress_t;
 class printf_buffer_t;
@@ -49,11 +50,9 @@ protected:
     virtual ~backfill_callback_t() { }
 };
 
-void memcached_backfill(btree_slice_t *slice,
-                        const key_range_t& key_range,
+void memcached_backfill(const key_range_t& key_range,
                         repli_timestamp_t since_when,
                         backfill_callback_t *callback,
-                        transaction_t *txn,
                         superblock_t *superblock,
                         buf_lock_t *sindex_block,
                         parallel_traversal_progress_t *p,

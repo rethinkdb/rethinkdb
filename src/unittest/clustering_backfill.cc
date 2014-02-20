@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "unittest/gtest.hpp"
 #include "clustering/immediate_consistency/branch/backfiller.hpp"
 #include "clustering/immediate_consistency/branch/backfillee.hpp"
@@ -92,7 +92,7 @@ void run_backfill_test() {
                     binary_blob_t(version_range_t(version_t(dummy_branch_id, timestamp)))
                 ),
                 w,
-                &response, WRITE_DURABILITY_SOFT,
+                &response, write_durability_t::SOFT,
                 ts,
                 order_source.check_in(strprintf("backfiller_store.write(j=%d)", j)),
                 &token_pair,

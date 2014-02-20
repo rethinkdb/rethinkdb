@@ -15,87 +15,102 @@ module RethinkDB
     # only be removed from the argument list and treated as an optarg
     # if it's a Hash.  A positive value is necessary for functions
     # that can take a hash for the last non-optarg argument.
-    # NOTE: we search for the optarg after we apply the rewrite rules below.
-    # For example we need to use orderby not order_by
     @@optarg_offsets = {
       :replace => {:with_block => 0, :without => 1},
       :update => {:with_block => 0, :without => 1},
       :insert => 1,
       :delete => -1,
-      :reduce => -1, :between => 2, :grouped_map_reduce => -1,
-      :table => -1, :table_create => -1,
-      :get_all => -1, :eq_join => -1,
-      :javascript => -1, :filter => {:with_block => 0, :without => 1},
-      :slice => -1, :during => -1, :orderby => -1,
-      :iso8601 => -1, :index_create => -1
+      :reduce => -1,
+      :between => 2,
+      :grouped_map_reduce => -1,
+      :table => -1,
+      :table_create => -1,
+      :get_all => -1,
+      :eq_join => -1,
+      :javascript => -1,
+      :filter => {:with_block => 0, :without => 1},
+      :slice => -1,
+      :during => -1,
+      :orderby => -1,
+      :iso8601 => -1,
+      :index_create => -1
     }
-    @@rewrites = {
-      :< => :lt, :<= => :le, :> => :gt, :>= => :ge,
-      :+ => :add, :- => :sub, :* => :mul, :/ => :div, :% => :mod,
-      :"|" => :any, :or => :any,
-      :"&" => :all, :and => :all,
-      :order_by => :orderby,
-      :group_by => :groupby,
-      :concat_map => :concatmap,
-      :for_each => :foreach,
-      :js => :javascript,
-      :type_of => :typeof
+    @@method_aliases = {
+      :lt => :<,
+      :le => :<=,
+      :gt => :>,
+      :ge => :>=,
+      :add => :+,
+      :sub => :-,
+      :mul => :*,
+      :div => :/,
+      :mod => :%,
+      :any => [:"|", :or],
+      :all => [:"&", :and],
+      :orderby => :order_by,
+      :groupby => :group_by,
+      :concatmap => :concat_map,
+      :foreach => :for_each,
+      :javascript => :js,
+      :typeof => :type_of
     }
-    @@allow_json = {:insert => true}
-    def method_missing(m, *a, &b)
-      unbound_if(m.to_s.downcase != m.to_s, m)
-      bitop = [:"|", :"&"].include?(m) ? [m, a, b] : nil
-      if [:<, :<=, :>, :>=, :+, :-, :*, :/, :%].include?(m)
-        a.each {|arg|
-          if arg.class == RQL && arg.bitop
-            err = "Calling #{m} on result of infix bitwise operator:\n" +
-              "#{arg.inspect}.\n" +
-              "This is almost always a precedence error.\n" +
-              "Note that `a < b | b < c` <==> `a < (b | b) < c`.\n" +
-              "If you really want this behavior, use `.or` or `.and` instead."
-            raise RqlDriverError, err
-          end
-        }
-      end
+    @@allow_json = {:INSERT => true}
 
-      old_m = m
-      m = @@rewrites[m] || m
-      begin
-        termtype = Term::TermType.const_get(m.to_s.upcase)
-      rescue NameError => e
-        unbound_if(true, old_m)
-      end
-      unbound_if(!termtype, m)
+    termtypes = Term::TermType.constants.map{ |c| c.to_sym }
+    termtypes.each {|termtype|
 
-      if (opt_offset = @@optarg_offsets[m])
-        if opt_offset.class == Hash
-          opt_offset = opt_offset[b ? :with_block : :without]
+      method = define_method(termtype.downcase){|*a, &b|
+        bitop = [:"|", :"&"].include?(__method__)
+
+        if [:<, :<=, :>, :>=, :+, :-, :*, :/, :%].include?(__method__)
+          a.each {|arg|
+            if arg.class == RQL && arg.bitop
+              err = "Calling #{__method__} on result of infix bitwise operator:\n" +
+                "#{arg.inspect}.\n" +
+                "This is almost always a precedence error.\n" +
+                "Note that `a < b | b < c` <==> `a < (b | b) < c`.\n" +
+                "If you really want this behavior, use `.or` or `.and` instead."
+              raise RqlDriverError, err
+            end
+          }
         end
-        # TODO: This should drop the Hash comparison or at least
-        # @@optarg_offsets should stop specifying -1, where possible.
-        # Any time one of these operations is changed to support a
-        # hash argument, we'll have to remember to fix
-        # @@optarg_offsets, otherwise.
-        optargs = a.delete_at(opt_offset) if a[opt_offset].class == Hash
-      end
 
-      args = (@body ? [self] : []) + a + (b ? [new_func(&b)] : [])
+        if (opt_offset = @@optarg_offsets[termtype.downcase])
+          if opt_offset.class == Hash
+            opt_offset = opt_offset[b ? :with_block : :without]
+          end
+          # TODO: This should drop the Hash comparison or at least
+          # @@optarg_offsets should stop specifying -1, where possible.
+          # Any time one of these operations is changed to support a
+          # hash argument, we'll have to remember to fix
+          # @@optarg_offsets, otherwise.
+          optargs = a.delete_at(opt_offset) if a[opt_offset].class == Hash
+        end
 
-      t = Term.new
-      t.type = termtype
-      t.args = args.map{|x| RQL.new.expr(x, :allow_json => @@allow_json[m]).to_pb}
-      t.optargs = (optargs || {}).map {|k,v|
-        ap = Term::AssocPair.new
-        ap.key = k.to_s
-        ap.val = RQL.new.expr(v, :allow_json => @@allow_json[m]).to_pb
-        ap
+        args = (@body ? [self] : []) + a + (b ? [new_func(&b)] : [])
+
+        t = Term.new
+        t.type = Term::TermType.const_get(termtype)
+        t.args = args.map{|x| RQL.new.expr(x, :allow_json => @@allow_json[termtype]).to_pb}
+        t.optargs = (optargs || {}).map {|k,v|
+          ap = Term::AssocPair.new
+          ap.key = k.to_s
+          ap.val = RQL.new.expr(v, :allow_json => @@allow_json[termtype]).to_pb
+          ap
+        }
+        return RQL.new(t, bitop)
       }
-      return RQL.new(t, bitop)
-    end
 
+      [*@@method_aliases[termtype.downcase]].each{|method_alias|
+        define_method method_alias, method
+      }
+    }
+
+    define_method :_group_by, instance_method(:group_by)
+    protected :_group_by
     def group_by(*a, &b)
       a = [self] + a if @body
-      RQL.new.method_missing(:group_by, a[0], a[1..-2], a[-1], &b)
+      RQL.new._group_by(a[0], a[1..-2], a[-1], &b)
     end
     def groupby(*a, &b); group_by(*a, &b); end
 
@@ -127,7 +142,6 @@ module RethinkDB
       If you need to see whether two queries are the same, compare
       their protobufs like: `query1.to_pb == query2.to_pb`."
     end
-
 
     def do(*args, &b)
       a = (@body ? [self] : []) + args.dup

@@ -8,8 +8,6 @@
 #include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/minidriver.hpp"
 
-#pragma GCC diagnostic ignored "-Wshadow"
-
 namespace ql {
 
 // This file implements terms that are rewritten into other terms.

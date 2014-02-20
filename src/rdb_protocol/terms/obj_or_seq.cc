@@ -11,8 +11,6 @@
 #include "rdb_protocol/pseudo_literal.hpp"
 #include "rdb_protocol/minidriver.hpp"
 
-#pragma GCC diagnostic ignored "-Wshadow"
-
 namespace ql {
 
 // This term is used for functions that are polymorphic on objects and
@@ -224,7 +222,7 @@ public:
         : obj_or_seq_op_term_t(env, term, SKIP_MAP, argspec_t(2)) { }
 private:
     virtual counted_t<val_t> obj_eval(scope_env_t *env, counted_t<val_t> v0) {
-        return new_val(v0->as_datum()->get(arg(env, 1)->as_str()));
+        return new_val(v0->as_datum()->get(arg(env, 1)->as_str().to_std()));
     }
     virtual const char *name() const { return "get_field"; }
 };

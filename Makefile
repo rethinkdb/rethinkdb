@@ -3,16 +3,9 @@
 # Build instructions for rethinkdb are available on the rethinkdb website:
 # http://www.rethinkdb.com/docs/build/
 
-# There is additional information about the build system on the wiki:
-# https://github.com/rethinkdb/rethinkdb/wiki/Build-System
+# There is additional information about the build system in the mk/README file
 
 # This Makefile sets up the environment before delegating to mk/main.mk
-
-# To be able to make from a subdirectory, a Makefile with
-# two lines is required:
-#   TOP := <relative path to the top of the rethinkdb source tree>
-#   include $(TOP)/Makefile
-# local.mk includes a rule to build such a Makefile
 
 ifeq (,$(filter else-if,$(.FEATURES)))
 	$(error GNU Make >= 3.8.1 is required)
@@ -82,6 +75,7 @@ include $(TOP)/mk/check-env.mk
 include $(TOP)/mk/pipe-stderr.mk
 
 # The cached list of phony targets
+PHONY_LIST =
 -include $(TOP)/mk/gen/phony-list.mk
 
 .PHONY: debug-count
@@ -99,8 +93,9 @@ endif
 # Build the list of phony targets
 $(TOP)/mk/gen/phony-list.mk: $(CONFIG)
 	+@MAKEFLAGS= $(MAKE_CMD_LINE) --print-data-base var-MAKEFILE_LIST JUST_SCAN_MAKEFILES=1 \
-	  | egrep '^.PHONY: |MAKEFILE_LIST = ' \
-	  | sed 's/^.PHONY:/PHONY_LIST :=/' \
+	  | egrep '^.PHONY: |^MAKEFILE_LIST = ' \
+	  | egrep -v '\$$' \
+	  | sed 's/^.PHONY:/PHONY_LIST +=/' \
 	  | sed 's|^MAKEFILE_LIST = \(.*\)$$|$$(TOP)/mk/gen/phony-list.mk: $$(patsubst $(TOP)/%,$$(TOP)/%,$$(filter-out %.d,\1))|' \
 	  > $@
 

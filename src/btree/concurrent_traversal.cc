@@ -2,6 +2,7 @@
 
 #include "arch/runtime/coroutines.hpp"
 #include "concurrency/auto_drainer.hpp"
+#include "concurrency/semaphore.hpp"
 #include "concurrency/fifo_enforcer.hpp"
 
 class incr_decr_t {
@@ -123,20 +124,20 @@ void concurrent_traversal_fifo_enforcer_signal_t::wait_interruptible()
         // concurrent reads can finish in any order), but we have the trickle fraction
         // set to 0.5, so there's smoothing.
         parent_->semaphore_.set_capacity(
-            std::max(concurrent_traversal::min_semaphore_capacity,
-                     parent_->semaphore_.get_capacity() - 1));
+            std::max<int64_t>(concurrent_traversal::min_semaphore_capacity,
+                              parent_->semaphore_.get_capacity() - 1));
     } else if (parent_->sink_waiters_ == 1) {
         // We're the only thing waiting for the signal?  We might not be looking far
         // ahead enough.
         parent_->semaphore_.set_capacity(
-            std::min(concurrent_traversal::max_semaphore_capacity,
-                     parent_->semaphore_.get_capacity() + 1));
+            std::min<int64_t>(concurrent_traversal::max_semaphore_capacity,
+                              parent_->semaphore_.get_capacity() + 1));
     }
 
     ::wait_interruptible(eval_exclusivity_signal_, parent_->failure_cond_);
 }
 
-bool btree_concurrent_traversal(btree_slice_t *slice, transaction_t *transaction,
+bool btree_concurrent_traversal(btree_slice_t *slice,
                                 superblock_t *superblock, const key_range_t &range,
                                 concurrent_traversal_callback_t *cb,
                                 direction_t direction) {
@@ -144,7 +145,7 @@ bool btree_concurrent_traversal(btree_slice_t *slice, transaction_t *transaction
     bool failure_seen;
     {
         concurrent_traversal_adapter_t adapter(cb, &failure_cond);
-        failure_seen = !btree_depth_first_traversal(slice, transaction, superblock,
+        failure_seen = !btree_depth_first_traversal(slice, superblock,
                                                     range, &adapter, direction);
     }
     // Now that adapter is destroyed, the operations that might have failed have all
