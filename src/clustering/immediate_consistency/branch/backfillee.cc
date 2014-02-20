@@ -10,7 +10,7 @@
 #include "containers/death_runner.hpp"
 
 // Must be <= than MAX_CHUNKS_OUT in backfiller.cc
-#define ALLOCATION_CHUNK 2
+#define ALLOCATION_CHUNK 8
 
 template <class protocol_t>
 struct backfill_queue_entry_t {

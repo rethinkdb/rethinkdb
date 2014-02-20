@@ -65,8 +65,10 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
                     }
                 }
 
-                cb->on_pairs(parent, filtered_tstamps, filtered_keys,
-                             filtered_values, interruptor);
+                if (!filtered_keys.empty()) {
+                    cb->on_pairs(parent, filtered_tstamps, filtered_keys,
+                                 filtered_values, interruptor);
+                }
             }
 
             agnostic_backfill_callback_t *cb;

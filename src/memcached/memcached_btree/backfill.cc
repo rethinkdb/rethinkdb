@@ -28,19 +28,44 @@ public:
                   const std::vector<const btree_key_t *> &keys,
                   const std::vector<const void *> &vals,
                   signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        std::vector<backfill_atom_t> atoms(keys.size());
+
+        std::vector<backfill_atom_t> chunk_atoms;
+        chunk_atoms.reserve(keys.size());
+        size_t current_chunk_size = 0;
+
         for (size_t i = 0; i < keys.size(); ++i) {
             rassert(kr_.contains_key(keys[i]->contents, keys[i]->size));
             const memcached_value_t *value = static_cast<const memcached_value_t *>(vals[i]);
             counted_t<data_buffer_t> data_provider = value_to_data_buffer(value, parent);
-            atoms[i].key.assign(keys[i]->size, keys[i]->contents);
-            atoms[i].value = data_provider;
-            atoms[i].flags = value->mcflags();
-            atoms[i].exptime = value->exptime();
-            atoms[i].recency = recencies[i];
-            atoms[i].cas_or_zero = value->has_cas() ? value->cas() : 0;
+
+            chunk_atoms.resize(i+1);
+            chunk_atoms[i].key.assign(keys[i]->size, keys[i]->contents);
+            chunk_atoms[i].value = data_provider;
+            chunk_atoms[i].flags = value->mcflags();
+            chunk_atoms[i].exptime = value->exptime();
+            chunk_atoms[i].recency = recencies[i];
+            chunk_atoms[i].cas_or_zero = value->has_cas() ? value->cas() : 0;
+            // We only count the variably sized fields `key` and `value`.
+            // But that is ok, we don't have to comply with BACKFILL_MAX_KVPAIRS_SIZE
+            // that strictly.
+            current_chunk_size += static_cast<size_t>(chunk_atoms[i].key.size())
+                                  + static_cast<size_t>(chunk_atoms[i].value->size());
+
+            if (current_chunk_size >= BACKFILL_MAX_KVPAIRS_SIZE) {
+                // To avoid flooding the receiving node with overly large chunks
+                // (which could easily make it run out of memory in extreme
+                // cases), pass on what we have got so far. Then continue
+                // with the remaining values.
+                cb_->on_keyvalues(std::move(chunk_atoms), interruptor);
+                chunk_atoms = std::vector<backfill_atom_t>();
+                chunk_atoms.reserve(keys.size() - (i+1));
+                current_chunk_size = 0;
+            }
         }
-        cb_->on_keyvalues(std::move(atoms), interruptor);
+        if (!chunk_atoms.empty()) {
+            // Pass on the final chunk
+            cb_->on_keyvalues(std::move(chunk_atoms), interruptor);
+        }
     }
 
     void on_sindexes(const std::map<std::string, secondary_index_t> &, signal_t *) THROWS_ONLY(interrupted_exc_t) {

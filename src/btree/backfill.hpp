@@ -9,6 +9,11 @@
 #include "containers/uuid.hpp"
 #include "utils.hpp"
 
+// Implementations of agnostic_backfill_callback_t::on_pairs() should use
+// this limit to split up large chunks of key/value pairs into smaller chunks,
+// each not too much larger than this value.
+#define BACKFILL_MAX_KVPAIRS_SIZE (1024 * 1024 * 512)
+
 class buf_parent_t;
 class buf_lock_t;
 struct btree_key_t;

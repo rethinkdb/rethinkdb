@@ -435,17 +435,39 @@ public:
                   const std::vector<const btree_key_t *> &keys,
                   const std::vector<const void *> &vals,
                   signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        std::vector<rdb_protocol_details::backfill_atom_t> atoms(keys.size());
+
+        std::vector<rdb_protocol_details::backfill_atom_t> chunk_atoms;
+        chunk_atoms.reserve(keys.size());
+        size_t current_chunk_size = 0;
+
         for (size_t i = 0; i < keys.size(); ++i) {
             rassert(kr_.contains_key(keys[i]->contents, keys[i]->size));
             const rdb_value_t *value = static_cast<const rdb_value_t *>(vals[i]);
 
-            atoms[i].key.assign(keys[i]->size, keys[i]->contents);
-            atoms[i].value = get_data(value, leaf_node);
-            atoms[i].recency = recencies[i];
+            chunk_atoms.resize(i+1);
+            chunk_atoms[i].key.assign(keys[i]->size, keys[i]->contents);
+            chunk_atoms[i].value = get_data(value, leaf_node);
+            chunk_atoms[i].recency = recencies[i];
+            current_chunk_size += static_cast<size_t>(chunk_atoms[i].key.size())
+                                  + serialized_size(chunk_atoms[i].value);
+
+            if (current_chunk_size >= BACKFILL_MAX_KVPAIRS_SIZE) {
+                // To avoid flooding the receiving node with overly large chunks
+                // (which could easily make it run out of memory in extreme
+                // cases), pass on what we have got so far. Then continue
+                // with the remaining values.
+                slice_->stats.pm_keys_read.record(chunk_atoms.size());
+                cb_->on_keyvalues(std::move(chunk_atoms), interruptor);
+                chunk_atoms = std::vector<rdb_protocol_details::backfill_atom_t>();
+                chunk_atoms.reserve(keys.size() - (i+1));
+                current_chunk_size = 0;
+            }
         }
-        slice_->stats.pm_keys_read.record(keys.size());
-        cb_->on_keyvalues(std::move(atoms), interruptor);
+        if (!chunk_atoms.empty()) {
+            // Pass on the final chunk
+            slice_->stats.pm_keys_read.record(chunk_atoms.size());
+            cb_->on_keyvalues(std::move(chunk_atoms), interruptor);
+        }
     }
 
     void on_sindexes(const std::map<std::string, secondary_index_t> &sindexes, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
