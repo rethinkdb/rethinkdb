@@ -667,11 +667,11 @@ class Datum(RqlQuery):
                 elif time_format != 'raw':
                     raise RqlDriverError("Unknown time_format run option \"%s\"." % time_format)
             elif reql_type == 'GROUPED_DATA':
-                grouped_data_format = format_opts.get('grouped_data_format')
-                if grouped_data_format is None or grouped_data_format == 'native':
+                group_format = format_opts.get('group_format')
+                if group_format is None or group_format == 'native':
                     return reql_type_grouped_data_to_object(obj)
-                elif grouped_data_format != 'raw':
-                    raise RqlDriverError("Unknown grouped_data_format run option \"%s\"." % grouped_data_format)
+                elif group_format != 'raw':
+                    raise RqlDriverError("Unknown group_format run option \"%s\"." % group_format)
             else:
                 raise RqlDriverError("Unknown pseudo-type %s" % reql_type)
         # If there was no pseudotype, or the time format is raw, return the original object

@@ -302,8 +302,8 @@ class Connection(object):
         format_opts = {}
         if 'time_format' in opts:
             format_opts['time_format'] = opts['time_format']
-        if 'grouped_data_format' in opts:
-            format_opts['grouped_data_format'] = opts['grouped_data_format']
+        if 'group_format' in opts:
+            format_opts['group_format'] = opts['group_format']
 
         # Sequence responses
         if response.type == p.Response.SUCCESS_PARTIAL or response.type == p.Response.SUCCESS_SEQUENCE:

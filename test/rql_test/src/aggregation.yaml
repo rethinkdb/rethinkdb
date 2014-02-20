@@ -73,41 +73,45 @@ tests:
       ot: 150
     - rb: tbl.map{|row| row['a']}.sum()
       py: tbl.map(lambda row:row['a']).sum()
+      js: tbl.map(function(row){return row('a')}).sum()
       ot: 150
     - cd: tbl.group('a').sum('id')
       ot:
         py: ({0:1200, 1:1225, 2:1250, 3:1275})
-        js: ({"$reql_type$":"GROUPED_DATA","data":[[0,1200],[1,1225],[2,1250],[3,1275]]})
+        js: ([[0,1200],[1,1225],[2,1250],[3,1275]])
         rb: ({0=>1200, 1=>1225, 2=>1250, 3=>1275})
     - cd: tbl.avg('a')
       ot: 1.5
     - rb: tbl.map{|row| row['a']}.avg()
       py: tbl.map(lambda row:row['a']).avg()
+      js: tbl.map(function(row){return row('a')}).avg()
       ot: 1.5
     - cd: tbl.group('a').avg('id')
       ot:
         py: ({0:48, 1:49, 2:50, 3:51})
-        js: ({"$reql_type$":"GROUPED_DATA","data":[[0,48],[1,49],[2,50],[3,51]]})
+        js: ([[0,48],[1,49],[2,50],[3,51]])
         rb: ({0=>48, 1=>49, 2=>50, 3=>51})
     - cd: tbl.min('a')
       ot: 0
     - rb: tbl.map{|row| row['a']}.min()
       py: tbl.map(lambda row:row['a']).min()
+      js: tbl.map(function(row){return row('a')}).min()
       ot: 0
     - cd: tbl.group('a').min('id')
       ot:
         py: ({0:0, 1:1, 2:2, 3:3})
-        js: ({"$reql_type$":"GROUPED_DATA","data":[[0,0],[1,1],[2,2],[3,3]]})
+        js: ([[0,0],[1,1],[2,2],[3,3]])
         rb: ({0=>0, 1=>1, 2=>2, 3=>3})
     - cd: tbl.max('a')
       ot: 3
     - rb: tbl.map{|row| row['a']}.max()
       py: tbl.map(lambda row:row['a']).max()
+      js: tbl.map(function(row){return row('a')}).max()
       ot: 3
     - cd: tbl.group('a').max('id')
       ot:
         py: ({0:96, 1:97, 2:98, 3:99})
-        js: ({"$reql_type$":"GROUPED_DATA","data":[[0,96],[1,97],[2,98],[3,99]]})
+        js: ([[0,96],[1,97],[2,98],[3,99]])
         rb: ({0=>96, 1=>97, 2=>98, 3=>99})
 
     - cd: tbl.min()
@@ -118,7 +122,7 @@ tests:
     - cd: tbl.group('a').min()
       ot:
         py: ({0:{"a":0, "id":0}, 1:{"a":1, "id":1}, 2:{"a":2, "id":2}, 3:{"a":3, "id":3}})
-        js: ({"$reql_type$":"GROUPED_DATA","data":[[0,{"a":0,"id":0}],[1,{"a":1,"id":1}],[2,{"a":2,"id":2}],[3,{"a":3,"id":3}]]})
+        js: ([[0,{"a":0,"id":0}],[1,{"a":1,"id":1}],[2,{"a":2,"id":2}],[3,{"a":3,"id":3}]])
         rb: ({0=>{"a"=>0, "id"=>0}, 1=>{"a"=>1, "id"=>1}, 2=>{"a"=>2, "id"=>2}, 3=>{"a"=>3, "id"=>3}})
     - cd: tbl.max()
       ot:
@@ -128,12 +132,17 @@ tests:
     - cd: tbl.group('a').max()
       ot:
         py: ({0:{'a':0, 'id':96}, 1:{'a':1, 'id':97}, 2:{'a':2, 'id':98}, 3:{'a':3, 'id':99}})
-        js: ({"$reql_type$":"GROUPED_DATA","data":[[0,{"a":0,"id":96}],[1,{"a":1,"id":97}],[2,{"a":2,"id":98}],[3,{"a":3,"id":99}]]})
+        js: ([[0,{"a":0,"id":96}],[1,{"a":1,"id":97}],[2,{"a":2,"id":98}],[3,{"a":3,"id":99}]])
         rb: ({0=>{'a':0, 'id':96}, 1=>{'a':1, 'id':97}, 2=>{'a':2, 'id':98}, 3=>{'a':3, 'id':99}})
 
-    - rb: tbl.sum{|row| row['a']}
-      py: tbl.sum(lambda row:row['a'])
-      js: tbl.sum(function(row){return row('a')})
+    - rb:
+        - tbl.sum{|row| row['a']}
+      py:
+        - tbl.sum(lambda row:row['a'])
+        - tbl.sum(r.row['a'])
+      js:
+        - tbl.sum(function(row){return row('a')})
+        - tbl.sum(r.row('a'))
       ot: 150
     - rb: tbl.map{|row| row['a']}.sum()
       py: tbl.map(lambda row:row['a']).sum()
@@ -144,11 +153,16 @@ tests:
       js: tbl.group(function(row){return row('a')}).sum(function(row){return row('id')})
       ot:
         py: ({0:1200, 1:1225, 2:1250, 3:1275})
-        js: ({"$reql_type$":"GROUPED_DATA","data":[[0,1200],[1,1225],[2,1250],[3,1275]]})
+        js: ([[0,1200],[1,1225],[2,1250],[3,1275]])
         rb: ({0=>1200, 1=>1225, 2=>1250, 3=>1275})
-    - rb: tbl.avg{|row| row['a']}
-      py: tbl.avg(lambda row:row['a'])
-      js: tbl.avg(function(row){return row('a')})
+    - rb:
+        - tbl.avg{|row| row['a']}
+      py:
+        - tbl.avg(lambda row:row['a'])
+        - tbl.avg(r.row['a'])
+      js:
+        - tbl.avg(function(row){return row('a')})
+        - tbl.avg(r.row('a'))
       ot: 1.5
     - rb: tbl.map{|row| row['a']}.avg()
       py: tbl.map(lambda row:row['a']).avg()
@@ -159,11 +173,16 @@ tests:
       js: tbl.group(function(row){return row('a')}).avg(function(row){return row('id')})
       ot:
         py: ({0:48, 1:49, 2:50, 3:51})
-        js: ({"$reql_type$":"GROUPED_DATA","data":[[0,48],[1,49],[2,50],[3,51]]})
+        js: ([[0,48],[1,49],[2,50],[3,51]])
         rb: ({0=>48, 1=>49, 2=>50, 3=>51})
-    - rb: tbl.min{|row| row['a']}
-      py: tbl.min(lambda row:row['a'])
-      js: tbl.min(function(row){return row('a')})
+    - rb:
+        - tbl.min{|row| row['a']}
+      py:
+        - tbl.min(lambda row:row['a'])
+        - tbl.min(r.row['a'])
+      js:
+        - tbl.min(function(row){return row('a')})
+        - tbl.min(r.row('a'))
       ot: 0
     - rb: tbl.map{|row| row['a']}.min()
       py: tbl.map(lambda row:row['a']).min()
@@ -174,11 +193,16 @@ tests:
       js: tbl.group(function(row){return row('a')}).min(function(row){return row('id')})
       ot:
         py: ({0:0, 1:1, 2:2, 3:3})
-        js: ({"$reql_type$":"GROUPED_DATA","data":[[0,0],[1,1],[2,2],[3,3]]})
+        js: ([[0,0],[1,1],[2,2],[3,3]])
         rb: ({0=>0, 1=>1, 2=>2, 3=>3})
-    - rb: tbl.max{|row| row['a']}
-      py: tbl.max(lambda row:row['a'])
-      js: tbl.max(function(row){return row('a')})
+    - rb:
+        - tbl.max{|row| row['a']}
+      py:
+        - tbl.max(lambda row:row['a'])
+        - tbl.max(r.row['a'])
+      js:
+        - tbl.max(function(row){return row('a')})
+        - tbl.max(r.row('a'))
       ot: 3
     - rb: tbl.map{|row| row['a']}.max()
       py: tbl.map(lambda row:row['a']).max()
@@ -189,7 +213,7 @@ tests:
       js: tbl.group(function(row){return row('a')}).max(function(row){return row('id')})
       ot:
         py: ({0:96, 1:97, 2:98, 3:99})
-        js: ({"$reql_type$":"GROUPED_DATA","data":[[0,96],[1,97],[2,98],[3,99]]})
+        js: ([[0,96],[1,97],[2,98],[3,99]])
         rb: ({0=>96, 1=>97, 2=>98, 3=>99})
 
     - rb: tbl.group{|row| row[:a]}.map{|row| row[:id]}.reduce{|a,b| a+b}
@@ -197,12 +221,12 @@ tests:
       js: tbl.group(function(row){return row('a')}).map(function(row){return row('id')}).reduce(function(a,b){return a.add(b)})
       ot:
         py: ({0:1200, 1:1225, 2:1250, 3:1275})
-        js: ({"$reql_type$":"GROUPED_DATA","data":[[0,1200],[1,1225],[2,1250],[3,1275]]})
+        js: ([[0,1200],[1,1225],[2,1250],[3,1275]])
         rb: ({0=>1200, 1=>1225, 2=>1250, 3=>1275})
 
     - rb: tbl.group{|row| row[:a]}.map{|row| row[:id]}.reduce{|a,b| a+b}
       runopts:
-        grouped_data_format: '"raw"'
+        group_format: '"raw"'
       py:
         - tbl.group(lambda row:row['a']).map(lambda row:row['id']).reduce(lambda a,b:a+b)
         - tbl.group(r.row['a']).map(r.row['id']).reduce(lambda a,b:a + b)
@@ -223,21 +247,21 @@ tests:
       py: tbl.order_by(index='id').filter(lambda row:row['id'] < 10).group('a').map(lambda row:row['id']).coerce_to('ARRAY')
       js: tbl.orderBy({index:'id'}).filter(function(row){return row('id').lt(10)}).group('a').map(function(row){return row('id')}).coerce_to('ARRAY')
       ot:
-        py: ({0:[0, 4, 8], 1:[1, 5, 9], 2:[2, 6], 3:[3, 7]})
-        js: ({"$reql_type$":"GROUPED_DATA","data":[[0,[0,4,8]],[1,[1,5,9]],[2,[2,6]],[3,[3,7]]]})
-        rb: ({0=>[0, 4, 8], 1=>[1, 5, 9], 2=>[2, 6], 3=>[3, 7]})
+        py: ({0:[0,4,8],1:[1,5,9],2:[2,6],3:[3,7]})
+        js: ([[0,[0,4,8]],[1,[1,5,9]],[2,[2,6]],[3,[3,7]]])
+        rb: ({0=>[0,4,8],1=>[1,5,9],2=>[2,6],3=>[3,7]})
 
     - rb: tbl.filter{|row| row['id'].lt(10)}.group('a').count().do{|x| x*x}
       py: tbl.filter(lambda row:row['id'] < 10).group('a').count().do(lambda x:x*x)
       js: tbl.filter(function(row){return row('id').lt(10)}).group('a').count().do(function(x){return x.mul(x)})
       ot:
-        py: ({0:9, 1:9, 2:4, 3:4})
-        js: ({'$reql_type$':'GROUPED_DATA','data':[[0,9],[1,9],[2,4],[3,4]]})
-        rb: ({0=>9, 1=>9, 2=>4, 3=>4})
+        py: ({0:9,1:9,2:4,3:4})
+        js: ([[0,9],[1,9],[2,4],[3,4]])
+        rb: ({0=>9,1=>9,2=>4,3=>4})
 
     - rb: tbl.union(tbl).group('a').map{|x| x['id']}.reduce{|a,b| a+b}
       runopts:
-        grouped_data_format: '"raw"'
+        group_format: '"raw"'
       py:
         - tbl.union(tbl).group(lambda row:row['a']).map(lambda row:row['id']).reduce(lambda a,b:a + b)
         - tbl.union(tbl).group(r.row['a']).map(r.row['id']).reduce(lambda a,b:a + b)
@@ -249,7 +273,7 @@ tests:
     # GMR
     - rb: tbl.coerce_to("array").union(tbl).group('a').map{|x| x['id']}.reduce{|a,b| a+b}
       runopts:
-        grouped_data_format: '"raw"'
+        group_format: '"raw"'
       py:
         - tbl.coerce_to("array").union(tbl).group(lambda row:row['a']).map(lambda row:row['id']).reduce(lambda a,b:a + b)
         - tbl.coerce_to("array").union(tbl).group(r.row['a']).map(r.row['id']).reduce(lambda a,b:a + b)
@@ -261,7 +285,7 @@ tests:
     # GMR
     - rb: tbl.union(tbl.coerce_to("array")).group('a').map{|x| x['id']}.reduce{|a,b| a+b}
       runopts:
-        grouped_data_format: '"raw"'
+        group_format: '"raw"'
       py:
         - tbl.union(tbl.coerce_to("array")).group(lambda row:row['a']).map(lambda row:row['id']).reduce(lambda a,b:a + b)
         - tbl.union(tbl.coerce_to("array")).group(r.row['a']).map(r.row['id']).reduce(lambda a,b:a + b)
@@ -279,7 +303,7 @@ tests:
         - tbl.group('a').map(r.row('id')).reduce(function(a,b){return a.add(b)})
       rb: tbl.group('a').map{|x| x['id']}.reduce{|a,b| a+b}
       runopts:
-        grouped_data_format: '"raw"'
+        group_format: '"raw"'
       ot: ({'$reql_type$':'GROUPED_DATA', 'data':[[0, 1200], [1, 1225], [2, 1250], [3, 1275]]})
 
     # undefined...
@@ -305,19 +329,19 @@ tests:
 
     - cd: tbl.group('a').count()
       runopts:
-        grouped_data_format: '"raw"'
+        group_format: '"raw"'
       ot: ({'$reql_type$':'GROUPED_DATA', 'data':[[0, 25], [1, 25], [2, 25], [3, 25]]})
 
     # SUM
     - cd: tbl.group('a').sum('id')
       runopts:
-        grouped_data_format: '"raw"'
+        group_format: '"raw"'
       ot: ({'$reql_type$':'GROUPED_DATA', 'data':[[0, 1200], [1, 1225], [2, 1250], [3, 1275]]})
 
     # AVG
     - cd: tbl.group('a').avg('id')
       runopts:
-        grouped_data_format: '"raw"'
+        group_format: '"raw"'
       ot: ({'$reql_type$':'GROUPED_DATA', 'data':[[0, 48], [1, 49], [2, 50], [3, 51]]})
 
     # Pattern Matching
@@ -325,7 +349,7 @@ tests:
       py: tbl3.group(lambda row:row['b']['c']).count()
       js: tbl3.group(function(row){return row('b')('c')}).count()
       runopts:
-        grouped_data_format: '"raw"'
+        group_format: '"raw"'
       ot: ({'$reql_type$':'GROUPED_DATA', 'data':[[0, 20], [1, 20], [2, 20], [3, 20], [4, 20]]})
 
     # Multiple keys
@@ -333,7 +357,7 @@ tests:
       py: tbl.group('a', lambda row:row['id'].mod(3)).count()
       js: tbl.group('a', function(row){return row('id').mod(3)}).count()
       runopts:
-        grouped_data_format: '"raw"'
+        group_format: '"raw"'
       ot: ({'$reql_type$':'GROUPED_DATA', 'data':[[[0, 0], 9], [[0, 1], 8], [[0, 2], 8], [[1, 0], 8], [[1, 1], 9], [[1, 2], 8], [[2, 0], 8], [[2, 1], 8], [[2, 2], 9], [[3, 0], 9], [[3, 1], 8], [[3, 2], 8]]})
 
     # Grouping by time

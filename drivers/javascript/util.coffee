@@ -62,11 +62,14 @@ convertPseudotype = (obj, opts) ->
                 else
                     throw new err.RqlDriverError "Unknown timeFormat run option #{opts.timeFormat}."
         when 'GROUPED_DATA'
-            switch opts.groupedDataFormat
-                when 'raw', undefined
+            switch opts.groupFormat
+                when 'native', undefined
+                    # Don't convert the data into a map, because the keys could be objects which doesn't work in JS
+                    obj['data']
+                when 'raw'
                     obj
                 else
-                    throw new err.RqlDriverError "Unknown groupedDataFormat run option #{opts.groupedDataFormat}."
+                    throw new err.RqlDriverError "Unknown groupFormat run option #{opts.groupFormat}."
         else
             # Regular object or unknown pseudo type
             obj
