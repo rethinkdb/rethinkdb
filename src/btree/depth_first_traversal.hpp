@@ -45,13 +45,11 @@ private:
     DISABLE_COPYING(scoped_key_value_t);
 };
 
-enum class stop_traversing_t { STOP, CONTINUE };
-
 class depth_first_traversal_callback_t {
 public:
     /* Return value of `true` indicates to keep going; `false` indicates to stop
     traversing the tree. */
-    virtual stop_traversing_t handle_pair(scoped_key_value_t &&keyvalue) = 0;
+    virtual bool handle_pair(scoped_key_value_t &&keyvalue) = 0;
     virtual profile::trace_t *get_trace() THROWS_NOTHING { return NULL; }
 protected:
     virtual ~depth_first_traversal_callback_t() { }
