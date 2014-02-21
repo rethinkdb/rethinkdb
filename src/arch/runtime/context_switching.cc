@@ -18,6 +18,7 @@
 #include "arch/io/concurrency.hpp"
 #include "containers/scoped.hpp"
 #include "errors.hpp"
+#include "math.hpp"
 #include "utils.hpp"
 
 /* We have a custom implementation of `swapcontext()` that doesn't swap the

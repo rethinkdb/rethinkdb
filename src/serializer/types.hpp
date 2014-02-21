@@ -11,8 +11,11 @@
 #include "containers/counted.hpp"
 #include "containers/scoped.hpp"
 #include "errors.hpp"
+#include "valgrind.hpp"
 
 // A relatively "lightweight" header file (we wish), in a sense.
+
+class printf_buffer_t;
 
 typedef uint64_t block_id_t;
 #define NULL_BLOCK_ID (block_id_t(-1))

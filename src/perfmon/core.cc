@@ -10,6 +10,7 @@
 #include "containers/scoped_regex.hpp"
 #include "logger.hpp"
 #include "perfmon/core.hpp"
+#include "utils.hpp"
 
 /* Constructor and destructor register and deregister the perfmon. */
 perfmon_t::perfmon_t() {

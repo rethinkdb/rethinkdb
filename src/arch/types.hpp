@@ -2,6 +2,8 @@
 #ifndef ARCH_TYPES_HPP_
 #define ARCH_TYPES_HPP_
 
+#include <string.h>
+
 #include <string>
 
 #include "utils.hpp"

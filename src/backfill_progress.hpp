@@ -4,7 +4,8 @@
 
 #include <vector>
 
-#include "utils.hpp"
+#include "errors.hpp"
+#include "threading.hpp"
 
 template <class> class scoped_ptr_t;
 

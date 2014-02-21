@@ -207,9 +207,6 @@
 #define MAX_COROS_PER_THREAD                      10000
 
 
-// Size of a cache line (used in cache_line_padded_t).
-#define CACHE_LINE_SIZE                           64
-
 // Minimal time we nap before re-checking if a goal is satisfied in the reactor (in ms).
 // This is an optimization to save CPU time. Checking for whether the goal is
 // satisfied can be an expensive operation. By napping we increase our chances

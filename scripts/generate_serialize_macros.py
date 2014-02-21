@@ -81,7 +81,11 @@ if __name__ == "__main__":
     print "Please modify '%s' instead of modifying this file.*/" % sys.argv[0]
     print
 
-    print "#include \"containers/archive/archive.hpp\""
+    print "// Users of the non-DECLARE macros may have "
+    print "// to #include \"containers/archive/archive.hpp\"."
+    print "enum class archive_result_t;"
+    print "class read_stream_t;"
+    print "class write_message_t;"
     print
 
     print """

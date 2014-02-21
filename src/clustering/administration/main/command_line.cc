@@ -32,10 +32,10 @@
 #include "clustering/administration/main/directory_lock.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/logger.hpp"
+#include "clustering/administration/main/path.hpp"
 #include "clustering/administration/persist.hpp"
 #include "logger.hpp"
 #include "mock/dummy_protocol.hpp"
-#include "utils.hpp"
 
 #define RETHINKDB_EXPORT_SCRIPT "rethinkdb-export"
 #define RETHINKDB_IMPORT_SCRIPT "rethinkdb-import"

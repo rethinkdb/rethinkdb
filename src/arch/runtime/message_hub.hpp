@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef ARCH_RUNTIME_MESSAGE_HUB_HPP_
 #define ARCH_RUNTIME_MESSAGE_HUB_HPP_
 
@@ -11,7 +11,7 @@
 #include "arch/spinlock.hpp"
 #include "config/args.hpp"
 #include "containers/intrusive_list.hpp"
-#include "utils.hpp"
+#include "threading.hpp"
 
 
 #define NUM_SCHEDULER_PRIORITIES (MESSAGE_SCHEDULER_MAX_PRIORITY \

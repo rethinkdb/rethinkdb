@@ -5,6 +5,7 @@
 #include <boost/bind.hpp>
 
 #include "concurrency/pmap.hpp"
+#include "debug.hpp"
 #include "serializer/types.hpp"
 #include "serializer/config.hpp"
 

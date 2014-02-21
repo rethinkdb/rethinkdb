@@ -2,6 +2,7 @@
 #ifndef BUFFER_CACHE_ALT_CONFIG_HPP_
 #define BUFFER_CACHE_ALT_CONFIG_HPP_
 
+#include "config/args.hpp"
 #include "containers/archive/archive.hpp"
 #include "rpc/serialize_macros.hpp"
 

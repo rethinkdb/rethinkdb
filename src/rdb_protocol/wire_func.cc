@@ -138,6 +138,7 @@ group_wire_func_t::group_wire_func_t(std::vector<counted_t<func_t> > &&_funcs) {
         funcs.push_back(wire_func_t(std::move(_funcs[i])));
     }
 }
+
 std::vector<counted_t<func_t> > group_wire_func_t::compile_funcs() const {
     std::vector<counted_t<func_t> > ret;
     ret.reserve(funcs.size());
@@ -146,6 +147,14 @@ std::vector<counted_t<func_t> > group_wire_func_t::compile_funcs() const {
     }
     return std::move(ret);
 }
+
+RDB_IMPL_ME_SERIALIZABLE_1(group_wire_func_t, funcs);
+
+RDB_IMPL_ME_SERIALIZABLE_0(count_wire_func_t);
+
+RDB_IMPL_ME_SERIALIZABLE_0(min_wire_func_t);
+RDB_IMPL_ME_SERIALIZABLE_0(max_wire_func_t);
+
 
 
 map_wire_func_t map_wire_func_t::make_safely(

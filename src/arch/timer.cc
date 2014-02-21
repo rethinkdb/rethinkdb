@@ -1,6 +1,7 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "arch/timer.hpp"
 #include "arch/runtime/thread_pool.hpp"
+#include "time.hpp"
 #include "utils.hpp"
 
 class timer_token_t : public intrusive_priority_queue_node_t<timer_token_t> {

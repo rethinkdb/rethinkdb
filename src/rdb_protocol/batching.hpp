@@ -1,9 +1,12 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_BATCHING_HPP_
 #define RDB_PROTOCOL_BATCHING_HPP_
 
+#include <utility>
+
 #include "containers/archive/archive.hpp"
 #include "rpc/serialize_macros.hpp"
+#include "time.hpp"
 
 template<class T>
 class counted_t;
