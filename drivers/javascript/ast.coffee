@@ -69,7 +69,6 @@ class TermBase
             # else we suppose that we have run(connection, options, callback)
         else if connection?.constructor is Object
             # Handle run(connectionWithOptions, callback)
-            console.log("This syntax is depreciated. Please use `run(connection[, options], callback)`.")
             callback = options
             options = connection
             connection = connection.connection
