@@ -110,7 +110,7 @@ private:
             } else {
                 tmp = s.substr(last, next - last);
             }
-            if (delim || tmp.size() != 0) {
+            if ((delim && delim->size() != 0) || tmp.size() != 0) {
                 res.push_back(make_counted<const datum_t>(std::move(tmp)));
             }
             last = (next == std::string::npos || next >= s.size())
