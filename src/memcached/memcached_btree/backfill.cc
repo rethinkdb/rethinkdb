@@ -38,13 +38,14 @@ public:
             const memcached_value_t *value = static_cast<const memcached_value_t *>(vals[i]);
             counted_t<data_buffer_t> data_provider = value_to_data_buffer(value, parent);
 
-            chunk_atoms.resize(i+1);
-            chunk_atoms[i].key.assign(keys[i]->size, keys[i]->contents);
-            chunk_atoms[i].value = data_provider;
-            chunk_atoms[i].flags = value->mcflags();
-            chunk_atoms[i].exptime = value->exptime();
-            chunk_atoms[i].recency = recencies[i];
-            chunk_atoms[i].cas_or_zero = value->has_cas() ? value->cas() : 0;
+            backfill_atom_t atom;
+            atom.key.assign(keys[i]->size, keys[i]->contents);
+            atom.value = data_provider;
+            atom.flags = value->mcflags();
+            atom.exptime = value->exptime();
+            atom.recency = recencies[i];
+            atom.cas_or_zero = value->has_cas() ? value->cas() : 0;
+            chunk_atoms.push_back(atom);
             // We only count the variably sized fields `key` and `value`.
             // But that is ok, we don't have to comply with BACKFILL_MAX_KVPAIRS_SIZE
             // that strictly.

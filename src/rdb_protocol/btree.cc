@@ -444,10 +444,11 @@ public:
             rassert(kr_.contains_key(keys[i]->contents, keys[i]->size));
             const rdb_value_t *value = static_cast<const rdb_value_t *>(vals[i]);
 
-            chunk_atoms.resize(i+1);
-            chunk_atoms[i].key.assign(keys[i]->size, keys[i]->contents);
-            chunk_atoms[i].value = get_data(value, leaf_node);
-            chunk_atoms[i].recency = recencies[i];
+            rdb_protocol_details::backfill_atom_t atom;
+            atom.key.assign(keys[i]->size, keys[i]->contents);
+            atom.value = get_data(value, leaf_node);
+            atom.recency = recencies[i];
+            chunk_atoms.push_back(atom);
             current_chunk_size += static_cast<size_t>(chunk_atoms[i].key.size())
                                   + serialized_size(chunk_atoms[i].value);
 
