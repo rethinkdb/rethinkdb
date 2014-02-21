@@ -10,7 +10,6 @@
 
 #include "backfill_progress.hpp"
 #include "btree/btree_store.hpp"
-#include "btree/depth_first_traversal.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/protocol.hpp"
 
