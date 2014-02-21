@@ -38,7 +38,7 @@ TEST(VarintTest, Success64) {
         archive_result_t res = run_serialization(value, &output_value, &serialized_size);
         EXPECT_EQ(varint_uint64_serialized_size(value), serialized_size);
 
-        EXPECT_EQ(ARCHIVE_SUCCESS, res);
+        EXPECT_EQ(archive_result_t::SUCCESS, res);
         EXPECT_EQ(value, output_value);
     }
 }
@@ -55,7 +55,7 @@ TEST(VarintTest, RangeError) {
         string_read_stream_t read_stream(std::string(s), 0);
         uint64_t output_value;
         archive_result_t res = deserialize_varint_uint64(&read_stream, &output_value);
-        EXPECT_EQ(ARCHIVE_SUCCESS, res);
+        EXPECT_EQ(archive_result_t::SUCCESS, res);
         EXPECT_EQ(1 + UINT64_MAX / 2, output_value);
     }
 
@@ -68,7 +68,7 @@ TEST(VarintTest, RangeError) {
         string_read_stream_t read_stream(std::string(s), 0);
         uint64_t output_value;
         archive_result_t res = deserialize_varint_uint64(&read_stream, &output_value);
-        EXPECT_EQ(ARCHIVE_RANGE_ERROR, res);
+        EXPECT_EQ(archive_result_t::RANGE_ERROR, res);
     }
 
     // Next, we test an 11-byte varint.
@@ -80,7 +80,7 @@ TEST(VarintTest, RangeError) {
         string_read_stream_t read_stream(std::string(s), 0);
         uint64_t output_value;
         archive_result_t res = deserialize_varint_uint64(&read_stream, &output_value);
-        EXPECT_EQ(ARCHIVE_RANGE_ERROR, res);
+        EXPECT_EQ(archive_result_t::RANGE_ERROR, res);
     }
 }
 

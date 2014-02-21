@@ -35,8 +35,8 @@ private:
         explicit read_impl_t(dummy_mailbox_t *_parent) : parent(_parent) { }
         void read(read_stream_t *stream) {
             int i;
-            int res = deserialize(stream, &i);
-            if (res) { throw fake_archive_exc_t(); }
+            archive_result_t res = deserialize(stream, &i);
+            if (bad(res)) { throw fake_archive_exc_t(); }
             parent->inbox.insert(i);
         }
     private:

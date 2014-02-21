@@ -30,18 +30,23 @@ private:
 // code upon failure. -1 means there was an error on the socket, -2 means EOF on
 // the socket, -3 means a "range error", +1 means specific error info was
 // discarded, the error code got used as a boolean.
-enum archive_result_t {
-    ARCHIVE_SUCCESS = 0,
-    ARCHIVE_SOCK_ERROR = -1,
-    ARCHIVE_SOCK_EOF = -2,
-    ARCHIVE_RANGE_ERROR = -3,
-    ARCHIVE_GENERIC_ERROR = 1,
+enum class archive_result_t {
+    SUCCESS = 0,
+    SOCK_ERROR = -1,
+    SOCK_EOF = -2,
+    RANGE_ERROR = -3,
+    // RSI: Remove GENERIC_ERROR?
+    GENERIC_ERROR = 1,
 };
+
+inline bool bad(archive_result_t res) {
+    return res != archive_result_t::SUCCESS;
+}
 
 const char *archive_result_as_str(archive_result_t archive_result);
 
 #define guarantee_deserialization(result, ...) do {                     \
-        guarantee(result == ARCHIVE_SUCCESS,                            \
+        guarantee(result == archive_result_t::SUCCESS,                  \
                   "Deserialization of %s failed with error %s.",        \
                   strprintf(__VA_ARGS__).c_str(),                       \
                   archive_result_as_str(result));                       \
@@ -212,16 +217,16 @@ struct serialized_size_t;
         } u;                                                            \
         int64_t res = force_read(s, u.buf, sizeof(typ2));               \
         if (res == -1) {                                                \
-            return ARCHIVE_SOCK_ERROR;                                  \
+            return archive_result_t::SOCK_ERROR;                        \
         }                                                               \
         if (res < int64_t(sizeof(typ2))) {                              \
-            return ARCHIVE_SOCK_EOF;                                    \
+            return archive_result_t::SOCK_EOF;                          \
         }                                                               \
         if (u.v < typ2(lo) || u.v > typ2(hi)) {                         \
-            return ARCHIVE_RANGE_ERROR;                                 \
+            return archive_result_t::RANGE_ERROR;                       \
         }                                                               \
         *x = typ1(u.v);                                                 \
-        return ARCHIVE_SUCCESS;                                         \
+        return archive_result_t::SUCCESS;                               \
     }
 
 // Designed for <stdint.h>'s u?int[0-9]+_t types, which are just sent
@@ -237,14 +242,14 @@ struct serialized_size_t;
         int64_t res = force_read(s, u.buf, sizeof(typ));                \
         if (res == -1) {                                                \
             *x = valgrind_undefined<typ>(0);                            \
-            return ARCHIVE_SOCK_ERROR;                                  \
+            return archive_result_t::SOCK_ERROR;                        \
         }                                                               \
         if (res < int64_t(sizeof(typ))) {                               \
             *x = valgrind_undefined<typ>(0);                            \
-            return ARCHIVE_SOCK_EOF;                                    \
+            return archive_result_t::SOCK_EOF;                          \
         }                                                               \
         *x = u.v;                                                       \
-        return ARCHIVE_SUCCESS;                                         \
+        return archive_result_t::SUCCESS;                               \
     }                                                                   \
                                                                         \
     template <>                                                         \

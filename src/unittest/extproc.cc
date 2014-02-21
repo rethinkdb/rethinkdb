@@ -37,25 +37,29 @@ public:
     uint64_t run() {
         write_message_t wm;
         wm << iterations;
-        int res = send_write_message(extproc_job.write_stream(), &wm);
-        guarantee(res == 0);
+        {
+            int res = send_write_message(extproc_job.write_stream(), &wm);
+            guarantee(res == 0);
+        }
 
         uint64_t result;
-        res = deserialize(extproc_job.read_stream(), &result);
-        guarantee(res == ARCHIVE_SUCCESS);
+        archive_result_t res = deserialize(extproc_job.read_stream(), &result);
+        guarantee(res == archive_result_t::SUCCESS);
         return result;
     }
 
 private:
     static bool worker_fn(read_stream_t *stream_in, write_stream_t *stream_out) {
         size_t count;
-        int res = deserialize(stream_in, &count);
-        guarantee(res == ARCHIVE_SUCCESS);
+        {
+            archive_result_t res = deserialize(stream_in, &count);
+            guarantee(res == archive_result_t::SUCCESS);
+        }
 
         uint64_t result = fib(count);
         write_message_t wm;
         wm << result;
-        res = send_write_message(stream_out, &wm);
+        int res = send_write_message(stream_out, &wm);
         guarantee(res == 0);
         return true;
     }
@@ -83,24 +87,28 @@ public:
 
     ~collatz_job_t() {
         // Read out the last number
-        uint64_t res = deserialize(extproc_job.read_stream(), &last_value);
-        guarantee(res == ARCHIVE_SUCCESS);
+        {
+            archive_result_t res = deserialize(extproc_job.read_stream(), &last_value);
+            guarantee(res == archive_result_t::SUCCESS);
+        }
 
         // Tell the worker to exit
         write_message_t wm;
         wm << 'q';
-        res = send_write_message(extproc_job.write_stream(), &wm);
+        int res = send_write_message(extproc_job.write_stream(), &wm);
         guarantee(res == 0);
     }
 
     uint64_t step() {
-        uint64_t res = deserialize(extproc_job.read_stream(), &last_value);
-        guarantee(res == ARCHIVE_SUCCESS);
+        {
+            archive_result_t res = deserialize(extproc_job.read_stream(), &last_value);
+            guarantee(res == archive_result_t::SUCCESS);
+        }
 
         // Send the notification to continue
         write_message_t wm;
         wm << 'c';
-        res = send_write_message(extproc_job.write_stream(), &wm);
+        int res = send_write_message(extproc_job.write_stream(), &wm);
         guarantee(res == 0);
         return last_value;
     }
@@ -109,8 +117,10 @@ private:
     static bool worker_fn(read_stream_t *stream_in, write_stream_t *stream_out) {
         char command;
         uint64_t current_value;
-        int res = deserialize(stream_in, &current_value);
-        guarantee(res == ARCHIVE_SUCCESS);
+        {
+            archive_result_t res = deserialize(stream_in, &current_value);
+            guarantee(res == archive_result_t::SUCCESS);
+        }
 
         do {
             current_value = collatz(current_value);
@@ -118,12 +128,14 @@ private:
             // Send current value.
             write_message_t msg;
             msg << current_value;
-            res = send_write_message(stream_out, &msg);
-            guarantee(res == 0);
+            {
+                int res = send_write_message(stream_out, &msg);
+                guarantee(res == 0);
+            }
 
             // Wait for signal to proceed.
-            res = deserialize(stream_in, &command);
-            guarantee(res == ARCHIVE_SUCCESS);
+            archive_result_t res = deserialize(stream_in, &command);
+            guarantee(res == archive_result_t::SUCCESS);
         } while (command == 'c');
 
         return true;
@@ -213,8 +225,8 @@ public:
 
     void read() {
         int data;
-        int res = deserialize(extproc_job.read_stream(), &data);
-        if (res != ARCHIVE_SUCCESS) {
+        archive_result_t res = deserialize(extproc_job.read_stream(), &data);
+        if (bad(res)) {
             throw std::runtime_error("read failed");
         }
     }
@@ -361,12 +373,7 @@ private:
     static bool worker_fn(read_stream_t *stream_in, write_stream_t *) {
         while (true) {
             int data;
-            int res = deserialize(stream_in, &data);
-
-            // We don't actually care about this, but MUST_USE...
-            if (res != 0) {
-                continue;
-            }
+            UNUSED archive_result_t res = deserialize(stream_in, &data);
         }
         guarantee(false, "worker should hang");
         return true;
@@ -417,13 +424,15 @@ private:
 
     static bool worker_fn(read_stream_t *stream_in, write_stream_t *stream_out) {
         bool send_data = false;
-        int res = deserialize(stream_in, &send_data);
-        guarantee(res == 0);
+        {
+            archive_result_t res = deserialize(stream_in, &send_data);
+            guarantee(res == archive_result_t::SUCCESS);
+        }
 
         if (send_data) {
             write_message_t msg;
             msg << send_data;
-            res = send_write_message(stream_out, &msg);
+            int res = send_write_message(stream_out, &msg);
             guarantee(res == 0);
         }
 

@@ -57,20 +57,20 @@ write_message_t &operator<<(write_message_t &msg, const counted_t<data_buffer_t>
 archive_result_t deserialize(read_stream_t *s, counted_t<data_buffer_t> *buf) {
     bool exists;
     archive_result_t res = deserialize(s, &exists);
-    if (res) { return res; }
+    if (bad(res)) { return res; }
     if (exists) {
         int64_t size;
         res = deserialize(s, &size);
-        if (res) { return res; }
-        if (size < 0) { return ARCHIVE_RANGE_ERROR; }
+        if (bad(res)) { return res; }
+        if (size < 0) { return archive_result_t::RANGE_ERROR; }
         *buf = data_buffer_t::create(size);
         int64_t num_read = force_read(s, (*buf)->buf(), size);
 
-        if (num_read == -1) { return ARCHIVE_SOCK_ERROR; }
-        if (num_read < size) { return ARCHIVE_SOCK_EOF; }
+        if (num_read == -1) { return archive_result_t::SOCK_ERROR; }
+        if (num_read < size) { return archive_result_t::SOCK_EOF; }
         guarantee(num_read == size);
     }
-    return ARCHIVE_SUCCESS;
+    return archive_result_t::SUCCESS;
 }
 
 RDB_IMPL_SERIALIZABLE_1(get_query_t, key);

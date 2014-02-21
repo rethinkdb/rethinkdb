@@ -42,7 +42,7 @@ void directory_read_manager_t<metadata_t>::on_message(peer_id_t source_peer,
     uint8_t code = 0;
     {
         archive_result_t res = deserialize(s, &code);
-        if (res != ARCHIVE_SUCCESS) { throw fake_archive_exc_t(); }
+        if (res != archive_result_t::SUCCESS) { throw fake_archive_exc_t(); }
     }
 
     switch (code) {
@@ -52,9 +52,9 @@ void directory_read_manager_t<metadata_t>::on_message(peer_id_t source_peer,
             fifo_enforcer_state_t metadata_fifo_state;
             {
                 archive_result_t res = deserialize(s, initial_value.get());
-                if (res != ARCHIVE_SUCCESS) { throw fake_archive_exc_t(); }
+                if (res != archive_result_t::SUCCESS) { throw fake_archive_exc_t(); }
                 res = deserialize(s, &metadata_fifo_state);
-                if (res != ARCHIVE_SUCCESS) { throw fake_archive_exc_t(); }
+                if (res != archive_result_t::SUCCESS) { throw fake_archive_exc_t(); }
             }
 
             /* Spawn a new coroutine because we might not be on the home thread
@@ -74,9 +74,9 @@ void directory_read_manager_t<metadata_t>::on_message(peer_id_t source_peer,
             fifo_enforcer_write_token_t metadata_fifo_token;
             {
                 archive_result_t res = deserialize(s, new_value.get());
-                if (res != ARCHIVE_SUCCESS) { throw fake_archive_exc_t(); }
+                if (res != archive_result_t::SUCCESS) { throw fake_archive_exc_t(); }
                 res = deserialize(s, &metadata_fifo_token);
-                if (res != ARCHIVE_SUCCESS) { throw fake_archive_exc_t(); }
+                if (res != archive_result_t::SUCCESS) { throw fake_archive_exc_t(); }
             }
 
             /* Spawn a new coroutine because we might not be on the home thread

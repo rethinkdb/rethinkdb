@@ -11,20 +11,20 @@
 
 const char *archive_result_as_str(archive_result_t archive_result) {
     switch (archive_result) {
-    case ARCHIVE_SUCCESS:
-        return "ARCHIVE_SUCCESS";
+    case archive_result_t::SUCCESS:
+        return "archive_result_t::SUCCESS";
         break;
-    case ARCHIVE_SOCK_ERROR:
-        return "ARCHIVE_SOCK_ERROR";
+    case archive_result_t::SOCK_ERROR:
+        return "archive_result_t::SOCK_ERROR";
         break;
-    case ARCHIVE_SOCK_EOF:
-        return "ARCHIVE_SOCK_EOF";
+    case archive_result_t::SOCK_EOF:
+        return "archive_result_t::SOCK_EOF";
         break;
-    case ARCHIVE_RANGE_ERROR:
-        return "ARCHIVE_RANGE_ERROR";
+    case archive_result_t::RANGE_ERROR:
+        return "archive_result_t::RANGE_ERROR";
         break;
-    case ARCHIVE_GENERIC_ERROR:
-        return "ARCHIVE_GENERIC_ERROR";
+    case archive_result_t::GENERIC_ERROR:
+        return "archive_result_t::GENERIC_ERROR";
         break;
     default:
         unreachable();
@@ -108,10 +108,10 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, uuid_u *uuid) {
     int64_t sz = uuid_u::static_size();
     int64_t res = force_read(s, uuid->data(), sz);
 
-    if (res == -1) { return ARCHIVE_SOCK_ERROR; }
-    if (res < sz) { return ARCHIVE_SOCK_EOF; }
+    if (res == -1) { return archive_result_t::SOCK_ERROR; }
+    if (res < sz) { return archive_result_t::SOCK_EOF; }
     rassert(res == sz);
-    return ARCHIVE_SUCCESS;
+    return archive_result_t::SUCCESS;
 }
 
 write_message_t &operator<<(write_message_t &msg, const in6_addr &addr) {
@@ -123,10 +123,10 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, in6_addr *addr) {
     int64_t sz = sizeof(addr->s6_addr);
     int64_t res = force_read(s, &addr->s6_addr, sz);
 
-    if (res == -1) { return ARCHIVE_SOCK_ERROR; }
-    if (res < sz) { return ARCHIVE_SOCK_EOF; }
+    if (res == -1) { return archive_result_t::SOCK_ERROR; }
+    if (res < sz) { return archive_result_t::SOCK_EOF; }
     rassert(res == sz);
-    return ARCHIVE_SUCCESS;
+    return archive_result_t::SUCCESS;
 }
 
 RDB_IMPL_SERIALIZABLE_1(in_addr, s_addr);

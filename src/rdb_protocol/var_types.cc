@@ -148,28 +148,28 @@ void var_scope_t::rdb_serialize(write_message_t &msg) const {  // NOLINT(runtime
 archive_result_t var_scope_t::rdb_deserialize(read_stream_t *s) {
     std::map<sym_t, counted_t<const datum_t> > local_vars;
     archive_result_t res = deserialize(s, &local_vars);
-    if (res) { return res; }
+    if (bad(res)) { return res; }
 
     uint32_t local_implicit_depth;
     res = deserialize(s, &local_implicit_depth);
-    if (res) { return res; }
+    if (bad(res)) { return res; }
 
     counted_t<const datum_t> local_maybe_implicit;
     if (local_implicit_depth == 1) {
         bool has;
         res = deserialize(s, &has);
-        if (res) { return res; }
+        if (bad(res)) { return res; }
 
         if (has) {
             res = deserialize(s, &local_maybe_implicit);
-            if (res) { return res; }
+            if (bad(res)) { return res; }
         }
     }
 
     vars = std::move(local_vars);
     implicit_depth = local_implicit_depth;
     maybe_implicit = std::move(local_maybe_implicit);
-    return ARCHIVE_SUCCESS;
+    return archive_result_t::SUCCESS;
 }
 
 

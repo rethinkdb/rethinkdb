@@ -908,22 +908,22 @@ archive_result_t rdb_modification_info_t::rdb_deserialize(read_stream_t *s) {
 
     int8_t has_value;
     res = deserialize(s, &has_value);
-    if (res) { return res; }
+    if (bad(res)) { return res; }
 
     if (has_value == HAS_VALUE) {
         res = deserialize(s, &deleted);
-        if (res) { return res; }
+        if (bad(res)) { return res; }
     }
 
     res = deserialize(s, &has_value);
-    if (res) { return res; }
+    if (bad(res)) { return res; }
 
     if (has_value == HAS_VALUE) {
         res = deserialize(s, &added);
-        if (res) { return res; }
+        if (bad(res)) { return res; }
     }
 
-    return ARCHIVE_SUCCESS;
+    return archive_result_t::SUCCESS;
 }
 
 RDB_IMPL_ME_SERIALIZABLE_2(rdb_modification_report_t, primary_key, info);

@@ -53,7 +53,7 @@ public:
         bool (*fn) (read_stream_t *, write_stream_t *);
         while (true) {
             int64_t read_size = sizeof(fn);
-            int64_t read_res = force_read(&socket_stream, &fn, read_size);
+            const int64_t read_res = force_read(&socket_stream, &fn, read_size);
             if (read_res != read_size) {
                 break;
             }
@@ -64,10 +64,12 @@ public:
 
             // Trade magic numbers with the parent
             uint64_t magic_from_parent;
-            read_res = deserialize(&socket_stream, &magic_from_parent);
-            if (read_res != ARCHIVE_SUCCESS ||
-                magic_from_parent != extproc_worker_t::parent_to_worker_magic) {
-                break;
+            {
+                archive_result_t res = deserialize(&socket_stream, &magic_from_parent);
+                if (res != archive_result_t::SUCCESS ||
+                    magic_from_parent != extproc_worker_t::parent_to_worker_magic) {
+                    break;
+                }
             }
 
             write_message_t msg;
