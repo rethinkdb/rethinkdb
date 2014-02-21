@@ -7,6 +7,7 @@
 #include "btree/btree_store.hpp"
 #include "btree/operations.hpp"
 #include "containers/archive/boost_types.hpp"
+#include "containers/archive/vector_stream.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/protocol.hpp"

@@ -3,9 +3,6 @@
 
 #include <algorithm>
 
-#include "errors.hpp"
-#include <boost/bind.hpp>
-
 #include "arch/io/disk.hpp"
 #include "btree/erase_range.hpp"
 #include "btree/parallel_traversal.hpp"
@@ -18,6 +15,7 @@
 #include "concurrency/wait_any.hpp"
 #include "containers/archive/archive.hpp"
 #include "containers/archive/vector_stream.hpp"
+#include "containers/disk_backed_queue.hpp"
 #include "protob/protob.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/env.hpp"
