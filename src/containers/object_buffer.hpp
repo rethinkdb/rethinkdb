@@ -2,6 +2,9 @@
 #ifndef CONTAINERS_OBJECT_BUFFER_HPP_
 #define CONTAINERS_OBJECT_BUFFER_HPP_
 
+#include <new>
+#include <utility>
+
 #include "errors.hpp"
 
 // Caveat: do not use this template with an object that has a blocking destructor, if
