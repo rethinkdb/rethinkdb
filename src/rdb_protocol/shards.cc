@@ -34,7 +34,7 @@ protected:
     grouped_accumulator_t(T &&_default_val) : default_val(std::move(_default_val)) { }
     virtual ~grouped_accumulator_t() { }
 private:
-    virtual done_t operator()(groups_t *groups,
+    virtual done_traversing_t operator()(groups_t *groups,
                               store_key_t &&key,
                               counted_t<const datum_t> &&sindex_val) {
         for (auto it = groups->begin(); it != groups->end(); ++it) {
@@ -44,7 +44,7 @@ private:
                 accumulate(*el, &t_it->second, std::move(key), std::move(sindex_val));
             }
         }
-        return should_send_batch() ? done_t::YES : done_t::NO;
+        return should_send_batch() ? done_traversing_t::YES : done_traversing_t::NO;
     }
     virtual void accumulate(const counted_t<const datum_t> &el,
                             T *t,

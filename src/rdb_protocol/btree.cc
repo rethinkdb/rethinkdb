@@ -695,7 +695,7 @@ public:
               boost::optional<sindex_data_t> &&_sindex,
               const key_range_t &range);
 
-    virtual done_t handle_pair(scoped_key_value_t &&keyvalue,
+    virtual done_traversing_t handle_pair(scoped_key_value_t &&keyvalue,
                                concurrent_traversal_fifo_enforcer_signal_t waiter)
     THROWS_ONLY(interrupted_exc_t);
     void finish() THROWS_ONLY(interrupted_exc_t);
@@ -734,19 +734,19 @@ void rget_cb_t::finish() THROWS_ONLY(interrupted_exc_t) {
 }
 
 // Handle a keyvalue pair.  Returns whether or not we're done early.
-done_t rget_cb_t::handle_pair(scoped_key_value_t &&keyvalue,
+done_traversing_t rget_cb_t::handle_pair(scoped_key_value_t &&keyvalue,
                               concurrent_traversal_fifo_enforcer_signal_t waiter)
 THROWS_ONLY(interrupted_exc_t) {
     sampler->new_sample();
 
     if (bad_init || boost::get<ql::exc_t>(&io.response->result) != NULL) {
-        return done_t::YES;
+        return done_traversing_t::YES;
     }
 
     // Load the key and value.
     store_key_t key(keyvalue.key());
     if (sindex && !sindex->pkey_range.contains_key(ql::datum_t::extract_primary(key))) {
-        return done_t::NO;
+        return done_traversing_t::NO;
     }
 
     lazy_json_t row(static_cast<const rdb_value_t *>(keyvalue.value()),
@@ -782,7 +782,7 @@ THROWS_ONLY(interrupted_exc_t) {
                 guarantee(sindex_val);
             }
             if (!sindex->range.contains(sindex_val)) {
-                return done_t::NO;
+                return done_traversing_t::NO;
             }
         }
 
@@ -797,13 +797,13 @@ THROWS_ONLY(interrupted_exc_t) {
         //                                       NULL if no sindex ^^^^^^^^^^
     } catch (const ql::exc_t &e) {
         io.response->result = e;
-        return done_t::YES;
+        return done_traversing_t::YES;
     } catch (const ql::datum_exc_t &e) {
 #ifndef NDEBUG
         unreachable();
 #else
         io.response->result = ql::exc_t(e, NULL);
-        return done_t::YES;
+        return done_traversing_t::YES;
 #endif // NDEBUG
     }
 }

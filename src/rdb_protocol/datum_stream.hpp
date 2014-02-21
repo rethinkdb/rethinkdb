@@ -145,7 +145,7 @@ private:
     virtual void accumulate(env_t *env, eager_acc_t *acc, const terminal_variant_t &tv);
     virtual void accumulate_all(env_t *env, eager_acc_t *acc);
 
-    done_t next_grouped_batch(env_t *env, const batchspec_t &bs, groups_t *out);
+    done_traversing_t next_grouped_batch(env_t *env, const batchspec_t &bs, groups_t *out);
     virtual std::vector<counted_t<const datum_t> >
     next_batch_impl(env_t *env, const batchspec_t &bs);
     virtual std::vector<counted_t<const datum_t> >

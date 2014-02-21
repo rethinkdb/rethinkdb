@@ -121,7 +121,7 @@ bool btree_depth_first_traversal(counted_t<counted_buf_lock_t> block,
                     btree_key_cmp(key, range.right.key.btree_key()) >= 0) {
                     break;
                 }
-                if (done_t::YES
+                if (done_traversing_t::YES
                     == cb->handle_pair(scoped_key_value_t(key, (*it).second,
                                                           movable_t<counted_buf_lock_t>(block)))) {
                     return false;
@@ -141,7 +141,7 @@ bool btree_depth_first_traversal(counted_t<counted_buf_lock_t> block,
                     break;
                 }
 
-                if (done_t::YES
+                if (done_traversing_t::YES
                     == cb->handle_pair(scoped_key_value_t(key, (*it).second,
                                                           movable_t<counted_buf_lock_t>(block)))) {
                     return false;
