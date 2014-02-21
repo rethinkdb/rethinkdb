@@ -81,8 +81,7 @@ if __name__ == "__main__":
     print "Please modify '%s' instead of modifying this file.*/" % sys.argv[0]
     print
 
-# Don't generate an include for containers/archive/archive.hpp -- the
-# caller needs to do that.
+    print "#include \"containers/archive/archive.hpp\""
     print
 
     print """
