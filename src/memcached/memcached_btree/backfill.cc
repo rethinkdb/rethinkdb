@@ -24,20 +24,49 @@ public:
         cb_->on_deletion(key, recency, interruptor);
     }
 
-    void on_pair(buf_parent_t parent, repli_timestamp_t recency,
-                 const btree_key_t *key, const void *val,
-                 signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        rassert(kr_.contains_key(key->contents, key->size));
-        const memcached_value_t *value = static_cast<const memcached_value_t *>(val);
-        counted_t<data_buffer_t> data_provider = value_to_data_buffer(value, parent);
-        backfill_atom_t atom;
-        atom.key.assign(key->size, key->contents);
-        atom.value = data_provider;
-        atom.flags = value->mcflags();
-        atom.exptime = value->exptime();
-        atom.recency = recency;
-        atom.cas_or_zero = value->has_cas() ? value->cas() : 0;
-        cb_->on_keyvalue(atom, interruptor);
+    void on_pairs(buf_parent_t parent, const std::vector<repli_timestamp_t> &recencies,
+                  const std::vector<const btree_key_t *> &keys,
+                  const std::vector<const void *> &vals,
+                  signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+
+        std::vector<backfill_atom_t> chunk_atoms;
+        chunk_atoms.reserve(keys.size());
+        size_t current_chunk_size = 0;
+
+        for (size_t i = 0; i < keys.size(); ++i) {
+            rassert(kr_.contains_key(keys[i]->contents, keys[i]->size));
+            const memcached_value_t *value = static_cast<const memcached_value_t *>(vals[i]);
+            counted_t<data_buffer_t> data_provider = value_to_data_buffer(value, parent);
+
+            backfill_atom_t atom;
+            atom.key.assign(keys[i]->size, keys[i]->contents);
+            atom.value = data_provider;
+            atom.flags = value->mcflags();
+            atom.exptime = value->exptime();
+            atom.recency = recencies[i];
+            atom.cas_or_zero = value->has_cas() ? value->cas() : 0;
+            chunk_atoms.push_back(atom);
+            // We only count the variably sized fields `key` and `value`.
+            // But that is ok, we don't have to comply with BACKFILL_MAX_KVPAIRS_SIZE
+            // that strictly.
+            current_chunk_size += static_cast<size_t>(atom.key.size())
+                                  + static_cast<size_t>(atom.value->size());
+
+            if (current_chunk_size >= BACKFILL_MAX_KVPAIRS_SIZE) {
+                // To avoid flooding the receiving node with overly large chunks
+                // (which could easily make it run out of memory in extreme
+                // cases), pass on what we have got so far. Then continue
+                // with the remaining values.
+                cb_->on_keyvalues(std::move(chunk_atoms), interruptor);
+                chunk_atoms = std::vector<backfill_atom_t>();
+                chunk_atoms.reserve(keys.size() - (i+1));
+                current_chunk_size = 0;
+            }
+        }
+        if (!chunk_atoms.empty()) {
+            // Pass on the final chunk
+            cb_->on_keyvalues(std::move(chunk_atoms), interruptor);
+        }
     }
 
     void on_sindexes(const std::map<std::string, secondary_index_t> &, signal_t *) THROWS_ONLY(interrupted_exc_t) {

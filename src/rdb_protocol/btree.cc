@@ -390,10 +390,11 @@ void rdb_set(const store_key_t &key,
              superblock_t *superblock,
              point_write_response_t *response_out,
              rdb_modification_info_t *mod_info,
-             profile::trace_t *trace) {
+             profile::trace_t *trace,
+             promise_t<superblock_t *> *pass_back_superblock) {
     keyvalue_location_t<rdb_value_t> kv_location;
     find_keyvalue_location_for_write(superblock, key.btree_key(), &kv_location,
-                                     &slice->stats, trace);
+                                     &slice->stats, trace, pass_back_superblock);
     const bool had_value = kv_location.value.has();
 
     /* update the modification report */
@@ -430,19 +431,44 @@ public:
         cb_->on_deletion(key, recency, interruptor);
     }
 
-    void on_pair(buf_parent_t leaf_node, repli_timestamp_t recency,
-                 const btree_key_t *key, const void *val,
-                 signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        rassert(kr_.contains_key(key->contents, key->size));
-        const rdb_value_t *value = static_cast<const rdb_value_t *>(val);
+    void on_pairs(buf_parent_t leaf_node, const std::vector<repli_timestamp_t> &recencies,
+                  const std::vector<const btree_key_t *> &keys,
+                  const std::vector<const void *> &vals,
+                  signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
 
-        slice_->stats.pm_keys_read.record();
+        std::vector<rdb_protocol_details::backfill_atom_t> chunk_atoms;
+        chunk_atoms.reserve(keys.size());
+        size_t current_chunk_size = 0;
 
-        rdb_protocol_details::backfill_atom_t atom;
-        atom.key.assign(key->size, key->contents);
-        atom.value = get_data(value, leaf_node);
-        atom.recency = recency;
-        cb_->on_keyvalue(atom, interruptor);
+        for (size_t i = 0; i < keys.size(); ++i) {
+            rassert(kr_.contains_key(keys[i]->contents, keys[i]->size));
+            const rdb_value_t *value = static_cast<const rdb_value_t *>(vals[i]);
+
+            rdb_protocol_details::backfill_atom_t atom;
+            atom.key.assign(keys[i]->size, keys[i]->contents);
+            atom.value = get_data(value, leaf_node);
+            atom.recency = recencies[i];
+            chunk_atoms.push_back(atom);
+            current_chunk_size += static_cast<size_t>(atom.key.size())
+                                  + serialized_size(atom.value);
+
+            if (current_chunk_size >= BACKFILL_MAX_KVPAIRS_SIZE) {
+                // To avoid flooding the receiving node with overly large chunks
+                // (which could easily make it run out of memory in extreme
+                // cases), pass on what we have got so far. Then continue
+                // with the remaining values.
+                slice_->stats.pm_keys_read.record(chunk_atoms.size());
+                cb_->on_keyvalues(std::move(chunk_atoms), interruptor);
+                chunk_atoms = std::vector<rdb_protocol_details::backfill_atom_t>();
+                chunk_atoms.reserve(keys.size() - (i+1));
+                current_chunk_size = 0;
+            }
+        }
+        if (!chunk_atoms.empty()) {
+            // Pass on the final chunk
+            slice_->stats.pm_keys_read.record(chunk_atoms.size());
+            cb_->on_keyvalues(std::move(chunk_atoms), interruptor);
+        }
     }
 
     void on_sindexes(const std::map<std::string, secondary_index_t> &sindexes, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {

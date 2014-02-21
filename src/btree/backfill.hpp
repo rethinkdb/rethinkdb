@@ -9,6 +9,11 @@
 #include "containers/uuid.hpp"
 #include "utils.hpp"
 
+// Implementations of agnostic_backfill_callback_t::on_pairs() should use
+// this limit to split up large chunks of key/value pairs into smaller chunks,
+// each not too much larger than this value.
+#define BACKFILL_MAX_KVPAIRS_SIZE (1024 * 512)
+
 class buf_parent_t;
 class buf_lock_t;
 struct btree_key_t;
@@ -25,9 +30,11 @@ class agnostic_backfill_callback_t {
 public:
     virtual void on_delete_range(const key_range_t &range, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
     virtual void on_deletion(const btree_key_t *key, repli_timestamp_t recency, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
-    virtual void on_pair(buf_parent_t leaf_node, repli_timestamp_t recency,
-                         const btree_key_t *key, const void *value,
-                         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
+    virtual void on_pairs(buf_parent_t leaf_node,
+                          const std::vector<repli_timestamp_t> &recencies,
+                          const std::vector<const btree_key_t *> &keys,
+                          const std::vector<const void *> &values,
+                          signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
     virtual void on_sindexes(const std::map<std::string, secondary_index_t> &sindexes, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
     virtual ~agnostic_backfill_callback_t() { }
 };

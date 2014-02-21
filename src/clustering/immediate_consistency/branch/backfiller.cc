@@ -8,7 +8,14 @@
 #include "rpc/semilattice/view.hpp"
 #include "stl_utils.hpp"
 
-#define MAX_CHUNKS_OUT 5000
+// The number of backfill chunks that may be sent but not yet acknowledged (~processed)
+// by the receiver.
+// Each chunk can contain multiple key/value pairs, but its (approximate) maximum
+// size is limited by BACKFILL_MAX_KVPAIRS_SIZE as defined in btree/backfill.hpp.
+// When setting this value, keep memory consumption in mind.
+// Must be >= ALLOCATION_CHUNK in backfillee.cc, or backfilling will stall and
+// never finish.
+#define MAX_CHUNKS_OUT 64
 
 inline state_timestamp_t get_earliest_timestamp_of_version_range(const version_range_t &vr) {
     return vr.earliest.timestamp;
