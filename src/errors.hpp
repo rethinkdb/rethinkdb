@@ -11,18 +11,18 @@
 #if defined __i386 || defined __x86_64
 #define BREAKPOINT __asm__ volatile ("int3")
 #else   /* not x86/amd64 */
-#define BREAKPOINT raise(SIGTRAP)
+#define BREAKPOINT (raise(SIGTRAP))
 #endif  /* x86/amd64 */
 #endif /* __linux__ */
 
 #ifdef __MACH__
-#define BREAKPOINT raise(SIGTRAP)
+#define BREAKPOINT (raise(SIGTRAP))
 #endif
 #else /* Breakpoints Disabled */
 #define BREAKPOINT
 #endif /* DISABLE_BREAKPOINTS */
 
-#define CT_ASSERT(e) {enum { compile_time_assert_error = 1/(!!(e)) };}
+#define CT_ASSERT(e) do { enum { compile_time_assert_error = 1/(!!(e)) }; } while (0)
 
 #ifndef NDEBUG
 #define DEBUG_ONLY(...) __VA_ARGS__
