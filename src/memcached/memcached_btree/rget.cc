@@ -66,18 +66,21 @@ public:
     rget_depth_first_traversal_callback_t(buf_parent_t par,
                                           int max, exptime_t et) :
         parent(par), maximum(max), effective_time(et), cumulative_size(0) { }
-    bool handle_pair(scoped_key_value_t &&keyvalue) {
+    stop_traversing_t handle_pair(scoped_key_value_t &&keyvalue) {
         const memcached_value_t *mc_value
             = static_cast<const memcached_value_t *>(keyvalue.value());
         if (mc_value->expired(effective_time)) {
-            return true;
+            return stop_traversing_t::CONTINUE;
         }
         counted_t<data_buffer_t> data(value_to_data_buffer(mc_value, parent));
         result.pairs.push_back(key_with_data_buffer_t(store_key_t(keyvalue.key()),
                                                       mc_value->mcflags(),
                                                       data));
         cumulative_size += estimate_rget_result_pair_size(result.pairs.back());
-        return static_cast<int64_t>(result.pairs.size()) < maximum && cumulative_size < rget_max_chunk_size;
+        return (static_cast<int64_t>(result.pairs.size()) < maximum
+                && cumulative_size < rget_max_chunk_size)
+            ? stop_traversing_t::CONTINUE
+            : stop_traversing_t::STOP;
     }
     buf_parent_t parent;
     int maximum;
