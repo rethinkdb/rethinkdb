@@ -6,7 +6,6 @@
 #include <utility>
 
 #include "arch/spinlock.hpp"
-#include "utils.hpp"
 
 class coro_t;
 class cross_thread_mutex_t;
