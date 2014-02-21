@@ -137,7 +137,6 @@ class Connection extends events.EventEmitter
             @emit 'error', new err.RqlDriverError "Unexpected token #{token}."
 
     close: (varar 0, 2, (optsOrCallback, callback) ->
-        @open = false
         if callback?
             opts = optsOrCallback
             unless Object::toString.call(opts) is '[object Object]'
@@ -157,6 +156,7 @@ class Connection extends events.EventEmitter
             throw new err.RqlDriverError "Final argument to `close` must be a callback function or object."
 
         wrappedCb = (args...) =>
+            @open = false
             if cb?
                 cb(args...)
 
