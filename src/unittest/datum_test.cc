@@ -17,7 +17,7 @@ void test_datum_serialization(const counted_t<const ql::datum_t> datum) {
     string_read_stream_t read_stream(std::move(write_stream.str()), 0);
     counted_t<const ql::datum_t> deserialized_datum;
     archive_result_t res = deserialize(&read_stream, &deserialized_datum);
-    ASSERT_EQ(ARCHIVE_SUCCESS, res);
+    ASSERT_EQ(archive_result_t::SUCCESS, res);
     ASSERT_EQ(datum, deserialized_datum);
 }
 

@@ -86,24 +86,24 @@ void wire_func_t::rdb_serialize(write_message_t &msg) const { // NOLINT
 archive_result_t wire_func_t::rdb_deserialize(read_stream_t *s) {
     wire_func_type_t type;
     archive_result_t res = deserialize(s, &type);
-    if (res) { return res; }
+    if (bad(res)) { return res; }
     switch (type) {
     case wire_func_type_t::REQL: {
         var_scope_t scope;
         res = deserialize(s, &scope);
-        if (res) { return res; }
+        if (bad(res)) { return res; }
 
         std::vector<sym_t> arg_names;
         res = deserialize(s, &arg_names);
-        if (res) { return res; }
+        if (bad(res)) { return res; }
 
         protob_t<Term> body = make_counted_term();
         res = deserialize(s, &*body);
-        if (res) { return res; }
+        if (bad(res)) { return res; }
 
         protob_t<Backtrace> backtrace = make_counted_backtrace();
         res = deserialize(s, &*backtrace);
-        if (res) { return res; }
+        if (bad(res)) { return res; }
 
         compile_env_t env(
             scope.compute_visibility().with_func_arg_name_list(arg_names));
@@ -114,15 +114,15 @@ archive_result_t wire_func_t::rdb_deserialize(read_stream_t *s) {
     case wire_func_type_t::JS: {
         std::string js_source;
         res = deserialize(s, &js_source);
-        if (res) { return res; }
+        if (bad(res)) { return res; }
 
         uint64_t js_timeout_ms;
         res = deserialize(s, &js_timeout_ms);
-        if (res) { return res; }
+        if (bad(res)) { return res; }
 
         protob_t<Backtrace> backtrace = make_counted_backtrace();
         res = deserialize(s, &*backtrace);
-        if (res) { return res; }
+        if (bad(res)) { return res; }
 
         func = make_counted<js_func_t>(js_source, js_timeout_ms, backtrace);
         return res;

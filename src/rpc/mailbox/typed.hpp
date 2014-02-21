@@ -143,8 +143,8 @@ class mailbox_t< void(arg0_t) > {
         explicit read_impl_t(mailbox_t< void(arg0_t) > *_parent) : parent(_parent) { }
         void read(read_stream_t *stream) {
             arg0_t arg0;
-            int res = deserialize(stream, &arg0);
-            if (res) { throw fake_archive_exc_t(); }
+            archive_result_t res = deserialize(stream, &arg0);
+            if (bad(res)) { throw fake_archive_exc_t(); }
             parent->fun(arg0);
         }
     private:
@@ -205,11 +205,11 @@ class mailbox_t< void(arg0_t, arg1_t) > {
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t) > *_parent) : parent(_parent) { }
         void read(read_stream_t *stream) {
             arg0_t arg0;
-            int res = deserialize(stream, &arg0);
-            if (res) { throw fake_archive_exc_t(); }
+            archive_result_t res = deserialize(stream, &arg0);
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg1_t arg1;
             res = deserialize(stream, &arg1);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             parent->fun(arg0, arg1);
         }
     private:
@@ -272,14 +272,14 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t) > {
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t) > *_parent) : parent(_parent) { }
         void read(read_stream_t *stream) {
             arg0_t arg0;
-            int res = deserialize(stream, &arg0);
-            if (res) { throw fake_archive_exc_t(); }
+            archive_result_t res = deserialize(stream, &arg0);
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg1_t arg1;
             res = deserialize(stream, &arg1);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg2_t arg2;
             res = deserialize(stream, &arg2);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             parent->fun(arg0, arg1, arg2);
         }
     private:
@@ -344,17 +344,17 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > {
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > *_parent) : parent(_parent) { }
         void read(read_stream_t *stream) {
             arg0_t arg0;
-            int res = deserialize(stream, &arg0);
-            if (res) { throw fake_archive_exc_t(); }
+            archive_result_t res = deserialize(stream, &arg0);
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg1_t arg1;
             res = deserialize(stream, &arg1);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg2_t arg2;
             res = deserialize(stream, &arg2);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg3_t arg3;
             res = deserialize(stream, &arg3);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             parent->fun(arg0, arg1, arg2, arg3);
         }
     private:
@@ -421,20 +421,20 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > {
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > *_parent) : parent(_parent) { }
         void read(read_stream_t *stream) {
             arg0_t arg0;
-            int res = deserialize(stream, &arg0);
-            if (res) { throw fake_archive_exc_t(); }
+            archive_result_t res = deserialize(stream, &arg0);
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg1_t arg1;
             res = deserialize(stream, &arg1);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg2_t arg2;
             res = deserialize(stream, &arg2);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg3_t arg3;
             res = deserialize(stream, &arg3);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg4_t arg4;
             res = deserialize(stream, &arg4);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             parent->fun(arg0, arg1, arg2, arg3, arg4);
         }
     private:
@@ -503,23 +503,23 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > {
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > *_parent) : parent(_parent) { }
         void read(read_stream_t *stream) {
             arg0_t arg0;
-            int res = deserialize(stream, &arg0);
-            if (res) { throw fake_archive_exc_t(); }
+            archive_result_t res = deserialize(stream, &arg0);
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg1_t arg1;
             res = deserialize(stream, &arg1);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg2_t arg2;
             res = deserialize(stream, &arg2);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg3_t arg3;
             res = deserialize(stream, &arg3);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg4_t arg4;
             res = deserialize(stream, &arg4);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg5_t arg5;
             res = deserialize(stream, &arg5);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             parent->fun(arg0, arg1, arg2, arg3, arg4, arg5);
         }
     private:
@@ -590,26 +590,26 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > 
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > *_parent) : parent(_parent) { }
         void read(read_stream_t *stream) {
             arg0_t arg0;
-            int res = deserialize(stream, &arg0);
-            if (res) { throw fake_archive_exc_t(); }
+            archive_result_t res = deserialize(stream, &arg0);
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg1_t arg1;
             res = deserialize(stream, &arg1);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg2_t arg2;
             res = deserialize(stream, &arg2);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg3_t arg3;
             res = deserialize(stream, &arg3);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg4_t arg4;
             res = deserialize(stream, &arg4);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg5_t arg5;
             res = deserialize(stream, &arg5);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg6_t arg6;
             res = deserialize(stream, &arg6);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6);
         }
     private:
@@ -682,29 +682,29 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > *_parent) : parent(_parent) { }
         void read(read_stream_t *stream) {
             arg0_t arg0;
-            int res = deserialize(stream, &arg0);
-            if (res) { throw fake_archive_exc_t(); }
+            archive_result_t res = deserialize(stream, &arg0);
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg1_t arg1;
             res = deserialize(stream, &arg1);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg2_t arg2;
             res = deserialize(stream, &arg2);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg3_t arg3;
             res = deserialize(stream, &arg3);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg4_t arg4;
             res = deserialize(stream, &arg4);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg5_t arg5;
             res = deserialize(stream, &arg5);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg6_t arg6;
             res = deserialize(stream, &arg6);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg7_t arg7;
             res = deserialize(stream, &arg7);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
         }
     private:
@@ -779,32 +779,32 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > *_parent) : parent(_parent) { }
         void read(read_stream_t *stream) {
             arg0_t arg0;
-            int res = deserialize(stream, &arg0);
-            if (res) { throw fake_archive_exc_t(); }
+            archive_result_t res = deserialize(stream, &arg0);
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg1_t arg1;
             res = deserialize(stream, &arg1);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg2_t arg2;
             res = deserialize(stream, &arg2);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg3_t arg3;
             res = deserialize(stream, &arg3);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg4_t arg4;
             res = deserialize(stream, &arg4);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg5_t arg5;
             res = deserialize(stream, &arg5);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg6_t arg6;
             res = deserialize(stream, &arg6);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg7_t arg7;
             res = deserialize(stream, &arg7);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg8_t arg8;
             res = deserialize(stream, &arg8);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
         }
     private:
@@ -881,35 +881,35 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) > *_parent) : parent(_parent) { }
         void read(read_stream_t *stream) {
             arg0_t arg0;
-            int res = deserialize(stream, &arg0);
-            if (res) { throw fake_archive_exc_t(); }
+            archive_result_t res = deserialize(stream, &arg0);
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg1_t arg1;
             res = deserialize(stream, &arg1);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg2_t arg2;
             res = deserialize(stream, &arg2);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg3_t arg3;
             res = deserialize(stream, &arg3);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg4_t arg4;
             res = deserialize(stream, &arg4);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg5_t arg5;
             res = deserialize(stream, &arg5);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg6_t arg6;
             res = deserialize(stream, &arg6);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg7_t arg7;
             res = deserialize(stream, &arg7);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg8_t arg8;
             res = deserialize(stream, &arg8);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg9_t arg9;
             res = deserialize(stream, &arg9);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);
         }
     private:
@@ -988,38 +988,38 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) > *_parent) : parent(_parent) { }
         void read(read_stream_t *stream) {
             arg0_t arg0;
-            int res = deserialize(stream, &arg0);
-            if (res) { throw fake_archive_exc_t(); }
+            archive_result_t res = deserialize(stream, &arg0);
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg1_t arg1;
             res = deserialize(stream, &arg1);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg2_t arg2;
             res = deserialize(stream, &arg2);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg3_t arg3;
             res = deserialize(stream, &arg3);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg4_t arg4;
             res = deserialize(stream, &arg4);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg5_t arg5;
             res = deserialize(stream, &arg5);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg6_t arg6;
             res = deserialize(stream, &arg6);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg7_t arg7;
             res = deserialize(stream, &arg7);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg8_t arg8;
             res = deserialize(stream, &arg8);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg9_t arg9;
             res = deserialize(stream, &arg9);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg10_t arg10;
             res = deserialize(stream, &arg10);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10);
         }
     private:
@@ -1100,41 +1100,41 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) > *_parent) : parent(_parent) { }
         void read(read_stream_t *stream) {
             arg0_t arg0;
-            int res = deserialize(stream, &arg0);
-            if (res) { throw fake_archive_exc_t(); }
+            archive_result_t res = deserialize(stream, &arg0);
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg1_t arg1;
             res = deserialize(stream, &arg1);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg2_t arg2;
             res = deserialize(stream, &arg2);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg3_t arg3;
             res = deserialize(stream, &arg3);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg4_t arg4;
             res = deserialize(stream, &arg4);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg5_t arg5;
             res = deserialize(stream, &arg5);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg6_t arg6;
             res = deserialize(stream, &arg6);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg7_t arg7;
             res = deserialize(stream, &arg7);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg8_t arg8;
             res = deserialize(stream, &arg8);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg9_t arg9;
             res = deserialize(stream, &arg9);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg10_t arg10;
             res = deserialize(stream, &arg10);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg11_t arg11;
             res = deserialize(stream, &arg11);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11);
         }
     private:
@@ -1217,44 +1217,44 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) > *_parent) : parent(_parent) { }
         void read(read_stream_t *stream) {
             arg0_t arg0;
-            int res = deserialize(stream, &arg0);
-            if (res) { throw fake_archive_exc_t(); }
+            archive_result_t res = deserialize(stream, &arg0);
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg1_t arg1;
             res = deserialize(stream, &arg1);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg2_t arg2;
             res = deserialize(stream, &arg2);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg3_t arg3;
             res = deserialize(stream, &arg3);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg4_t arg4;
             res = deserialize(stream, &arg4);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg5_t arg5;
             res = deserialize(stream, &arg5);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg6_t arg6;
             res = deserialize(stream, &arg6);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg7_t arg7;
             res = deserialize(stream, &arg7);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg8_t arg8;
             res = deserialize(stream, &arg8);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg9_t arg9;
             res = deserialize(stream, &arg9);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg10_t arg10;
             res = deserialize(stream, &arg10);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg11_t arg11;
             res = deserialize(stream, &arg11);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg12_t arg12;
             res = deserialize(stream, &arg12);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12);
         }
     private:
@@ -1339,47 +1339,47 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) > *_parent) : parent(_parent) { }
         void read(read_stream_t *stream) {
             arg0_t arg0;
-            int res = deserialize(stream, &arg0);
-            if (res) { throw fake_archive_exc_t(); }
+            archive_result_t res = deserialize(stream, &arg0);
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg1_t arg1;
             res = deserialize(stream, &arg1);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg2_t arg2;
             res = deserialize(stream, &arg2);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg3_t arg3;
             res = deserialize(stream, &arg3);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg4_t arg4;
             res = deserialize(stream, &arg4);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg5_t arg5;
             res = deserialize(stream, &arg5);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg6_t arg6;
             res = deserialize(stream, &arg6);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg7_t arg7;
             res = deserialize(stream, &arg7);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg8_t arg8;
             res = deserialize(stream, &arg8);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg9_t arg9;
             res = deserialize(stream, &arg9);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg10_t arg10;
             res = deserialize(stream, &arg10);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg11_t arg11;
             res = deserialize(stream, &arg11);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg12_t arg12;
             res = deserialize(stream, &arg12);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg13_t arg13;
             res = deserialize(stream, &arg13);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
             parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13);
         }
     private:

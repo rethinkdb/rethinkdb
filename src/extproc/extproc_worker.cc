@@ -15,8 +15,8 @@ const uint64_t extproc_worker_t::worker_to_parent_magic = 0x9aa9a30dc74f9da1LL;
 
 NORETURN bool worker_exit_fn(read_stream_t *stream_in, write_stream_t *) {
     int exit_code;
-    int res = deserialize(stream_in, &exit_code);
-    if (res != ARCHIVE_SUCCESS) { exit_code = EXIT_FAILURE; }
+    archive_result_t res = deserialize(stream_in, &exit_code);
+    if (bad(res)) { exit_code = EXIT_FAILURE; }
     ::_exit(exit_code);
 }
 
@@ -84,13 +84,17 @@ void extproc_worker_t::released(bool user_error, signal_t *user_interruptor) {
         try {
             write_message_t msg;
             msg << parent_to_worker_magic;
-            int res = send_write_message(socket_stream.get(), &msg);
-            if (res != 0) { throw std::runtime_error("failed to send magic number"); }
+            {
+                int res = send_write_message(socket_stream.get(), &msg);
+                if (res != 0) {
+                    throw std::runtime_error("failed to send magic number");
+                }
+            }
 
 
             uint64_t magic_from_child;
-            res = deserialize(socket_stream.get(), &magic_from_child);
-            if (res != ARCHIVE_SUCCESS || magic_from_child != worker_to_parent_magic) {
+            archive_result_t res = deserialize(socket_stream.get(), &magic_from_child);
+            if (bad(res) || magic_from_child != worker_to_parent_magic) {
                 throw std::runtime_error("did not receive magic number");
             }
         } catch (...) {

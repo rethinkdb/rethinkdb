@@ -118,16 +118,16 @@ void mailbox_manager_t::on_message(peer_id_t source_peer, read_stream_t *stream)
     raw_mailbox_t::id_t dest_mailbox_id;
     {
         archive_result_t res = deserialize(stream, &data_length);
-        if (res != ARCHIVE_SUCCESS
+        if (res != archive_result_t::SUCCESS
             || data_length > std::numeric_limits<size_t>::max()
             || data_length > static_cast<uint64_t>(std::numeric_limits<int64_t>::max())) {
             throw fake_archive_exc_t();
         }
 
         res = deserialize(stream, &dest_thread);
-        if (res != 0) { throw fake_archive_exc_t(); }
+        if (bad(res)) { throw fake_archive_exc_t(); }
         res = deserialize(stream, &dest_mailbox_id);
-        if (res != 0) { throw fake_archive_exc_t(); }
+        if (bad(res)) { throw fake_archive_exc_t(); }
     }
 
     // Read the data from the read stream, so it can be deallocated before we continue
