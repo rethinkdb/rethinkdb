@@ -266,7 +266,7 @@ public:
                                         THROWS_ONLY(interrupted_exc_t) = 0;
 
     virtual void protocol_receive_backfill(btree_slice_t *btree,
-                                           superblock_t *superblock,
+                                           scoped_ptr_t<superblock_t> &&superblock,
                                            signal_t *interruptor,
                                            const typename protocol_t::backfill_chunk_t &chunk) = 0;
 

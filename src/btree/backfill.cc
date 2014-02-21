@@ -45,9 +45,29 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
                 }
             }
 
-            void key_value(const btree_key_t *k, const void *value, repli_timestamp_t tstamp) {
-                if (range.contains_key(k->contents, k->size)) {
-                    cb->on_pair(parent, tstamp, k, value, interruptor);
+            void keys_values(const std::vector<const btree_key_t *> &keys,
+                             const std::vector<const void *> &values,
+                             const std::vector<repli_timestamp_t> &tstamps) {
+                rassert(keys.size() == values.size());
+                rassert(keys.size() == tstamps.size());
+
+                std::vector<const btree_key_t *> filtered_keys;
+                std::vector<const void *> filtered_values;
+                std::vector<repli_timestamp_t> filtered_tstamps;
+                filtered_keys.reserve(keys.size());
+                filtered_values.reserve(keys.size());
+                filtered_tstamps.reserve(keys.size());
+                for (size_t i = 0; i < keys.size(); ++i) {
+                    if (range.contains_key(keys[i]->contents, keys[i]->size)) {
+                        filtered_keys.push_back(keys[i]);
+                        filtered_values.push_back(values[i]);
+                        filtered_tstamps.push_back(tstamps[i]);
+                    }
+                }
+
+                if (!filtered_keys.empty()) {
+                    cb->on_pairs(parent, filtered_tstamps, filtered_keys,
+                                 filtered_values, interruptor);
                 }
             }
 

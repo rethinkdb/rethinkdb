@@ -183,7 +183,7 @@ void btree_store_t<protocol_t>::receive_backfill(
     assert_thread();
 
     scoped_ptr_t<txn_t> txn;
-    scoped_ptr_t<real_superblock_t> superblock;
+    scoped_ptr_t<real_superblock_t> real_superblock;
     const int expected_change_count = 1; // FIXME: this is probably not correct
 
     // We don't want hard durability, this is a backfill chunk, and nobody
@@ -193,11 +193,12 @@ void btree_store_t<protocol_t>::receive_backfill(
                                  write_durability_t::SOFT,
                                  token_pair,
                                  &txn,
-                                 &superblock,
+                                 &real_superblock,
                                  interruptor);
 
+    scoped_ptr_t<superblock_t> superblock(real_superblock.release());
     protocol_receive_backfill(btree.get(),
-                              superblock.get(),
+                              std::move(superblock),
                               interruptor,
                               chunk);
 }
