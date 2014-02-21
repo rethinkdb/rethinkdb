@@ -635,7 +635,7 @@ class sindex_data_t {
 public:
     sindex_data_t(const key_range_t &_pkey_range, const datum_range_t &_range,
                   ql::map_wire_func_t wire_func, sindex_multi_bool_t _multi)
-        : pkey_range(_pkey_range),range(_range),
+        : pkey_range(_pkey_range), range(_range),
           func(wire_func.compile_wire_func()), multi(_multi) { }
 private:
     friend class rget_cb_t;
@@ -786,7 +786,7 @@ THROWS_ONLY(interrupted_exc_t) {
             }
         }
 
-        ql::groups_t data{{counted_t<const ql::datum_t>(), ql::datums_t{val}}};
+        ql::groups_t data = {{counted_t<const ql::datum_t>(), ql::datums_t{val}}};
 
         for (auto it = job.transformers.begin(); it != job.transformers.end(); ++it) {
             (**it)(&data);

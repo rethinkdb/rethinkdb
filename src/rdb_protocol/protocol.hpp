@@ -73,7 +73,7 @@ typedef ql::sorting_t sorting_t;
 
 class key_le_t {
 public:
-    key_le_t(sorting_t _sorting) : sorting(_sorting) { }
+    explicit key_le_t(sorting_t _sorting) : sorting(_sorting) { }
     bool operator()(const store_key_t &key1, const store_key_t &key2) const {
         return (!reversed(sorting) && key1 <= key2)
             || (reversed(sorting) && key2 <= key1);

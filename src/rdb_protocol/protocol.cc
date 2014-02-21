@@ -688,7 +688,9 @@ void rdb_r_unshard_visitor_t::operator()(const distribution_read_t &dg) {
 
         if (largest_size > 0) {
             // Scale up the selected hash shard
-            double scale_factor = double(total_range_keys) / double(largest_size);
+            double scale_factor =
+                static_cast<double>(total_range_keys)
+                / static_cast<double>(largest_size);
 
             guarantee(scale_factor >= 1.0);  // Directly provable from code above.
 
