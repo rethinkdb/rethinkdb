@@ -18,6 +18,7 @@ class buf_lock_t;
 class alt_cache_config_t;
 class alt_cache_stats_t;
 class alt_snapshot_node_t;
+class perfmon_collection_t;
 
 // KSI: This is kind of F'd up a bit.  Throttling doesn't use the stuff we learn in
 // inform_memory_change (right now) so this is just a nonsensical mixing of notions.

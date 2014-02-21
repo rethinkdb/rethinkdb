@@ -1,6 +1,8 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "rdb_protocol/wire_func.hpp"
 
+#include "containers/archive/boost_types.hpp"
+#include "containers/archive/stl_types.hpp"
 #include "containers/archive/archive.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"

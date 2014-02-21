@@ -19,6 +19,7 @@
 #include "containers/uuid.hpp"
 #include "logger.hpp"
 #include "utils.hpp"
+#include "rpc/connectivity/heartbeat.hpp"
 
 // Number of messages after which the message handling loop yields
 #define MESSAGE_HANDLER_MAX_BATCH_SIZE           8

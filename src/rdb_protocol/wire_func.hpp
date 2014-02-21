@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 
+#include "containers/archive/stl_types.hpp"
 #include "containers/uuid.hpp"
 #include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/pb_utils.hpp"

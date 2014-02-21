@@ -10,7 +10,8 @@ direct_reader_t<protocol_t>::direct_reader_t(
         store_view_t<protocol_t> *svs_) :
     mailbox_manager(mm),
     svs(svs_),
-    read_mailbox(mm, boost::bind(&direct_reader_t<protocol_t>::on_read, this, _1, _2))
+    read_mailbox(mm, std::bind(&direct_reader_t<protocol_t>::on_read, this,
+                               ph::_1, ph::_2))
     { }
 
 template <class protocol_t>
@@ -22,7 +23,7 @@ template <class protocol_t>
 void direct_reader_t<protocol_t>::on_read(
         const typename protocol_t::read_t &read,
         const mailbox_addr_t<void(typename protocol_t::read_response_t)> &cont) {
-    coro_t::spawn_sometime(boost::bind(
+    coro_t::spawn_sometime(std::bind(
         &direct_reader_t<protocol_t>::perform_read, this,
         read, cont,
         auto_drainer_t::lock_t(&drainer)));

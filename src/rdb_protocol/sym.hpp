@@ -6,6 +6,7 @@
 
 #include <vector>
 
+#include "containers/archive/archive.hpp"
 #include "rpc/serialize_macros.hpp"
 #include "utils.hpp"
 

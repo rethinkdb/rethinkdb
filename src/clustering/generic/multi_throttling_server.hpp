@@ -2,8 +2,9 @@
 #ifndef CLUSTERING_GENERIC_MULTI_THROTTLING_SERVER_HPP_
 #define CLUSTERING_GENERIC_MULTI_THROTTLING_SERVER_HPP_
 
-#include <algorithm>
 #include <map>
+#include <utility>
+#include <vector>
 
 #include "arch/timing.hpp"
 #include "containers/priority_queue.hpp"
