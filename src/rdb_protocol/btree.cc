@@ -449,8 +449,8 @@ public:
             atom.value = get_data(value, leaf_node);
             atom.recency = recencies[i];
             chunk_atoms.push_back(atom);
-            current_chunk_size += static_cast<size_t>(chunk_atoms[i].key.size())
-                                  + serialized_size(chunk_atoms[i].value);
+            current_chunk_size += static_cast<size_t>(atom.key.size())
+                                  + serialized_size(atom.value);
 
             if (current_chunk_size >= BACKFILL_MAX_KVPAIRS_SIZE) {
                 // To avoid flooding the receiving node with overly large chunks

@@ -49,8 +49,8 @@ public:
             // We only count the variably sized fields `key` and `value`.
             // But that is ok, we don't have to comply with BACKFILL_MAX_KVPAIRS_SIZE
             // that strictly.
-            current_chunk_size += static_cast<size_t>(chunk_atoms[i].key.size())
-                                  + static_cast<size_t>(chunk_atoms[i].value->size());
+            current_chunk_size += static_cast<size_t>(atom.key.size())
+                                  + static_cast<size_t>(atom.value->size());
 
             if (current_chunk_size >= BACKFILL_MAX_KVPAIRS_SIZE) {
                 // To avoid flooding the receiving node with overly large chunks
