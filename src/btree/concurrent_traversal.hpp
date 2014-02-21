@@ -1,3 +1,4 @@
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef BTREE_CONCURRENT_TRAVERSAL_HPP_
 #define BTREE_CONCURRENT_TRAVERSAL_HPP_
 

@@ -1,3 +1,4 @@
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "btree/concurrent_traversal.hpp"
 
 #include <stdint.h>
