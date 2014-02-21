@@ -4,6 +4,15 @@
 #include "btree/operations.hpp"
 #include "rdb_protocol/profile.hpp"
 
+class counted_buf_lock_t : public buf_lock_t,
+                           public single_threaded_countable_t<counted_buf_lock_t> {
+public:
+    template <class... Args>
+    explicit counted_buf_lock_t(Args &&... args)
+        : buf_lock_t(std::forward<Args>(args)...) { }
+};
+
+
 scoped_key_value_t::scoped_key_value_t(const btree_key_t *key,
                                        const void *value,
                                        movable_t<counted_buf_lock_t> &&buf)
@@ -19,15 +28,8 @@ scoped_key_value_t::scoped_key_value_t(scoped_key_value_t &&movee)
     movee.value_ = NULL;
 }
 
-const btree_key_t *scoped_key_value_t::key() const {
-    guarantee(buf_.has());
-    return key_;
-}
+scoped_key_value_t::~scoped_key_value_t() { }
 
-const void *scoped_key_value_t::value() const {
-    guarantee(buf_.has());
-    return value_;
-}
 
 buf_parent_t scoped_key_value_t::expose_buf() {
     guarantee(buf_.has());

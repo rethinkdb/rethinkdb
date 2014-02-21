@@ -10,13 +10,7 @@ class superblock_t;
 
 namespace profile { class trace_t; }
 
-class counted_buf_lock_t : public buf_lock_t,
-                           public single_threaded_countable_t<counted_buf_lock_t> {
-public:
-    template <class... Args>
-    explicit counted_buf_lock_t(Args &&... args)
-        : buf_lock_t(std::forward<Args>(args)...) { }
-};
+class counted_buf_lock_t;
 
 // A btree leaf key/value pair that also owns a reference to the buf_lock_t that
 // contains said key/value pair.
@@ -25,12 +19,18 @@ public:
     scoped_key_value_t(const btree_key_t *key,
                        const void *value,
                        movable_t<counted_buf_lock_t> &&buf);
-
     scoped_key_value_t(scoped_key_value_t &&movee);
+    ~scoped_key_value_t();
     void operator=(scoped_key_value_t &&) = delete;
 
-    const btree_key_t *key() const;
-    const void *value() const;
+    const btree_key_t *key() const {
+        guarantee(buf_.has());
+        return key_;
+    }
+    const void *value() const {
+        guarantee(buf_.has());
+        return value_;
+    }
     buf_parent_t expose_buf();
 
     // Releases the hold on the buf_lock_t, after which key(), value(), and
@@ -41,6 +41,8 @@ private:
     const btree_key_t *key_;
     const void *value_;
     movable_t<counted_buf_lock_t> buf_;
+
+    DISABLE_COPYING(scoped_key_value_t);
 };
 
 class depth_first_traversal_callback_t {
