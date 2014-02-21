@@ -18,27 +18,11 @@ tests:
       ot: ({'synced':1})
     - cd: tbl_soft.sync()
       ot: ({'synced':1})
-    - py: tbl.sync()
-      ot: ({'synced':1})
-      runopts:
-        durability: soft
-    - js: tbl.sync()
-      ot: ({'synced':1})
-      runopts:
-        durability: soft
-    - rb: tbl.sync()
+    - cd: tbl.sync()
       ot: ({'synced':1})
       runopts:
         durability: '"soft"'
-    - py: tbl.sync()
-      ot: ({'synced':1})
-      runopts:
-        durability: hard
-    - js: tbl.sync()
-      ot: ({'synced':1})
-      runopts:
-        durability: hard
-    - rb: tbl.sync()
+    - cd: tbl.sync()
       ot: ({'synced':1})
       runopts:
         durability: '"hard"'

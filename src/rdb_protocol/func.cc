@@ -202,7 +202,7 @@ void func_term_t::accumulate_captures(var_captures_t *captures) const {
     captures->implicit_is_captured |= external_captures.implicit_is_captured;
 }
 
-counted_t<val_t> func_term_t::eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+counted_t<val_t> func_term_t::term_eval(scope_env_t *env, UNUSED eval_flags_t flags) {
     return new_val(eval_to_func(env->scope));
 }
 
@@ -223,7 +223,8 @@ bool filter_match(counted_t<const datum_t> predicate, counted_t<const datum_t> v
     if (predicate->is_ptype(pseudo::literal_string)) {
         return *predicate->get(pseudo::value_key) == *value;
     } else {
-        const std::map<std::string, counted_t<const datum_t> > &obj = predicate->as_object();
+        const std::map<std::string, counted_t<const datum_t> > &obj
+            = predicate->as_object();
         for (auto it = obj.begin(); it != obj.end(); ++it) {
             r_sanity_check(it->second.has());
             counted_t<const datum_t> elt = value->get(it->first, NOTHROW);

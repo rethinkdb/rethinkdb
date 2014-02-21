@@ -122,7 +122,9 @@ public:
     }
 
     bool operator <(const counted_t<T> &other) const {
-        return *p_ < *other.p_;
+        return (p_ == NULL)
+            ? (other.p_ != NULL ? true : false)
+            : (other.p_ != NULL ? (*p_ < *other.p_) : false);
     }
 
 private:
@@ -199,11 +201,6 @@ inline intptr_t counted_use_count(const single_threaded_countable_t<T> *p) {
     p->assert_thread();
     return p->refcount_;
 }
-
-
-
-
-
 
 template <class> class slow_atomic_countable_t;
 

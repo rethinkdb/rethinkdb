@@ -147,6 +147,9 @@ $success_count = 0
 def test src, expected, name, opthash=nil
   if opthash
     $opthash = Hash[opthash.map{|k,v| [k, eval(v, $defines)]}]
+    if !$opthash[:batch_conf]
+        $opthash[:batch_conf] = {max_els: 3}
+    end
   else
     $opthash = {batch_conf: {max_els: 3}}
   end

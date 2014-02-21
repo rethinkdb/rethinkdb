@@ -15,7 +15,6 @@ aropt = util.aropt
 deconstructDatum = util.deconstructDatum
 mkAtom = util.mkAtom
 mkErr = util.mkErr
-mkSeq = util.mkSeq
 
 class Connection extends events.EventEmitter
     DEFAULT_HOST: 'localhost'
@@ -255,6 +254,12 @@ class Connection extends events.EventEmitter
             pair =
                 key: 'durability'
                 val: r.expr(opts.durability).build()
+            query.global_optargs.push(pair)
+
+        if opts.batchConf?
+            pair =
+                key: 'batch_conf'
+                val: r.expr(opts.batchConf).build()
             query.global_optargs.push(pair)
 
         # Save callback

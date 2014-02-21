@@ -14,7 +14,7 @@ public:
 private:
     virtual void accumulate_captures(var_captures_t *) const { /* do nothing */ }
     virtual bool is_deterministic() const { return true; }
-    virtual counted_t<val_t> eval_impl(scope_env_t *, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> term_eval(scope_env_t *, UNUSED eval_flags_t flags) {
         return raw_val;
     }
     virtual const char *name() const { return "datum"; }

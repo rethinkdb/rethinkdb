@@ -47,16 +47,6 @@ def table_list():
 def branch(predicate, true_branch, false_branch):
     return Branch(predicate, true_branch, false_branch)
 
-# groupBy reductions
-
-count = {'COUNT': True}
-
-def sum(attr):
-    return {'SUM': attr}
-
-def avg(attr):
-    return {'AVG': attr}
-
 # orderBy orders
 
 def asc(attr):

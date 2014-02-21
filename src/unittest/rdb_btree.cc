@@ -218,7 +218,7 @@ void _check_keys_are_present(btree_store_t<rdb_protocol_t> *store,
         double ii = i * i;
         /* The only thing this does is have a NULL scoped_ptr_t<trace_t> in it
          * which prevents to profiling code from crashing. */
-        ql::env_t dummy_env(NULL);
+        ql::env_t dummy_env(NULL, NULL);
         rdb_rget_slice(
             store->get_sindex_slice(sindex_id),
             rdb_protocol_t::sindex_key_range(
@@ -228,13 +228,12 @@ void _check_keys_are_present(btree_store_t<rdb_protocol_t> *store,
             &dummy_env, // env_t
             ql::batchspec_t::user(ql::batch_type_t::NORMAL,
                                   counted_t<const ql::datum_t>()),
-            rdb_protocol_details::transform_t(),
-            boost::optional<rdb_protocol_details::terminal_t>(),
+            std::vector<rdb_protocol_details::transform_variant_t>(),
+            boost::optional<rdb_protocol_details::terminal_variant_t>(),
             sorting_t::ASCENDING,
             &res);
 
-        rdb_protocol_t::rget_read_response_t::stream_t *stream
-            = boost::get<rdb_protocol_t::rget_read_response_t::stream_t>(&res.result);
+        ql::stream_t *stream = boost::get<ql::stream_t>(&res.result);
         ASSERT_TRUE(stream != NULL);
         ASSERT_EQ(1ul, stream->size());
 
@@ -285,7 +284,7 @@ void _check_keys_are_NOT_present(btree_store_t<rdb_protocol_t> *store,
         double ii = i * i;
         /* The only thing this does is have a NULL scoped_ptr_t<trace_t> in it
          * which prevents to profiling code from crashing. */
-        ql::env_t dummy_env(NULL);
+        ql::env_t dummy_env(NULL, NULL);
         rdb_rget_slice(
             store->get_sindex_slice(sindex_id),
             rdb_protocol_t::sindex_key_range(
@@ -295,13 +294,12 @@ void _check_keys_are_NOT_present(btree_store_t<rdb_protocol_t> *store,
             &dummy_env, // env_t
             ql::batchspec_t::user(ql::batch_type_t::NORMAL,
                                   counted_t<const ql::datum_t>()),
-            rdb_protocol_details::transform_t(),
-            boost::optional<rdb_protocol_details::terminal_t>(),
+            std::vector<rdb_protocol_details::transform_variant_t>(),
+            boost::optional<rdb_protocol_details::terminal_variant_t>(),
             sorting_t::ASCENDING,
             &res);
 
-        rdb_protocol_t::rget_read_response_t::stream_t *stream
-            = boost::get<rdb_protocol_t::rget_read_response_t::stream_t>(&res.result);
+        ql::stream_t *stream = boost::get<ql::stream_t>(&res.result);
         ASSERT_TRUE(stream != NULL);
         ASSERT_EQ(0ul, stream->size());
     }

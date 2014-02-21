@@ -197,13 +197,16 @@ void rdb_erase_range(key_tester_t *tester,
 /* RGETS */
 size_t estimate_rget_response_size(const counted_t<const ql::datum_t> &datum);
 
-void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
-                    superblock_t *superblock,
-                    ql::env_t *ql_env, const ql::batchspec_t &batchspec,
-                    const rdb_protocol_details::transform_t &transform,
-                    const boost::optional<rdb_protocol_details::terminal_t> &terminal,
-                    sorting_t sorting,
-                    rget_read_response_t *response);
+void rdb_rget_slice(
+    btree_slice_t *slice,
+    const key_range_t &range,
+    superblock_t *superblock,
+    ql::env_t *ql_env,
+    const ql::batchspec_t &batchspec,
+    const std::vector<rdb_protocol_details::transform_variant_t> &transforms,
+    const boost::optional<rdb_protocol_details::terminal_variant_t> &terminal,
+    sorting_t sorting,
+    rget_read_response_t *response);
 
 void rdb_rget_secondary_slice(
     btree_slice_t *slice,
@@ -212,8 +215,8 @@ void rdb_rget_secondary_slice(
     superblock_t *superblock,
     ql::env_t *ql_env,
     const ql::batchspec_t &batchspec,
-    const rdb_protocol_details::transform_t &transform,
-    const boost::optional<rdb_protocol_details::terminal_t> &terminal,
+    const std::vector<rdb_protocol_details::transform_variant_t> &transforms,
+    const boost::optional<rdb_protocol_details::terminal_variant_t> &terminal,
     const key_range_t &pk_range,
     sorting_t sorting,
     const ql::map_wire_func_t &sindex_func,

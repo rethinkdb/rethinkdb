@@ -229,18 +229,21 @@ private:
                    base_exc_t::GENERIC,
                    strprintf("Table `%s` already exists.", tbl_name.c_str()));
 
-            // Create namespace (DB + table pair) and insert into metadata.
-            // The port here is a legacy from the day when memcached ran on a different port.
+            // Create namespace (DB + table pair) and insert into metadata.  The
+            // port here is a legacy from the day when memcached ran on a
+            // different port.
             namespace_semilattice_metadata_t<rdb_protocol_t> ns =
-                new_namespace<rdb_protocol_t>(env->env->cluster_access.this_machine, db_id, dc_id, tbl_name,
-                                              primary_key, port_defaults::reql_port,
-                                              cache_size);
+                new_namespace<rdb_protocol_t>(
+                    env->env->cluster_access.this_machine, db_id, dc_id, tbl_name,
+                    primary_key, port_defaults::reql_port,
+                    cache_size);
 
             // Set Durability
             std::map<datacenter_id_t, ack_expectation_t> *ack_map =
                 &ns.ack_expectations.get_mutable();
             for (auto it = ack_map->begin(); it != ack_map->end(); ++it) {
-                it->second = ack_expectation_t(it->second.expectation(), hard_durability);
+                it->second = ack_expectation_t(
+                    it->second.expectation(), hard_durability);
             }
             ns.ack_expectations.upgrade_version(env->env->cluster_access.this_machine);
 
@@ -506,7 +509,7 @@ private:
                 streams.push_back(seq);
             }
             counted_t<datum_stream_t> stream
-                = make_counted<union_datum_stream_t>(streams, backtrace());
+                = make_counted<union_datum_stream_t>(std::move(streams), backtrace());
             return new_val(stream, table);
         } else {
             datum_ptr_t arr(datum_t::R_ARRAY);

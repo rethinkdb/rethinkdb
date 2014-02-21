@@ -45,7 +45,7 @@ private:
     }
 
     sym_t varname;
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> term_eval(scope_env_t *env, UNUSED eval_flags_t flags) {
         return new_val(env->scope.lookup_var(varname));
     }
     virtual const char *name() const { return "var"; }
@@ -55,8 +55,9 @@ class implicit_var_term_t : public term_t {
 public:
     implicit_var_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : term_t(term) {
-        rcheck(term->args_size() == 0 && term->optargs_size() == 0, base_exc_t::GENERIC,
-               "Expected no arguments or optional arguments on implicit variable term.");
+        rcheck(
+            term->args_size() == 0 && term->optargs_size() == 0, base_exc_t::GENERIC,
+            "Expected no arguments or optional arguments on implicit variable term.");
 
         rcheck(env->visibility.implicit_is_accessible(), base_exc_t::GENERIC,
                env->visibility.get_implicit_depth() == 0
@@ -72,7 +73,7 @@ private:
         return true;
     }
 
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> term_eval(scope_env_t *env, UNUSED eval_flags_t flags) {
         return new_val(env->scope.lookup_implicit());
     }
     virtual const char *name() const { return "implicit_var"; }
