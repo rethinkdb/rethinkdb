@@ -86,13 +86,14 @@ public:
     size_t cumulative_size;
 };
 
-rget_result_t memcached_rget_slice(btree_slice_t *slice, const key_range_t &range,
+// RSI slice
+rget_result_t memcached_rget_slice(UNUSED btree_slice_t *slice, const key_range_t &range,
                                    int maximum, exptime_t effective_time,
                                    superblock_t *superblock) {
 
     rget_depth_first_traversal_callback_t callback(superblock->expose_buf(),
                                                    maximum, effective_time);
-    btree_depth_first_traversal(slice, superblock, range, &callback, FORWARD);
+    btree_depth_first_traversal(superblock, range, &callback, FORWARD);
     if (callback.cumulative_size >= rget_max_chunk_size) {
         callback.result.truncated = true;
     } else {

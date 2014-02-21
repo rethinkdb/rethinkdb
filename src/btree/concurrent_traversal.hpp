@@ -4,6 +4,7 @@
 #include "btree/depth_first_traversal.hpp"
 #include "concurrency/interruptor.hpp"
 
+class btree_slice_t;  // RSI
 class concurrent_traversal_adapter_t;
 
 namespace profile { class trace_t; }

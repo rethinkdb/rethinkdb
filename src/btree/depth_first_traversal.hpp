@@ -3,7 +3,6 @@
 #define BTREE_DEPTH_FIRST_TRAVERSAL_HPP_
 
 #include "btree/keys.hpp"
-#include "btree/slice.hpp"
 #include "buffer_cache/alt/alt.hpp"
 #include "containers/archive/archive.hpp"
 
@@ -80,7 +79,7 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(direction_t, int8_t, FORWARD, BACKWARD);
 
 /* Returns `true` if we reached the end of the btree or range, and `false` if
 `cb->handle_value()` returned `false`. */
-bool btree_depth_first_traversal(btree_slice_t *slice, superblock_t *superblock,
+bool btree_depth_first_traversal(superblock_t *superblock,
                                  const key_range_t &range,
                                  depth_first_traversal_callback_t *cb,
                                  direction_t direction);

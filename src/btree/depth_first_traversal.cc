@@ -6,13 +6,12 @@
 
 /* Returns `true` if we reached the end of the subtree or range, and `false` if
 `cb->handle_value()` returned `false`. */
-bool btree_depth_first_traversal(btree_slice_t *slice,
-                                 counted_t<counted_buf_lock_t> block,
+bool btree_depth_first_traversal(counted_t<counted_buf_lock_t> block,
                                  const key_range_t &range,
                                  depth_first_traversal_callback_t *cb,
                                  direction_t direction);
 
-bool btree_depth_first_traversal(btree_slice_t *slice, superblock_t *superblock,
+bool btree_depth_first_traversal(superblock_t *superblock,
                                  const key_range_t &range,
                                  depth_first_traversal_callback_t *cb,
                                  direction_t direction) {
@@ -36,13 +35,12 @@ bool btree_depth_first_traversal(btree_slice_t *slice, superblock_t *superblock,
             // profiling information is correct.
             root_block->read_acq_signal()->wait();
         }
-        return btree_depth_first_traversal(slice, std::move(root_block), range, cb,
+        return btree_depth_first_traversal(std::move(root_block), range, cb,
                                            direction);
     }
 }
 
-bool btree_depth_first_traversal(btree_slice_t *slice,
-                                 counted_t<counted_buf_lock_t> block,
+bool btree_depth_first_traversal(counted_t<counted_buf_lock_t> block,
                                  const key_range_t &range,
                                  depth_first_traversal_callback_t *cb,
                                  direction_t direction) {
@@ -68,8 +66,7 @@ bool btree_depth_first_traversal(btree_slice_t *slice,
                 lock = make_counted<counted_buf_lock_t>(block.get(), pair->lnode,
                                                         access_t::read);
             }
-            if (!btree_depth_first_traversal(slice,
-                                             std::move(lock),
+            if (!btree_depth_first_traversal(std::move(lock),
                                              range, cb, direction)) {
                 return false;
             }
