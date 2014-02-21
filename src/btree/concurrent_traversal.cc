@@ -67,7 +67,7 @@ public:
         }
     }
 
-    virtual bool handle_pair(scoped_key_value_t &&keyvalue) {
+    virtual done_t handle_pair(scoped_key_value_t &&keyvalue) {
         // First thing first: Get in line with the token enforcer.
 
         fifo_enforcer_write_token_t token = source_.enter_write();
@@ -80,7 +80,7 @@ public:
                       this, &keyvalue, &acq, token, auto_drainer_t::lock_t(&drainer_)));
 
         // Report if we've failed by the time this handle_pair call is called.
-        return !failure_cond_->is_pulsed();
+        return failure_cond_->is_pulsed() ? done_t::YES : done_t::NO;
     }
 
     virtual profile::trace_t *get_trace() THROWS_NOTHING {

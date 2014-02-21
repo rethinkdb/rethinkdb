@@ -17,13 +17,12 @@ private:
     friend class concurrent_traversal_adapter_t;
 
     concurrent_traversal_fifo_enforcer_signal_t(signal_t *eval_exclusivity_signal,
-                                  concurrent_traversal_adapter_t *parent);
+                                                concurrent_traversal_adapter_t *parent);
 
     signal_t *const eval_exclusivity_signal_;
     concurrent_traversal_adapter_t *const parent_;
 };
 
-enum class done_t { NO, YES };
 class concurrent_traversal_callback_t {
 public:
     concurrent_traversal_callback_t() { }
