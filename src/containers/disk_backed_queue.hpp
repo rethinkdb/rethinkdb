@@ -14,19 +14,17 @@
 #include "perfmon/core.hpp"
 #include "serializer/types.hpp"
 
+class cache_conn_t;
 class cache_t;
 class txn_t;
 class io_backender_t;
 class perfmon_collection_t;
 
-//TODO there are extra copies all over the place mostly stemming from having a
-//vector<char> from the serialization code and strings from the blob code.
-
 struct queue_block_t {
     block_id_t next;
     int32_t data_size, live_data_offset;
     char data[0];
-};
+} __attribute__((__packed__));
 
 class value_acquisition_object_t;
 
@@ -75,6 +73,7 @@ private:
     block_id_t tail_block_id;
     scoped_ptr_t<standard_serializer_t> serializer;
     scoped_ptr_t<cache_t> cache;
+    scoped_ptr_t<cache_conn_t> cache_conn;
 
     DISABLE_COPYING(internal_disk_backed_queue_t);
 };

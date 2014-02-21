@@ -77,9 +77,9 @@ protected:
 
 class traversal_state_t : public coro_pool_callback_t<acquisition_waiter_callback_t *> {
 public:
-    traversal_state_t(btree_slice_t *_slice, btree_traversal_helper_t *_helper,
+    traversal_state_t(block_size_t _max_block_size, btree_traversal_helper_t *_helper,
                       signal_t *_interruptor)
-        : slice(_slice),
+        : max_block_size(_max_block_size),
           stat_block(NULL_BLOCK_ID),
           helper(_helper),
           interruptor(_interruptor),
@@ -100,8 +100,7 @@ public:
         }
     }
 
-    // The slice whose btree we're traversing
-    btree_slice_t *const slice;
+    const block_size_t max_block_size;
 
     /* The block id where we can find the stat block, we need this at the end
      * to update population counts. */
@@ -128,7 +127,7 @@ public:
     int64_t& level_count(int level) {
         rassert(level >= 0);
         if (size_t(level) >= level_counts.size()) {
-            rassert(size_t(level) == level_counts.size(), "Somehow we skipped a level! (level = %d, slice = %p)", level, slice);
+            rassert(size_t(level) == level_counts.size(), "Somehow we skipped a level! (level = %d)", level);
             level_counts.resize(level + 1, 0);
         }
         return level_counts[level];
@@ -217,8 +216,8 @@ public:
         rassert(level >= 0);
         if (level >= static_cast<int>(acquisition_waiter_stacks.size())) {
             rassert(level == static_cast<int>(acquisition_waiter_stacks.size()),
-                    "Somehow we skipped a level! (level = %d, stacks.size() = %d, slice = %p)",
-                    level, static_cast<int>(acquisition_waiter_stacks.size()), slice);
+                    "Somehow we skipped a level! (level = %d, stacks.size() = %d)",
+                    level, static_cast<int>(acquisition_waiter_stacks.size()));
             acquisition_waiter_stacks.resize(level + 1);
         }
         return acquisition_waiter_stacks[level];
@@ -341,12 +340,13 @@ struct internal_node_releaser_t : public parent_releaser_t {
     virtual ~internal_node_releaser_t() { }
 };
 
-void btree_parallel_traversal(superblock_t *superblock, btree_slice_t *slice,
+void btree_parallel_traversal(superblock_t *superblock,
                               btree_traversal_helper_t *helper,
                               signal_t *interruptor,
                               bool release_superblock)
     THROWS_ONLY(interrupted_exc_t) {
-    traversal_state_t state(slice, helper, interruptor);
+    traversal_state_t state(superblock->cache()->max_block_size(),
+                            helper, interruptor);
 
     /* Make sure there's a stat block*/
     if (helper->btree_node_mode() == access_t::write) {
@@ -358,7 +358,7 @@ void btree_parallel_traversal(superblock_t *superblock, btree_slice_t *slice,
 
     if (state.stat_block != NULL_BLOCK_ID) {
         /* Give the helper a look at the stat block */
-        buf_lock_t stat_block(superblock->expose_buf(),
+        buf_lock_t stat_block(buf_parent_t(superblock->expose_buf().txn()),
                               state.stat_block, access_t::read);
         helper->read_stat_block(&stat_block);
     } else {
@@ -500,7 +500,7 @@ void process_a_internal_node(traversal_state_t *state,
             = static_cast<const internal_node_t *>(read.get_data_read());
 
         ids_source = make_counted<ranged_block_ids_t>(
-                    state->slice->cache()->get_block_size(), node,
+                    state->max_block_size, node,
                     left_exclusive_or_null, right_inclusive_or_null, level);
     }
 
@@ -526,22 +526,21 @@ void process_a_leaf_node(traversal_state_t *state, buf_lock_t buf,
         `interruptor` has been pulsed */
     }
 
+    txn_t *txn = buf.txn();
+    buf.reset_buf_lock();
+
     if (state->helper->btree_node_mode() != access_t::write) {
         rassert(population_change == 0, "A read only operation claims it change the population of a leaf.\n");
-        buf.reset_buf_lock();
     } else if (population_change != 0) {
-        // RSI: Should we _actually_ pass &buf as the parent?
-        // RSI: See operations.tcc for another use of the stat block.
-        // RSI: having buf as the parent doesn't really make sense. The stat block
-        // doesn't really have a parent.
-        buf_lock_t stat_block(&buf, state->stat_block, access_t::write);
+        // The stat block has no parent, our changes to it are commutative and
+        // readers expect out-of-date values.
+        buf_lock_t stat_block(buf_parent_t(txn), state->stat_block, access_t::write);
         buf.reset_buf_lock();
         buf_write_t stat_block_write(&stat_block);
         auto stat_block_buf =
             static_cast<btree_statblock_t *>(stat_block_write.get_data_write());
         stat_block_buf->population += population_change;
     } else {
-        buf.reset_buf_lock();
         // Don't acquire the block to not change the value.
     }
 

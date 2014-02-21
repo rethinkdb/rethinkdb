@@ -7,7 +7,6 @@ namespace pseudo {
 const char *const literal_string = "LITERAL";
 const char *const value_key = "value";
 
-
 void rcheck_literal_valid(const datum_t *lit) {
     for (auto it = lit->as_object().begin(); it != lit->as_object().end(); ++it) {
         if (it->first == datum_t::reql_type_string) {

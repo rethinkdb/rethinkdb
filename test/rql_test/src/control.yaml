@@ -161,7 +161,7 @@ tests:
 
     # js error cases
     - cd: r.js('(function() { return 1; })')
-      ot: err("RqlRuntimeError", "Query result must be of type DATUM or STREAM (got FUNCTION).", [0])
+      ot: err("RqlRuntimeError", "Query result must be of type DATUM, GROUPED_DATA, or STREAM (got FUNCTION).", [0])
 
     - cd: r.js('function() { return 1; }')
       ot: 'err("RqlRuntimeError", "SyntaxError: Unexpected token (", [0])'

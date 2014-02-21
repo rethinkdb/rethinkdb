@@ -211,6 +211,9 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
     /* Create a secondary index. */
     std::string id = create_sindex(nsi, osource);
 
+    // KSI: Ugh, why is sindex creation so slow that we need a nap?
+    nap(100);
+
     std::shared_ptr<const scoped_cJSON_t> data(
         new scoped_cJSON_t(cJSON_Parse("{\"id\" : 0, \"sid\" : 1}")));
     counted_t<const ql::datum_t> d(
@@ -243,9 +246,6 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
         }
     }
 
-    // RSI: This is bad-ish, make us not really need this again.
-    nap(1000);
-
     {
         /* Access the data using the secondary index. */
         rdb_protocol_t::read_t read = make_sindex_read(sindex_key_literal, id);
@@ -255,7 +255,7 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
         nsi->read(read, &response, osource->check_in("unittest::run_create_drop_sindex_test(rdb_protocol_t.cc-A"), &interruptor);
 
         if (rdb_protocol_t::rget_read_response_t *rget_resp = boost::get<rdb_protocol_t::rget_read_response_t>(&response.response)) {
-            rdb_protocol_t::rget_read_response_t::stream_t *stream = boost::get<rdb_protocol_t::rget_read_response_t::stream_t>(&rget_resp->result);
+            ql::stream_t *stream = boost::get<ql::stream_t>(&rget_resp->result);
             ASSERT_TRUE(stream != NULL);
             ASSERT_EQ(1u, stream->size());
             ASSERT_EQ(ql::datum_t(*data), *stream->at(0).data);
@@ -290,7 +290,7 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
         nsi->read(read, &response, osource->check_in("unittest::run_create_drop_sindex_test(rdb_protocol_t.cc-A"), &interruptor);
 
         if (rdb_protocol_t::rget_read_response_t *rget_resp = boost::get<rdb_protocol_t::rget_read_response_t>(&response.response)) {
-            rdb_protocol_t::rget_read_response_t::stream_t *stream = boost::get<rdb_protocol_t::rget_read_response_t::stream_t>(&rget_resp->result);
+            ql::stream_t *stream = boost::get<ql::stream_t>(&rget_resp->result);
             ASSERT_TRUE(stream != NULL);
             ASSERT_EQ(0u, stream->size());
         } else {
@@ -363,8 +363,9 @@ TEST(RDBProtocol, OvershardedSindexList) {
 
 void run_sindex_oversized_keys_test(namespace_interface_t<rdb_protocol_t> *nsi, order_source_t *osource) {
     std::string sindex_id = create_sindex(nsi, osource);
-    // RSI: Ugh.
-    nap(1000);
+
+    // KSI: Ugh, why is sindex creation so slow that we need a nap?
+    nap(100);
 
     for (size_t i = 0; i < 20; ++i) {
         for (size_t j = 100; j < 200; j += 5) {
@@ -422,9 +423,10 @@ void run_sindex_oversized_keys_test(namespace_interface_t<rdb_protocol_t> *nsi, 
                 nsi->read(read, &response, osource->check_in("unittest::run_sindex_oversized_keys_test(rdb_protocol_t.cc-A"), &interruptor);
 
                 if (rdb_protocol_t::rget_read_response_t *rget_resp = boost::get<rdb_protocol_t::rget_read_response_t>(&response.response)) {
-                    rdb_protocol_t::rget_read_response_t::stream_t *stream = boost::get<rdb_protocol_t::rget_read_response_t::stream_t>(&rget_resp->result);
+                    ql::stream_t *stream = boost::get<ql::stream_t>(&rget_resp->result);
                     ASSERT_TRUE(stream != NULL);
-                    // There should be results equal to the number of iterations performed
+                    // There should be results equal to the number of iterations
+                    // performed
                     ASSERT_EQ(i + 1, stream->size());
                 } else {
                     ADD_FAILURE() << "got wrong type of result back";

@@ -1,0 +1,3 @@
+message Test1 {
+    optional int32 a = 1;
+}

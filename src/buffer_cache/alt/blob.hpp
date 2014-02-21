@@ -10,6 +10,7 @@
 #include <utility>
 
 #include "buffer_cache/types.hpp"
+#include "concurrency/access.hpp"
 #include "containers/buffer_group.hpp"
 #include "errors.hpp"
 #include "serializer/types.hpp"
@@ -57,7 +58,6 @@ write_blob_ref_to_something(tmp, blob::ref_size(bs, ref, mrl));
 
  */
 
-enum class access_t;
 class buf_lock_t;
 class buf_parent_t;
 class buf_read_t;
@@ -168,9 +168,9 @@ public:
     // than one gazillion.
     int64_t valuesize() const;
 
-    // Detaches the blob's subtree from the root node (see
+    // Detaches the blob's subtrees from the root node (see
     // buf_lock_t::detach_child).
-    void detach_subtree(buf_parent_t root);
+    void detach_subtrees(buf_parent_t root);
 
     // Acquires internal buffers and copies pointers to internal
     // buffers to the buffer_group_t, initializing acq_group_out so

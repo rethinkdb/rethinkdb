@@ -49,8 +49,6 @@ public:
         for (size_t i = 0; i < keys_to_delete.size(); ++i) {
             bool found = leaf::lookup(sizer_, node, keys_to_delete[i].btree_key(), value.get());
             guarantee(found);
-            // RSI: Presumably, delete_value, if called from here, should detach
-            // blobs.
             deleter_->delete_value(buf_parent_t(leaf_node_buf), value.get());
             leaf::erase_presence(sizer_, node, keys_to_delete[i].btree_key(),
                                  key_modification_proof_t::real_proof());
@@ -115,21 +113,21 @@ private:
     DISABLE_COPYING(erase_range_helper_t);
 };
 
-void btree_erase_range_generic(value_sizer_t<void> *sizer, btree_slice_t *slice,
+void btree_erase_range_generic(value_sizer_t<void> *sizer,
         key_tester_t *tester, value_deleter_t *deleter,
         const btree_key_t *left_exclusive_or_null,
         const btree_key_t *right_inclusive_or_null,
         superblock_t *superblock, signal_t *interruptor, bool release_superblock) {
     erase_range_helper_t helper(sizer, tester, deleter,
                                 left_exclusive_or_null, right_inclusive_or_null);
-    btree_parallel_traversal(superblock, slice, &helper, interruptor,
+    btree_parallel_traversal(superblock, &helper, interruptor,
                              release_superblock);
 }
 
 // KSI: Wait, seriously?  Is it actually correct and proper for our
 // partially-completed btree erasure operation to be interrupted?  If the tree is
 // already detached, the worst that would happen is that we leak blocks, yes.
-void erase_all(value_sizer_t<void> *sizer, btree_slice_t *slice,
+void erase_all(value_sizer_t<void> *sizer,
                value_deleter_t *deleter,
                superblock_t *superblock,
                signal_t *interruptor,
@@ -138,7 +136,7 @@ void erase_all(value_sizer_t<void> *sizer, btree_slice_t *slice,
         bool key_should_be_erased(const btree_key_t *) { return true; }
     } always_true_tester;
 
-    btree_erase_range_generic(sizer, slice, &always_true_tester,
+    btree_erase_range_generic(sizer, &always_true_tester,
                               deleter, NULL, NULL,
                               superblock,
                               interruptor, release_superblock);

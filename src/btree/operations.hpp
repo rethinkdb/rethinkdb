@@ -16,8 +16,6 @@
 #include "repli_timestamp.hpp"
 #include "utils.hpp"
 
-// RSI: This code doesn't use the notion of "parent transaction" at all, and it must.
-
 class btree_slice_t;
 
 template <class> class promise_t;
@@ -42,6 +40,8 @@ public:
     virtual void set_sindex_block_id(block_id_t new_block_id) = 0;
 
     virtual buf_parent_t expose_buf() = 0;
+
+    cache_t *cache() { return expose_buf().cache(); }
 
 private:
     DISABLE_COPYING(superblock_t);
@@ -244,19 +244,20 @@ void ensure_stat_block(superblock_t *sb);
 void get_btree_superblock(txn_t *txn, access_t access,
                           scoped_ptr_t<real_superblock_t> *got_superblock_out);
 
-void get_btree_superblock_and_txn(btree_slice_t *slice,
-                                  access_t superblock_access,
+void get_btree_superblock_and_txn(cache_conn_t *cache_conn,
+                                  write_access_t superblock_access,
                                   int expected_change_count,
                                   repli_timestamp_t tstamp,
                                   write_durability_t durability,
                                   scoped_ptr_t<real_superblock_t> *got_superblock_out,
                                   scoped_ptr_t<txn_t> *txn_out);
 
-void get_btree_superblock_and_txn_for_backfilling(btree_slice_t *slice,
+void get_btree_superblock_and_txn_for_backfilling(cache_conn_t *cache_conn,
+                                                  cache_account_t *backfill_account,
                                                   scoped_ptr_t<real_superblock_t> *got_superblock_out,
                                                   scoped_ptr_t<txn_t> *txn_out);
 
-void get_btree_superblock_and_txn_for_reading(btree_slice_t *slice,
+void get_btree_superblock_and_txn_for_reading(cache_conn_t *cache_conn,
                                               cache_snapshotted_t snapshotted,
                                               scoped_ptr_t<real_superblock_t> *got_superblock_out,
                                               scoped_ptr_t<txn_t> *txn_out);

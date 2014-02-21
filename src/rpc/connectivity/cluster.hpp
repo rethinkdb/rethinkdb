@@ -75,7 +75,8 @@ public:
               int port,
               message_handler_t *message_handler,
               int client_port,
-              heartbeat_manager_t *_heartbeat_manager) THROWS_ONLY(address_in_use_exc_t);
+              heartbeat_manager_t *_heartbeat_manager)
+            THROWS_ONLY(address_in_use_exc_t, tcp_socket_exc_t);
 
         ~run_t();
 

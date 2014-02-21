@@ -653,8 +653,7 @@ public:
                 parent->serializer->offer_buf_to_read_ahead_callbacks(
                         block_id,
                         std::move(data),
-                        token,
-                        info.recency);
+                        token);
             }
         }
 
@@ -701,7 +700,6 @@ void data_block_manager_t::read(int64_t off_in, uint32_t ser_block_size_in,
 
 std::vector<counted_t<ls_block_token_pointee_t> >
 data_block_manager_t::many_writes(const std::vector<buf_write_info_t> &writes,
-                                  bool assign_new_block_sequence_id,
                                   file_account_t *io_account,
                                   iocallback_t *cb) {
     // Either we're ready to write, or we're shutting down and just finished reading
@@ -716,10 +714,6 @@ data_block_manager_t::many_writes(const std::vector<buf_write_info_t> &writes,
 
     for (auto it = writes.begin(); it != writes.end(); ++it) {
         it->buf->ser_header.block_id = it->block_id;
-        if (assign_new_block_sequence_id) {
-            ++serializer->latest_block_sequence_id;
-            it->buf->ser_header.block_sequence_id = serializer->latest_block_sequence_id;
-        }
     }
 
     struct intermediate_cb_t : public iocallback_t {
@@ -737,7 +731,7 @@ data_block_manager_t::many_writes(const std::vector<buf_write_info_t> &writes,
     };
 
     intermediate_cb_t *const intermediate_cb = new intermediate_cb_t;
-    // We add 1 for degenerate case where token_groups.size() -- we call
+    // We add 1 for degenerate case where token_groups is empty -- we call
     // intermediate_cb->on_io_complete later.
     intermediate_cb->ops_remaining = token_groups.size() + 1;
     intermediate_cb->cb = cb;
@@ -781,7 +775,7 @@ data_block_manager_t::many_writes(const std::vector<buf_write_info_t> &writes,
     }
 
     // Call on_io_complete for degenerate case (we added 1 to ops_remaining
-    // gearlier).
+    // earlier).
     intermediate_cb->on_io_complete();
 
     std::vector<counted_t<ls_block_token_pointee_t> > ret;
@@ -961,7 +955,7 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t *writes, size_t num
             }
 
             new_block_tokens
-                = parent->many_writes(the_writes, false, parent->choose_gc_io_account(),
+                = parent->many_writes(the_writes, parent->choose_gc_io_account(),
                                       &block_write_cond);
 
             guarantee(new_block_tokens.size() == num_writes);

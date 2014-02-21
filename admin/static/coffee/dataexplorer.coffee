@@ -32,7 +32,6 @@ module 'DataExplorerView', ->
         template_suggestion_name: Handlebars.templates['dataexplorer_suggestion_name_li-template']
         description_with_example_template: Handlebars.templates['dataexplorer-description_with_example-template']
         alert_connection_fail_template: Handlebars.templates['alert-connection_fail-template']
-        alert_reconnection_success_template: Handlebars.templates['alert-reconnection_success-template']
         databases_suggestions_template: Handlebars.templates['dataexplorer-databases_suggestions-template']
         namespaces_suggestions_template: Handlebars.templates['dataexplorer-namespaces_suggestions-template']
         reason_dataexplorer_broken_template: Handlebars.templates['dataexplorer-reason_broken-template']
@@ -46,6 +45,8 @@ module 'DataExplorerView', ->
         max_size_stack: 100 # If the stack of the query (including function, string, object etc. is greater than @max_size_stack, we stop parsing the query
         max_size_query: 1000 # If the query is more than 1000 char, we don't show suggestion (codemirror doesn't highlight/parse if the query is more than 1000 characdd_ters too
 
+        delay_show_abort: 70 # If a query didn't return during this period (ms) we let people abort the query
+
         events:
             'mouseup .CodeMirror': 'handle_click'
             'mousedown .suggestion_name_li': 'select_suggestion' # Keep mousedown to compete with blur on .input_query
@@ -53,14 +54,34 @@ module 'DataExplorerView', ->
             'mouseout .suggestion_name_li' : 'mouseout_suggestion'
             'click .clear_query': 'clear_query'
             'click .execute_query': 'execute_query'
+            'click .abort_query': 'abort_query'
             'click .change_size': 'toggle_size'
-            'click #reconnect': 'reconnect'
+            'click #reconnect': 'execute_query'
             'click .more_results': 'show_more_results'
             'click .close': 'close_alert'
             'click .clear_queries_link': 'clear_history_view'
             'click .close_queries_link': 'toggle_history'
             'click .toggle_options_link': 'toggle_options'
             'mousedown .nano_border_bottom': 'start_resize_history'
+            # Let people click on the description and select text
+            'mousedown .suggestion_description': 'mouse_down_description'
+            'click .suggestion_description': 'stop_propagation'
+            'mouseup .suggestion_description': 'mouse_up_description'
+            'mousedown .suggestion_full_container': 'mouse_down_description'
+            'click .suggestion_full_container': 'stop_propagation'
+            'mousedown .CodeMirror': 'mouse_down_description'
+            'click .CodeMirror': 'stop_propagation'
+
+        mouse_down_description: (event) =>
+            @keep_suggestions_on_blur = true
+            @stop_propagation event
+
+        stop_propagation: (event) =>
+            event.stopPropagation()
+
+        mouse_up_description: (event) =>
+            @keep_suggestions_on_blur = false
+            @stop_propagation event
 
         start_resize_history: (event) =>
             @history_view.start_resize event
@@ -413,6 +434,7 @@ module 'DataExplorerView', ->
             @TermBaseConstructor = r.expr(1).constructor.__super__.constructor.__super__.constructor
 
             @state = args.state
+            @executing = false
 
             # Load options from local storage
             if window.localStorage?.options?
@@ -461,13 +483,13 @@ module 'DataExplorerView', ->
 
             @driver_handler = new DataExplorerView.DriverHandler
                 container: @
-                on_success: @success_on_connect
-                on_fail: @error_on_connect
 
             # One callback to rule them all
             $(window).mousemove @handle_mousemove
             $(window).mouseup @handle_mouseup
+            $(window).mousedown @handle_mousedown
             @id_execution = 0
+            @keep_suggestions_on_blur = false
 
             @render()
 
@@ -479,6 +501,12 @@ module 'DataExplorerView', ->
             @results_view.handle_mouseup event
             @history_view.handle_mouseup event
 
+        handle_mousedown: (event) =>
+            # $(window) caught a mousedown event, so it wasn't caught by $('.suggestion_description')
+            # Let's hide the suggestion/description
+            @keep_suggestions_on_blur = false
+            @hide_suggestion_and_description()
+
         render: =>
             @$el.html @template()
             @$('.input_query_full_container').html @input_query_template()
@@ -489,16 +517,16 @@ module 'DataExplorerView', ->
                 @$('.reason_dataexplorer_broken').html @reason_dataexplorer_broken_template
                     is_internet_explorer: true
                 @$('.reason_dataexplorer_broken').slideDown 'fast'
-                @$('.button_query').prop 'disabled', 'disabled'
+                @$('.button_query').prop 'disabled', true
             else if (not DataView?) or (not Uint8Array?) # The main two components that the javascript driver requires.
                 @$('.reason_dataexplorer_broken').html @reason_dataexplorer_broken_template
                 @$('.reason_dataexplorer_broken').slideDown 'fast'
-                @$('.button_query').prop 'disabled', 'disabled'
+                @$('.button_query').prop 'disabled', true
             else if not window.r? # In case the javascript driver is not found (if build from source for example)
                 @$('.reason_dataexplorer_broken').html @reason_dataexplorer_broken_template
                     no_driver: true
                 @$('.reason_dataexplorer_broken').slideDown 'fast'
-                @$('.button_query').prop 'disabled', 'disabled'
+                @$('.button_query').prop 'disabled', true
 
             # Let's bring back the data explorer to its old state (if there was)
             if @state?.query? and @state?.results? and @state?.metadata?
@@ -558,7 +586,9 @@ module 'DataExplorerView', ->
 
         on_blur: =>
             @state.focus_on_codemirror = false
-            @hide_suggestion_and_description()
+            # We hide the description only if the user isn't selecting text from a description.
+            if @keep_suggestions_on_blur is false
+                @hide_suggestion_and_description()
 
         # We have to keep track of a lot of things because web-kit browsers handle the events keydown, keyup, blur etc... in a strange way.
         current_suggestions: []
@@ -2184,11 +2214,11 @@ module 'DataExplorerView', ->
             # Give back focus to code mirror
             @hide_suggestion()
 
+            # Put back in the stack
             setTimeout =>
                 @handle_keypress() # That's going to describe the function the user just selected
                 @codemirror.focus() # Useful if the user used the mouse to select a suggestion
-            , 0 # # Useful if the user used the mouse to select a suggestion
-
+            , 0 # Useful if the user used the mouse to select a suggestion
 
         # Highlight a suggestion in case of a mouseover
         mouseover_suggestion: (event) =>
@@ -2298,12 +2328,22 @@ module 'DataExplorerView', ->
                 @state.cursor.next get_result_callback
                 $(window).scrollTop(@.$('.results_container').offset().top)
             catch err
-                @.$('.loading_query_img').css 'display', 'none'
+                @toggle_executing false
                 # We print the query here (the user just hit `more data`)
                 @results_view.render_error(@query, err)
 
+        abort_query: =>
+            @driver_handler.close_connection()
+            @id_execution++
+            @toggle_executing false
+
         # Function that execute the queries in a synchronous way.
         execute_query: =>
+            # We don't let people execute more than one query at a time on the same connection
+            # While we remove the button run, `execute_query` could still be called with Shift+Enter
+            if @executing is true
+                return
+
             # Hide the option, if already hidden, nothing happens.
             @$('.profiler_enabled').slideUp 'fast'
 
@@ -2331,16 +2371,32 @@ module 'DataExplorerView', ->
                         no_query: true
                     @results_view.render_error(null, error, true)
                 else
-                    @.$('.loading_query_img').show()
+                    @toggle_executing true
                     @execute_portion()
 
             catch err
-                @.$('.loading_query_img').hide()
+                @toggle_executing false
                 # Missing brackets, so we display everything (we don't know if we properly splitted the query)
                 @results_view.render_error(@query, err, true)
                 @save_query
                     query: @raw_query
                     broken_query: true
+
+        toggle_executing: (executing) =>
+            if executing is true
+                @executing = true
+                @timeout_show_abort = setTimeout =>
+                    #TODO Delay a few ms
+                    @.$('.loading_query_img').show()
+                    @$('.execute_query').hide()
+                    @$('.abort_query').show()
+                , @delay_show_abort
+            else if executing is false
+                clearTimeout @timeout_show_abort
+                @executing = false
+                @.$('.loading_query_img').hide()
+                @$('.execute_query').show()
+                @$('.abort_query').hide()
 
         # A portion is one query of the whole input.
         execute_portion: =>
@@ -2352,7 +2408,7 @@ module 'DataExplorerView', ->
                 try
                     rdb_query = @evaluate(full_query)
                 catch err
-                    @.$('.loading_query_img').hide()
+                    @toggle_executing false
                     if @queries.length > 1
                         @results_view.render_error(@raw_queries[@index], err, true)
                     else
@@ -2373,7 +2429,13 @@ module 'DataExplorerView', ->
                     rdb_global_callback = @generate_rdb_global_callback @id_execution
                     # Date are displayed in their raw format for now.
                     @state.last_query_has_profile = @state.options.profiler
-                    rdb_query.private_run {connection: @driver_handler.connection, timeFormat: "raw", profile: @state.options.profiler}, rdb_global_callback # @rdb_global_callback can be fire more than once
+                    @driver_handler.create_connection (error, connection) =>
+                        if (error)
+                            @error_on_connect error
+                        else
+                            rdb_query.private_run {connection: connection, timeFormat: "raw", profile: @state.options.profiler}, rdb_global_callback # @rdb_global_callback can be fired more than once
+                    , @id_execution, @error_on_connect
+
                     return true
                 else if rdb_query instanceof DataExplorerView.DriverHandler
                     # Nothing to do
@@ -2381,7 +2443,7 @@ module 'DataExplorerView', ->
                 else
                     @non_rethinkdb_query += @queries[@index-1]
                     if @index is @queries.length
-                        @.$('.loading_query_img').hide()
+                        @toggle_executing false
                         error = @query_error_template
                             last_non_query: true
                         @results_view.render_error(@raw_queries[@index-1], error, true)
@@ -2399,7 +2461,7 @@ module 'DataExplorerView', ->
                     get_result_callback = @generate_get_result_callback id_execution
 
                     if error?
-                        @.$('.loading_query_img').hide()
+                        @toggle_executing false
                         if @queries.length > 1
                             @results_view.render_error(@raw_queries[@index-1], error)
                         else
@@ -2428,7 +2490,7 @@ module 'DataExplorerView', ->
                             else
                                 get_result_callback() # Display results
                         else
-                            @.$('.loading_query_img').hide()
+                            @toggle_executing false
 
                             # Save the last executed query and the last displayed results
                             @current_results = cursor
@@ -2474,7 +2536,7 @@ module 'DataExplorerView', ->
                             @state.cursor.next get_result_callback
                             return true
 
-                    @.$('.loading_query_img').hide()
+                    @toggle_executing false
 
                     # if data is undefined or @current_results.length is @limit
                     @state.query = @query
@@ -2623,24 +2685,12 @@ module 'DataExplorerView', ->
             @codemirror.setValue ''
             @codemirror.focus()
 
-        # Called if the driver could connect
-        success_on_connect: (connection) =>
-            @connection = connection
-
-            @results_view.cursor_timed_out()
-            if @reconnecting is true
-                @.$('#user-alert-space').hide()
-                @.$('#user-alert-space').html @alert_reconnection_success_template()
-                @.$('#user-alert-space').slideDown 'fast'
-            @reconnecting = false
-            @driver_connected = 'connected'
-
         # Called if the driver could not connect
         error_on_connect: (error) =>
             if /^(Unexpected token)/.test(error.message)
                 # Unexpected token, the server couldn't parse the protobuf message
                 # The truth is we don't know which query failed (unexpected token), but it seems safe to suppose in 99% that the last one failed.
-                @.$('.loading_query_img').hide()
+                @toggle_executing false
                 @results_view.render_error(null, error)
 
                 # We save the query since the callback will never be called.
@@ -2703,8 +2753,6 @@ module 'DataExplorerView', ->
             @results_view.destroy()
             @history_view.destroy()
             @driver_handler.destroy()
-            if @state.cursor?
-                @state.cursor.close()
 
             @display_normal()
             $(window).off 'resize', @display_full
@@ -3650,9 +3698,6 @@ module 'DataExplorerView', ->
 
         # I don't want that thing in window
         constructor: (args) ->
-            @on_success = args.on_success
-            @on_fail = args.on_fail
-
             if window.location.port is ''
                 if window.location.protocol is 'https:'
                     port = 443
@@ -3667,7 +3712,6 @@ module 'DataExplorerView', ->
                 pathname: window.location.pathname
 
             @hack_driver()
-            @connect()
         
         # Hack the driver, remove .run() and private_run()
         hack_driver: =>
@@ -3679,44 +3723,29 @@ module 'DataExplorerView', ->
                     throw that.query_error_template
                         found_run: true
 
-        connect: =>
-            that = @
+        close_connection: =>
+            if @connection?.open is true
+                @connection.close {noreplyWait: false}
+                @connection = null
 
-            if @connection?
-                if @driver_status is 'connected'
-                    try
-                        @connection.close()
-                    catch err
-                        # Nothing bad here, let's just not pollute the console
+        create_connection: (cb, id_execution, connection_cb) =>
+            that = @
+            @id_execution = id_execution
+
             try
-                r.connect @server, @connect_callback
+                ((_id_execution) =>
+                    r.connect @server, (error, connection) =>
+                        if _id_execution is @id_execution
+                            connection.removeAllListeners 'error' # See issue 1347
+                            connection.on 'error', connection_cb
+                            @connection = connection
+                            cb(error, connection)
+                        else
+                            connection.cancel()
+                )(id_execution)
    
-                @interval = setInterval @ping, @ping_time
             catch err
                 @on_fail(err)
 
-        # Callback for r.connect
-        connect_callback: (err, connection) =>
-         if err?
-            @.on_fail(err)
-         else
-            @connection = connection
-            @on_success(connection)
-
-            connection.removeAllListeners 'error'
-            connection.on 'error', @on_fail
-
-    
-        # Makre sure the connection doesn't die
-        ping: =>
-            r.expr(1).private_run @connection, ->
-                @
-
-        # We could have something to pospone the call to @ping everytime the user make a query
-
         destroy: =>
-            try
-                @connection.close()
-            catch err
-                # Nothing bad here, let's just not pollute the console
-            clearTimeout @interval
+            @close_connection()

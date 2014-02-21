@@ -25,10 +25,10 @@ def generate_make_serializable_macro(nfields):
     print "    return msg; \\"
     print "    } \\"
     print "    function_attr archive_result_t deserialize(%sread_stream_t *s, %stype_t *thing) { \\" % (zeroarg, zeroarg)
-    print "        archive_result_t res = ARCHIVE_SUCCESS; \\"
+    print "        archive_result_t res = archive_result_t::SUCCESS; \\"
     for i in xrange(nfields):
         print "        res = deserialize(s, deserialize_deref(thing->field%d)); \\" % (i + 1)
-        print "        if (res) { return res; } \\"
+        print "        if (bad(res)) { return res; } \\"
     print "        return res; \\"
     print "    } \\"
     # See the note in the comment below.
@@ -47,10 +47,10 @@ def generate_make_me_serializable_macro(nfields):
     print "    } \\"
     print "    friend class archive_deserializer_t; \\"
     print "    archive_result_t rdb_deserialize(%sread_stream_t *s) { \\" % zeroarg
-    print "        archive_result_t res = ARCHIVE_SUCCESS; \\"
+    print "        archive_result_t res = archive_result_t::SUCCESS; \\"
     for i in xrange(nfields):
         print "        res = deserialize(s, deserialize_deref(field%d)); \\" % (i + 1)
-        print "        if (res) { return res; } \\"
+        print "        if (bad(res)) { return res; } \\"
     print "        return res; \\"
     print "    }"
 
@@ -63,10 +63,10 @@ def generate_impl_me_serializable_macro(nfields):
         print "        msg << field%d; \\" % (i + 1)
     print "    } \\"
     print "    archive_result_t typ::rdb_deserialize(%sread_stream_t *s) { \\" % zeroarg
-    print "        archive_result_t res = ARCHIVE_SUCCESS; \\"
+    print "        archive_result_t res = archive_result_t::SUCCESS; \\"
     for i in xrange(nfields):
         print "        res = deserialize(s, deserialize_deref(field%d)); \\" % (i + 1)
-        print "        if (res) { return res; } \\"
+        print "        if (bad(res)) { return res; } \\"
     print "        return res; \\"
     print "    }"
 
@@ -81,8 +81,11 @@ if __name__ == "__main__":
     print "Please modify '%s' instead of modifying this file.*/" % sys.argv[0]
     print
 
-# Don't generate an include for containers/archive/archive.hpp -- the
-# caller needs to do that.
+    print "// Users of the non-DECLARE macros may have "
+    print "// to #include \"containers/archive/archive.hpp\"."
+    print "enum class archive_result_t;"
+    print "class read_stream_t;"
+    print "class write_message_t;"
     print
 
     print """

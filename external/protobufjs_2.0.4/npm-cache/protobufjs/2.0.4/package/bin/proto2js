@@ -1,0 +1,263 @@
+#!/usr/bin/env node
+/*
+ Copyright 2013 Daniel Wirtz <dcode@dcode.io>
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+ http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+ */
+
+/**
+ * ProtoBuf.js: proto2js Command Line Utility (c) 2013 Daniel Wirtz <dcode@dcode.io>
+ * Released under the Apache License, Version 2.0
+ * see: https://github.com/dcodeIO/ProtoBuf.js for details
+ */
+
+var ProtoBuf = require(__dirname+"/../ProtoBuf.js"),
+    fs = require("fs"),
+    path = require("path"),
+    pkg = require(__dirname+"/../package.json"),
+    ascli = require("ascli");
+
+if (!fs.existsSync) fs.existsSync = path.existsSync; // node 0.6
+
+if (process.argv.length < 3) {
+    ascli.banner("proto".green.bold+"2".white.bold+"js".green.bold, "ProtoBuf.js v"+pkg['version']+" "+"https://github.com/dcodeIO/ProtoBuf.js".grey);
+    console.log("Usage: "+path.basename(process.argv[1]).green.bold+" protoFile [-class[=My.Package]|-commonjs[=My.Package]|-amd[=My.Package]] [-min] [> outFile]\n");
+    console.log("Options:\n");
+    console.log("  -class[=My.Package]     Creates the classes instead of just a JSON definition.");
+    console.log("                          If you do not specify a package, the package");
+    console.log("                          declaration from the .proto file is used instead.\n");
+    console.log("  -commonjs[=My.Package]  Creates a CommonJS export instead of just a JSON def.");
+    console.log("                          If you do not specify a package, the package");
+    console.log("                          declaration from the .proto file is used instead.\n");
+    console.log("  -amd[=My.Package]       Creates an AMD define instead of just a JSON def.");
+    console.log("                          If you do not specify a package, the package");
+    console.log("                          declaration from the .proto file is used instead.\n");
+    console.log("If none of -class, -commonjs or -amd is specified, the raw AST will be returned.\n");    
+    console.log("  -min                    Minifies the output.\n");
+    console.log("  -path=DIR               Adds a directory to the include path.");
+    process.exit(1);
+}
+var options = {};
+for (var i=3; i<process.argv.length; i++) {
+    var option = process.argv[i];
+    if (option.substring(0,1) == "-") {
+        var opt = option.split("=", 2), key = opt[0].substring(1);
+        if (typeof options[key] === 'string' && typeof opt[1] === 'string') {
+            options[key] = [options[key], opt[1]]; // Make it an array
+        } else if (Array.isArray(options[key]) && typeof opt[1] === 'string') {
+            options[key].push(opt[1]); // Add it
+        } else {
+            options[key] = opt.length == 2 ? opt[1] : true; // Create or overwrite
+        }
+    }
+}
+
+var sourceFile = process.argv[2],
+    min = !!options['min'],
+    importedFiles = [], // Already imported files
+    includePath = Array.isArray(options['path']) ? options['path'] : (typeof options['path'] === 'string' ? [options['path']] : []);
+    includePath.push(path.dirname(sourceFile));
+
+// Verify that include paths actually exist
+includePath.forEach(function(path) {
+    if (!fs.existsSync(path)) {
+        console.error('Failed to find include path: '+path);
+        process.exit(2);
+    }
+});
+
+// Switch cases
+try {
+    var out;
+    if (!!options["class"]) {
+        out = build_shim(options["class"], sourceFile, min);
+    } else if (!!options["commonjs"]) {
+        out = build_commonjs( options["commonjs"], sourceFile, min);
+    } else if (!!options["amd"]) {
+        out = build_amd(options["amd"], sourceFile, min);
+    } else {
+        out = build_json(sourceFile, min);
+    }
+    process.stdout.write(out+"\n");
+} catch (e) {
+    console.error(""+e);
+    process.exit(2);
+}
+
+/**
+ * Simply parses a file and returns the JSON result.
+ * @param {string} file Source file
+ * @param {boolean=} min true to minify, false for pretty print
+ * @param {boolean=} asObject true to return the AST as an object, defaults to false for using stringify
+ * @return {string|!*} JSON representation
+ */
+function build_json(file, min, asObject) {
+    var base = path.dirname(file),
+        source = fs.readFileSync(file),
+        parser = new ProtoBuf.DotProto.Parser(source),
+        ast = parser.parse();
+    if (ast['imports'] && ast['imports'].length > 0) { // Replace import file names with the actual structures
+        var imports = [];
+        ast['imports'].forEach(function(ifile, i) {
+            if (ProtoBuf.Builder.isValidImport(ifile)) {
+                var pfile = path.resolve(base, ifile),
+                    ofile = pfile;
+                if (!fs.existsSync(pfile)) {
+                    for (var i=0; i<includePath.length; i++) {
+                        pfile = path.resolve(includePath[i], ifile);
+                        if (fs.existsSync(pfile)) break;
+                        pfile = ofile; // Always fail on the file tried first
+                    }
+                }
+                if (importedFiles.indexOf(pfile) < 0) {
+                    imports.push(build_json(pfile, min, true));
+                    importedFiles.push(pfile);
+                }
+            }
+        });
+        ast['imports'] = imports;
+    }
+    return asObject ? ast : JSON.stringify(ast, null, min ? 0 : 4);
+}
+
+/**
+ * Recursively builds a file and its imports by converting each to a JS import on a common builder.
+ * @param {string} file File name
+ * @param {boolean=} min true to minify, false for pretty print
+ * @return {Array} Parsed AST [0] and JS output [1] as a concatenation of import statements
+ * @throws {Error} If the package is not a valid namespace
+ */
+function build_js(file, min) {
+    var ast = build_json(file, min, true);
+    return [ast, '.import('+JSON.stringify(ast, null, min ? 0 : 4)+')'];
+}
+
+/**
+ * Tests if a package is valid in the specified AST.
+ * @param {string} pkg Package
+ * @param {Object} ast AST
+ * @return {boolean} true if valid, otherwise false
+ */
+function is_valid_package(pkg, ast) {
+    if (pkg === null) return true;
+    if (!ProtoBuf.Lang.TYPEREF.test(pkg)) {
+        return false;
+    }
+    var part = pkg.split(".");
+    if (part[0] == "") part = part.slice(1);
+    var ptrs = [ast['messages']];
+    var found = null;
+    var astPart = ast['package'] ? ast['package'].split(".") : [];
+    for (var i=0; i<part.length && found === null; i++) { // Package parts
+        if (astPart.length > i) {
+            if (astPart[i] != part[i]) return false;
+        } else {
+            for (var j=0; j<ptrs.length && found === null; j++) { // Pointers
+                for (var k=0; k<ptrs[j].length && found === null; k++) { // Defs in pointers
+                    if (ptrs[j][k]['name'] == part[i]) {
+                        found = ptrs[j][k];
+                    }
+                }
+            }
+            if (!found) return false;
+            var ptrs = [];
+            if (found['messages']) {
+                ptrs.push(found['messages']);                      
+            }
+            if (found['enums']) {
+                ptrs.push(found['enums']);
+            }
+            found = null;
+        }
+    }
+    return true;
+}
+
+/**
+ * Builds shim classes.
+ * @param {string} pkg Package
+ * @param {string} file Source file
+ * @param {boolean=} min true to minify, false for pretty print
+ * @return {string} Built classes
+ * @throws {Error} If classes cannot be built
+ */
+function build_shim(pkg, file, min) {
+    var res = build_js(file, min);
+    var ast = res[0];
+    var out = res[1];
+    if (pkg === true) {
+        pkg = typeof ast['package'] == 'string' ? ast['package'] : null;
+    }
+    if (pkg && !is_valid_package(pkg, ast)) {
+        throw(new Error("Not a valid namespace: "+pkg));
+    }
+    var WHITESPACE = min ? '' : ' ';
+    if (pkg === null) {
+        vars = 'var _root'+WHITESPACE+'='+WHITESPACE;
+    } else {
+        var part = pkg.split(".");
+        if (part[0] == "") part = part.slice(1);
+        var vars = 'var ';
+        var path = "";
+        for (var i=0; i<part.length-1; i++) {
+            vars += path+part[i]+WHITESPACE+'='+WHITESPACE+'{};'+WHITESPACE;
+            path += part[i]+".";
+        }
+        path += part[part.length-1];
+        vars += path+WHITESPACE+'='+WHITESPACE;
+    }
+    return vars+'dcodeIO.ProtoBuf.newBuilder()'+out+'.build('+(pkg !== null ? '"'+pkg+'"' : '')+');';
+}
+
+/**
+ * Builds CommonJS exports.
+ * @param {string} pkg Package
+ * @param {string} file Source file
+ * @param {boolean=} min true to minify, false for pretty print
+ * @return {string} Built exports
+ * @throws {Error} If exports cannot be built
+ */
+function build_commonjs(pkg, file, min) {
+    var res = build_js(file, min);
+    var ast = res[0];
+    var out = res[1];
+    if (pkg === true) {
+        pkg = typeof ast['package'] == 'string' ? ast['package'] : null;
+    }
+    if (pkg && !is_valid_package(pkg, ast)) {
+        throw(new Error("Not a valid namespace: "+pkg));
+    }
+    var WHITESPACE = min ? '' : ' ';
+    return 'module.exports'+WHITESPACE+'='+WHITESPACE+'require("protobufjs").newBuilder()'+out+'.build('+(pkg !== null ? '"'+pkg+'"' : '')+');';
+}
+
+/**
+ * Builds an AMD definition.
+ * @param {string} pkg Package
+ * @param {string} file Source file
+ * @return {string} Built define
+ * @throws {Error} If the define cannot be built
+ */
+function build_amd(pkg, file, min) {
+    var res = build_js(file, min);
+    var ast = res[0];
+    var out = res[1];
+    if (pkg === true) {
+        pkg = typeof ast['package'] == 'string' ? ast['package'] : null;
+    }
+    if (pkg && !is_valid_package(pkg, ast)) {
+        throw(new Error("Not a valid namespace: "+pkg));
+    }
+    var WHITESPACE = min ? '' : ' ';
+    return 'define('+(pkg !== null ? '"'+pkg.replace(/\./g, '/').replace(/^\//, "")+'",'+WHITESPACE : '')+'["ProtoBuf"],'+WHITESPACE+'function(ProtoBuf)'+WHITESPACE+'{'+WHITESPACE+'return ProtoBuf.newBuilder()'+out+'.build('+(pkg !== null ? '"'+pkg+'"' : '')+');'+WHITESPACE+'});';
+}

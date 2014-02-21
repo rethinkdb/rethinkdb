@@ -24,4 +24,9 @@ ifneq (success,$(CONFIGURE_STATUS))
   $(error Run ./configure or edit $(CONFIG))
 endif
 
+CONFIGURE_MAGIC_NUMBER ?=
+ifneq (2,$(CONFIGURE_MAGIC_NUMBER))
+  $(error The build system has changed. Please re-run ./configure $(CONFIGURE_COMMAND_LINE))
+endif
+
 include $(TOP)/mk/defaults.mk

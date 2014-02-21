@@ -23,4 +23,4 @@ tests:
     ot: (1)
 
   # clean up
-  - cd: r.db('test').table_drop('1789')
+  - rb: r.db('test').table_drop('1789')

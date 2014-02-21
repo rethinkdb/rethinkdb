@@ -2,6 +2,8 @@
 #ifndef ARCH_TYPES_HPP_
 #define ARCH_TYPES_HPP_
 
+#include <string.h>
+
 #include <string>
 
 #include "utils.hpp"
@@ -34,6 +36,22 @@ public:
     const char *what() const throw () {
         return info.c_str();
     }
+private:
+    std::string info;
+};
+
+class tcp_socket_exc_t : public std::exception {
+public:
+    tcp_socket_exc_t(int err) throw () {
+        info = strprintf("TCP socket creation failed: %s", strerror(err));
+    }
+
+    ~tcp_socket_exc_t() throw () { }
+
+    const char *what() const throw () {
+        return info.c_str();
+    }
+
 private:
     std::string info;
 };

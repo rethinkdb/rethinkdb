@@ -7,27 +7,11 @@
 #include "arch/runtime/coroutines.hpp"
 #include "do_on_thread.hpp"
 
-void cond_t::pulse() {
-    // KSI: This old code tried to let you pulse a cond_t from the wrong thread.
-    // Holy cow!  I added an assert thread to fuck you over in debug mode, in case
-    // you ever decide to take advantage of this "feature".
-    //
-    //                                       Love,
-    //                                       @srh
-    assert_thread();
-    do_on_thread(home_thread(), boost::bind(&cond_t::do_pulse, this));
-}
-
 void cond_t::pulse_if_not_already_pulsed() {
     assert_thread();
-    // You can't call is_pulsed from the wrong thread.
     if (!is_pulsed()) {
-        do_pulse();
+        pulse();
     }
-}
-
-void cond_t::do_pulse() {
-    signal_t::pulse();
 }
 
 void one_waiter_cond_t::pulse() {

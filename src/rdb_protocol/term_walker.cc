@@ -156,15 +156,18 @@ private:
         case Term::MAP:
         case Term::FILTER:
         case Term::CONCATMAP:
+        case Term::GROUP:
         case Term::ORDERBY:
         case Term::DISTINCT:
         case Term::COUNT:
+        case Term::SUM:
+        case Term::AVG:
+        case Term::MIN:
+        case Term::MAX:
         case Term::UNION:
         case Term::NTH:
-        case Term::GROUPED_MAP_REDUCE:
         case Term::LIMIT:
         case Term::SKIP:
-        case Term::GROUPBY:
         case Term::INNER_JOIN:
         case Term::OUTER_JOIN:
         case Term::EQ_JOIN:
@@ -262,8 +265,7 @@ private:
         case Term::MAP:
         case Term::FILTER:
         case Term::CONCATMAP:
-        case Term::GROUPED_MAP_REDUCE:
-        case Term::GROUPBY:
+        case Term::GROUP:
         case Term::INNER_JOIN:
         case Term::OUTER_JOIN:
         case Term::EQ_JOIN:
@@ -272,6 +274,10 @@ private:
         case Term::REPLACE:
         case Term::INSERT:
         case Term::COUNT:
+        case Term::SUM:
+        case Term::AVG:
+        case Term::MIN:
+        case Term::MAX:
             return true;
 
         case Term::DATUM:

@@ -18,8 +18,9 @@ serializer_file_read_stream_t::serializer_file_read_stream_t(serializer_t *seria
     }
     cache_.init(new cache_t(serializer, alt_cache_config_t(),
                             &get_global_perfmon_collection()));
+    cache_conn_.init(new cache_conn_t(cache_.get()));
     if (has_block_zero) {
-        txn_t txn(cache_.get(), read_access_t::read);
+        txn_t txn(cache_conn_.get(), read_access_t::read);
         buf_lock_t bufzero(buf_parent_t(&txn), 0, access_t::read);
         buf_read_t bufzero_read(&bufzero);
         const void *data = bufzero_read.get_data_read();
@@ -52,11 +53,12 @@ MUST_USE int64_t serializer_file_read_stream_t::read(void *p, int64_t n) {
     const int64_t num_copied = end_block_offset - block_offset;
     rassert(num_copied > 0);
 
-    txn_t txn(cache_.get(), read_access_t::read);
+    txn_t txn(cache_conn_.get(), read_access_t::read);
     buf_lock_t block(buf_parent_t(&txn), block_number, access_t::read);
     buf_read_t block_read(&block);
     const char *data = static_cast<const char *>(block_read.get_data_read());
     memcpy(p, data + block_offset, num_copied);
+    position_ += num_copied;
     return num_copied;
 }
 
@@ -87,8 +89,10 @@ serializer_file_write_stream_t::serializer_file_write_stream_t(serializer_t *ser
 
     cache_.init(new cache_t(serializer, alt_cache_config_t(),
                             &get_global_perfmon_collection()));
+    cache_conn_.init(new cache_conn_t(cache_.get()));
 
-    txn_t txn(cache_.get(), write_durability_t::HARD, repli_timestamp_t::invalid, 1);
+    txn_t txn(cache_conn_.get(), write_durability_t::HARD,
+              repli_timestamp_t::invalid, 1);
 
     buf_lock_t z(&txn, 0, alt_create_t::create);
     buf_write_t z_write(&z);
@@ -99,10 +103,10 @@ serializer_file_write_stream_t::serializer_file_write_stream_t(serializer_t *ser
 serializer_file_write_stream_t::~serializer_file_write_stream_t() { }
 
 MUST_USE int64_t serializer_file_write_stream_t::write(const void *p, int64_t n) {
-    const char *chp = static_cast<const char *>(p);
+    const char *const chp = static_cast<const char *>(p);
     const int block_size = cache_->get_block_size().value();
 
-    txn_t txn(cache_.get(), write_durability_t::HARD, repli_timestamp_t::invalid,
+    txn_t txn(cache_conn_.get(), write_durability_t::HARD, repli_timestamp_t::invalid,
               2 + n / block_size);
     // Hold the size block during writes, to lock out other writers.
     buf_lock_t z(buf_parent_t(&txn), 0, access_t::write);
@@ -111,7 +115,8 @@ MUST_USE int64_t serializer_file_write_stream_t::write(const void *p, int64_t n)
         const int64_t *size_ptr = static_cast<const int64_t *>(z_read.get_data_read());
         guarantee(*size_ptr == size_);
     }
-    int64_t offset = size_ + sizeof(int64_t);
+    const int64_t start_offset = size_ + sizeof(int64_t);
+    int64_t offset = start_offset;
     const int64_t end_offset = offset + n;
     while (offset < end_offset) {
         int64_t block_id = offset / block_size;
@@ -120,10 +125,10 @@ MUST_USE int64_t serializer_file_write_stream_t::write(const void *p, int64_t n)
         buf_lock_t *b = &z;
         if (block_id > 0) {
             if (offset % block_size == 0) {
-                block = buf_lock_t(&z, block_id, access_t::write);
-            } else {
                 block = buf_lock_t(buf_parent_t(&z), block_id,
                                    alt_create_t::create);
+            } else {
+                block = buf_lock_t(&z, block_id, access_t::write);
             }
             b = &block;
         }
@@ -135,7 +140,7 @@ MUST_USE int64_t serializer_file_write_stream_t::write(const void *p, int64_t n)
         {
             buf_write_t b_read(b);
             char *buf = static_cast<char *>(b_read.get_data_write());
-            memcpy(buf + block_offset, chp, num_written);
+            memcpy(buf + block_offset, chp + (offset - start_offset), num_written);
         }
         offset += num_written;
     }

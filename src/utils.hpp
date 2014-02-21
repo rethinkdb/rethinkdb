@@ -103,7 +103,6 @@ void print_hd(const void *buf, size_t offset, size_t length);
 int sized_strcmp(const uint8_t *str1, int len1, const uint8_t *str2, int len2);
 
 
-
 /* `with_priority_t` changes the priority of the current coroutine to the
  value given in its constructor. When it is destructed, it restores the
  original priority of the coroutine. */

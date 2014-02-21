@@ -2,8 +2,8 @@
 #include "memcached/memcached_btree/backfill.hpp"
 
 #include "btree/backfill.hpp"
+#include "btree/operations.hpp"
 #include "btree/parallel_traversal.hpp"
-#include "btree/slice.hpp"
 #include "buffer_cache/alt/alt.hpp"
 #include "containers/printf_buffer.hpp"
 #include "memcached/memcached_btree/btree_data_provider.hpp"
@@ -51,15 +51,15 @@ public:
     key_range_t kr_;
 };
 
-void memcached_backfill(btree_slice_t *slice, const key_range_t& key_range,
+void memcached_backfill(const key_range_t& key_range,
                         repli_timestamp_t since_when, backfill_callback_t *callback,
                         superblock_t *superblock,
                         buf_lock_t *sindex_block,
                         parallel_traversal_progress_t *p,
                         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     agnostic_memcached_backfill_callback_t agnostic_cb(callback, key_range);
-    value_sizer_t<memcached_value_t> sizer(slice->cache()->get_block_size());
-    do_agnostic_btree_backfill(&sizer, slice, key_range, since_when,
+    value_sizer_t<memcached_value_t> sizer(superblock->cache()->get_block_size());
+    do_agnostic_btree_backfill(&sizer, key_range, since_when,
                                &agnostic_cb, superblock, sindex_block, p,
                                interruptor);
 }
