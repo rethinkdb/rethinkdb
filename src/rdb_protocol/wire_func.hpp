@@ -104,7 +104,7 @@ struct count_wire_func_t {
 
 class bt_wire_func_t {
 public:
-    void rdb_serialize(write_message_t &msg) const; // NOLINT
+    void rdb_serialize(write_message_t &msg) const; // NOLINT(runtime/references)
     archive_result_t rdb_deserialize(read_stream_t *s);
     protob_t<const Backtrace> get_bt() const { return bt; }
 protected:
