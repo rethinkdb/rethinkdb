@@ -114,18 +114,12 @@ mkAtom = (response, opts) -> deconstructDatum(response.response[0], opts)
 mkSeq = (response, opts) -> (deconstructDatum(res, opts) for res in response.response)
 
 mkErr = (ErrClass, response, root) ->
-        msg = mkAtom response
-        bt = for frame in response.backtrace.frames
-                if frame.type is "POS"
-                    parseInt frame.pos
-                else
-                    # protobufjs returns Long object that we need to convert to number
-                    if frame.pos?.toInt
-                        frame.pos.toInt()
-                    else
-                        frame.pos
+    msg = mkAtom response
 
-        new ErrClass msg, root, bt
+    bt = for frame in response.backtrace.frames
+        pb.convertFrame frame
+
+    new ErrClass msg, root, bt
 
 module.exports.deconstructDatum = deconstructDatum
 module.exports.mkAtom = mkAtom

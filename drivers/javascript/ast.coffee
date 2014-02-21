@@ -296,6 +296,23 @@ class DatumTerm extends RDBVal
             datum: datum
         return term
 
+translateBackOptargs = (optargs) ->
+    result = {}
+    for own key,val of optargs
+        key = switch key
+            when 'primary_key' then 'primaryKey'
+            when 'return_vals' then 'returnVals'
+            when 'use_outdated' then 'useOutdated'
+            when 'non_atomic' then 'nonAtomic'
+            when 'cache_size' then 'cacheSize'
+            when 'left_bound' then 'leftBound'
+            when 'right_bound' then 'rightBound'
+            when 'default_timezone' then 'defaultTimezone'
+            else key
+
+        result[key] = val
+    return result
+
 translateOptargs = (optargs) ->
     result = {}
     for own key,val of optargs
@@ -364,7 +381,7 @@ intspallargs = (args, optargs) ->
     if Object.keys(optargs).length > 0
         if argrepr.length > 0
             argrepr.push(', ')
-        argrepr.push(kved(optargs))
+        argrepr.push(kved(translateBackOptargs(optargs)))
     return argrepr
 
 shouldWrap = (arg) ->
@@ -421,9 +438,9 @@ class Table extends RDBOp
 
     compose: (args, optargs) ->
         if @args[0] instanceof Db
-            [args[0], '.table(', args[1], ')']
+            [args[0], '.table(', intspallargs(args[1..], optargs), ')']
         else
-            ['r.table(', args[0], ')']
+            ['r.table(', intspallargs(args, optargs), ')']
 
 class Get extends RDBOp
     tt: "GET"
