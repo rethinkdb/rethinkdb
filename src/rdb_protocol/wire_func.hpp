@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_WIRE_FUNC_HPP_
 #define RDB_PROTOCOL_WIRE_FUNC_HPP_
 
@@ -7,7 +7,6 @@
 #include <string>
 #include <vector>
 
-#include "containers/archive/stl_types.hpp"
 #include "containers/uuid.hpp"
 #include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/pb_utils.hpp"
@@ -51,7 +50,7 @@ public:
     group_wire_func_t() { }
     group_wire_func_t(std::vector<counted_t<func_t> > &&_funcs);
     std::vector<counted_t<func_t> > compile_funcs() const;
-    RDB_MAKE_ME_SERIALIZABLE_1(funcs);
+    RDB_DECLARE_ME_SERIALIZABLE;
 private:
     std::vector<wire_func_t> funcs;
 };
@@ -100,7 +99,7 @@ public:
 
 // These are fake functions because we don't need to send anything.
 struct count_wire_func_t {
-    RDB_MAKE_ME_SERIALIZABLE_0();
+    RDB_DECLARE_ME_SERIALIZABLE;
 };
 
 class bt_wire_func_t {
@@ -128,12 +127,12 @@ public:
 struct min_wire_func_t {
     min_wire_func_t() { }
     explicit min_wire_func_t(const protob_t<const Backtrace> &) { }
-    RDB_MAKE_ME_SERIALIZABLE_0();
+    RDB_DECLARE_ME_SERIALIZABLE;
 };
 struct max_wire_func_t {
     max_wire_func_t() { }
     explicit max_wire_func_t(const protob_t<const Backtrace> &) { }
-    RDB_MAKE_ME_SERIALIZABLE_0();
+    RDB_DECLARE_ME_SERIALIZABLE;
 };
 
 }  // namespace ql
