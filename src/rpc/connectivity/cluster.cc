@@ -392,7 +392,6 @@ static bool deserialize_and_check(tcp_conn_stream_t *c, T *p, const char *peer) 
         logERR("could not deserialize data received from %s, closing connection", peer);
         return true;
 
-    case archive_result_t::GENERIC_ERROR:
     default:
         logERR("unknown error occurred on connection from %s, closing connection", peer);
         return true;

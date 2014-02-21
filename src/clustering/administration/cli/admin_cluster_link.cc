@@ -3473,7 +3473,6 @@ bool getline(FILE *stream, std::string *out) {
             return false;
         }
 
-        // RSI: Is this code changed.
         if (res) {
             int len = strlen(buf);
             guarantee(len < size);

@@ -23,9 +23,6 @@ const char *archive_result_as_str(archive_result_t archive_result) {
     case archive_result_t::RANGE_ERROR:
         return "archive_result_t::RANGE_ERROR";
         break;
-    case archive_result_t::GENERIC_ERROR:
-        return "archive_result_t::GENERIC_ERROR";
-        break;
     default:
         unreachable();
     }

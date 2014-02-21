@@ -35,8 +35,6 @@ enum class archive_result_t {
     SOCK_ERROR = -1,
     SOCK_EOF = -2,
     RANGE_ERROR = -3,
-    // RSI: Remove GENERIC_ERROR?
-    GENERIC_ERROR = 1,
 };
 
 inline bool bad(archive_result_t res) {
