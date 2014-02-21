@@ -57,6 +57,7 @@ pkg_install () {
         name=$(basename "$bin")
         local script="$install_dir/bin/$name"
         echo '#!/bin/sh' > "$script"
+        echo "PATH='$(dirname "$NPM")':"'$PATH' >> "$script"
         echo "exec $(niceabspath "$bin")"' "$@"' >> "$script"
         chmod +x "$script"
     done

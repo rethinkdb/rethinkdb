@@ -30,7 +30,8 @@ void accumulator_t::finish(result_t *out) {
 template<class T>
 class grouped_accumulator_t : public accumulator_t {
 protected:
-    grouped_accumulator_t(T &&_default_val) : default_val(std::move(_default_val)) { }
+    explicit grouped_accumulator_t(T &&_default_val)
+        : default_val(std::move(_default_val)) { }
     virtual ~grouped_accumulator_t() { }
 private:
     virtual done_t operator()(groups_t *groups,
@@ -219,7 +220,7 @@ eager_acc_t *make_to_array() {
 template<class T>
 class terminal_t : public grouped_accumulator_t<T>, public eager_acc_t {
 protected:
-    terminal_t(T &&t) : grouped_accumulator_t<T>(std::move(t)) { }
+    explicit terminal_t(T &&t) : grouped_accumulator_t<T>(std::move(t)) { }
 private:
     virtual void operator()(groups_t *groups) {
         grouped_t<T> *acc = grouped_accumulator_t<T>::get_acc();
@@ -301,7 +302,7 @@ private:
         *out += 1;
     }
     virtual counted_t<const datum_t> unpack(uint64_t *sz) {
-        return make_counted<const datum_t>(double(*sz));
+        return make_counted<const datum_t>(static_cast<double>(*sz));
     }
     virtual void unshard_impl(uint64_t *out, uint64_t *el) {
         *out += *el;
@@ -432,7 +433,7 @@ private:
 template<class T>
 class terminal_visitor_t : public boost::static_visitor<T *> {
 public:
-    terminal_visitor_t(env_t *_env) : env(_env) { }
+    explicit terminal_visitor_t(env_t *_env) : env(_env) { }
     T *operator()(const count_wire_func_t &f) const {
         return new count_terminal_t(env, f);
     }
@@ -601,7 +602,7 @@ private:
 
 class transform_visitor_t : public boost::static_visitor<op_t *> {
 public:
-    transform_visitor_t(env_t *_env) : env(_env) { }
+    explicit transform_visitor_t(env_t *_env) : env(_env) { }
     op_t *operator()(const map_wire_func_t &f) const {
         return new map_trans_t(env, f);
     }

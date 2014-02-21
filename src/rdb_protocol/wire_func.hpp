@@ -49,7 +49,7 @@ private:
 class group_wire_func_t {
 public:
     group_wire_func_t() { }
-    group_wire_func_t(std::vector<counted_t<func_t> > &&_funcs);
+    explicit group_wire_func_t(std::vector<counted_t<func_t> > &&_funcs);
     std::vector<counted_t<func_t> > compile_funcs() const;
     RDB_MAKE_ME_SERIALIZABLE_1(funcs);
 private:
@@ -105,7 +105,7 @@ struct count_wire_func_t {
 
 class bt_wire_func_t {
 public:
-    void rdb_serialize(write_message_t &msg) const;
+    void rdb_serialize(write_message_t &msg) const; // NOLINT(runtime/references)
     archive_result_t rdb_deserialize(read_stream_t *s);
     protob_t<const Backtrace> get_bt() const { return bt; }
 protected:
@@ -117,12 +117,12 @@ private:
 class sum_wire_func_t : public bt_wire_func_t {
 public:
     template<class... Args>
-    sum_wire_func_t(Args... args) : bt_wire_func_t(args...) { }
+    explicit sum_wire_func_t(Args... args) : bt_wire_func_t(args...) { }
 };
 class avg_wire_func_t : public bt_wire_func_t {
 public:
     template<class... Args>
-    avg_wire_func_t(Args... args) : bt_wire_func_t(args...) { }
+    explicit avg_wire_func_t(Args... args) : bt_wire_func_t(args...) { }
 };
 
 struct min_wire_func_t {

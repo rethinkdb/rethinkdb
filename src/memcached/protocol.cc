@@ -94,7 +94,7 @@ RDB_IMPL_SERIALIZABLE_1(memcached_protocol_t::write_response_t, result);
 RDB_IMPL_SERIALIZABLE_3(memcached_protocol_t::write_t, mutation, proposed_cas, effective_time);
 RDB_IMPL_SERIALIZABLE_1(memcached_protocol_t::backfill_chunk_t::delete_key_t, key);
 RDB_IMPL_SERIALIZABLE_1(memcached_protocol_t::backfill_chunk_t::delete_range_t, range);
-RDB_IMPL_SERIALIZABLE_1(memcached_protocol_t::backfill_chunk_t::key_value_pair_t, backfill_atom);
+RDB_IMPL_SERIALIZABLE_1(memcached_protocol_t::backfill_chunk_t::key_value_pairs_t, backfill_atoms);
 RDB_IMPL_SERIALIZABLE_1(memcached_protocol_t::backfill_chunk_t, val);
 
 
@@ -377,8 +377,17 @@ public:
     repli_timestamp_t operator()(const backfill_chunk_t::delete_range_t &) {
         return repli_timestamp_t::invalid;
     }
-    repli_timestamp_t operator()(const backfill_chunk_t::key_value_pair_t &kv) {
-        return kv.backfill_atom.recency;
+    repli_timestamp_t operator()(const backfill_chunk_t::key_value_pairs_t &kv) {
+        repli_timestamp_t most_recent = repli_timestamp_t::invalid;
+        rassert(!kv.backfill_atoms.empty());
+        for (size_t i = 0; i < kv.backfill_atoms.size(); ++i) {
+            if (most_recent == repli_timestamp_t::invalid
+                || most_recent < kv.backfill_atoms[i].recency) {
+
+                most_recent = kv.backfill_atoms[i].recency;
+            }
+        }
+        return most_recent;
     }
 };
 
@@ -553,16 +562,19 @@ public:
     explicit memcached_backfill_callback_t(chunk_fun_callback_t<memcached_protocol_t> *chunk_fun_cb)
         : chunk_fun_cb_(chunk_fun_cb) { }
 
-    void on_delete_range(const key_range_t &range, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    void on_delete_range(const key_range_t &range,
+                         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
         chunk_fun_cb_->send_chunk(chunk_t::delete_range(region_t(range)), interruptor);
     }
 
-    void on_deletion(const btree_key_t *key, repli_timestamp_t recency, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    void on_deletion(const btree_key_t *key, repli_timestamp_t recency,
+                     signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
         chunk_fun_cb_->send_chunk(chunk_t::delete_key(to_store_key(key), recency), interruptor);
     }
 
-    void on_keyvalue(const backfill_atom_t& atom, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        chunk_fun_cb_->send_chunk(chunk_t::set_key(atom), interruptor);
+    void on_keyvalues(std::vector<backfill_atom_t> &&atoms,
+                      signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+        chunk_fun_cb_->send_chunk(chunk_t::set_keys(std::move(atoms)), interruptor);
     }
     ~memcached_backfill_callback_t() { }
 
@@ -631,26 +643,28 @@ void store_t::protocol_send_backfill(const region_map_t<memcached_protocol_t, st
 namespace {
 
 struct receive_backfill_visitor_t : public boost::static_visitor<> {
-    receive_backfill_visitor_t(btree_slice_t *_btree, superblock_t *_superblock,
+    receive_backfill_visitor_t(btree_slice_t *_btree, scoped_ptr_t<superblock_t> &&_superblock,
                                signal_t *_interruptor)
-        : btree(_btree), superblock(_superblock), interruptor(_interruptor) { }
+        : btree(_btree), superblock(std::move(_superblock)), interruptor(_interruptor) { }
 
     void operator()(const backfill_chunk_t::delete_key_t& delete_key) const {
         memcached_delete(delete_key.key, true, btree, 0, delete_key.recency,
-                         superblock);
+                         superblock.get());
     }
     void operator()(const backfill_chunk_t::delete_range_t& delete_range) const {
         hash_range_key_tester_t tester(&delete_range.range);
         memcached_erase_range(&tester, delete_range.range.inner,
-                              superblock, interruptor);
+                              superblock.get(), interruptor);
     }
-    void operator()(const backfill_chunk_t::key_value_pair_t& kv) const {
-        const backfill_atom_t& bf_atom = kv.backfill_atom;
-        memcached_set(bf_atom.key, btree,
-            bf_atom.value, bf_atom.flags, bf_atom.exptime,
-            add_policy_yes, replace_policy_yes, INVALID_CAS,
-            bf_atom.cas_or_zero, 0, bf_atom.recency,
-            superblock);
+    void operator()(const backfill_chunk_t::key_value_pairs_t& kv) const {
+        for (size_t i = 0; i < kv.backfill_atoms.size(); ++i) {
+            const backfill_atom_t& bf_atom = kv.backfill_atoms[i];
+            memcached_set(bf_atom.key, btree,
+                bf_atom.value, bf_atom.flags, bf_atom.exptime,
+                add_policy_yes, replace_policy_yes, INVALID_CAS,
+                bf_atom.cas_or_zero, 0, bf_atom.recency,
+                superblock.get());
+        }
     }
 
 private:
@@ -670,17 +684,17 @@ private:
     };
 
     btree_slice_t *btree;
-    superblock_t *superblock;
+    scoped_ptr_t<superblock_t> superblock;
     signal_t *interruptor;
 };
 
 }   /* anonymous namespace */
 
 void store_t::protocol_receive_backfill(btree_slice_t *btree,
-                                        superblock_t *superblock,
+                                        scoped_ptr_t<superblock_t> &&superblock,
                                         signal_t *interruptor,
                                         const backfill_chunk_t &chunk) {
-    boost::apply_visitor(receive_backfill_visitor_t(btree, superblock, interruptor),
+    boost::apply_visitor(receive_backfill_visitor_t(btree, std::move(superblock), interruptor),
                          chunk.val);
 }
 
@@ -794,8 +808,13 @@ void debug_print(printf_buffer_t *buf, const backfill_chunk_t::delete_range_t& d
     buf->appendf("}");
 }
 
-void debug_print(printf_buffer_t *buf, const backfill_chunk_t::key_value_pair_t& kvpair) {
-    buf->appendf("bf::kv{atom=");
-    debug_print(buf, kvpair.backfill_atom);
-    buf->appendf("}");
+void debug_print(printf_buffer_t *buf, const backfill_chunk_t::key_value_pairs_t& kvpairs) {
+    buf->appendf("bf::kv{atoms=[");
+    for (size_t i = 0; i < kvpairs.backfill_atoms.size(); ++i) {
+        if (i != 0) {
+            buf->appendf(", ");
+        }
+        debug_print(buf, kvpairs.backfill_atoms[i]);
+    }
+    buf->appendf("]}");
 }
