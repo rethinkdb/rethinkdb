@@ -1,11 +1,12 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
+#include "rdb_protocol/shards.hpp"
 
-#include "boost/variant.hpp"
+#include "errors.hpp"
+#include <boost/variant.hpp>
 
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/profile.hpp"
 #include "rdb_protocol/protocol.hpp"
-#include "rdb_protocol/shards.hpp"
 
 namespace ql {
 
