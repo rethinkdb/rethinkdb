@@ -26,15 +26,16 @@ private:
     DISABLE_COPYING(read_stream_t);
 };
 
-// Deserialize functions return 0 upon success, a positive or negative error
-// code upon failure. -1 means there was an error on the socket, -2 means EOF on
-// the socket, -3 means a "range error", +1 means specific error info was
-// discarded, the error code got used as a boolean.
+// The return value of deserialization functions.
 enum class archive_result_t {
-    SUCCESS = 0,
-    SOCK_ERROR = -1,
-    SOCK_EOF = -2,
-    RANGE_ERROR = -3,
+    // Success.
+    SUCCESS,
+    // An error on the socket happened.
+    SOCK_ERROR,
+    // An EOF on the socket happened.
+    SOCK_EOF,
+    // The value deserialized was out of range.
+    RANGE_ERROR,
 };
 
 inline bool bad(archive_result_t res) {
