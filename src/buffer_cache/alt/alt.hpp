@@ -102,11 +102,13 @@ public:
     cache_account_t *account() { return cache_account_; }
 
 private:
+    // Resets the *tracker_acq parameter.
     static void inform_tracker(cache_t *cache,
-                               alt::tracker_acq_t tracker_acq);
+                               alt::tracker_acq_t *tracker_acq);
 
+    // Resets the *tracker_acq parameter.
     static void pulse_and_inform_tracker(cache_t *cache,
-                                         alt::tracker_acq_t tracker_acq,
+                                         alt::tracker_acq_t *tracker_acq,
                                          cond_t *pulsee);
 
 

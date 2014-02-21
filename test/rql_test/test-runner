@@ -94,7 +94,7 @@ class RbLang(SrcLang):
 
     def dicttranslate(self, dic):
         # print dic
-        dicnew = re.sub("\\\\?'([^']*[^'\\\\])\\\\?':",":\\1=>", dic)
+        dicnew = re.sub("\\\\?'([^']*[^'\\\\])\\\\?':",":\'\\1\'=>", dic)
         dicnew = re.sub("\\\\n$", "\n", dicnew)
         # print dicnew
         return dicnew
@@ -173,7 +173,7 @@ class TestGroup:
             out.write(', "' + '-'.join(self.path) + '-' + str(index) + '"')
 
             if runopts:
-                runoptsrepr = Langs.translate_expected_for(lang, repr(runopts))
+                runoptsrepr = Langs.translate_query_for(lang, repr(runopts))
                 out.write(', '+runoptsrepr)
 
             out.write(')\n')
@@ -304,6 +304,10 @@ def run_tests(lang, servers):
         interpreter = os.getenv('NODE') or 'node'
     elif lang is 'rb':
         interpreter = os.getenv('RUBY') or 'ruby'
+    elif lang is 'rb_server':
+        interpreter = os.getenv('RUBY') or 'ruby'
+        res = call([interpreter, 'server_test.rb', str(servers.driver_port())])
+        return
     else:
         exit("Unkown language: " + lang)
 

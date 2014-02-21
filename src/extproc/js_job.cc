@@ -13,6 +13,7 @@
 #endif
 
 #include <cmath>
+#include <limits>
 
 #include "rdb_protocol/rdb_protocol_json.hpp"
 #include "rdb_protocol/pseudo_time.hpp"
@@ -27,7 +28,7 @@
 
 
 const js_id_t MIN_ID = 1;
-const js_id_t MAX_ID = UINT64_MAX;
+const js_id_t MAX_ID = std::numeric_limits<js_id_t>::max();
 
 // Picked from a hat.
 #define TO_JSON_RECURSION_LIMIT  500

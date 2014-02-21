@@ -41,6 +41,13 @@ batchspec_t batchspec_t::user(batch_type_t batch_type,
             : std::numeric_limits<decltype(batchspec_t().end_time)>::max());
 }
 
+batchspec_t batchspec_t::all() {
+    return batchspec_t(batch_type_t::TERMINAL,
+                       std::numeric_limits<decltype(batchspec_t().els_left)>::max(),
+                       std::numeric_limits<decltype(batchspec_t().size_left)>::max(),
+                       std::numeric_limits<decltype(batchspec_t().end_time)>::max());
+}
+
 batchspec_t batchspec_t::user(batch_type_t batch_type, env_t *env) {
     counted_t<val_t> vconf = env->global_optargs.get_optarg(env, "batch_conf");
     return user(
@@ -68,12 +75,16 @@ batchspec_t batchspec_t::scale_down(int64_t divisor) const {
     // with very small sizes).  Law of large numbers says that the chances of
     // needing a second round-trip for large, non-pathological datasets are
     // extremely low.
-    int64_t new_els_left = (els_left * 8 / (7 * divisor)) + 8;
-    int64_t new_size_left = (size_left * 8 / (7 * divisor)) + 8;
-    return batchspec_t(batch_type,
-                       std::min(els_left, new_els_left),
-                       std::min(size_left, new_size_left),
-                       end_time);
+    int64_t new_els_left =
+        els_left == std::numeric_limits<decltype(batchspec_t().els_left)>::max()
+        ? els_left
+        : std::min(els_left, (els_left * 8 / (7 * divisor)) + 8);
+    int64_t new_size_left =
+        size_left == std::numeric_limits<decltype(batchspec_t().size_left)>::max()
+        ? size_left
+        : std::min(size_left, (size_left * 8 / (7 * divisor)) + 8);
+
+    return batchspec_t(batch_type, new_els_left, new_size_left, end_time);
 }
 
 batcher_t batchspec_t::to_batcher() const {

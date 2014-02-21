@@ -65,15 +65,18 @@ counted_t<term_t> compile_term(compile_env_t *env, protob_t<const Term> t) {
     case Term::MAP:                return make_map_term(env, t);
     case Term::FILTER:             return make_filter_term(env, t);
     case Term::CONCATMAP:          return make_concatmap_term(env, t);
+    case Term::GROUP:              return make_group_term(env, t);
     case Term::ORDERBY:            return make_orderby_term(env, t);
     case Term::DISTINCT:           return make_distinct_term(env, t);
     case Term::COUNT:              return make_count_term(env, t);
+    case Term::SUM:                return make_sum_term(env, t);
+    case Term::AVG:                return make_avg_term(env, t);
+    case Term::MIN:                return make_min_term(env, t);
+    case Term::MAX:                return make_max_term(env, t);
     case Term::UNION:              return make_union_term(env, t);
     case Term::NTH:                return make_nth_term(env, t);
-    case Term::GROUPED_MAP_REDUCE: return make_gmr_term(env, t);
     case Term::LIMIT:              return make_limit_term(env, t);
     case Term::SKIP:               return make_skip_term(env, t);
-    case Term::GROUPBY:            return make_groupby_term(env, t);
     case Term::INNER_JOIN:         return make_inner_join_term(env, t);
     case Term::OUTER_JOIN:         return make_outer_join_term(env, t);
     case Term::EQ_JOIN:            return make_eq_join_term(env, t);
@@ -243,9 +246,19 @@ void run(protob_t<Query> q,
                     bool b = stream_cache2->serve(token, res, interruptor);
                     r_sanity_check(b);
                 }
+            } else if (val->get_type().is_convertible(val_t::type_t::GROUPED_DATA)) {
+                res->set_type(Response::SUCCESS_ATOM);
+                counted_t<grouped_data_t> gd = val->as_grouped_data();
+                datum_t d(std::move(*gd));
+                d.write_to_protobuf(res->add_response(), use_json);
+                if (env->trace.has()) {
+                    env->trace->as_datum()->write_to_protobuf(
+                        res->mutable_profile(), use_json);
+                }
             } else {
                 rfail_toplevel(base_exc_t::GENERIC,
-                               "Query result must be of type DATUM or STREAM (got %s).",
+                               "Query result must be of type "
+                               "DATUM, GROUPED_DATA, or STREAM (got %s).",
                                val->get_type().name());
             }
         } catch (const exc_t &e) {
@@ -345,7 +358,7 @@ counted_t<val_t> term_t::eval(scope_env_t *env, eval_flags_t eval_flags) {
 
     try {
         try {
-            counted_t<val_t> ret = eval_impl(env, eval_flags);
+            counted_t<val_t> ret = term_eval(env, eval_flags);
             DEC_DEPTH;
             DBG("%s returned %s\n", name(), ret->print().c_str());
             return ret;

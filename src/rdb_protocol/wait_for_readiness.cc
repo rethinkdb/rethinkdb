@@ -33,8 +33,8 @@ void wait_for_rdb_table_readiness(base_namespace_repo_t<rdb_protocol_t> *ns_repo
         hash_region_t<key_range_t>::universe(),
         std::map<std::string, ql::wire_func_t>(),
         ql::batchspec_t::user(ql::batch_type_t::NORMAL, counted_t<const ql::datum_t>()),
-        rdb_protocol_details::transform_t(),
-        boost::optional<rdb_protocol_details::terminal_t>(),
+        std::vector<rdb_protocol_details::transform_variant_t>(),
+        boost::optional<rdb_protocol_details::terminal_variant_t>(),
         boost::optional<rdb_protocol_t::sindex_rangespec_t>(),
         sorting_t::UNORDERED);
     rdb_protocol_t::read_t empty_read(empty_rget_read, profile_bool_t::DONT_PROFILE);

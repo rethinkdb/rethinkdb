@@ -14,10 +14,10 @@
 #include "containers/archive/string_stream.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/error.hpp"
-#include "rdb_protocol/pseudo_time.hpp"
 #include "rdb_protocol/pseudo_literal.hpp"
+#include "rdb_protocol/pseudo_time.hpp"
+#include "rdb_protocol/shards.hpp"
 #include "stl_utils.hpp"
-
 
 namespace ql {
 
@@ -62,6 +62,22 @@ datum_t::datum_t(std::map<std::string, counted_t<const datum_t> > &&_object)
       r_object(new std::map<std::string, counted_t<const datum_t> >(
                    std::move(_object))) {
     maybe_sanitize_ptype();
+}
+
+datum_t::datum_t(grouped_data_t &&gd)
+    : type(R_OBJECT),
+      r_object(new std::map<std::string, counted_t<const datum_t> >()) {
+    (*r_object)[reql_type_string] = make_counted<const datum_t>("GROUPED_DATA");
+    std::vector<counted_t<const datum_t> > v;
+    v.reserve(gd.size());
+    for (auto kv = gd.begin(); kv != gd.end(); ++kv) {
+        v.push_back(make_counted<const datum_t>(
+                        std::vector<counted_t<const datum_t> >{
+                            std::move(kv->first), std::move(kv->second)}));
+    }
+    (*r_object)["data"] = make_counted<const datum_t>(std::move(v));
+    // We don't sanitize the ptype because this is a fake ptype that should only
+    // be used for serialization.
 }
 
 datum_t::datum_t(datum_t::type_t _type) : type(_type) {
@@ -368,7 +384,8 @@ void datum_t::maybe_sanitize_ptype(const std::set<std::string> &allowed_pts) {
             pseudo::rcheck_literal_valid(this);
             return;
         }
-        rfail(base_exc_t::GENERIC, "Unknown $reql_type$ `%s`.", get_type_name().c_str());
+        rfail(base_exc_t::GENERIC,
+              "Unknown $reql_type$ `%s`.", get_type_name().c_str());
     }
 }
 
@@ -526,6 +543,10 @@ std::string datum_t::extract_primary(const std::string &secondary) {
     return components.primary;
 }
 
+store_key_t datum_t::extract_primary(const store_key_t &secondary_key) {
+    return store_key_t(extract_primary(key_to_unescaped_str(secondary_key)));
+}
+
 std::string datum_t::extract_secondary(const std::string &secondary) {
     components_t components;
     parse_secondary(secondary, &components);
@@ -536,6 +557,10 @@ boost::optional<uint64_t> datum_t::extract_tag(const std::string &secondary) {
     components_t components;
     parse_secondary(secondary, &components);
     return components.tag_num;
+}
+
+boost::optional<uint64_t> datum_t::extract_tag(const store_key_t &key) {
+    return extract_tag(key_to_unescaped_str(key));
 }
 
 // This function returns a store_key_t suitable for searching by a
@@ -818,9 +843,9 @@ counted_t<const datum_t> datum_t::merge(counted_t<const datum_t> rhs) const {
             UNUSED bool b = d.add(it->first, sub_lhs->merge(it->second), CLOBBER);
         } else {
             if (is_literal) {
-                counted_t<const datum_t> value = it->second->get(pseudo::value_key, NOTHROW);
-                if (value) {
-                    UNUSED bool b = d.add(it->first, value, CLOBBER);
+                counted_t<const datum_t> val = it->second->get(pseudo::value_key, NOTHROW);
+                if (val) {
+                    UNUSED bool b = d.add(it->first, val, CLOBBER);
                 } else {
                     UNUSED bool b = d.delete_field(it->first);
                 }
@@ -1106,7 +1131,8 @@ size_t serialized_size(const counted_t<const datum_t> &datum) {
     return sz;
 }
 
-write_message_t &operator<<(write_message_t &wm, const counted_t<const datum_t> &datum) {
+write_message_t &operator<<(write_message_t &wm,
+                            const counted_t<const datum_t> &datum) {
     r_sanity_check(datum.has());
     switch (datum->get_type()) {
     case datum_t::R_ARRAY: {
@@ -1144,8 +1170,7 @@ write_message_t &operator<<(write_message_t &wm, const counted_t<const datum_t> 
     } break;
     case datum_t::R_OBJECT: {
         wm << datum_serialized_type_t::R_OBJECT;
-        const std::map<std::string, counted_t<const datum_t> > &value = datum->as_object();
-        wm << value;
+        wm << datum->as_object();
     } break;
     case datum_t::R_STR: {
         wm << datum_serialized_type_t::R_STR;
@@ -1262,7 +1287,8 @@ archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum) 
     return ARCHIVE_SUCCESS;
 }
 
-write_message_t &operator<<(write_message_t &wm, const empty_ok_t<const counted_t<const datum_t> > &datum) {
+write_message_t &operator<<(write_message_t &wm,
+                            const empty_ok_t<const counted_t<const datum_t> > &datum) {
     const counted_t<const datum_t> *pointer = datum.get();
     const bool has = pointer->has();
     wm << has;

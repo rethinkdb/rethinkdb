@@ -22,7 +22,7 @@
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
-#include "rdb_protocol/transform_visitors.hpp"
+#include "rdb_protocol/shards.hpp"
 #include "rdb_protocol/minidriver.hpp"
 #include "rdb_protocol/term_walker.hpp"
 #include "rpc/semilattice/view/field.hpp"
@@ -80,20 +80,17 @@ typedef rdb_protocol_t::backfill_chunk_t backfill_chunk_t;
 
 typedef rdb_protocol_t::backfill_progress_t backfill_progress_t;
 
-typedef rdb_protocol_t::rget_read_response_t::stream_t stream_t;
-
 typedef btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindex_access_vector_t;
 
 const std::string rdb_protocol_t::protocol_name("rdb");
 
-bool reversed(sorting_t sorting) { return sorting == sorting_t::DESCENDING; }
+store_key_t key_max(sorting_t sorting) {
+    return !reversed(sorting) ? store_key_t::max() : store_key_t::min();
+}
 
 RDB_IMPL_PROTOB_SERIALIZABLE(Term);
 RDB_IMPL_PROTOB_SERIALIZABLE(Datum);
 RDB_IMPL_PROTOB_SERIALIZABLE(Backtrace);
-
-
-RDB_IMPL_SERIALIZABLE_2(filter_transform_t, filter_func, default_filter_val);
 
 datum_range_t::datum_range_t()
     : left_bound_type(key_range_t::none), right_bound_type(key_range_t::none) { }
@@ -585,346 +582,161 @@ void scale_down_distribution(size_t result_limit, std::map<store_key_t, int64_t>
 
 class rdb_r_unshard_visitor_t : public boost::static_visitor<void> {
 public:
-    rdb_r_unshard_visitor_t(const read_response_t *_responses,
+    rdb_r_unshard_visitor_t(read_response_t *_responses,
                             size_t _count,
                             read_response_t *_response_out,
                             rdb_protocol_t::context_t *ctx,
                             signal_t *interruptor)
         : responses(_responses), count(_count), response_out(_response_out),
-          ql_env(ctx->extproc_pool,
-                 ctx->ns_repo,
-                 ctx->cross_thread_namespace_watchables[get_thread_id().threadnum].get()
-                     ->get_watchable(),
-                 ctx->cross_thread_database_watchables[get_thread_id().threadnum].get()
-                     ->get_watchable(),
-                 ctx->cluster_metadata,
-                 NULL,
-                 interruptor,
-                 ctx->machine_id,
-                 ql::protob_t<Query>())
-    { }
+          env(ctx, interruptor) { }
 
-    rdb_r_unshard_visitor_t(const read_response_t *_responses,
-                            size_t _count,
-                            read_response_t *_response_out,
-                            signal_t *interruptor)
-        : responses(_responses), count(_count), response_out(_response_out),
-          ql_env(interruptor)
-    { }
+    void operator()(const point_read_t &);
 
-    void operator()(const point_read_t &) {
-        guarantee(count == 1);
-        guarantee(NULL != boost::get<point_read_response_t>(&responses[0].response));
-        *response_out = responses[0];
-    }
-
-    void operator()(const rget_read_t &rg) {
-        response_out->response = rget_read_response_t();
-        rget_read_response_t *rg_response
-            = boost::get<rget_read_response_t>(&response_out->response);
-        rg_response->truncated = false;
-        rg_response->key_range = read_t(rg, profile_bool_t::DONT_PROFILE).get_region().inner;
-        rg_response->last_considered_key =
-            read_t(rg, profile_bool_t::DONT_PROFILE).get_region().inner.left;
-
-        /* First check to see if any of the responses we're unsharding threw. */
-        for (size_t i = 0; i < count; ++i) {
-            // TODO: we're ignoring the limit when recombining.
-            auto rr = boost::get<rget_read_response_t>(&responses[i].response);
-            guarantee(rr != NULL);
-
-            if (auto e = boost::get<ql::exc_t>(&rr->result)) {
-                rg_response->result = *e;
-                return;
-            } else if (auto e2 = boost::get<ql::datum_exc_t>(&rr->result)) {
-                rg_response->result = *e2;
-                return;
-            }
-        }
-
-        if (!rg.terminal) {
-            unshard_range_get(rg);
-        } else {
-            unshard_reduce(rg);
-        }
-    }
-
-    void operator()(const distribution_read_t &dg) {
-        // TODO: do this without copying so much and/or without dynamic memory
-        // Sort results by region
-        std::vector<distribution_read_response_t> results(count);
-        guarantee(count > 0);
-
-        for (size_t i = 0; i < count; ++i) {
-            const distribution_read_response_t *result = boost::get<distribution_read_response_t>(&responses[i].response);
-            guarantee(result != NULL, "Bad boost::get\n");
-            results[i] = *result;
-        }
-
-        std::sort(results.begin(), results.end(), distribution_read_response_less_t());
-
-        distribution_read_response_t res;
-        size_t i = 0;
-        while (i < results.size()) {
-            // Find the largest hash shard for this key range
-            key_range_t range = results[i].region.inner;
-            size_t largest_index = i;
-            size_t largest_size = 0;
-            size_t total_range_keys = 0;
-
-            while (i < results.size() && results[i].region.inner == range) {
-                size_t tmp_total_keys = 0;
-                for (std::map<store_key_t, int64_t>::const_iterator mit = results[i].key_counts.begin(); mit != results[i].key_counts.end(); ++mit) {
-                    tmp_total_keys += mit->second;
-                }
-
-                if (tmp_total_keys > largest_size) {
-                    largest_size = tmp_total_keys;
-                    largest_index = i;
-                }
-
-                total_range_keys += tmp_total_keys;
-                ++i;
-            }
-
-            if (largest_size > 0) {
-                // Scale up the selected hash shard
-                double scale_factor = static_cast<double>(total_range_keys) / static_cast<double>(largest_size);
-
-                guarantee(scale_factor >= 1.0);  // Directly provable from code above.
-
-                for (std::map<store_key_t, int64_t>::iterator mit = results[largest_index].key_counts.begin();
-                     mit != results[largest_index].key_counts.end();
-                     ++mit) {
-                    mit->second = static_cast<int64_t>(mit->second * scale_factor);
-                }
-
-                res.key_counts.insert(results[largest_index].key_counts.begin(), results[largest_index].key_counts.end());
-            }
-        }
-
-        // If the result is larger than the requested limit, scale it down
-        if (dg.result_limit > 0 && res.key_counts.size() > dg.result_limit) {
-            scale_down_distribution(dg.result_limit, &res.key_counts);
-        }
-
-        response_out->response = res;
-    }
-
-    void operator()(UNUSED const sindex_list_t &sl) {
-        guarantee(count == 1);
-        guarantee(boost::get<sindex_list_response_t>(&responses[0].response));
-        *response_out = responses[0];
-    }
-
-    void operator()(UNUSED const sindex_status_t &ss) {
-        *response_out = read_response_t(sindex_status_response_t());
-        auto ss_response = boost::get<sindex_status_response_t>(&response_out->response);
-        for (size_t i = 0; i < count; ++i) {
-            auto resp = boost::get<sindex_status_response_t>(&responses[0].response);
-            guarantee(resp);
-            for (auto it = resp->statuses.begin();
-                 it != resp->statuses.end(); ++it) {
-                add_status(it->second, &ss_response->statuses[it->first]);
-            }
-        }
-    }
+    void operator()(const rget_read_t &rg);
+    void operator()(const distribution_read_t &rg);
+    void operator()(const sindex_list_t &rg);
+    void operator()(const sindex_status_t &rg);
 
 private:
-    const read_response_t *responses;
+    read_response_t *responses; // Cannibalized for efficiency.
     size_t count;
     read_response_t *response_out;
-    ql::env_t ql_env;
-
-    void unshard_range_get(const rget_read_t &rg) {
-        rget_read_response_t *rg_response
-            = boost::get<rget_read_response_t>(&response_out->response);
-        // A vanilla range get
-        // First we need to determine the cutoff key:
-        rg_response->last_considered_key = !reversed(rg.sorting)
-            ? store_key_t::max() : store_key_t::min();
-        for (size_t i = 0; i < count; ++i) {
-            auto rr = boost::get<rget_read_response_t>(&responses[i].response);
-            guarantee(rr != NULL);
-
-            if (rr->truncated
-                && ((rg_response->last_considered_key > rr->last_considered_key
-                     && !reversed(rg.sorting))
-                    || (rg_response->last_considered_key < rr->last_considered_key
-                        && reversed(rg.sorting)))) {
-                rg_response->last_considered_key = rr->last_considered_key;
-            }
-        }
-
-        rg_response->result = stream_t();
-        stream_t *res_stream = boost::get<stream_t>(&rg_response->result);
-
-        if (rg.sorting == sorting_t::UNORDERED) {
-            for (size_t i = 0; i < count; ++i) {
-                // TODO: we're ignoring the limit when recombining.
-                auto rr = boost::get<rget_read_response_t>(&responses[i].response);
-                guarantee(rr != NULL);
-
-                const stream_t *stream = boost::get<stream_t>(&(rr->result));
-
-                for (auto it = stream->begin(); it != stream->end(); ++it) {
-                    if ((it->key <= rg_response->last_considered_key
-                         && !reversed(rg.sorting))
-                        || (it->key >= rg_response->last_considered_key
-                            && reversed(rg.sorting))) {
-                        res_stream->push_back(*it);
-                    }
-                }
-
-                rg_response->truncated = rg_response->truncated || rr->truncated;
-            }
-        } else {
-            std::vector<std::pair<stream_t::const_iterator, stream_t::const_iterator> >
-                iterators;
-
-            for (size_t i = 0; i < count; ++i) {
-                // TODO: we're ignoring the limit when recombining.
-                auto rr = boost::get<rget_read_response_t>(&responses[i].response);
-                guarantee(rr != NULL);
-
-                const stream_t *stream = boost::get<stream_t>(&(rr->result));
-                iterators.push_back(std::make_pair(stream->begin(), stream->end()));
-            }
-
-            while (true) {
-                store_key_t key_to_beat = !reversed(rg.sorting)
-                    ? store_key_t::max() : store_key_t::min();
-                stream_t::const_iterator *value = NULL;
-
-                for (auto it = iterators.begin(); it != iterators.end(); ++it) {
-                    if (it->first == it->second) {
-                        continue;
-                    }
-
-                    if ((!reversed(rg.sorting)
-                         && it->first->key <= key_to_beat
-                         && it->first->key <= rg_response->last_considered_key)
-                        || (reversed(rg.sorting)
-                            && it->first->key >= key_to_beat
-                            && it->first->key >= rg_response->last_considered_key)) {
-                        key_to_beat = it->first->key;
-                        value = &it->first;
-                    }
-                }
-                if (value != NULL) {
-                    res_stream->push_back(**value);
-                    ++(*value);
-                } else {
-                    break;
-                }
-            }
-        }
-    }
-
-    void unshard_reduce(const rget_read_t &rg) {
-        rget_read_response_t *rg_response = boost::get<rget_read_response_t>(
-            &response_out->response);
-        try {
-            if (const ql::reduce_wire_func_t *reduce_func =
-                    boost::get<ql::reduce_wire_func_t>(&*rg.terminal)) {
-                ql::reduce_wire_func_t local_reduce_func = *reduce_func;
-                rg_response->result = rget_read_response_t::empty_t();
-                for (size_t i = 0; i < count; ++i) {
-                    const rget_read_response_t *_rr =
-                        boost::get<rget_read_response_t>(&responses[i].response);
-                    guarantee(_rr);
-                    counted_t<const ql::datum_t> *lhs =
-                        boost::get<counted_t<const ql::datum_t> >(&rg_response->result);
-                    const counted_t<const ql::datum_t> *rhs =
-                        boost::get<counted_t<const ql::datum_t> >(&(_rr->result));
-                    if (!rhs) {
-                        guarantee(boost::get<rget_read_response_t::empty_t>(
-                                      &(_rr->result)));
-                        continue;
-                    } else {
-                        if (lhs) {
-                            counted_t<const ql::datum_t> reduced_val =
-                                local_reduce_func.compile_wire_func()->call(
-                                    &ql_env, *lhs, *rhs)->as_datum();
-                            rg_response->result = reduced_val;
-                        } else {
-                            guarantee(boost::get<rget_read_response_t::empty_t>(
-                                          &rg_response->result));
-                            rg_response->result = _rr->result;
-                        }
-                    }
-                }
-            } else if (boost::get<ql::count_wire_func_t>(&*rg.terminal)) {
-                rg_response->result = make_counted<const ql::datum_t>(0.0);
-
-                for (size_t i = 0; i < count; ++i) {
-                    const rget_read_response_t *_rr =
-                        boost::get<rget_read_response_t>(&responses[i].response);
-                    guarantee(_rr);
-                    counted_t<const ql::datum_t> lhs =
-                        boost::get<counted_t<const ql::datum_t> >(rg_response->result);
-                    counted_t<const ql::datum_t> rhs =
-                        boost::get<counted_t<const ql::datum_t> >(_rr->result);
-                    rg_response->result = make_counted<const ql::datum_t>(
-                        lhs->as_num() + rhs->as_num());
-                }
-            } else if (const ql::gmr_wire_func_t *gmr_func =
-                    boost::get<ql::gmr_wire_func_t>(&*rg.terminal)) {
-                ql::gmr_wire_func_t local_gmr_func = *gmr_func;
-                rg_response->result = ql::wire_datum_map_t();
-                ql::wire_datum_map_t *map =
-                    boost::get<ql::wire_datum_map_t>(&rg_response->result);
-
-                  for (size_t i = 0; i < count; ++i) {
-                    const rget_read_response_t *_rr =
-                        boost::get<rget_read_response_t>(&responses[i].response);
-                    guarantee(_rr);
-                    const ql::wire_datum_map_t *rhs =
-                        boost::get<ql::wire_datum_map_t>(&(_rr->result));
-                    r_sanity_check(rhs);
-                    ql::wire_datum_map_t local_rhs = *rhs;
-                    local_rhs.compile();
-
-                    counted_t<const ql::datum_t> rhs_arr = local_rhs.to_arr();
-                    for (size_t f = 0; f < rhs_arr->size(); ++f) {
-                        counted_t<const ql::datum_t> key
-                            = rhs_arr->get(f)->get("group");
-                        counted_t<const ql::datum_t> val
-                            = rhs_arr->get(f)->get("reduction");
-                        if (!map->has(key)) {
-                            map->set(key, val);
-                        } else {
-                            counted_t<ql::func_t> r
-                                = local_gmr_func.compile_reduce();
-                            map->set(key, r->call(&ql_env, map->get(key), val)->as_datum());
-                        }
-                    }
-                }
-                boost::get<ql::wire_datum_map_t>(rg_response->result).finalize();
-            } else {
-                unreachable();
-            }
-        } catch (const ql::datum_exc_t &e) {
-            /* Evaluation threw so we're not going to be accepting any
-               more requests. */
-            terminal_exception(e, *rg.terminal, &rg_response->result);
-        } catch (const ql::exc_t &e) {
-            rg_response->result = e;
-        }
-    }
+    ql::env_t env;
 };
+
+void rdb_r_unshard_visitor_t::operator()(const point_read_t &) {
+    guarantee(count == 1);
+    guarantee(NULL != boost::get<point_read_response_t>(&responses[0].response));
+    *response_out = responses[0];
+}
+
+void rdb_r_unshard_visitor_t::operator()(const rget_read_t &rg) {
+    // Initialize response.
+    response_out->response = rget_read_response_t();
+    auto out = boost::get<rget_read_response_t>(&response_out->response);
+    out->truncated = false;
+    out->key_range = read_t(rg, profile_bool_t::DONT_PROFILE).get_region().inner;
+
+    // Fill in `truncated` and `last_key`, get responses, abort if there's an error.
+    std::vector<ql::result_t *> results(count);
+    store_key_t *best = NULL;
+    key_le_t key_le(rg.sorting);
+    for (size_t i = 0; i < count; ++i) {
+        auto resp = boost::get<rget_read_response_t>(&responses[i].response);
+        guarantee(resp);
+        if (resp->truncated) {
+            out->truncated = true;
+            if (best == NULL || key_le(resp->last_key, *best)) {
+                best = &resp->last_key;
+            }
+        }
+        if (boost::get<ql::exc_t>(&resp->result) != NULL) {
+            out->result = std::move(resp->result);
+            return;
+        }
+        results[i] = &resp->result;
+    }
+    out->last_key = (best != NULL) ? std::move(*best) : key_max(rg.sorting);
+
+    // Unshard and finish up.
+    scoped_ptr_t<ql::accumulator_t> acc(rg.terminal
+        ? ql::make_terminal(&env, *rg.terminal)
+        : ql::make_append(rg.sorting, NULL));
+    acc->unshard(out->last_key, results);
+    acc->finish(&out->result);
+}
+
+void rdb_r_unshard_visitor_t::operator()(const distribution_read_t &dg) {
+    // TODO: do this without copying so much and/or without dynamic memory
+    // Sort results by region
+    std::vector<distribution_read_response_t> results(count);
+    guarantee(count > 0);
+
+    for (size_t i = 0; i < count; ++i) {
+        auto result = boost::get<distribution_read_response_t>(&responses[i].response);
+        guarantee(result != NULL, "Bad boost::get\n");
+        results[i] = *result; // TODO: move semantics.
+    }
+
+    std::sort(results.begin(), results.end(), distribution_read_response_less_t());
+
+    distribution_read_response_t res;
+    size_t i = 0;
+    while (i < results.size()) {
+        // Find the largest hash shard for this key range
+        key_range_t range = results[i].region.inner;
+        size_t largest_index = i;
+        size_t largest_size = 0;
+        size_t total_range_keys = 0;
+
+        while (i < results.size() && results[i].region.inner == range) {
+            size_t tmp_total_keys = 0;
+            for (auto mit = results[i].key_counts.begin();
+                 mit != results[i].key_counts.end();
+                 ++mit) {
+                tmp_total_keys += mit->second;
+            }
+
+            if (tmp_total_keys > largest_size) {
+                largest_size = tmp_total_keys;
+                largest_index = i;
+            }
+
+            total_range_keys += tmp_total_keys;
+            ++i;
+        }
+
+        if (largest_size > 0) {
+            // Scale up the selected hash shard
+            double scale_factor = double(total_range_keys) / double(largest_size);
+
+            guarantee(scale_factor >= 1.0);  // Directly provable from code above.
+
+            for (auto mit = results[largest_index].key_counts.begin();
+                 mit != results[largest_index].key_counts.end();
+                 ++mit) {
+                mit->second = static_cast<int64_t>(mit->second * scale_factor);
+            }
+
+            // TODO: move semantics.
+            res.key_counts.insert(
+                results[largest_index].key_counts.begin(),
+                results[largest_index].key_counts.end());
+        }
+    }
+
+    // If the result is larger than the requested limit, scale it down
+    if (dg.result_limit > 0 && res.key_counts.size() > dg.result_limit) {
+        scale_down_distribution(dg.result_limit, &res.key_counts);
+    }
+
+    response_out->response = res;
+}
+
+void rdb_r_unshard_visitor_t::operator()(UNUSED const sindex_list_t &sl) {
+    guarantee(count == 1);
+    guarantee(boost::get<sindex_list_response_t>(&responses[0].response));
+    *response_out = responses[0];
+}
+
+void rdb_r_unshard_visitor_t::operator()(UNUSED const sindex_status_t &ss) {
+    *response_out = read_response_t(sindex_status_response_t());
+    auto ss_response = boost::get<sindex_status_response_t>(&response_out->response);
+    for (size_t i = 0; i < count; ++i) {
+        auto resp = boost::get<sindex_status_response_t>(&responses[0].response);
+        guarantee(resp != NULL);
+        for (auto it = resp->statuses.begin(); it != resp->statuses.end(); ++it) {
+            add_status(it->second, &ss_response->statuses[it->first]);
+        }
+    }
+}
 
 void read_t::unshard(read_response_t *responses, size_t count,
                      read_response_t *response_out, context_t *ctx,
                      signal_t *interruptor) const
     THROWS_ONLY(interrupted_exc_t) {
-    if (ctx != NULL) {
-        rdb_r_unshard_visitor_t v(responses, count, response_out, ctx, interruptor);
-        boost::apply_visitor(v, read);
-    } else {
-        rdb_r_unshard_visitor_t v(responses, count, response_out, interruptor);
-        boost::apply_visitor(v, read);
-    }
+    rdb_r_unshard_visitor_t v(responses, count, response_out, ctx, interruptor);
+    boost::apply_visitor(v, read);
 
     /* We've got some profiling to do. */
     /* This is a tad hacky, some of the methods in rdb_r_unshard_visitor_t set
@@ -1279,7 +1091,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const rget_read_t &rget) {
-        if (rget.transform.size() != 0 || rget.terminal) {
+        if (rget.transforms.size() != 0 || rget.terminal) {
             rassert(rget.optargs.size() != 0);
         }
         ql_env.global_optargs.init_optargs(rget.optargs);
@@ -1290,7 +1102,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         if (!rget.sindex) {
             // Normal rget
             rdb_rget_slice(btree, rget.region.inner, superblock,
-                           &ql_env, rget.batchspec, rget.transform, rget.terminal,
+                           &ql_env, rget.batchspec, rget.transforms, rget.terminal,
                            rget.sorting, res);
         } else {
             scoped_ptr_t<real_superblock_t> sindex_sb;
@@ -1298,22 +1110,20 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
 
             try {
                 bool found = store->acquire_sindex_superblock_for_read(
-                        rget.sindex->id,
-                        superblock,
-                        &sindex_sb, &sindex_mapping_data);
+                    rget.sindex->id, superblock, &sindex_sb, &sindex_mapping_data);
                 if (!found) {
-                    res->result = ql::datum_exc_t(
+                    res->result = ql::exc_t(
                         ql::base_exc_t::GENERIC,
-                        strprintf("Index `%s` was not found.",
-                                  rget.sindex->id.c_str()));
+                        strprintf("Index `%s` was not found.", rget.sindex->id.c_str()),
+                        NULL);
                     return;
                 }
             } catch (const sindex_not_post_constructed_exc_t &) {
-                res->result = ql::datum_exc_t(
+                res->result = ql::exc_t(
                     ql::base_exc_t::GENERIC,
-                    strprintf("Index `%s` was accessed before "
-                              "its construction was finished.",
-                              rget.sindex->id.c_str()));
+                    strprintf("Index `%s` was accessed before its construction "
+                              "was finished.", rget.sindex->id.c_str()),
+                    NULL);
                 return;
             }
 
@@ -1333,7 +1143,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             rdb_rget_secondary_slice(
                 store->get_sindex_slice(rget.sindex->id),
                 rget.sindex->original_range, rget.sindex->region,
-                sindex_sb.get(), &ql_env, rget.batchspec, rget.transform,
+                sindex_sb.get(), &ql_env, rget.batchspec, rget.transforms,
                 rget.terminal, rget.region.inner, rget.sorting,
                 sindex_mapping, multi_bool, res);
         }
@@ -1959,13 +1769,12 @@ region_t rdb_protocol_t::cpu_sharding_subspace(int subregion_number,
     return region_t(beg, end, key_range_t::universe());
 }
 
-RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_details::rget_item_t, key, sindex_key, data);
 RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_details::single_sindex_status_t,
                            blocks_total, blocks_processed, ready);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_read_response_t, data);
 RDB_IMPL_ME_SERIALIZABLE_4(rdb_protocol_t::rget_read_response_t,
-                           result, key_range, truncated, last_considered_key);
+                           result, key_range, truncated, last_key);
 RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::distribution_read_response_t,
                            region, key_counts);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::sindex_list_response_t, sindexes);
@@ -1984,7 +1793,7 @@ RDB_IMPL_ME_SERIALIZABLE_4(datum_range_t,
                            left_bound_type, right_bound_type);
 RDB_IMPL_ME_SERIALIZABLE_7(rdb_protocol_t::rget_read_t,
                            region, optargs, batchspec,
-                           transform, terminal, sindex, sorting);
+                           transforms, terminal, sindex, sorting);
 
 RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::distribution_read_t,
                            max_depth, result_limit, region);

@@ -50,16 +50,16 @@ public:
 
         fifo_enforcer_sink_t::exit_write_t exit_write(&sink_, token);
 
-        bool success;
+        done_t done;
         try {
-            success = cb_->handle_pair(
+            done = cb_->handle_pair(
                 std::move(keyvalue),
                 concurrent_traversal_fifo_enforcer_signal_t(&exit_write, this));
         } catch (const interrupted_exc_t &) {
-            success = false;
+            done = done_t::YES;
         }
 
-        if (!success) {
+        if (done == done_t::YES) {
             failure_cond_->pulse_if_not_already_pulsed();
         }
     }

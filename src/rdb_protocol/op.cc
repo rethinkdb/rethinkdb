@@ -54,11 +54,13 @@ optargspec_t optargspec_t::with(std::initializer_list<const char *> args) const 
 
 op_term_t::op_term_t(compile_env_t *env, protob_t<const Term> term,
                      argspec_t argspec, optargspec_t optargspec)
-    : term_t(term) {
+    : term_t(term), arg_verifier(NULL) {
+    args.reserve(term->args_size());
     for (int i = 0; i < term->args_size(); ++i) {
         counted_t<term_t> t = compile_term(env, term.make_child(&term->args(i)));
         args.push_back(t);
     }
+
     rcheck(argspec.contains(args.size()),
            base_exc_t::GENERIC,
            strprintf("Expected %s but found %zu.",
@@ -69,7 +71,8 @@ op_term_t::op_term_t(compile_env_t *env, protob_t<const Term> term,
         if (!optargspec.is_make_object()) {
             rcheck(optargspec.contains(ap->key()),
                    base_exc_t::GENERIC,
-                   strprintf("Unrecognized optional argument `%s`.", ap->key().c_str()));
+                   strprintf("Unrecognized optional argument `%s`.",
+                             ap->key().c_str()));
         }
         rcheck(optargs.count(ap->key()) == 0,
                base_exc_t::GENERIC,
@@ -81,13 +84,67 @@ op_term_t::op_term_t(compile_env_t *env, protob_t<const Term> term,
         optargs.insert(std::make_pair(ap->key(), t));
     }
 }
-op_term_t::~op_term_t() { }
+op_term_t::~op_term_t() { r_sanity_check(arg_verifier == NULL); }
+
+// We use this to detect double-evals.  (We've had several problems with those
+// in the past.)
+class arg_verifier_t {
+public:
+    arg_verifier_t(std::vector<counted_t<term_t> > *_args,
+                   arg_verifier_t **_slot)
+        : args(_args), args_consumed(args->size(), false), slot(_slot) {
+        *slot = this;
+    }
+    ~arg_verifier_t() {
+        r_sanity_check(*slot == this);
+        *slot = NULL;
+    }
+
+    counted_t<term_t> consume(size_t i) {
+        r_sanity_check(i < args->size());
+        r_sanity_check(!args_consumed[i]);
+        args_consumed[i] = true;
+        return (*args)[i];
+    }
+
+private:
+    std::vector<counted_t<term_t> > *args;
+    std::vector<bool> args_consumed;
+    arg_verifier_t **slot;
+};
 
 size_t op_term_t::num_args() const { return args.size(); }
 counted_t<val_t> op_term_t::arg(scope_env_t *env, size_t i, eval_flags_t flags) {
-    rcheck(i < args.size(), base_exc_t::NON_EXISTENCE,
-           strprintf("Index out of range: %zu", i));
-    return args[i]->eval(env, flags);
+    if (i == 0) {
+        if (!arg0.has()) arg0 = arg_verifier->consume(0)->eval(env, flags);
+        counted_t<val_t> v;
+        v.swap(arg0);
+        r_sanity_check(!arg0.has());
+        return std::move(v);
+    } else {
+        r_sanity_check(arg_verifier != NULL);
+        return arg_verifier->consume(i)->eval(env, flags);
+    }
+}
+
+counted_t<val_t> op_term_t::term_eval(scope_env_t *env, eval_flags_t eval_flags) {
+    scoped_ptr_t<arg_verifier_t> av(new arg_verifier_t(&args, &arg_verifier));
+    counted_t<val_t> ret;
+    if (num_args() != 0 && can_be_grouped()) {
+        arg0 = arg_verifier->consume(0)->eval(env, eval_flags);
+        if (arg0->get_type().is_convertible(val_t::type_t::GROUPED_DATA)) {
+            counted_t<grouped_data_t> gd = arg0->as_grouped_data();
+            counted_t<grouped_data_t> out(new grouped_data_t());
+            for (auto kv = gd->begin(); kv != gd->end(); ++kv) {
+                arg0 = make_counted<val_t>(kv->second, backtrace());
+                (*out)[kv->first] = eval_impl(env, eval_flags)->as_datum();
+                av.reset();
+                av.init(new arg_verifier_t(&args, &arg_verifier));
+            }
+            return make_counted<val_t>(out, backtrace());
+        }
+    }
+    return eval_impl(env, eval_flags);
 }
 
 counted_t<val_t> op_term_t::optarg(scope_env_t *env, const std::string &key) {

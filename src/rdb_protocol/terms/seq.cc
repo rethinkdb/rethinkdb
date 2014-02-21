@@ -11,7 +11,53 @@
 
 namespace ql {
 
-// Most of the real logic for these is in datum_stream.cc.
+template<class T>
+class map_acc_term_t : public op_term_t {
+protected:
+    map_acc_term_t(compile_env_t *env, const protob_t<const Term> &term)
+        : op_term_t(env, term, argspec_t(1, 2)) { }
+private:
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) {
+        if (num_args() == 1) {
+            return arg(env, 0)->as_seq(env->env)->run_terminal(
+                env->env, T(backtrace()));
+        } else {
+            auto f = arg(env, 1)->as_func(GET_FIELD_SHORTCUT);
+            return arg(env, 0)->as_seq(env->env)
+                ->add_transformation(env->env, map_wire_func_t(f))
+                ->run_terminal(env->env, T(backtrace()));
+        }
+    }
+};
+
+class sum_term_t : public map_acc_term_t<sum_wire_func_t> {
+public:
+    template<class... Args> sum_term_t(Args... args)
+        : map_acc_term_t<sum_wire_func_t>(args...) { }
+private:
+    virtual const char *name() const { return "sum"; }
+};
+class avg_term_t : public map_acc_term_t<avg_wire_func_t> {
+public:
+    template<class... Args> avg_term_t(Args... args)
+        : map_acc_term_t<avg_wire_func_t>(args...) { }
+private:
+    virtual const char *name() const { return "avg"; }
+};
+class min_term_t : public map_acc_term_t<min_wire_func_t> {
+public:
+    template<class... Args> min_term_t(Args... args)
+        : map_acc_term_t<min_wire_func_t>(args...) { }
+private:
+    virtual const char *name() const { return "min"; }
+};
+class max_term_t : public map_acc_term_t<max_wire_func_t> {
+public:
+    template<class... Args> max_term_t(Args... args)
+        : map_acc_term_t<max_wire_func_t>(args...) { }
+private:
+    virtual const char *name() const { return "max"; }
+};
 
 class count_term_t : public op_term_t {
 public:
@@ -19,14 +65,25 @@ public:
         : op_term_t(env, term, argspec_t(1, 2)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+        counted_t<val_t> v0 = arg(env, 0);
         if (num_args() == 1) {
-            return new_val(arg(env, 0)->as_seq(env->env)->count(env->env));
-        } else if (arg(env, 1)->get_type().is_convertible(val_t::type_t::FUNC)) {
-            return new_val(arg(env, 0)->as_seq(env->env)->filter(arg(env, 1)->as_func(), counted_t<func_t>())->count(env->env));
+            return v0->as_seq(env->env)
+                ->run_terminal(env->env, count_wire_func_t());
         } else {
-            counted_t<func_t> f =
-                new_eq_comparison_func(arg(env, 1)->as_datum(), backtrace());
-            return new_val(arg(env, 0)->as_seq(env->env)->filter(f, counted_t<func_t>())->count(env->env));
+            counted_t<val_t> v1 = arg(env, 1);
+            if (v1->get_type().is_convertible(val_t::type_t::FUNC)) {
+                return v0->as_seq(env->env)
+                    ->add_transformation(
+                        env->env, filter_wire_func_t(v1->as_func(), boost::none))
+                    ->run_terminal(env->env, count_wire_func_t());
+            } else {
+                counted_t<func_t> f =
+                    new_eq_comparison_func(v1->as_datum(), backtrace());
+                return v0->as_seq(env->env)
+                    ->add_transformation(
+                        env->env, filter_wire_func_t(f, boost::none))
+                    ->run_terminal(env->env, count_wire_func_t());
+            }
         }
     }
     virtual const char *name() const { return "count"; }
@@ -38,7 +95,8 @@ public:
         : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
-        return new_val(env->env, arg(env, 0)->as_seq(env->env)->map(arg(env, 1)->as_func()));
+        return new_val(env->env, arg(env, 0)->as_seq(env->env)->add_transformation(
+                           env->env, map_wire_func_t(arg(env, 1)->as_func())));
     }
     virtual const char *name() const { return "map"; }
 };
@@ -49,9 +107,27 @@ public:
         : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
-        return new_val(env->env, arg(env, 0)->as_seq(env->env)->concatmap(arg(env, 1)->as_func()));
+        return new_val(env->env, arg(env, 0)->as_seq(env->env)->add_transformation(
+                           env->env, concatmap_wire_func_t(arg(env, 1)->as_func())));
     }
     virtual const char *name() const { return "concatmap"; }
+};
+
+class group_term_t : public op_term_t {
+public:
+    group_term_t(compile_env_t *env, const protob_t<const Term> &term)
+        : op_term_t(env, term, argspec_t(2, -1)) { }
+private:
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+        std::vector<counted_t<func_t> > funcs;
+        funcs.reserve(num_args() - 1);
+        for (size_t i = 1; i < num_args(); ++i) {
+            funcs.push_back(arg(env, i)->as_func(GET_FIELD_SHORTCUT));
+        }
+        return new_val(env->env, arg(env, 0)->as_seq(env->env)->add_grouping(
+                           env->env, group_wire_func_t(std::move(funcs))));
+    }
+    virtual const char *name() const { return "group"; }
 };
 
 class filter_term_t : public op_term_t {
@@ -65,16 +141,20 @@ private:
         counted_t<val_t> v0 = arg(env, 0);
         counted_t<val_t> v1 = arg(env, 1, LITERAL_OK);
         counted_t<func_t> f = v1->as_func(CONSTANT_SHORTCUT);
-        counted_t<func_t> default_filter_val = default_filter_term.has()
-            ? default_filter_term->eval_to_func(env->scope)
-            : counted_t<func_t>();
+        boost::optional<wire_func_t> defval;
+        if (default_filter_term.has()) {
+            defval = wire_func_t(default_filter_term->eval_to_func(env->scope));
+        }
 
         if (v0->get_type().is_convertible(val_t::type_t::SELECTION)) {
             std::pair<counted_t<table_t>, counted_t<datum_stream_t> > ts
                 = v0->as_selection(env->env);
-            return new_val(ts.second->filter(f, default_filter_val), ts.first);
+            return new_val(ts.second->add_transformation(
+                               env->env, filter_wire_func_t(f, defval)),
+                           ts.first);
         } else {
-            return new_val(env->env, v0->as_seq(env->env)->filter(f, default_filter_val));
+            return new_val(env->env, v0->as_seq(env->env)->add_transformation(
+                               env->env, filter_wire_func_t(f, defval)));
         }
     }
 
@@ -89,9 +169,8 @@ public:
         op_term_t(env, term, argspec_t(2), optargspec_t({ "base" })) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
-        return new_val(arg(env, 0)->as_seq(env->env)->reduce(env->env,
-                                                        optarg(env, "base"),
-                                                        arg(env, 1)->as_func()));
+        return arg(env, 0)->as_seq(env->env)->run_terminal(
+            env->env, reduce_wire_func_t(arg(env, 1)->as_func()));
     }
     virtual const char *name() const { return "reduce"; }
 };
@@ -147,7 +226,7 @@ private:
             streams.push_back(arg(env, i)->as_seq(env->env));
         }
         counted_t<datum_stream_t> union_stream
-            = make_counted<union_datum_stream_t>(streams, backtrace());
+            = make_counted<union_datum_stream_t>(std::move(streams), backtrace());
         return new_val(env->env, union_stream);
     }
     virtual const char *name() const { return "union"; }
@@ -164,28 +243,56 @@ private:
     virtual const char *name() const { return "zip"; }
 };
 
-counted_t<term_t> make_between_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_between_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<between_term_t>(env, term);
 }
-counted_t<term_t> make_reduce_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_reduce_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<reduce_term_t>(env, term);
 }
-counted_t<term_t> make_map_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_map_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<map_term_t>(env, term);
 }
-counted_t<term_t> make_filter_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_filter_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<filter_term_t>(env, term);
 }
-counted_t<term_t> make_concatmap_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_concatmap_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<concatmap_term_t>(env, term);
 }
-counted_t<term_t> make_count_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_group_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
+    return make_counted<group_term_t>(env, term);
+}
+counted_t<term_t> make_count_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<count_term_t>(env, term);
 }
-counted_t<term_t> make_union_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_avg_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
+    return make_counted<avg_term_t>(env, term);
+}
+counted_t<term_t> make_sum_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
+    return make_counted<sum_term_t>(env, term);
+}
+counted_t<term_t> make_min_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
+    return make_counted<min_term_t>(env, term);
+}
+counted_t<term_t> make_max_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
+    return make_counted<max_term_t>(env, term);
+}
+counted_t<term_t> make_union_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<union_term_t>(env, term);
 }
-counted_t<term_t> make_zip_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_zip_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<zip_term_t>(env, term);
 }
 

@@ -194,7 +194,7 @@ class flush_and_destroy_txn_waiter_t : public signal_t::subscription_t {
 public:
     flush_and_destroy_txn_waiter_t(auto_drainer_t::lock_t &&lock,
                                    page_txn_t *txn,
-                                   std::function<void(tracker_acq_t)> on_flush_complete)
+                                   std::function<void(tracker_acq_t *)> on_flush_complete)
         : lock_(std::move(lock)),
           txn_(txn),
           on_flush_complete_(std::move(on_flush_complete)) { }
@@ -202,7 +202,7 @@ public:
 private:
     void run() {
         // Tell everybody without delay that the flush is complete.
-        on_flush_complete_(std::move(txn_->tracker_acq_));
+        on_flush_complete_(&txn_->tracker_acq_);
 
         // We have to do the rest _later_ because of signal_t::subscription_t not
         // allowing reentrant signal_t::subscription_t::reset() calls, and the like,
@@ -221,14 +221,14 @@ private:
 
     auto_drainer_t::lock_t lock_;
     page_txn_t *txn_;
-    std::function<void(tracker_acq_t)> on_flush_complete_;
+    std::function<void(tracker_acq_t *)> on_flush_complete_;
 
     DISABLE_COPYING(flush_and_destroy_txn_waiter_t);
 };
 
 void page_cache_t::flush_and_destroy_txn(
         scoped_ptr_t<page_txn_t> txn,
-        std::function<void(tracker_acq_t)> on_flush_complete) {
+        std::function<void(tracker_acq_t *)> on_flush_complete) {
     rassert(txn->live_acqs_.empty(),
             "current_page_acq_t lifespan exceeds its page_txn_t's");
     guarantee(!txn->began_waiting_for_flush_);

@@ -34,6 +34,12 @@ module RethinkDB
           raise ArgumentError, "`time_format` must be 'raw' or 'native' (got `#{tf}`)."
         end
       end
+      if (gf = opts[:group_format])
+        opts[:group_format] = (gf = gf.to_s)
+        if gf != 'raw' && gf != 'native'
+          raise ArgumentError, "`group_format` must be 'raw' or 'native' (got `#{gf}`)."
+        end
+      end
       if !c
         raise ArgumentError, "No connection specified!\n" \
         "Use `query.run(conn)` or `conn.repl(); query.run`."

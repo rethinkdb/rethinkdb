@@ -299,10 +299,11 @@ public:
                  memory_tracker_t *tracker);
     ~page_cache_t();
 
-    // Takes a txn to be flushed.  Calls on_flush_complete() when done.
+    // Takes a txn to be flushed.  Calls on_flush_complete() (which resets the
+    // tracker_acq parameter) when done.
     void flush_and_destroy_txn(
             scoped_ptr_t<page_txn_t> txn,
-            std::function<void(tracker_acq_t)> on_flush_complete);
+            std::function<void(tracker_acq_t *)> on_flush_complete);
 
     current_page_t *page_for_block_id(block_id_t block_id);
     current_page_t *page_for_new_block_id(block_id_t *block_id_out);

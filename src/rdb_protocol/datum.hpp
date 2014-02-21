@@ -49,6 +49,8 @@ enum clobber_bool_t { NOCLOBBER = 0, CLOBBER = 1};
 
 enum class use_json_t { NO = 0, YES = 1 };
 
+class grouped_data_t;
+
 // A `datum_t` is basically a JSON value, although we may extend it later.
 class datum_t : public slow_atomic_countable_t<datum_t> {
 public:
@@ -74,6 +76,9 @@ public:
     explicit datum_t(const char *cstr);
     explicit datum_t(std::vector<counted_t<const datum_t> > &&_array);
     explicit datum_t(std::map<std::string, counted_t<const datum_t> > &&object);
+
+    // This should only be used to send responses to the client.
+    explicit datum_t(grouped_data_t &&gd);
 
     // These construct a datum from an equivalent representation.
     datum_t();
@@ -101,9 +106,11 @@ public:
             boost::optional<uint64_t> tag_num = boost::optional<uint64_t>()) const;
     /* An inverse to print_secondary. Returns the primary key. */
     static std::string extract_primary(const std::string &secondary_and_primary);
+    static store_key_t extract_primary(const store_key_t &secondary_key);
     static std::string extract_secondary(const std::string &secondary_and_primary);
     static boost::optional<uint64_t> extract_tag(
         const std::string &secondary_and_primary);
+    static boost::optional<uint64_t> extract_tag(const store_key_t &key);
     store_key_t truncated_secondary() const;
     void check_type(type_t desired, const char *msg = NULL) const;
     void type_error(const std::string &msg) const NORETURN;

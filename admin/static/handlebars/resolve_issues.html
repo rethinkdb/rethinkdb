@@ -189,10 +189,14 @@
 <script id="resolve_issues-unsatisfiable_goals-template" type="text/x-handlebars-template">
     <div class="issue {{#if critical }}critical{{/if}} name-conflict">
         <div class="issue-header">
+            {{#if primary_empty}}
+            <button class="btn btn-danger try-solve-issue">Manually solve</button>
+            {{else}}
             {{#if can_solve_issue}}
             <button class="btn btn-danger solve-issue">Lower replicas</button>
             {{else}}
             <button class="btn btn-danger try-solve-issue">Manually solve</button>
+            {{/if}}
             {{/if}}
             <p class="issue-type">Unsatisfiable goals</p>
             <p class="datetime"><abbr class="timeago" title="{{datetime}}">{{datetime}}</abbr></p>
@@ -203,6 +207,12 @@
             <p>The primary datacenter of the table <a class="change-route" href="#tables/{{namespace_id}}">{{namespace_name}}</a> was not found (probably deleted). Please <a class="change-route" href="#tables/{{namespace_id}}">choose</a> another primary datacenter.</p>
             {{else}}
                 <p>The goals specified for table <a class="change-route" href="#tables/{{namespace_id}}">{{namespace_name}}</a> cannot be satisfied.</p>
+
+                {{#if primary_empty}}
+                <p>The primary datacenter of the table <a class="change-route" href="#tables/{{namespace_id}}">{{namespace_name}}</a> does not contain any servers.
+                Please <a class="change-route" href="#tables/{{namespace_id}}">choose</a> another primary datacenter or <a class="change-route" href="#servers">add a server</a> to it.</p>
+                {{/if}}
+
                 {{#if can_solve_issue}}
                 <p>The number of replicas requested for these datacenters or for the whole cluster is greater than the number of servers available:</p>
                 <ul>
@@ -222,7 +232,8 @@
 
                 {{#if extra_replicas_accross_cluster}}
                 <p>
-                {{#if can_solve_issue}}Once you will have solved the issues above, you will still require{{else}}You have required{{/if}} {{extra_replicas_accross_cluster.value}} extra {{pluralize_noun "replica" extra_replicas_accross_cluster.value}} across the cluster. You have to lower the value of replicas in one of these datacenters or in the whole cluster:</p>
+                {{#if can_solve_issue}}Once you will have solved the issues above, you will still require{{else}}You have required{{/if}}
+                {{extra_replicas_accross_cluster.value}} extra {{pluralize_noun "replica" extra_replicas_accross_cluster.value}} across the cluster. You have to lower the value of replicas in one of these datacenters or in the whole cluster:</p>
                 <ul>
                     {{#each extra_replicas_accross_cluster.datacenters_that_can_help}}
                     {{#if is_universe}}
