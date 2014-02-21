@@ -245,16 +245,18 @@ public:
             ASSERT_TRUE(false);
         }
 
-        void key_value(const btree_key_t *k, const void *v_value, UNUSED repli_timestamp_t tstamp) {
+        void keys_values(const std::vector<const btree_key_t *> &ks, const std::vector<const void *> &values, const std::vector<repli_timestamp_t> &) {
             ASSERT_TRUE(got_lost_deletions_);
-            const short_value_t *value = static_cast<const short_value_t *>(v_value);
+            for (size_t i = 0; i < ks.size(); ++i) {
+                const short_value_t *value = static_cast<const short_value_t *>(values[i]);
 
-            store_key_t k_buf(k);
-            short_value_buffer_t v_buf(value);
-            std::string v_str = v_buf.as_str();
+                store_key_t k_buf(ks[i]);
+                short_value_buffer_t v_buf(value);
+                std::string v_str = v_buf.as_str();
 
-            ASSERT_TRUE(kv_map_.find(k_buf) == kv_map_.end());
-            kv_map_[k_buf] = v_str;
+                ASSERT_TRUE(kv_map_.find(k_buf) == kv_map_.end());
+                kv_map_[k_buf] = v_str;
+            }
         }
 
         const std::map<store_key_t, std::string>& map() const { return kv_map_; }

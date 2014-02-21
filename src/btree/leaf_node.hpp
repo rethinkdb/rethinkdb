@@ -4,6 +4,7 @@
 
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "buffer_cache/types.hpp"
 #include "errors.hpp"
@@ -155,8 +156,8 @@ public:
     // Sends a deletion in the deletion history.
     virtual void deletion(const btree_key_t *k, repli_timestamp_t tstamp) = 0;
 
-    // Sends a key/value pair in the leaf.
-    virtual void key_value(const btree_key_t *k, const void *value, repli_timestamp_t tstamp) = 0;
+    // Sends the key/value pairs in the leaf.
+    virtual void keys_values(const std::vector<const btree_key_t *> &ks, const std::vector<const void *> &values, const std::vector<repli_timestamp_t> &tstamps) = 0;
 
 protected:
     virtual ~entry_reception_callback_t() { }

@@ -2,6 +2,7 @@
 #include "rdb_protocol/protocol.hpp"
 
 #include <algorithm>
+#include <functional>
 
 #include "arch/io/disk.hpp"
 #include "btree/erase_range.hpp"
@@ -12,6 +13,7 @@
 #include "clustering/reactor/reactor.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
 #include "concurrency/pmap.hpp"
+#include "concurrency/promise.hpp"
 #include "concurrency/wait_any.hpp"
 #include "containers/archive/archive.hpp"
 #include "containers/archive/vector_stream.hpp"
@@ -687,7 +689,9 @@ void rdb_r_unshard_visitor_t::operator()(const distribution_read_t &dg) {
 
         if (largest_size > 0) {
             // Scale up the selected hash shard
-            double scale_factor = double(total_range_keys) / double(largest_size);
+            double scale_factor =
+                static_cast<double>(total_range_keys)
+                / static_cast<double>(largest_size);
 
             guarantee(scale_factor >= 1.0);  // Directly provable from code above.
 
@@ -1544,8 +1548,17 @@ struct rdb_backfill_chunk_get_btree_repli_timestamp_visitor_t : public boost::st
         return repli_timestamp_t::invalid;
     }
 
-    repli_timestamp_t operator()(const backfill_chunk_t::key_value_pair_t &kv) {
-        return kv.backfill_atom.recency;
+    repli_timestamp_t operator()(const backfill_chunk_t::key_value_pairs_t &kv) {
+        repli_timestamp_t most_recent = repli_timestamp_t::invalid;
+        rassert(!kv.backfill_atoms.empty());
+        for (size_t i = 0; i < kv.backfill_atoms.size(); ++i) {
+            if (most_recent == repli_timestamp_t::invalid
+                || most_recent < kv.backfill_atoms[i].recency) {
+
+                most_recent = kv.backfill_atoms[i].recency;
+            }
+        }
+        return most_recent;
     }
 
     repli_timestamp_t operator()(const backfill_chunk_t::sindexes_t &) {
@@ -1566,19 +1579,23 @@ public:
         : chunk_fun_cb(_chunk_fun_cb) { }
     ~rdb_backfill_callback_impl_t() { }
 
-    void on_delete_range(const key_range_t &range, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    void on_delete_range(const key_range_t &range,
+                         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
         chunk_fun_cb->send_chunk(chunk_t::delete_range(region_t(range)), interruptor);
     }
 
-    void on_deletion(const btree_key_t *key, repli_timestamp_t recency, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    void on_deletion(const btree_key_t *key, repli_timestamp_t recency,
+                     signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
         chunk_fun_cb->send_chunk(chunk_t::delete_key(to_store_key(key), recency), interruptor);
     }
 
-    void on_keyvalue(const rdb_backfill_atom_t &atom, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        chunk_fun_cb->send_chunk(chunk_t::set_key(atom), interruptor);
+    void on_keyvalues(std::vector<rdb_backfill_atom_t> &&atoms,
+                      signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+        chunk_fun_cb->send_chunk(chunk_t::set_keys(std::move(atoms)), interruptor);
     }
 
-    void on_sindexes(const std::map<std::string, secondary_index_t> &sindexes, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    void on_sindexes(const std::map<std::string, secondary_index_t> &sindexes,
+                     signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
         chunk_fun_cb->send_chunk(chunk_t::sindexes(sindexes), interruptor);
     }
 
@@ -1637,13 +1654,27 @@ void store_t::protocol_send_backfill(const region_map_t<rdb_protocol_t, state_ti
     }
 }
 
+void backfill_chunk_single_rdb_set(const rdb_backfill_atom_t &bf_atom,
+                                   btree_slice_t *btree, superblock_t *superblock,
+                                   UNUSED auto_drainer_t::lock_t drainer_acq,
+                                   rdb_modification_report_t *mod_report_out,
+                                   promise_t<superblock_t *> *superblock_promise_out) {
+    mod_report_out->primary_key = bf_atom.key;
+    point_write_response_t response;
+    rdb_set(bf_atom.key, bf_atom.value, true,
+            btree, bf_atom.recency,
+            superblock, &response,
+            &mod_report_out->info, static_cast<profile::trace_t *>(NULL),
+            superblock_promise_out);
+}
+
 struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
     rdb_receive_backfill_visitor_t(btree_store_t<rdb_protocol_t> *_store,
                                    btree_slice_t *_btree,
                                    txn_t *_txn,
-                                   superblock_t *_superblock,
+                                   scoped_ptr_t<superblock_t> &&_superblock,
                                    signal_t *_interruptor) :
-        store(_store), btree(_btree), txn(_txn), superblock(_superblock),
+        store(_store), btree(_btree), txn(_txn), superblock(std::move(_superblock)),
         interruptor(_interruptor) {
         sindex_block =
             store->acquire_sindex_block_for_write(superblock->expose_buf(),
@@ -1652,32 +1683,42 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
 
     void operator()(const backfill_chunk_t::delete_key_t &delete_key) {
         point_delete_response_t response;
-        rdb_modification_report_t mod_report(delete_key.key);
+        std::vector<rdb_modification_report_t> mod_reports(1);
+        mod_reports[0].primary_key = delete_key.key;
         rdb_delete(delete_key.key, btree, delete_key.recency,
-                   superblock, &response, &mod_report.info,
+                   superblock.get(), &response, &mod_reports[0].info,
                    static_cast<profile::trace_t *>(NULL));
 
-        update_sindexes(&mod_report);
+        update_sindexes(mod_reports);
     }
 
     void operator()(const backfill_chunk_t::delete_range_t &delete_range) {
         range_key_tester_t tester(&delete_range.range);
         rdb_erase_range(&tester, delete_range.range.inner,
                         &sindex_block,
-                        superblock, store,
+                        superblock.get(), store,
                         interruptor);
     }
 
-    void operator()(const backfill_chunk_t::key_value_pair_t &kv) {
-        const rdb_backfill_atom_t& bf_atom = kv.backfill_atom;
-        point_write_response_t response;
-        rdb_modification_report_t mod_report(bf_atom.key);
-        rdb_set(bf_atom.key, bf_atom.value, true,
-                btree, bf_atom.recency,
-                superblock, &response,
-                &mod_report.info, static_cast<profile::trace_t *>(NULL));
-
-        update_sindexes(&mod_report);
+    void operator()(const backfill_chunk_t::key_value_pairs_t &kv) {
+        std::vector<rdb_modification_report_t> mod_reports(kv.backfill_atoms.size());
+        {
+            auto_drainer_t drainer;
+            for (size_t i = 0; i < kv.backfill_atoms.size(); ++i) {
+                promise_t<superblock_t *> superblock_promise;
+                // `spawn_now_dangerously` so that we don't have to wait for the
+                // superblock if it's immediately available.
+                coro_t::spawn_now_dangerously(std::bind(&backfill_chunk_single_rdb_set,
+                                                        kv.backfill_atoms[i], btree,
+                                                        superblock.release(),
+                                                        auto_drainer_t::lock_t(&drainer),
+                                                        &mod_reports[i],
+                                                        &superblock_promise));
+                superblock.init(superblock_promise.wait());
+            }
+            superblock->release();
+        }
+        update_sindexes(mod_reports);
     }
 
     void operator()(const backfill_chunk_t::sindexes_t &s) {
@@ -1700,24 +1741,26 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
     }
 
 private:
-    void update_sindexes(rdb_modification_report_t *mod_report) {
-        mutex_t::acq_t acq;
-        store->lock_sindex_queue(&sindex_block, &acq);
-
-        write_message_t wm;
-        wm << rdb_sindex_change_t(*mod_report);
-        store->sindex_queue_push(wm, &acq);
-
+    void update_sindexes(const std::vector<rdb_modification_report_t> &mod_reports) {
         sindex_access_vector_t sindexes;
         store->acquire_post_constructed_sindex_superblocks_for_write(
                 &sindex_block, &sindexes);
-        rdb_update_sindexes(sindexes, mod_report, txn);
+
+        mutex_t::acq_t acq;
+        store->lock_sindex_queue(&sindex_block, &acq);
+        for (size_t i = 0; i < mod_reports.size(); ++i) {
+            write_message_t wm;
+            wm << rdb_sindex_change_t(mod_reports[i]);
+            store->sindex_queue_push(wm, &acq);
+
+            rdb_update_sindexes(sindexes, &mod_reports[i], txn);
+        }
     }
 
     btree_store_t<rdb_protocol_t> *store;
     btree_slice_t *btree;
     txn_t *txn;
-    superblock_t *superblock;
+    scoped_ptr_t<superblock_t> superblock;
     signal_t *interruptor;
     buf_lock_t sindex_block;
 
@@ -1725,13 +1768,14 @@ private:
 };
 
 void store_t::protocol_receive_backfill(btree_slice_t *btree,
-                                        superblock_t *superblock,
+                                        scoped_ptr_t<superblock_t> &&_superblock,
                                         signal_t *interruptor,
                                         const backfill_chunk_t &chunk) {
+    scoped_ptr_t<superblock_t> superblock(std::move(_superblock));
     with_priority_t p(CORO_PRIORITY_BACKFILL_RECEIVER);
     rdb_receive_backfill_visitor_t v(this, btree,
                                      superblock->expose_buf().txn(),
-                                     superblock,
+                                     std::move(superblock),
                                      interruptor);
     boost::apply_visitor(v, chunk.val);
 }
@@ -1826,8 +1870,8 @@ RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::delete_key_t, key);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::delete_range_t, range);
 
-RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::key_value_pair_t,
-                           backfill_atom);
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::key_value_pairs_t,
+                           backfill_atoms);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::sindexes_t, sindexes);
 

@@ -77,6 +77,12 @@ protected:
     explicit pb_rcheckable_t(const protob_t<const Backtrace> &_bt_src)
         : bt_src(_bt_src) { }
 
+    protob_t<const Backtrace> update_bt(const protob_t<const Backtrace> &new_bt) {
+        protob_t<const Backtrace> ret(new_bt);
+        ret.swap(bt_src);
+        return std::move(ret);
+    }
+
 private:
     protob_t<const Backtrace> bt_src;
 };

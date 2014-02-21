@@ -84,9 +84,6 @@ rdb_namespace_interface_t rdb_namespace_access_t::get_namespace_if() {
     return rdb_namespace_interface_t(internal_.get_namespace_if(), env_);
 }
 
-const char *const empty_stream_msg =
-    "Cannot reduce over an empty stream with no base.";
-
 template<class T>
 T groups_to_batch(std::map<counted_t<const datum_t>, T> *g) {
     if (g->size() == 0) {
@@ -534,10 +531,10 @@ datum_stream_t::datum_stream_t(const protob_t<const Backtrace> &bt_src)
 }
 
 counted_t<datum_stream_t> datum_stream_t::add_grouping(
-    env_t *env, transform_variant_t &&tv) {
+    env_t *env, transform_variant_t &&tv, const protob_t<const Backtrace> &bt) {
     check_not_grouped();
     grouped = true;
-    return add_transformation(env, std::move(tv));
+    return add_transformation(env, std::move(tv), bt);
 }
 void datum_stream_t::check_not_grouped() {
     rcheck(!is_grouped(), base_exc_t::GENERIC,
@@ -588,8 +585,9 @@ bool datum_stream_t::batch_cache_exhausted() const {
 }
 
 counted_t<datum_stream_t> eager_datum_stream_t::add_transformation(
-    env_t *env, transform_variant_t &&tv) {
+    env_t *env, transform_variant_t &&tv, const protob_t<const Backtrace> &bt) {
     ops.emplace_back(make_op(env, tv));
+    update_bt(bt);
     return counted_from_this();
 }
 
@@ -659,8 +657,10 @@ lazy_datum_stream_t::lazy_datum_stream_t(
       reader(*ns_access, use_outdated, std::move(readgen)) { }
 
 counted_t<datum_stream_t>
-lazy_datum_stream_t::add_transformation(env_t *, transform_variant_t &&tv) {
+lazy_datum_stream_t::add_transformation(
+    env_t *, transform_variant_t &&tv, const protob_t<const Backtrace> &bt) {
     reader.add_transformation(std::move(tv));
+    update_bt(bt);
     return counted_from_this();
 }
 
@@ -863,10 +863,11 @@ zip_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &batchspec) {
 
 // UNION_DATUM_STREAM_T
 counted_t<datum_stream_t> union_datum_stream_t::add_transformation(
-    env_t *env, transform_variant_t &&tv) {
+    env_t *env, transform_variant_t &&tv, const protob_t<const Backtrace> &bt) {
     for (auto it = streams.begin(); it != streams.end(); ++it) {
-        *it = (*it)->add_transformation(env, transform_variant_t(tv));
+        *it = (*it)->add_transformation(env, transform_variant_t(tv), bt);
     }
+    update_bt(bt);
     return counted_from_this();
 }
 

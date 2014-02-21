@@ -67,7 +67,7 @@ class TermBase
 
         # This only checks that the argument is of the right type, connection
         # closed errors will be handled elsewhere
-        unless conn? and conn._start?
+        if not conn? or not conn._start?
             throw new err.RqlDriverError "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, groupFormat: <string>, profile: <bool>, durability: <string>}."
 
         # We only require a callback if noreply isn't set
