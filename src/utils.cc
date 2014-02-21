@@ -1,7 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
-#define __STDC_LIMIT_MACROS
-#define __STDC_FORMAT_MACROS
-
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "utils.hpp"
 
 #include <ftw.h>
@@ -75,7 +72,7 @@ void run_generic_global_startup_behavior() {
 
     if (res != 0) {
         logWRN("The call to set the open file descriptor limit failed (errno = %d - %s)\n",
-            errno, errno_string(errno).c_str());
+            get_errno(), errno_string(get_errno()).c_str());
     }
 
 }
@@ -421,6 +418,17 @@ int randint(int n) {
     return x % n;
 }
 
+size_t randsize(size_t n) {
+    size_t ret = 0;
+    size_t i = SIZE_MAX;
+    while (i != 0) {
+        int x = randint(0x10000);
+        ret = ret * 0x10000 + x;
+        i /= 0x10000;
+    }
+    return ret % n;
+}
+
 double randdouble() {
     nrand_xsubi_t buffer;
     if (!TLS_get_rng_initialized()) {
@@ -458,7 +466,7 @@ bool begins_with_minus(const char *string) {
 int64_t strtoi64_strict(const char *string, const char **end, int base) {
     CT_ASSERT(sizeof(long long) == sizeof(int64_t));  // NOLINT(runtime/int)
     long long result = strtoll(string, const_cast<char **>(end), base);  // NOLINT(runtime/int)
-    if ((result == LLONG_MAX || result == LLONG_MIN) && errno == ERANGE) {
+    if ((result == LLONG_MAX || result == LLONG_MIN) && get_errno() == ERANGE) {
         *end = string;
         return 0;
     }
@@ -472,7 +480,7 @@ uint64_t strtou64_strict(const char *string, const char **end, int base) {
     }
     CT_ASSERT(sizeof(unsigned long long) == sizeof(uint64_t));  // NOLINT(runtime/int)
     unsigned long long result = strtoull(string, const_cast<char **>(end), base);  // NOLINT(runtime/int)
-    if (result == ULLONG_MAX && errno == ERANGE) {
+    if (result == ULLONG_MAX && get_errno() == ERANGE) {
         *end = string;
         return 0;
     }
@@ -538,14 +546,16 @@ ticks_t secs_to_ticks(time_t secs) {
 }
 
 #ifdef __MACH__
-__thread mach_timebase_info_data_t mach_time_info;
+TLS(mach_timebase_info_data_t, mach_time_info);
 #endif  // __MACH__
 
 timespec clock_monotonic() {
 #ifdef __MACH__
+    mach_timebase_info_data_t mach_time_info = TLS_get_mach_time_info();
     if (mach_time_info.denom == 0) {
         mach_timebase_info(&mach_time_info);
         guarantee(mach_time_info.denom != 0);
+        TLS_set_mach_time_info(mach_time_info);
     }
     const uint64_t t = mach_absolute_time();
     uint64_t nanosecs = t * mach_time_info.numer / mach_time_info.denom;
@@ -651,7 +661,7 @@ bool blocking_read_file(const char *path, std::string *contents_out) {
         int res;
         do {
             res = open(path, O_RDONLY);
-        } while (res == -1 && errno == EINTR);
+        } while (res == -1 && get_errno() == EINTR);
 
         if (res == -1) {
             return false;
@@ -666,7 +676,7 @@ bool blocking_read_file(const char *path, std::string *contents_out) {
         ssize_t res;
         do {
             res = read(fd.get(), buf, sizeof(buf));
-        } while (res == -1 && errno == EINTR);
+        } while (res == -1 && get_errno() == EINTR);
 
         if (res == -1) {
             return false;
@@ -749,7 +759,7 @@ int get_num_db_threads() {
 int remove_directory_helper(const char *path, UNUSED const struct stat *ptr, UNUSED const int flag, UNUSED FTW *ftw) {
     int res = ::remove(path);
     if (res != 0) {
-        throw remove_directory_exc_t(path, errno);
+        throw remove_directory_exc_t(path, get_errno());
     }
     return 0;
 }
@@ -760,7 +770,7 @@ void remove_directory_recursive(const char *path) THROWS_ONLY(remove_directory_e
     // and closing directories extra times if it needs to go deeper than that).
     const int max_openfd = 128;
     int res = nftw(path, remove_directory_helper, max_openfd, FTW_PHYS | FTW_MOUNT | FTW_DEPTH);
-    guarantee_err(res == 0 || errno == ENOENT, "Trouble while traversing and destroying temporary directory %s.", path);
+    guarantee_err(res == 0 || get_errno() == ENOENT, "Trouble while traversing and destroying temporary directory %s.", path);
 }
 
 base_path_t::base_path_t(const std::string &path) : path_(path) { }
@@ -789,7 +799,7 @@ void recreate_temporary_directory(const base_path_t& base_path) {
     int res;
     do {
         res = mkdir(path.c_str(), 0755);
-    } while (res == -1 && errno == EINTR);
+    } while (res == -1 && get_errno() == EINTR);
     guarantee_err(res == 0, "mkdir of temporary directory %s failed", path.c_str());
 
     // Call fsync() on the parent directory to guarantee that the newly

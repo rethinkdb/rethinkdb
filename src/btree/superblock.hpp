@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef BTREE_SUPERBLOCK_HPP_
 #define BTREE_SUPERBLOCK_HPP_
 
@@ -18,15 +18,15 @@ public:
         }
     }
 
-    block_id_t get_root_block_id() const {
+    block_id_t get_root_block_id() {
         return sub_superblock->get_root_block_id();
     }
 
-    void set_root_block_id(const block_id_t new_root_block) {
+    void set_root_block_id(block_id_t new_root_block) {
         sub_superblock->set_root_block_id(new_root_block);
     }
 
-    block_id_t get_stat_block_id() const {
+    block_id_t get_stat_block_id() {
         return sub_superblock->get_stat_block_id();
     }
 
@@ -34,7 +34,7 @@ public:
         sub_superblock->set_stat_block_id(new_stat_block);
     }
 
-    block_id_t get_sindex_block_id() const {
+    block_id_t get_sindex_block_id() {
         return sub_superblock->get_stat_block_id();
     }
 
@@ -42,12 +42,8 @@ public:
         sub_superblock->set_stat_block_id(new_stat_block);
     }
 
-    void set_eviction_priority(eviction_priority_t eviction_priority) {
-        sub_superblock->set_eviction_priority(eviction_priority);
-    }
-
-    eviction_priority_t get_eviction_priority() {
-        return sub_superblock->get_eviction_priority();
+    buf_parent_t expose_buf() {
+        return sub_superblock->expose_buf();
     }
 
 private:

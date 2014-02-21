@@ -11,9 +11,8 @@
 
 #include "rdb_protocol/terms/terms.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
+#include "thread_local.hpp"
 #include "protob/protob.hpp"
-
-#pragma GCC diagnostic ignored "-Wshadow"
 
 namespace ql {
 
@@ -54,6 +53,7 @@ counted_t<term_t> compile_term(compile_env_t *env, protob_t<const Term> t) {
     case Term::GET_FIELD:          return make_get_field_term(env, t);
     case Term::INDEXES_OF:         return make_indexes_of_term(env, t);
     case Term::KEYS:               return make_keys_term(env, t);
+    case Term::OBJECT:             return make_object_term(env, t);
     case Term::HAS_FIELDS:         return make_has_fields_term(env, t);
     case Term::WITH_FIELDS:        return make_with_fields_term(env, t);
     case Term::PLUCK:              return make_pluck_term(env, t);
@@ -65,15 +65,18 @@ counted_t<term_t> compile_term(compile_env_t *env, protob_t<const Term> t) {
     case Term::MAP:                return make_map_term(env, t);
     case Term::FILTER:             return make_filter_term(env, t);
     case Term::CONCATMAP:          return make_concatmap_term(env, t);
+    case Term::GROUP:              return make_group_term(env, t);
     case Term::ORDERBY:            return make_orderby_term(env, t);
     case Term::DISTINCT:           return make_distinct_term(env, t);
     case Term::COUNT:              return make_count_term(env, t);
+    case Term::SUM:                return make_sum_term(env, t);
+    case Term::AVG:                return make_avg_term(env, t);
+    case Term::MIN:                return make_min_term(env, t);
+    case Term::MAX:                return make_max_term(env, t);
     case Term::UNION:              return make_union_term(env, t);
     case Term::NTH:                return make_nth_term(env, t);
-    case Term::GROUPED_MAP_REDUCE: return make_gmr_term(env, t);
     case Term::LIMIT:              return make_limit_term(env, t);
     case Term::SKIP:               return make_skip_term(env, t);
-    case Term::GROUPBY:            return make_groupby_term(env, t);
     case Term::INNER_JOIN:         return make_inner_join_term(env, t);
     case Term::OUTER_JOIN:         return make_outer_join_term(env, t);
     case Term::EQ_JOIN:            return make_eq_join_term(env, t);
@@ -244,9 +247,19 @@ void run(protob_t<Query> q,
                     bool b = stream_cache2->serve(token, res, interruptor);
                     r_sanity_check(b);
                 }
+            } else if (val->get_type().is_convertible(val_t::type_t::GROUPED_DATA)) {
+                res->set_type(Response::SUCCESS_ATOM);
+                counted_t<grouped_data_t> gd = val->as_grouped_data();
+                datum_t d(std::move(*gd));
+                d.write_to_protobuf(res->add_response(), use_json);
+                if (env->trace.has()) {
+                    env->trace->as_datum()->write_to_protobuf(
+                        res->mutable_profile(), use_json);
+                }
             } else {
                 rfail_toplevel(base_exc_t::GENERIC,
-                               "Query result must be of type DATUM or STREAM (got %s).",
+                               "Query result must be of type "
+                               "DATUM, GROUPED_DATA, or STREAM (got %s).",
                                val->get_type().name());
             }
         } catch (const exc_t &e) {
@@ -313,14 +326,14 @@ term_t::~term_t() { }
 // #define INSTRUMENT 1
 
 #ifdef INSTRUMENT
-__thread int DBG_depth = 0;
+TLS_with_init(int, DBG_depth, 0);
 #define DBG(s, args...) do {                                            \
         std::string DBG_s = "";                                         \
-        for (int DBG_i = 0; DBG_i < DBG_depth; ++DBG_i) DBG_s += " ";   \
+        for (int DBG_i = 0; DBG_i < TLS_get_DBG_depth(); ++DBG_i) DBG_s += " ";   \
         debugf("%s" s, DBG_s.c_str(), ##args);                          \
     } while (0)
-#define INC_DEPTH do { ++DBG_depth; } while (0)
-#define DEC_DEPTH do { --DBG_depth; } while (0)
+#define INC_DEPTH do { TLS_set_DBG_depth(TLS_get_DBG_depth()+1); } while (0)
+#define DEC_DEPTH do { TLS_set_DBG_depth(TLS_get_DBG_depth()-1); } while (0)
 #else // INSTRUMENT
 #define DBG(s, args...)
 #define INC_DEPTH
@@ -341,11 +354,12 @@ counted_t<val_t> term_t::eval(scope_env_t *env, eval_flags_t eval_flags) {
     DEBUG_ONLY_CODE(env->env->do_eval_callback());
     DBG("EVALUATING %s (%d):\n", name(), is_deterministic());
     env->env->throw_if_interruptor_pulsed();
+    env->env->maybe_yield();
     INC_DEPTH;
 
     try {
         try {
-            counted_t<val_t> ret = eval_impl(env, eval_flags);
+            counted_t<val_t> ret = term_eval(env, eval_flags);
             DEC_DEPTH;
             DBG("%s returned %s\n", name(), ret->print().c_str());
             return ret;
@@ -366,6 +380,12 @@ counted_t<val_t> term_t::new_val(counted_t<const datum_t> d) {
 }
 counted_t<val_t> term_t::new_val(counted_t<const datum_t> d, counted_t<table_t> t) {
     return make_counted<val_t>(d, t, backtrace());
+}
+
+counted_t<val_t> term_t::new_val(counted_t<const datum_t> d,
+                                 counted_t<const datum_t> orig_key,
+                                 counted_t<table_t> t) {
+    return make_counted<val_t>(d, orig_key, t, backtrace());
 }
 
 counted_t<val_t> term_t::new_val(env_t *env, counted_t<datum_stream_t> s) {

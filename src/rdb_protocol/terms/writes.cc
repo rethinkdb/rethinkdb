@@ -31,7 +31,7 @@ counted_t<const datum_t> new_stats_object() {
 durability_requirement_t parse_durability_optarg(counted_t<val_t> arg,
                                                  pb_rcheckable_t *target) {
     if (!arg.has()) { return DURABILITY_REQUIREMENT_DEFAULT; }
-    std::string str = arg->as_str();
+    const wire_string_t &str = arg->as_str();
     if (str == "hard") { return DURABILITY_REQUIREMENT_HARD; }
     if (str == "soft") { return DURABILITY_REQUIREMENT_SOFT; }
     rfail_target(target,
@@ -188,10 +188,20 @@ private:
         if (v0->get_type().is_convertible(val_t::type_t::SINGLE_SELECTION)) {
             std::pair<counted_t<table_t>, counted_t<const datum_t> > tblrow
                 = v0->as_single_selection();
-            std::vector<counted_t<const datum_t> > datums;
-            datums.push_back(tblrow.second);
+            counted_t<const datum_t> orig_val = tblrow.second;
+            counted_t<const datum_t> orig_key = v0->get_orig_key();
+            if (!orig_key.has()) {
+                orig_key = orig_val->get(tblrow.first->get_pkey(), NOTHROW);
+                r_sanity_check(orig_key.has());
+            }
+
+            std::vector<counted_t<const datum_t> > vals;
+            std::vector<counted_t<const datum_t> > keys;
+            vals.push_back(orig_val);
+            keys.push_back(orig_key);
             counted_t<const datum_t> replace_stats = tblrow.first->batched_replace(
-                env->env, datums, f, nondet_ok, durability_requirement, return_vals);
+                env->env, vals, keys, f,
+                nondet_ok, durability_requirement, return_vals);
             stats = stats->merge(replace_stats, stats_merge);
         } else {
             std::pair<counted_t<table_t>, counted_t<datum_stream_t> > tblrows
@@ -204,13 +214,19 @@ private:
 
             batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env->env);
             for (;;) {
-                std::vector<counted_t<const datum_t> > datums
+                std::vector<counted_t<const datum_t> > vals
                     = ds->next_batch(env->env, batchspec);
-                if (datums.empty()) {
+                if (vals.empty()) {
                     break;
                 }
+                std::vector<counted_t<const datum_t> > keys;
+                keys.reserve(vals.size());
+                for (auto it = vals.begin(); it != vals.end(); ++it) {
+                    keys.push_back((*it)->get(tbl->get_pkey()));
+                }
                 counted_t<const datum_t> replace_stats = tbl->batched_replace(
-                    env->env, datums, f, nondet_ok, durability_requirement, false);
+                    env->env, vals, keys,
+                    f, nondet_ok, durability_requirement, false);
                 stats = stats->merge(replace_stats, stats_merge);
             }
         }
@@ -237,9 +253,9 @@ private:
         {
             profile::sampler_t sampler("Evaluating elements in for each.",
                                        env->env->trace);
+            counted_t<func_t> f = arg(env, 1)->as_func(CONSTANT_SHORTCUT);
             while (counted_t<const datum_t> row = ds->next(env->env, batchspec)) {
-                counted_t<val_t> v
-                    = arg(env, 1)->as_func(CONSTANT_SHORTCUT)->call(env->env, row);
+                counted_t<val_t> v = f->call(env->env, row);
                 try {
                     counted_t<const datum_t> d = v->as_datum();
                     if (d->get_type() == datum_t::R_OBJECT) {

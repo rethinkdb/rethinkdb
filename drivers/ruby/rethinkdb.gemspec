@@ -1,7 +1,7 @@
 
 Gem::Specification.new do |s|
   s.name      = 'rethinkdb'
-  s.version   = '1.11.0.1'
+  s.version   = '1.11.0.2'
   s.summary   = 'This package provides the Ruby driver library for the RethinkDB database server.'
   s.author    = 'RethinkDB Inc.'
   s.email     = 'bugs@rethinkdb.com'
@@ -11,6 +11,7 @@ Gem::Specification.new do |s|
 
   s.add_runtime_dependency "json"
   s.add_runtime_dependency "ruby-protocol-buffers"
+  s.add_runtime_dependency "varint"
   s.required_ruby_version = '>= 1.9.0'
 end
 

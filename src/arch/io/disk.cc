@@ -25,8 +25,6 @@
 #include "do_on_thread.hpp"
 #include "logger.hpp"
 
-using namespace std::placeholders;  // for _1, _2, ...  NOLINT(build/namespaces)
-
 void verify_aligned_file_access(DEBUG_VAR int64_t file_size, DEBUG_VAR int64_t offset,
                                 DEBUG_VAR size_t length,
                                 DEBUG_VAR const scoped_array_t<iovec> &bufs);
@@ -58,17 +56,17 @@ public:
         queue. (The parts below the queue use the `passive_producer_t` interface instead
         of a callback function.) */
         stack_stats.submit_fun = std::bind(&conflict_resolving_diskmgr_t::submit,
-                                           &conflict_resolver, _1);
+                                           &conflict_resolver, ph::_1);
         conflict_resolver.submit_fun = std::bind(&accounting_diskmgr_t::submit,
-                                                 &accounter, _1);
+                                                 &accounter, ph::_1);
 
         /* Hook up everything's `done_fun`. */
-        backend.done_fun = std::bind(&stats_diskmgr_2_t::done, &backend_stats, _1);
-        backend_stats.done_fun = std::bind(&accounting_diskmgr_t::done, &accounter, _1);
+        backend.done_fun = std::bind(&stats_diskmgr_2_t::done, &backend_stats, ph::_1);
+        backend_stats.done_fun = std::bind(&accounting_diskmgr_t::done, &accounter, ph::_1);
         accounter.done_fun = std::bind(&conflict_resolving_diskmgr_t::done,
-                                       &conflict_resolver, _1);
-        conflict_resolver.done_fun = std::bind(&stats_diskmgr_t::done, &stack_stats, _1);
-        stack_stats.done_fun = std::bind(&linux_disk_manager_t::done, this, _1);
+                                       &conflict_resolver, ph::_1);
+        conflict_resolver.done_fun = std::bind(&stats_diskmgr_t::done, &stack_stats, ph::_1);
+        stack_stats.done_fun = std::bind(&linux_disk_manager_t::done, this, ph::_1);
     }
 
     ~linux_disk_manager_t() {
@@ -187,7 +185,7 @@ private:
 io_backender_t::io_backender_t(file_direct_io_mode_t _direct_io_mode,
                                int max_concurrent_io_requests)
     : direct_io_mode(_direct_io_mode),
-      diskmgr(new linux_disk_manager_t(&linux_thread_pool_t::thread->queue,
+      diskmgr(new linux_disk_manager_t(&linux_thread_pool_t::get_thread()->queue,
                                        DEFAULT_IO_BATCH_FACTOR,
                                        max_concurrent_io_requests,
                                        &stats)) { }
@@ -204,7 +202,7 @@ linux_file_t::linux_file_t(scoped_fd_t &&_fd, int64_t _file_size, linux_disk_man
     // TODO: Why do we care whether we're in a thread pool?  (Maybe it's that you can't create a
     // file_account_t outside of the thread pool?  But they're associated with the diskmgr,
     // aren't they?)
-    if (linux_thread_pool_t::thread) {
+    if (linux_thread_pool_t::get_thread()) {
         default_account.init(new file_account_t(this, 1, UNLIMITED_OUTSTANDING_REQUESTS));
     }
 }
@@ -218,7 +216,7 @@ void linux_file_t::set_size(int64_t size) {
     int res;
     do {
         res = ftruncate(fd.get(), size);
-    } while (res == -1 && errno == EINTR);
+    } while (res == -1 && get_errno() == EINTR);
     guarantee_err(res == 0, "Could not ftruncate()");
 
     int errcode = perform_datasync(fd.get());
@@ -314,7 +312,7 @@ void linux_file_t::writev_async(int64_t offset, size_t length,
 
 bool linux_file_t::coop_lock_and_check() {
     if (flock(fd.get(), LOCK_EX | LOCK_NB) != 0) {
-        rassert(errno == EWOULDBLOCK);
+        rassert(get_errno() == EWOULDBLOCK);
         return false;
     }
     return true;
@@ -411,13 +409,13 @@ file_open_result_t open_file(const char *path, const int mode, io_backender_t *b
         int res_open;
         do {
             res_open = open(path, flags, 0644);
-        } while (res_open == -1 && errno == EINTR);
+        } while (res_open == -1 && get_errno() == EINTR);
 
         fd.reset(res_open);
     }
 
     if (fd.get() == INVALID_FD) {
-        return file_open_result_t(file_open_result_t::ERROR, errno);
+        return file_open_result_t(file_open_result_t::ERROR, get_errno());
     }
 
     // When building, we must either support O_DIRECT or F_NOCACHE.  The former works on Linux,
@@ -481,7 +479,7 @@ size_t linux_semantic_checking_file_t::semantic_blocking_read(void *buf,
     ssize_t res;
     do {
         res = ::read(fd_.get(), buf, length);
-    } while (res == -1 && errno == EINTR);
+    } while (res == -1 && get_errno() == EINTR);
     guarantee_err(res != -1, "Could not read from the semantic checker file");
     return res;
 }
@@ -491,7 +489,7 @@ size_t linux_semantic_checking_file_t::semantic_blocking_write(const void *buf,
     ssize_t res;
     do {
         res = ::write(fd_.get(), buf, length);
-    } while (res == -1 && errno == EINTR);
+    } while (res == -1 && get_errno() == EINTR);
     guarantee_err(res != -1, "Could not write to the semantic checker file");
     return res;
 }
@@ -507,14 +505,14 @@ int perform_datasync(fd_t fd) {
     int fcntl_res;
     do {
         fcntl_res = fcntl(fd, F_FULLFSYNC);
-    } while (fcntl_res == -1 && errno == EINTR);
+    } while (fcntl_res == -1 && get_errno() == EINTR);
 
-    return fcntl_res == -1 ? errno : 0;
+    return fcntl_res == -1 ? get_errno() : 0;
 
 #else  // __MACH__
 
     int res = fdatasync(fd);
-    return res == -1 ? errno : 0;
+    return res == -1 ? get_errno() : 0;
 
 #endif  // __MACH__
 }
@@ -530,17 +528,17 @@ MUST_USE int fsync_parent_directory(const char *path) {
     int res;
     do {
         res = open(parent_path, O_RDONLY);
-    } while (res == -1 && errno == EINTR);
+    } while (res == -1 && get_errno() == EINTR);
     if (res == -1) {
-        return errno;
+        return get_errno();
     }
     scoped_fd_t fd(res);
 
     do {
         res = fsync(fd.get());
-    } while (res == -1 && errno == EINTR);
+    } while (res == -1 && get_errno() == EINTR);
     if (res == -1) {
-        return errno;
+        return get_errno();
     }
 
     return 0;

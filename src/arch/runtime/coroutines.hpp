@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef ARCH_RUNTIME_COROUTINES_HPP_
 #define ARCH_RUNTIME_COROUTINES_HPP_
 
@@ -48,31 +48,33 @@ public:
 
     template<class Callable>
     static void spawn_now_dangerously(const Callable &action) {
-        get_and_init_coro(action)->notify_now_deprecated();
+        coro_t *coro = get_and_init_coro(action);
+        coro->notify_now_deprecated();
     }
 
     template<class Callable>
-    static void spawn_sometime(const Callable &action) {
-        get_and_init_coro(action)->notify_sometime();
+    static coro_t *spawn_sometime(const Callable &action) {
+        coro_t *coro = get_and_init_coro(action);
+        coro->notify_sometime();
+        return coro;
     }
 
-    // TODO: spawn_later_ordered is usually what naive people want,
-    // but it's such a long and onerous name.  It should have the
-    // shortest name.
+    /* Whenever possible, `spawn_sometime()` should be used instead of
+    `spawn_later_ordered()` (or `spawn_ordered()`). `spawn_later_ordered()` does not
+    honor scheduler priorities. */
     template<class Callable>
-    static void spawn_later_ordered(const Callable &action) {
-        get_and_init_coro(action)->notify_later_ordered();
+    static coro_t *spawn_later_ordered(const Callable &action) {
+        coro_t *coro = get_and_init_coro(action);
+        coro->notify_later_ordered();
+        return coro;
     }
 
-    // Use coro_t::spawn_*(boost::bind(...)) for spawning with parameters.
-
-    /* `spawn()` and `notify()` are aliases for `spawn_later_ordered()` and
-    `notify_later_ordered()`. They are deprecated and new code should not use
-    them. */
     template<class Callable>
-    static void spawn(const Callable &action) {
+    static void spawn_ordered(const Callable &action) {
         spawn_later_ordered(action);
     }
+
+    // Use coro_t::spawn_*(std::bind(...)) for spawning with parameters.
 
     /* Pauses the current coroutine until it is notified */
     static void wait();
@@ -82,6 +84,9 @@ public:
     `yield()` by different coroutines may return in a different order than they
     began in. */
     static void yield();
+    /* Like `yield()`, but guarantees that the ordering of coroutines calling 
+    `yield_ordered()` is maintained. */
+    static void yield_ordered();
 
     /* Returns a pointer to the current coroutine, or `NULL` if we are not in a
     coroutine. */
@@ -99,19 +104,21 @@ public:
     /* Schedules the coroutine to be woken up eventually. Can be safely called
     from any thread. Returns immediately. Does not provide any ordering
     guarantees. If you don't need the ordering guarantees that
-    `notify_later_ordered()` provides, use `notify_sometime()` instead. */
+    `notify_later_ordered()` provides, use `notify_sometime()`. */
     void notify_sometime();
-
-    // TODO: notify_later_ordered is usually what naive people want
-    // and should get, but it's such a long and onerous name.  It
-    // should have the shortest name.
 
     /* Pushes the coroutine onto the event queue for the thread it's currently
     on, such that it will be run. This can safely be called from any thread.
     Returns immediately. If you call `notify_later_ordered()` on two coroutines
     that are on the same thread, they will run in the same order you call
     `notify_later_ordered()` in. */
+    // DEPRECATED:  Call notify_ordered, its name is shorter.
     void notify_later_ordered();
+
+    void notify_ordered() {
+        notify_later_ordered();
+    }
+
 
 #ifndef NDEBUG
     // A unique identifier for this particular instance of coro_t over
@@ -126,8 +133,8 @@ public:
 
     static void set_coroutine_stack_size(size_t size);
 
-    artificial_stack_t * get_stack();
-    
+    coro_stack_t *get_stack();
+
     void set_priority(int _priority) {
         linux_thread_message_t::set_priority(_priority);
     }
@@ -180,6 +187,7 @@ private:
     static coro_t * get_coro();
 
     static void return_coro_to_free_list(coro_t *coro);
+    static void maybe_evict_from_free_list();
 
     static void run() NORETURN;
 
@@ -189,7 +197,7 @@ private:
 
     virtual void on_thread_switch();
 
-    artificial_stack_t stack;
+    coro_stack_t stack;
 
     threadnum_t current_thread_;
 

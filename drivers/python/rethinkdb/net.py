@@ -20,18 +20,15 @@ from rethinkdb.errors import *
 from rethinkdb.ast import Datum, DB, expr
 
 class Cursor(object):
-    def __init__(self, conn, query, term, opts):
+    def __init__(self, conn, query, term, format_opts, opts):
         self.conn = conn
         self.query = query
         self.term = term
+        self.format_opts = format_opts
         self.opts = opts
         self.responses = [ ]
         self.outstanding_requests = 0
         self.end_flag = False
-
-        self.time_format = 'native'
-        if 'time_format' in self.opts:
-            self.time_format = self.opts['time_format']
 
     def _extend(self, response):
         self.end_flag = response.type != p.Response.SUCCESS_PARTIAL
@@ -41,7 +38,7 @@ class Cursor(object):
             self.conn._async_continue_cursor(self)
 
     def __iter__(self):
-        time_format = self.time_format
+        format_opts = self.format_opts
         deconstruct = Datum.deconstruct
         while True:
             if len(self.responses) == 0 and not self.end_flag:
@@ -57,7 +54,7 @@ class Cursor(object):
                 raise RqlDriverError("Unexpected response type received for cursor")
 
             for datum in self.responses[0].response:
-                yield deconstruct(datum, time_format)
+                yield deconstruct(datum, format_opts)
             del self.responses[0]
 
     def close(self):
@@ -98,7 +95,7 @@ class Connection(object):
         try:
             self.socket = socket.create_connection((self.host, self.port), self.timeout)
         except Exception as err:
-            raise RqlDriverError("Could not connect to %s:%s." % (self.host, self.port))
+            raise RqlDriverError("Could not connect to %s:%s. Error: %s" % (self.host, self.port, err))
 
         self._sock_sendall(struct.pack("<L", p.VersionDummy.V0_2))
         self._sock_sendall(struct.pack("<L", len(self.auth_key)) + str.encode(self.auth_key, 'ascii'))
@@ -302,13 +299,15 @@ class Connection(object):
 
         self._check_error_response(response, term)
 
-        time_format = 'native'
+        format_opts = {}
         if 'time_format' in opts:
-            time_format = opts['time_format']
+            format_opts['time_format'] = opts['time_format']
+        if 'group_format' in opts:
+            format_opts['group_format'] = opts['group_format']
 
         # Sequence responses
         if response.type == p.Response.SUCCESS_PARTIAL or response.type == p.Response.SUCCESS_SEQUENCE:
-            value = Cursor(self, query, term, opts)
+            value = Cursor(self, query, term, format_opts, opts)
             self.cursor_cache[query.token] = value
             value._extend(response)
 
@@ -316,7 +315,7 @@ class Connection(object):
         elif response.type == p.Response.SUCCESS_ATOM:
             if len(response.response) < 1:
                 value = None
-            value = Datum.deconstruct(response.response[0], time_format)
+            value = Datum.deconstruct(response.response[0], format_opts)
 
         # Noreply_wait response
         elif response.type == p.Response.WAIT_COMPLETE:

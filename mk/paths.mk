@@ -7,7 +7,10 @@ SOURCE_DIR := $(TOP)/src
 BUILD_ROOT_DIR := $(TOP)/build
 PACKAGING_DIR := $(TOP)/packaging
 PACKAGES_DIR := $(BUILD_ROOT_DIR)/packages
-JS_BUILD_DIR=$(TOP)/build/drivers/javascript
+JS_BUILD_DIR := $(TOP)/build/drivers/javascript
+SUPPORT_SRC_DIR := $(TOP)/external
+SUPPORT_BUILD_DIR := $(BUILD_ROOT_DIR)/external
+SUPPORT_LOG_DIR := $(SUPPORT_BUILD_DIR)
 
 # If the BUILD_DIR is not set, generate a name that depends on the different settings
 ifeq ($(BUILD_DIR),)
@@ -45,6 +48,14 @@ ifeq ($(BUILD_DIR),)
 
   ifeq (1,$(VALGRIND))
     BUILD_DIR += valgrind
+  endif
+
+  ifeq (1,$(THREADED_COROUTINES))
+    BUILD_DIR += threaded
+  endif
+
+  ifeq (1,$(CORO_PROFILING))
+    BUILD_DIR += coro-prof
   endif
 
   ifeq (1,$(NO_TCMALLOC))

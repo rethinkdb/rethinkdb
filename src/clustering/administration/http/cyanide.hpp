@@ -7,9 +7,9 @@
 /* This is an `http_app_t` whose jobs is to give us a way to kill a server over
  * http. */
 class cyanide_http_app_t : public http_app_t {
-    http_res_t handle(const http_req_t &) {
+    void handle(const http_req_t &, http_res_t *result, signal_t *) {
         crash("Goodbye sweet world\n");
-        return http_res_t(HTTP_OK);
+        *result = http_res_t(HTTP_OK);
     }
 };
 

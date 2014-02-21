@@ -1,13 +1,17 @@
 <script id="namespace_view-replica-template" type="text/x-handlebars-template">
     <h2 class="title">Replication status</h2>
+    <div class="alert alert-error cannot_change_replicas">
+        Please resolve the cluster configuration conflict before changing replicas.
+    </div>
+
     <div class="progress_bar_container"></div>
     <div class="replica-status"></div>
     <h2 class="title">Replication settings</h2>
     <div class="alert alert-error no_datacenter_found"><p>The primary datacenter of this table was not found. Please specify another primary datacenter (or Universe).</p></div>
     <div class="alert alert-error ack_greater_than_replicas"></div>
     <div class="cluster_container"></div>
-    <a href="#" class="toggle-mdc show-mdc">Show multi-datacenter options</a>
-    <a href="#" class="toggle-mdc hide-mdc">Hide multi-datacenter options</a>
+    <a href="#" class="toggle-mdc show-mdc">Show multi datacenter options &rarr;</a>
+    <a href="#" class="toggle-mdc hide-mdc">Hide multi datacenter options &rarr;</a>
     <div class="mdc-options hidden">
         <div class="row-fluid">
             <div class="span3 tabbable tabs-left datacenters_list_container"></div>
@@ -202,7 +206,7 @@
             <div class="progress"><div class="bar" style="width:{{#if starting}}0{{else}}{{percent_complete}}{{/if}}%"></div></div>
         </div>
     {{else}}
-    <p><span class="big">{{current_value}}/{{max_value}}</span> {{pluralize_noun "replica" max_value}} reachable</p>
+    <p><span class="big">{{current_value}}/{{max_value}}</span> {{pluralize_noun "replica" max_value}} available</p>
     {{/if}}
 </script>
 

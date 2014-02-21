@@ -30,6 +30,10 @@
 ## Init script default: /var/lib/rethinkdb/<name>/ (where <name> is the name of this file without the extension)
 # directory=/var/lib/rethinkdb/default
 
+## Log file options
+## Default: <directory>/log_file
+# log-file=/var/log/rethinkdb
+
 ### Network options
 
 ## Address of local interfaces to listen on when accepting connections

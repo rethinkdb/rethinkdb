@@ -1,6 +1,6 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
-#define __STDC_LIMIT_MACROS
 #include <stdint.h>
+
 #include <string>
 
 #include "rdb_protocol/error.hpp"
@@ -30,7 +30,7 @@ private:
             }
         }
 
-        std::string source = arg(env, 0)->as_datum()->as_str();
+        std::string source = arg(env, 0)->as_datum()->as_str().to_std();
 
         // JS runner configuration is limited to setting an execution timeout.
         js_runner_t::req_config_t config;

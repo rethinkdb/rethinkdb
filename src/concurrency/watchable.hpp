@@ -141,7 +141,8 @@ public:
     `this` until either `fun` returns `true` or `interruptor` is pulsed. It's
     efficient because it only retries `fun` when the value changes. */
     template<class callable_type>
-    void run_until_satisfied(const callable_type &fun, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+    void run_until_satisfied(const callable_type &fun, signal_t *interruptor,
+            int64_t nap_before_retry_ms = 0) THROWS_ONLY(interrupted_exc_t);
 
 protected:
     watchable_t() { }
@@ -158,7 +159,8 @@ void run_until_satisfied_2(
         const clone_ptr_t<watchable_t<a_type> > &a,
         const clone_ptr_t<watchable_t<b_type> > &b,
         const callable_type &fun,
-        signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+        signal_t *interruptor,
+        int64_t nap_before_retry_ms = 0) THROWS_ONLY(interrupted_exc_t);
 
 inline void call_function(const boost::function<void()> &f) {
     f();
@@ -184,7 +186,7 @@ public:
     // Applies an atomic modification to the value.
     // `op` must return true if the value was modified,
     // and should return false otherwise.
-    void apply_atomic_op(const std::function<bool(value_t*)> &op) {
+    void apply_atomic_op(const std::function<bool(value_t*)> &op) {  // NOLINT(readability/casting)
         DEBUG_VAR rwi_lock_assertion_t::write_acq_t acquisition(&rwi_lock_assertion);
         bool was_modified;
         {

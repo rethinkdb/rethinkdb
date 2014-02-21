@@ -47,16 +47,6 @@ def table_list():
 def branch(predicate, true_branch, false_branch):
     return Branch(predicate, true_branch, false_branch)
 
-# groupBy reductions
-
-count = {'COUNT': True}
-
-def sum(attr):
-    return {'SUM': attr}
-
-def avg(attr):
-    return {'AVG': attr}
-
 # orderBy orders
 
 def asc(attr):
@@ -102,6 +92,12 @@ def mod(a, b):
 
 def not_(a):
     return Not(a)
+
+def and_(*args):
+    return All(*args)
+
+def or_(*args):
+    return Any(*args)
 
 def all(*args):
     return All(*args)
@@ -162,3 +158,6 @@ def literal(val=()):
         return Literal(val)
     else:
         return Literal()
+
+def object(*args):
+    return Object(*args)

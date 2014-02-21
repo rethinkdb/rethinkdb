@@ -1,8 +1,5 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "unittest/gtest.hpp"
-
-// These unit tests need to access some private methods.
-#define private public
 
 #include "clustering/administration/metadata.hpp"
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
@@ -22,15 +19,13 @@
 #include "unittest/dummy_metadata_controller.hpp"
 #include "unittest/unittest_utils.hpp"
 
-#pragma GCC diagnostic ignored "-Wshadow"
-
 namespace unittest {
 
 void run_with_broadcaster(
     boost::function< void(
         std::pair<io_backender_t *, simple_mailbox_cluster_t *>,
         branch_history_manager_t<rdb_protocol_t> *,
-        clone_ptr_t<watchable_t<boost::optional<boost::optional<
+        clone_ptr_t< watchable_t< boost::optional< boost::optional<
             broadcaster_business_card_t<rdb_protocol_t> > > > >,
         scoped_ptr_t<broadcaster_t<rdb_protocol_t> > *,
         test_store_t<rdb_protocol_t> *,
@@ -63,7 +58,8 @@ void run_with_broadcaster(
 
     boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> > dummy_auth;
     rdb_protocol_t::context_t ctx(&extproc_pool, NULL, slm.get_root_view(),
-                                  dummy_auth, &read_manager, generate_uuid());
+                                  dummy_auth, &read_manager, generate_uuid(),
+                                  &get_global_perfmon_collection());
 
     /* Set up a broadcaster and initial listener */
     test_store_t<rdb_protocol_t> initial_store(&io_backender, &order_source, &ctx);
@@ -328,7 +324,7 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
     nap(100000);
 
     cond_t dummy_interruptor;
-    ql::env_t dummy_env(&dummy_interruptor);
+    ql::env_t dummy_env(NULL, &dummy_interruptor);
 
     for (std::map<std::string, std::string>::iterator it = inserter_state.begin();
             it != inserter_state.end(); it++) {
@@ -341,7 +337,7 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
         rdb_protocol_t::read_response_t response;
         broadcaster->get()->read(read, &response, &exiter, order_source->check_in("unittest::(rdb)run_partial_backfill_test").with_read_mode(), &non_interruptor);
         rdb_protocol_t::rget_read_response_t get_result = boost::get<rdb_protocol_t::rget_read_response_t>(response.response);
-        auto result_stream = boost::get<rdb_protocol_t::rget_read_response_t::stream_t>(&get_result.result);
+        auto result_stream = boost::get<ql::stream_t>(&get_result.result);
         guarantee(result_stream);
         ASSERT_EQ(1u, result_stream->size());
         EXPECT_EQ(*generate_document(0, it->second), *result_stream->at(0).data);

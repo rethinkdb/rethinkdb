@@ -1,12 +1,10 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
-#define __STDC_FORMAT_MACROS
-#define __STDC_LIMIT_MACROS
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "serializer/log/data_block_manager.hpp"
 
 #include <inttypes.h>
 #include <sys/uio.h>
 
-#include "utils.hpp"
+#include "errors.hpp"
 #include <boost/bind.hpp>
 
 #include "arch/arch.hpp"
@@ -655,8 +653,7 @@ public:
                 parent->serializer->offer_buf_to_read_ahead_callbacks(
                         block_id,
                         std::move(data),
-                        token,
-                        info.recency);
+                        token);
             }
         }
 
@@ -703,7 +700,6 @@ void data_block_manager_t::read(int64_t off_in, uint32_t ser_block_size_in,
 
 std::vector<counted_t<ls_block_token_pointee_t> >
 data_block_manager_t::many_writes(const std::vector<buf_write_info_t> &writes,
-                                  bool assign_new_block_sequence_id,
                                   file_account_t *io_account,
                                   iocallback_t *cb) {
     // Either we're ready to write, or we're shutting down and just finished reading
@@ -718,13 +714,7 @@ data_block_manager_t::many_writes(const std::vector<buf_write_info_t> &writes,
 
     for (auto it = writes.begin(); it != writes.end(); ++it) {
         it->buf->ser_header.block_id = it->block_id;
-        if (assign_new_block_sequence_id) {
-            ++serializer->latest_block_sequence_id;
-            it->buf->ser_header.block_sequence_id = serializer->latest_block_sequence_id;
-        }
     }
-
-    stats->pm_serializer_data_blocks_written += writes.size();
 
     struct intermediate_cb_t : public iocallback_t {
         virtual void on_io_complete() {
@@ -741,7 +731,9 @@ data_block_manager_t::many_writes(const std::vector<buf_write_info_t> &writes,
     };
 
     intermediate_cb_t *const intermediate_cb = new intermediate_cb_t;
-    intermediate_cb->ops_remaining = token_groups.size();
+    // We add 1 for degenerate case where token_groups is empty -- we call
+    // intermediate_cb->on_io_complete later.
+    intermediate_cb->ops_remaining = token_groups.size() + 1;
     intermediate_cb->cb = cb;
 
     size_t write_number = 0;
@@ -782,6 +774,10 @@ data_block_manager_t::many_writes(const std::vector<buf_write_info_t> &writes,
                              std::move(iovecs), io_account, intermediate_cb);
     }
 
+    // Call on_io_complete for degenerate case (we added 1 to ops_remaining
+    // earlier).
+    intermediate_cb->on_io_complete();
+
     std::vector<counted_t<ls_block_token_pointee_t> > ret;
     ret.reserve(writes.size());
     for (auto it = token_groups.begin(); it != token_groups.end(); ++it) {
@@ -795,7 +791,6 @@ data_block_manager_t::many_writes(const std::vector<buf_write_info_t> &writes,
 
 void data_block_manager_t::destroy_entry(gc_entry_t *entry) {
     rassert(entry != NULL);
-    ++stats->pm_serializer_data_extents_reclaimed;
     entry->destroy();
 }
 
@@ -917,7 +912,8 @@ void data_block_manager_t::start_gc() {
 data_block_manager_t::gc_writer_t::gc_writer_t(gc_write_t *writes, size_t num_writes, data_block_manager_t *_parent)
     : done(num_writes == 0), parent(_parent) {
     if (!done) {
-        coro_t::spawn(boost::bind(&data_block_manager_t::gc_writer_t::write_gcs, this, writes, num_writes));
+        coro_t::spawn_later_ordered(boost::bind(&data_block_manager_t::gc_writer_t::write_gcs,
+                this, writes, num_writes));
     }
 }
 
@@ -959,7 +955,7 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t *writes, size_t num
             }
 
             new_block_tokens
-                = parent->many_writes(the_writes, false, parent->choose_gc_io_account(),
+                = parent->many_writes(the_writes, parent->choose_gc_io_account(),
                                       &block_write_cond);
 
             guarantee(new_block_tokens.size() == num_writes);

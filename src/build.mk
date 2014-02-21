@@ -3,13 +3,11 @@
 ##### Build parameters
 
 # We assemble path directives.
-LDPATHDS ?=
-CXXPATHDS ?=
 LDFLAGS ?=
 CXXFLAGS ?=
-RT_LDFLAGS := $(LDFLAGS) $(RE2_LIBS) $(TERMCAP_LIBS)
+RT_LDFLAGS := $(LDFLAGS) $(RE2_LIBS) $(TERMCAP_LIBS) $(Z_LIBS)
 RT_LDFLAGS += $(V8_LIBS) $(PROTOBUF_LIBS) $(TCMALLOC_MINIMAL_LIBS) $(PTHREAD_LIBS)
-RT_CXXFLAGS := $(CXXFLAGS) $(RE2_CXXFLAGS)
+RT_CXXFLAGS := $(CXXFLAGS) $(RE2_INCLUDE) $(V8_INCLUDE) $(PROTOBUF_INCLUDE)
 
 ifeq ($(USE_CCACHE),1)
   RT_CXX := ccache $(CXX)
@@ -37,7 +35,7 @@ ifeq ($(COMPILER),CLANG)
     endif
   endif
 
-  RT_LDFLAGS += $(LDPATHDS) -lm
+  RT_LDFLAGS += $(M_LIBS)
 
 else ifeq ($(COMPILER),INTEL)
   RT_LDFLAGS += -B/opt/intel/bin
@@ -50,7 +48,7 @@ else ifeq ($(COMPILER),INTEL)
     endif
   endif
 
-  RT_LDFLAGS += $(LDPATHDS) -lstdc++
+  RT_LDFLAGS += -lstdc++
 else ifeq ($(COMPILER),GCC)
 
   ifeq ($(OS),Linux)
@@ -65,12 +63,10 @@ else ifeq ($(COMPILER),GCC)
     endif
   endif
 
-  RT_LDFLAGS += $(LDPATHDS)
+  RT_LDFLAGS +=
 endif
 
-ifeq ($(OS),Linux)
-  RT_LDFLAGS += -lrt
-endif
+RT_LDFLAGS += $(RT_LIBS)
 
 ifeq ($(STATICFORCE),1)
   # TODO(OSX)
@@ -92,8 +88,9 @@ RT_CXXFLAGS?=
 RT_CXXFLAGS += -I$(SOURCE_DIR)
 RT_CXXFLAGS += -pthread
 RT_CXXFLAGS += "-DPRODUCT_NAME=\"$(PRODUCT_NAME)\""
+RT_CXXFLAGS += "-D__STDC_LIMIT_MACROS"
+RT_CXXFLAGS += "-D__STDC_FORMAT_MACROS"
 RT_CXXFLAGS += -DWEB_ASSETS_DIR_NAME='"$(WEB_ASSETS_DIR_NAME)"'
-RT_CXXFLAGS += $(CXXPATHDS)
 RT_CXXFLAGS += -Wall -Wextra
 
 # Force 64-bit off_t size on Linux -- also, sizeof(off_t) will be
@@ -214,10 +211,6 @@ ifeq ($(JSON_SHORTCUTS),1)
   RT_CXXFLAGS += -DJSON_SHORTCUTS
 endif
 
-ifeq ($(MALLOC_PROF),1)
-  RT_CXXFLAGS += -DMALLOC_PROF
-endif
-
 ifeq ($(SERIALIZER_DEBUG),1)
   RT_CXXFLAGS += -DSERIALIZER_MARKERS
 endif
@@ -240,6 +233,10 @@ endif
 
 ifeq ($(NO_EPOLL),1)
   RT_CXXFLAGS += -DNO_EPOLL
+endif
+
+ifeq ($(THREADED_COROUTINES),1)
+  RT_CXXFLAGS += -DTHREADED_COROUTINES
 endif
 
 ifeq ($(VALGRIND),1)
@@ -267,14 +264,9 @@ endif
 
 RT_CXXFLAGS += -I$(PROTO_DIR)
 
-UNIT_STATIC_LIBRARY_PATH := $(EXTERNAL_DIR)/gtest/make/gtest.a
-UNIT_TEST_INCLUDE_FLAG := -I$(EXTERNAL_DIR)/gtest/include
-
-RT_CXXFLAGS += -DMIGRATION_SCRIPT_LOCATION=\"$(scripts_dir)/rdb_migrate\"
-
 #### Finding what to build
 
-SOURCES := $(shell find $(SOURCE_DIR) -name '*.cc')
+SOURCES := $(shell find $(SOURCE_DIR) -name '*.cc' | grep -v '/\.')
 
 SERVER_EXEC_SOURCES := $(filter-out $(SOURCE_DIR)/unittest/%,$(SOURCES))
 
@@ -311,10 +303,6 @@ ifeq ($(UNIT_TESTS),1)
   $(SOURCE_DIR)/all: $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME)
 endif
 
-$(UNIT_STATIC_LIBRARY_PATH):
-	$P MAKE $@
-	$(EXTERN_MAKE) -C $(EXTERNAL_DIR)/gtest/make gtest.a
-
 .PHONY: unit
 unit: $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME)
 	$P RUN $(SERVER_UNIT_TEST_NAME)
@@ -322,9 +310,9 @@ unit: $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME)
 
 .PRECIOUS: $(PROTO_DIR)/. $(QL2_PROTO_HEADERS) $(QL2_PROTO_CODE)
 
-$(PROTO_DIR)/%.pb.h $(PROTO_DIR)/%.pb.cc: $(SOURCE_DIR)/%.proto | $(PROTOC_DEP) $(PROTO_DIR)/.
+$(PROTO_DIR)/%.pb.h $(PROTO_DIR)/%.pb.cc: $(SOURCE_DIR)/%.proto $(PROTOC_BIN_DEP) | $(PROTO_DIR)/.
 	$P PROTOC[CPP] $^
-	$(PROTOC_RUN) $(PROTOCFLAGS_CXX) --cpp_out $(PROTO_DIR) $^
+	$(PROTOC) $(PROTOCFLAGS_CXX) --cpp_out $(PROTO_DIR) $<
 	touch $@
 
 rpc/semilattice/joins/macros.hpp: $(TOP)/scripts/generate_join_macros.py
@@ -337,7 +325,9 @@ rpc/semilattice/joins/macros.hpp rpc/serialize_macros.hpp rpc/mailbox/typed.hpp:
 .PHONY: rethinkdb
 rethinkdb: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 
-$(BUILD_DIR)/$(SERVER_EXEC_NAME): $(SERVER_EXEC_OBJS) | $(BUILD_DIR)/. $(TCMALLOC_DEP) $(PROTOBUF_DEP)
+RETHINKDB_DEPENDENCIES_LIBS := $(TCMALLOC_MINIMAL_LIBS_DEP) $(V8_LIBS_DEP) $(PROTOBUF_LIBS_DEP) $(RE2_LIBS_DEP) $(Z_LIBS_DEP)
+
+$(BUILD_DIR)/$(SERVER_EXEC_NAME): $(SERVER_EXEC_OBJS) | $(BUILD_DIR)/. $(RETHINKDB_DEPENDENCIES_LIBS)
 	$P LD $@
 	$(RT_CXX) $(SERVER_EXEC_OBJS) $(RT_LDFLAGS) -o $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(LD_OUTPUT_FILTER)
 ifeq ($(NO_TCMALLOC),0) # if we link to tcmalloc
@@ -351,26 +341,32 @@ endif
 
 # The unittests use gtest, which uses macros that expand into switch statements which don't contain
 # default cases. So we have to remove the -Wswitch-default argument for them.
-$(OBJ_DIR)/unittest/%.o: RT_CXXFLAGS := $(filter-out -Wswitch-default,$(RT_CXXFLAGS)) $(UNIT_TEST_INCLUDE_FLAG)
+$(OBJ_DIR)/unittest/%.o: RT_CXXFLAGS := $(filter-out -Wswitch-default,$(RT_CXXFLAGS)) $(GTEST_INCLUDE)
 
-$(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME): $(SERVER_UNIT_TEST_OBJS) $(UNIT_STATIC_LIBRARY_PATH) | $(BUILD_DIR)/. $(TCMALLOC_DEP)
+$(OBJ_DIR)/unittest/%.o: | $(GTEST_INCLUDE_DEP)
+
+$(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME): $(SERVER_UNIT_TEST_OBJS) $(GTEST_LIBS_DEP) | $(BUILD_DIR)/. $(RETHINKDB_DEPENDENCIES_LIBS)
 	$P LD $@
-	$(RT_CXX) $(SERVER_UNIT_TEST_OBJS) $(RT_LDFLAGS) $(UNIT_STATIC_LIBRARY_PATH) -o $@ $(LD_OUTPUT_FILTER)
+	$(RT_CXX) $(SERVER_UNIT_TEST_OBJS) $(RT_LDFLAGS) $(GTEST_LIBS) -o $@ $(LD_OUTPUT_FILTER)
 
-$(BUILD_DIR)/$(GDB_FUNCTIONS_NAME):
+$(BUILD_DIR)/$(GDB_FUNCTIONS_NAME): | $(BUILD_DIR)/.
 	$P CP $@
 	cp $(SCRIPTS_DIR)/$(GDB_FUNCTIONS_NAME) $@
 
 $(OBJ_DIR)/%.pb.o: $(PROTO_DIR)/%.pb.cc $(MAKEFILE_DEPENDENCY) $(QL2_PROTO_HEADERS)
 	mkdir -p $(dir $@)
-	$P CC $< -o $@
+	$P CC
 	$(RT_CXX) $(RT_CXXFLAGS) -c -o $@ $<
 
-$(OBJ_DIR)/%.o: $(SOURCE_DIR)/%.cc $(MAKEFILE_DEPENDENCY) $(V8_DEP) $(RE2_DEP) | $(QL2_PROTO_OBJS)
+$(OBJ_DIR)/%.o: $(SOURCE_DIR)/%.cc $(MAKEFILE_DEPENDENCY) $(V8_INCLUDE_DEP) $(RE2_INCLUDE_DEP) | $(QL2_PROTO_OBJS)
 	mkdir -p $(dir $@) $(dir $(DEP_DIR)/$*)
-	$P CC $< -o $@
+	$P CC
 	$(RT_CXX) $(RT_CXXFLAGS) -c -o $@ $< \
 	          -MP -MQ $@ -MD -MF $(DEP_DIR)/$*.d
+	test $(DEP_DIR)/$*.d -nt $< || ( \
+	  echo 'Warning: Missing dep file: `$(DEP_DIR)/$*.d` should have been generated by $(RT_CXX)' ; \
+	  sleep 1; touch $< \
+	)
 
 -include $(DEPS)
 

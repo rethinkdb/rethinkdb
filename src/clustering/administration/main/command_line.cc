@@ -233,11 +233,11 @@ void set_user_group(const std::map<std::string, options::values_t> &opts) {
         gid_t group_id;
         if (!get_group_id(rungroup->c_str(), &group_id)) {
             throw std::runtime_error(strprintf("Group '%s' not found: %s",
-                                               rungroup->c_str(), errno_string(errno).c_str()).c_str());
+                                               rungroup->c_str(), errno_string(get_errno()).c_str()).c_str());
         }
         if (setgid(group_id) != 0) {
             throw std::runtime_error(strprintf("Could not set group to '%s': %s",
-                                               rungroup->c_str(), errno_string(errno).c_str()).c_str());
+                                               rungroup->c_str(), errno_string(get_errno()).c_str()).c_str());
         }
     }
 
@@ -246,18 +246,18 @@ void set_user_group(const std::map<std::string, options::values_t> &opts) {
         gid_t user_group_id;
         if (!get_user_ids(runuser->c_str(), &user_id, &user_group_id)) {
             throw std::runtime_error(strprintf("User '%s' not found: %s",
-                                               runuser->c_str(), errno_string(errno).c_str()).c_str());
+                                               runuser->c_str(), errno_string(get_errno()).c_str()).c_str());
         }
         if (!rungroup) {
             // No group specified, use the user's group
             if (setgid(user_group_id) != 0) {
                 throw std::runtime_error(strprintf("Could not use the group of user '%s': %s",
-                                                   runuser->c_str(), errno_string(errno).c_str()).c_str());
+                                                   runuser->c_str(), errno_string(get_errno()).c_str()).c_str());
             }
         }
         if (setuid(user_id) != 0) {
             throw std::runtime_error(strprintf("Could not set user account to '%s': %s",
-                                               runuser->c_str(), errno_string(errno).c_str()).c_str());
+                                               runuser->c_str(), errno_string(get_errno()).c_str()).c_str());
         }
     }
 }
@@ -591,11 +591,7 @@ service_address_ports_t get_service_address_ports(const std::map<std::string, op
     return service_address_ports_t(get_local_addresses(all_options(opts, "--bind")),
                                    get_canonical_addresses(opts, cluster_port),
                                    cluster_port,
-#ifndef NDEBUG
                                    get_single_int(opts, "--client-port"),
-#else
-                                   port_defaults::client_port,
-#endif
                                    exists_option(opts, "--no-http-admin"),
                                    offseted_port(get_single_int(opts, "--http-port"), port_offset),
                                    offseted_port(get_single_int(opts, "--driver-port"), port_offset),
@@ -701,7 +697,10 @@ std::string uname_msr() {
     static const std::string unknown = "unknown operating system\n";
     FILE *out = popen("uname -msr", "r");
     if (!out) return unknown;
-    if (!fgets(buf, sizeof(buf), out)) return unknown;
+    if (!fgets(buf, sizeof(buf), out)) {
+        pclose(out);    
+        return unknown;
+    }
     pclose(out);
     return buf;
 }
@@ -924,10 +923,10 @@ options::help_section_t get_network_options(const bool join_required, std::vecto
                                              strprintf("%d", port_defaults::peer_port)));
     help.add("--cluster-port port", "port for receiving connections from other nodes");
 
-#ifndef NDEBUG
     options_out->push_back(options::option_t(options::names_t("--client-port"),
                                              options::OPTIONAL,
                                              strprintf("%d", port_defaults::client_port)));
+#ifndef NDEBUG
     help.add("--client-port port", "port to use when connecting to other nodes (for development)");
 #endif  // NDEBUG
 
@@ -1044,10 +1043,10 @@ void get_rethinkdb_admin_options(std::vector<options::help_section_t> *help_out,
                                  std::vector<options::option_t> *options_out) {
     options::help_section_t help("Allowed options");
 
-#ifndef NDEBUG
     options_out->push_back(options::option_t(options::names_t("--client-port"),
                                              options::OPTIONAL,
                                              strprintf("%d", port_defaults::client_port)));
+#ifndef NDEBUG
     help.add("--client-port port", "port to use when connecting to other nodes (for development)");
 #endif  // NDEBUG
 
@@ -1229,7 +1228,7 @@ bool maybe_daemonize(const std::map<std::string, options::values_t> &opts) {
     if (exists_option(opts, "--daemon")) {
         pid_t pid = fork();
         if (pid < 0) {
-            throw std::runtime_error(strprintf("Failed to fork daemon: %s\n", errno_string(errno).c_str()).c_str());
+            throw std::runtime_error(strprintf("Failed to fork daemon: %s\n", errno_string(get_errno()).c_str()).c_str());
         }
 
         if (pid > 0) {
@@ -1240,21 +1239,21 @@ bool maybe_daemonize(const std::map<std::string, options::values_t> &opts) {
 
         pid_t sid = setsid();
         if (sid == 0) {
-            throw std::runtime_error(strprintf("Failed to create daemon session: %s\n", errno_string(errno).c_str()).c_str());
+            throw std::runtime_error(strprintf("Failed to create daemon session: %s\n", errno_string(get_errno()).c_str()).c_str());
         }
 
         if (chdir("/") < 0) {
-            throw std::runtime_error(strprintf("Failed to change directory: %s\n", errno_string(errno).c_str()).c_str());
+            throw std::runtime_error(strprintf("Failed to change directory: %s\n", errno_string(get_errno()).c_str()).c_str());
         }
 
         if (freopen("/dev/null", "r", stdin) == NULL) {
-            throw std::runtime_error(strprintf("Failed to redirect stdin for daemon: %s\n", errno_string(errno).c_str()).c_str());
+            throw std::runtime_error(strprintf("Failed to redirect stdin for daemon: %s\n", errno_string(get_errno()).c_str()).c_str());
         }
         if (freopen("/dev/null", "w", stdout) == NULL) {
-            throw std::runtime_error(strprintf("Failed to redirect stdin for daemon: %s\n", errno_string(errno).c_str()).c_str());
+            throw std::runtime_error(strprintf("Failed to redirect stdin for daemon: %s\n", errno_string(get_errno()).c_str()).c_str());
         }
         if (freopen("/dev/null", "w", stderr) == NULL) {
-            throw std::runtime_error(strprintf("Failed to redirect stderr for daemon: %s\n", errno_string(errno).c_str()).c_str());
+            throw std::runtime_error(strprintf("Failed to redirect stderr for daemon: %s\n", errno_string(get_errno()).c_str()).c_str());
         }
     }
     return true;
@@ -1366,11 +1365,8 @@ int main_rethinkdb_admin(int argc, char *argv[]) {
 
         peer_address_t canonical_addresses = get_canonical_addresses(opts, 0);
 
-#ifndef NDEBUG
         const int client_port = get_single_int(opts, "--client-port");
-#else
-        const int client_port = port_defaults::client_port;
-#endif
+
         const bool exit_on_failure = exists_option(opts, "--exit-failure");
 
         const int num_workers = get_cpu_count();
@@ -1479,14 +1475,16 @@ MUST_USE bool split_db_table(const std::string &db_table, std::string *db_name_o
 void run_backup_script(const std::string& script_name, char * const arguments[]) {
     int res = execvp(script_name.c_str(), arguments);
     if (res == -1) {
-        fprintf(stderr,
-                "Error when launching %s: %s\n"
-                "The %s command depends on the RethinkDB Python driver, which must be installed.\n"
-                "Instructions for installing the RethinkDB Python driver are available here:\n"
-                "http://www.rethinkdb.com/docs/install-drivers/python/\n",
-                script_name.c_str(),
-                errno_string(errno).c_str(),
+
+        fprintf(stderr, "Error when launching '%s': %s\n",
+                script_name.c_str(), errno_string(get_errno()).c_str());
+        fprintf(stderr, "The %s command depends on the RethinkDB Python driver, which must be installed.\n",
                 script_name.c_str());
+        fprintf(stderr, "If the Python driver is already installed, make sure that the PATH environment variable\n"
+                "includes the location of the backup scripts, and that the current user has permission to\n"
+                "access and run the scripts.\n"
+                "Instructions for installing the RethinkDB Python driver are available here:\n"
+                "http://www.rethinkdb.com/docs/install-drivers/python/\n");
     }
 }
 

@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_REACTOR_DRIVER_TCC_
 #define CLUSTERING_ADMINISTRATION_REACTOR_DRIVER_TCC_
 
@@ -153,13 +153,9 @@ public:
         reactor_.reset();
 
         /* Finally we remove the reactor bcard. */
-        {
-            DEBUG_VAR mutex_assertion_t::acq_t acq(&parent_->watchable_variable_lock);
-            namespaces_directory_metadata_t<protocol_t> directory = parent_->watchable_variable.get_watchable()->get();
-            size_t num_erased = directory.reactor_bcards.erase(namespace_id_);
-            guarantee(num_erased == 1);
-            parent_->watchable_variable.set_value(directory);
-        }
+        parent_->set_reactor_directory_entry(namespace_id_,
+            boost::optional<
+                typename reactor_driver_t<protocol_t>::reactor_directory_entry_t>());
     }
 
     static bool compute_is_acceptable_ack_set(const std::set<peer_id_t> &acks, const namespace_id_t &namespace_id, per_thread_ack_info_t<protocol_t> *ack_info) {
@@ -238,7 +234,7 @@ public:
         if (it == translation_table_snapshot.end()) {
             // What should we do?  I have no idea.  Default to HARD, let somebody else handle
             // the peer not existing.
-            return WRITE_DURABILITY_HARD;
+            return write_durability_t::HARD;
         }
 
         const machine_id_t machine_id = it->second;
@@ -251,7 +247,7 @@ public:
             // Is there something smart to do?  Besides deleting this whole class and
             // refactoring clustering not to do O(n^2) work per request?  Default to HARD, let
             // somebody else handle the machine not existing.
-            return WRITE_DURABILITY_HARD;
+            return write_durability_t::HARD;
         }
 
         const datacenter_id_t dc = machine_map_it->second.get_ref().datacenter.get();
@@ -263,17 +259,17 @@ public:
 
         if (ns_it == nmd->namespaces.end() || ns_it->second.is_deleted() || ns_it->second.get_ref().ack_expectations.in_conflict()) {
             // Again, FML, we default to HARD.
-            return WRITE_DURABILITY_HARD;
+            return write_durability_t::HARD;
         }
 
         std::map<datacenter_id_t, ack_expectation_t> ack_expectations = ns_it->second.get_ref().ack_expectations.get();
         auto ack_it = ack_expectations.find(dc);
         if (ack_it == ack_expectations.end()) {
             // Yet again, FML, we default to HARD.
-            return WRITE_DURABILITY_HARD;
+            return write_durability_t::HARD;
         }
 
-        return ack_it->second.is_hardly_durable() ? WRITE_DURABILITY_HARD : WRITE_DURABILITY_SOFT;
+        return ack_it->second.is_hardly_durable() ? write_durability_t::HARD : write_durability_t::SOFT;
     }
 
     write_durability_t get_write_durability(const peer_id_t &peer) const {
@@ -296,25 +292,10 @@ private:
     }
 
     void on_change_reactor_directory() {
-        DEBUG_VAR mutex_assertion_t::acq_t acq(&parent_->watchable_variable_lock);
-
-        /* C++11: auto op = [&] (namespaces_directory_metadata_t<protocol_t> *directory) -> bool { ... }
-        Because we cannot use C++11 lambdas yet due to missing support in
-        GCC 4.4, this is the messy work-around: */
-        struct op_closure_t {
-            bool operator()(namespaces_directory_metadata_t<protocol_t> *directory) {
-                directory->reactor_bcards.find(namespace_id_)->second = reactor_->get_reactor_directory()->get();
-                return true;
-            }
-            op_closure_t(const namespace_id_t &c1, scoped_ptr_t<reactor_t<protocol_t> > &c2) :
-                namespace_id_(c1),
-                reactor_(c2) { }
-            const namespace_id_t &namespace_id_;
-            scoped_ptr_t<reactor_t<protocol_t> > &reactor_;
-        };
-        op_closure_t op(namespace_id_, reactor_);
-
-        parent_->watchable_variable.apply_atomic_op(std::bind(&op_closure_t::operator(), &op, std::placeholders::_1));
+        // Tell our parent, the reactor driver, that this reactor's directory
+        // has changed, and what its new value is:
+        parent_->set_reactor_directory_entry(namespace_id_,
+            boost::make_optional(reactor_->get_reactor_directory()->get()));
     }
 
     void initialize_reactor(io_backender_t *io_backender) {
@@ -325,7 +306,7 @@ private:
         // TODO: We probably shouldn't have to pass in this perfmon collection.
         svs_by_namespace_->get_svs(serializers_collection, namespace_id_, cache_size, &stores_lifetimer_, &svs_, ctx);
 
-        const auto extract_reactor_directory_per_peer_fun =
+        auto const extract_reactor_directory_per_peer_fun =
             boost::bind(&watchable_and_reactor_t<protocol_t>::extract_reactor_directory_per_peer,
                         this, _1);
         incremental_map_lens_t<peer_id_t,
@@ -349,28 +330,9 @@ private:
                 new typename watchable_t<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >::subscription_t(
                     boost::bind(&watchable_and_reactor_t<protocol_t>::on_change_reactor_directory, this),
                     reactor_->get_reactor_directory(), &reactor_directory_freeze));
-            DEBUG_VAR mutex_assertion_t::acq_t acq(&parent_->watchable_variable_lock);
 
-
-            /* C++11: auto op = [&] (namespaces_directory_metadata_t<protocol_t> *directory) -> bool { ... }
-            Because we cannot use C++11 lambdas yet due to missing support in
-            GCC 4.4, this is the messy work-around: */
-            struct op_closure_t {
-                bool operator()(namespaces_directory_metadata_t<protocol_t> *directory) {
-                    std::pair<typename std::map<namespace_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >::iterator, bool> insert_res
-                        = directory->reactor_bcards.insert(std::make_pair(namespace_id_, reactor_->get_reactor_directory()->get()));
-                    guarantee(insert_res.second);  // Ensure a value did not already exist.
-                    return true;
-                }
-                op_closure_t(const namespace_id_t &c1, scoped_ptr_t<reactor_t<protocol_t> > &c2) :
-                    namespace_id_(c1),
-                    reactor_(c2) { }
-                const namespace_id_t &namespace_id_;
-                scoped_ptr_t<reactor_t<protocol_t> > &reactor_;
-            };
-            op_closure_t op(namespace_id_, reactor_);
-
-            parent_->watchable_variable.apply_atomic_op(std::bind(&op_closure_t::operator(), &op, std::placeholders::_1));
+            parent_->set_reactor_directory_entry(namespace_id_,
+                boost::make_optional(reactor_->get_reactor_directory()->get()));
         }
 
         reactor_has_been_initialized_.pulse();
@@ -440,6 +402,70 @@ reactor_driver_t<protocol_t>::~reactor_driver_t() {
 }
 
 template<class protocol_t>
+void reactor_driver_t<protocol_t>::set_reactor_directory_entry(
+    const namespace_id_t reactor_namespace,
+    const boost::optional<reactor_directory_entry_t> &new_value) {
+
+    // Just stash the change for now. If necessary, we spawn a coroutine that takes
+    // care of eventually committing the changes to `watchable_variable`.
+    // This allows us to combine multiple reactor directory changes into a single
+    // update of the watchable_variable, which significantly reduces the overhead
+    // of metadata operations that affect multiple reactors (such as resharding)
+    // in large clusters.
+    const bool must_initiate_commit = changed_reactor_directories.empty();
+    changed_reactor_directories[reactor_namespace] = new_value;
+
+    if (must_initiate_commit) {
+        coro_t::spawn_sometime(
+            boost::bind(&reactor_driver_t<protocol_t>::commit_directory_changes,
+                        this,
+                        auto_drainer_t::lock_t(&directory_change_drainer)));
+    }
+}
+
+template<class protocol_t>
+void reactor_driver_t<protocol_t>::commit_directory_changes(auto_drainer_t::lock_t lock) {
+    // Delay the commit for a moment in anticipation that more changes come in
+    lock.assert_is_holding(&directory_change_drainer);
+    try {
+        // The nap time of 200 ms was determined experimentally as follows:
+        // In the specific test, a 200 ms nap provided a high speed up when
+        // resharding a table in a cluster of 64 nodes. Higher values improved the
+        // efficiency of the operation only marginally, while unnecessarily slowing
+        // down directory changes in smaller clusters.
+        nap(200, lock.get_drain_signal());
+    } catch (const interrupted_exc_t &e) {
+    }
+    lock.assert_is_holding(&directory_change_drainer);
+
+    DEBUG_VAR mutex_assertion_t::acq_t acq(&watchable_variable_lock);
+
+    watchable_variable.apply_atomic_op(std::bind(&apply_directory_changes,
+                                                 &changed_reactor_directories,
+                                                 std::placeholders::_1));
+}
+
+template<class protocol_t>
+bool reactor_driver_t<protocol_t>::apply_directory_changes(
+    std::map<namespace_id_t, boost::optional<reactor_directory_entry_t> >
+        *_changed_reactor_directories,
+    namespaces_directory_metadata_t<protocol_t> *directory) {
+
+    for (auto it = _changed_reactor_directories->begin();
+         it != _changed_reactor_directories->end();
+         ++it) {
+        // it->second is a boost::optional<reactor_directory_entry_t>
+        if (it->second) {
+            directory->reactor_bcards[it->first] = it->second.get();
+        } else {
+            directory->reactor_bcards.erase(it->first);
+        }
+    }
+    _changed_reactor_directories->clear();
+    return true;
+}
+
+template<class protocol_t>
 void reactor_driver_t<protocol_t>::delete_reactor_data(
         auto_drainer_t::lock_t lock,
         typename reactor_map_t::auto_type *thing_to_delete,
@@ -506,7 +532,7 @@ void reactor_driver_t<protocol_t>::on_change() {
                     }
 
                     if (cache_size > 64 * GIGABYTE) {
-                        cache_size = 16 * GIGABYTE;
+                        cache_size = 64 * GIGABYTE;
                         logINF("Namespace %s(%s) has too large of a cache size. Decreasing it to 64 gigabyes.\n",
                                 uuid_to_str(it->first).c_str(),
                                 it->second.get_ref().name.in_conflict() ? "Name in conflict" : it->second.get_ref().name.get().c_str());
@@ -515,25 +541,18 @@ void reactor_driver_t<protocol_t>::on_change() {
                     namespace_id_t tmp = it->first;
                     reactor_data.insert(tmp, new watchable_and_reactor_t<protocol_t>(base_path, io_backender, this, it->first, cache_size, bp, svs_by_namespace, ctx));
                 } else {
-                    /* C++11: auto op = [&] (blueprint_t<protocol_t> *bp_out) -> bool { ... }
-                    Because we cannot use C++11 lambdas yet due to missing support in
-                    GCC 4.4, this is the messy work-around: */
                     struct op_closure_t {
-                        bool operator()(blueprint_t<protocol_t> *bp_out) {
-                            guarantee(bp_out != NULL);
-                            const bool blueprint_changed = *bp_out != bp;
+                        static bool apply(const blueprint_t<protocol_t> &_bp,
+                                          blueprint_t<protocol_t> *bp_ref) {
+                            const bool blueprint_changed = (*bp_ref != _bp);
                             if (blueprint_changed) {
-                                *bp_out = bp;
+                                *bp_ref = _bp;
                             }
                             return blueprint_changed;
                         }
-                        op_closure_t(blueprint_t<protocol_t> &c1) :
-                            bp(c1) { }
-                        blueprint_t<protocol_t> &bp;
                     };
-                    op_closure_t op(bp);
 
-                    reactor_data.find(it->first)->second->watchable.apply_atomic_op(std::bind(&op_closure_t::operator(), &op, std::placeholders::_1));
+                    reactor_data.find(it->first)->second->watchable.apply_atomic_op(std::bind(&op_closure_t::apply, std::ref(bp), std::placeholders::_1));
                 }
             } else {
                 /* The blueprint does not mentions us so we destroy the

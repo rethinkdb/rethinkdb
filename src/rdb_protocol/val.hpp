@@ -2,11 +2,13 @@
 #ifndef RDB_PROTOCOL_VAL_HPP_
 #define RDB_PROTOCOL_VAL_HPP_
 
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "containers/counted.hpp"
+#include "containers/wire_string.hpp"
 #include "rdb_protocol/datum_stream.hpp"
 #include "rdb_protocol/ql2.pb.h"
 
@@ -52,7 +54,8 @@ public:
 
     counted_t<const datum_t> batched_replace(
         env_t *env,
-        const std::vector<counted_t<const datum_t> > &original_values,
+        const std::vector<counted_t<const datum_t> > &vals,
+        const std::vector<counted_t<const datum_t> > &keys,
         counted_t<func_t> replacement_generator,
         bool nondeterministic_replacements_ok,
         durability_requirement_t durability_requirement,
@@ -132,7 +135,8 @@ public:
             SEQUENCE         = 4, // sequence
             SINGLE_SELECTION = 5, // table, datum (object)
             DATUM            = 6, // datum
-            FUNC             = 7  // func
+            FUNC             = 7, // func
+            GROUPED_DATA     = 8  // grouped_data
         };
         type_t(raw_type_t _raw_type); // NOLINT
         bool is_convertible(type_t rhs) const;
@@ -150,10 +154,19 @@ public:
     const char *get_type_name() const;
 
     val_t(counted_t<const datum_t> _datum, protob_t<const Backtrace> backtrace);
-    val_t(counted_t<const datum_t> _datum, counted_t<table_t> _table, protob_t<const Backtrace> backtrace);
-    val_t(env_t *env, counted_t<datum_stream_t> _sequence, protob_t<const Backtrace> backtrace);
+    val_t(const counted_t<grouped_data_t> &groups,
+          protob_t<const Backtrace> bt);
+    val_t(counted_t<const datum_t> _datum, counted_t<table_t> _table,
+          protob_t<const Backtrace> backtrace);
+    val_t(counted_t<const datum_t> _datum,
+          counted_t<const datum_t> _orig_key,
+          counted_t<table_t> _table,
+          protob_t<const Backtrace> backtrace);
+    val_t(env_t *env, counted_t<datum_stream_t> _sequence,
+          protob_t<const Backtrace> backtrace);
     val_t(counted_t<table_t> _table, protob_t<const Backtrace> backtrace);
-    val_t(counted_t<table_t> _table, counted_t<datum_stream_t> _sequence, protob_t<const Backtrace> backtrace);
+    val_t(counted_t<table_t> _table, counted_t<datum_stream_t> _sequence,
+          protob_t<const Backtrace> backtrace);
     val_t(counted_t<const db_t> _db, protob_t<const Backtrace> backtrace);
     val_t(counted_t<func_t> _func, protob_t<const Backtrace> backtrace);
     ~val_t();
@@ -165,6 +178,7 @@ public:
     std::pair<counted_t<table_t> , counted_t<const datum_t> > as_single_selection();
     // See func.hpp for an explanation of shortcut functions.
     counted_t<func_t> as_func(function_shortcut_t shortcut = NO_SHORTCUT);
+    counted_t<grouped_data_t> as_grouped_data();
 
     counted_t<const datum_t> as_datum() const; // prefer the 4 below
     counted_t<const datum_t> as_ptype(const std::string s = "");
@@ -180,10 +194,12 @@ public:
         return t;
     }
     int64_t as_int();
-    const std::string &as_str();
+    const wire_string_t &as_str();
 
     std::string print() const;
     std::string trunc_print() const;
+
+    counted_t<const datum_t> get_orig_key() const;
 
 private:
     friend int val_type(counted_t<val_t> v); // type_manip version
@@ -191,6 +207,7 @@ private:
 
     type_t type;
     counted_t<table_t> table;
+    counted_t<const datum_t> orig_key;
 
     // We pretend that this variant is a union -- as if it doesn't have type
     // information.  The sequence, datum, func, and db_ptr functions get the
@@ -198,7 +215,8 @@ private:
     boost::variant<counted_t<const db_t>,
                    counted_t<datum_stream_t>,
                    counted_t<const datum_t>,
-                   counted_t<func_t> > u;
+                   counted_t<func_t>,
+                   counted_t<grouped_data_t> > u;
 
     const counted_t<const db_t> &db() const {
         return boost::get<counted_t<const db_t> >(u);

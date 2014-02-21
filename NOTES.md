@@ -1,3 +1,27 @@
+# Release 1.11.3 (Breakfast at Tiffany's)
+
+Released on 2014-01-14
+
+Bug fix update.
+
+* Fixed a crash on multiple ctrl-c (#1848)
+* Ruby driver: fixed mutable backtraces (#1846)
+* Fixed a build failure on older versions of GCC (#1824)
+* Added missing durability argument to the Javascript driver (#1821)
+* Fixed a crash caused by changing the cluster configuration when there are unresolved issues (#1813)
+* Fixed a bug triggered by using `order_by` followed by `count` (#1796)
+* Tables can now be referenced by full name (e.g. `database.table`) in `rethinkdb admin` (#1795)
+* Fixed a bug triggered by chaining multiple joins (#1793)
+* Fixed a crash occasionally triggered by dropping an index (#1789)
+* The init script now fails when given wrong arguments (#1779)
+* RethinkDB now refuses to start if it cannot open the log file (#1778)
+* Fixed a JavaScript error in the Web UI (#1754)
+* Speed up count queries (#1733)
+* Fix a bug with thread-local storage that caused a segfault on certain platforms (#1731)
+* `get` of a non-existent document followed by `replace` now works as documented (#1570)
+
+--
+
 # Release 1.11.2 (Breakfast at Tiffany's)
 
 Released on 2013-12-06

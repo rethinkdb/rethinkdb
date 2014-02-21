@@ -79,7 +79,7 @@ def cmp_test(one, two)
     cmp = one.class.name <=> two.class.name
     return cmp if cmp != 0
     if not two.regex
-      one_msg = one.message.sub(/:\n.*|:$/, ".")
+      one_msg = one.message.sub(/:\n(.|\n)*|:$/, ".")
       [one.type, one_msg] <=> [two.type, two.message]
     else
       if (Regexp.compile two.type) =~ one.type and
@@ -147,6 +147,9 @@ $success_count = 0
 def test src, expected, name, opthash=nil
   if opthash
     $opthash = Hash[opthash.map{|k,v| [k, eval(v, $defines)]}]
+    if !$opthash[:batch_conf]
+        $opthash[:batch_conf] = {max_els: 3}
+    end
   else
     $opthash = {batch_conf: {max_els: 3}}
   end
@@ -207,7 +210,7 @@ end
 def fail_test name, src, res, expected
   @failure_count = @failure_count + 1
   puts "TEST FAILURE: #{name}"
-  puts "TEST BODY: #{src}" 
+  puts "TEST BODY: #{src}"
   puts "\tVALUE: #{show res}"
   puts "\tEXPECTED: #{show expected}"
   puts; puts;

@@ -3,13 +3,12 @@
 
 #include "clustering/administration/database_metadata.hpp"
 #include "clustering/administration/metadata.hpp"
+#include "concurrency/cross_thread_watchable.hpp"
 #include "extproc/js_runner.hpp"
 #include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/minidriver.hpp"
 #include "rdb_protocol/term_walker.hpp"
-
-#pragma GCC diagnostic ignored "-Wshadow"
 
 namespace ql {
 
@@ -161,22 +160,40 @@ js_runner_t *env_t::get_js_runner() {
     return &js_runner;
 }
 
+env_t::env_t(rdb_protocol_t::context_t *ctx, signal_t *_interruptor)
+    : global_optargs(protob_t<Query>()),
+      extproc_pool(ctx ? ctx->extproc_pool : NULL),
+      cluster_access(
+          ctx ? ctx->ns_repo : NULL,
+          ctx ? ctx->cross_thread_namespace_watchables[get_thread_id().threadnum].get()
+                  ->get_watchable()
+              : clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t> > >(),
+          ctx ? ctx->cross_thread_database_watchables[get_thread_id().threadnum].get()
+                  ->get_watchable()
+              : clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >(),
+          ctx ? ctx->cluster_metadata
+              : boost::shared_ptr<
+                    semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >(),
+          NULL,
+          ctx ? ctx->machine_id : uuid_u()),
+      interruptor(_interruptor),
+      eval_callback(NULL) { }
+
 env_t::env_t(
     extproc_pool_t *_extproc_pool,
     base_namespace_repo_t<rdb_protocol_t> *_ns_repo,
-
     clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t> > >
-    _namespaces_semilattice_metadata,
-
+        _namespaces_semilattice_metadata,
     clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >
-    _databases_semilattice_metadata,
+        _databases_semilattice_metadata,
     boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
-    _semilattice_metadata,
+        _semilattice_metadata,
     directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
     signal_t *_interruptor,
     uuid_u _this_machine,
     protob_t<Query> query)
-  : global_optargs(query),
+  : evals_since_yield(0),
+    global_optargs(query),
     extproc_pool(_extproc_pool),
     cluster_access(_ns_repo,
                    _namespaces_semilattice_metadata,
@@ -211,7 +228,8 @@ env_t::env_t(
     signal_t *_interruptor,
     uuid_u _this_machine,
     profile_bool_t _profile)
-  : global_optargs(protob_t<Query>()),
+  : evals_since_yield(0),
+    global_optargs(protob_t<Query>()),
     extproc_pool(_extproc_pool),
     cluster_access(_ns_repo,
                    _namespaces_semilattice_metadata,
@@ -227,19 +245,13 @@ env_t::env_t(
     }
 }
 
-env_t::env_t(signal_t *_interruptor)
-  : extproc_pool(NULL),
-    cluster_access(NULL,
-                   clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t> > >(),
-                   clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >(),
-                   boost::shared_ptr<
-                       semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >(),
-                   NULL,
-                   uuid_u()),
-    interruptor(_interruptor),
-    eval_callback(NULL)
-{ }
-
 env_t::~env_t() { }
+
+void env_t::maybe_yield() {
+    if (++evals_since_yield > EVALS_BEFORE_YIELD) {
+        coro_t::yield();
+        evals_since_yield = 0;
+    }
+}
 
 } // namespace ql

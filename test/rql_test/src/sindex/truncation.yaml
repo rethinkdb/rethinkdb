@@ -8,6 +8,8 @@ tests:
 
   - rb: tbl.index_create('a')
     ot: ({'created' => 1})
+  - rb: tbl.index_create('idi'){|row| row['id']}
+    ot: ({'created':1})
 
 # Create a mix of truncated and untruncated sindex keys.
   - def:
@@ -33,25 +35,34 @@ tests:
 # keys are split across batches.
   - rb: tbl.orderby({:index => 'a'}).map{|x| x['num']}
     runopts:
-      batch_conf: ({max_els:10})
+      batch_conf: '{max_els:10}'
     ot: vals.map{|x| x[:num]}
 
   - rb: tbl.orderby({:index => r.desc('a')}).map{|x| x['num']}
     runopts:
-      batch_conf: ({max_els:10})
+      batch_conf: '{max_els:10}'
     ot: vals.map{|x| x[:num]}.reverse
 
   - rb: tbl.between("a"*1000+"150", 'c'*1000+"450", index:'a').orderby('a').map{|x| x['num']}
     runopts:
-      batch_conf: ({max_els:10})
+      batch_conf: '{max_els:10}'
     ot: vals.map{|x| x[:num]}.select{|x| x >= 150 && x < 450}
 
   - rb: tbl.between(nil, 'c'*1000+"450", index:'a').orderby('a').map{|x| x['num']}
     runopts:
-      batch_conf: ({max_els:10})
+      batch_conf: '{max_els:10}'
     ot: vals.map{|x| x[:num]}.select{|x| x < 450}
 
   - rb: tbl.between("a"*1000+"150", nil, index:'a').orderby('a').map{|x| x['num']}
     runopts:
-      batch_conf: ({max_els:10})
+      batch_conf: '{max_els:10}'
     ot: vals.map{|x| x[:num]}.select{|x| x >= 150}
+
+# Test half-indexed ordering.  THIS IS INCREDIBLY SENSITIVE TO ALL
+# KINDS OF THINGS DON'T TOUCH IT.
+  - def:
+      rb: runner = tbl
+  - def:
+      rb: subrunner = class << runner; def run(*args); args[-1] = {batch_conf:{max_els:100, max_size:1000000000000, max_dur:10000000000}}; self.orderby('a', index:'idi').run(*args).to_a.count; end; end
+  - rb: runner
+    ot: 303

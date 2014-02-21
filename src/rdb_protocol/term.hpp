@@ -35,6 +35,9 @@ public:
     // Allocates a new value in the current environment.
     counted_t<val_t> new_val(counted_t<const datum_t> d);
     counted_t<val_t> new_val(counted_t<const datum_t> d, counted_t<table_t> t);
+    counted_t<val_t> new_val(counted_t<const datum_t> d,
+                             counted_t<const datum_t> orig_key,
+                             counted_t<table_t> t);
     counted_t<val_t> new_val(env_t *env, counted_t<datum_stream_t> s);
     counted_t<val_t> new_val(counted_t<datum_stream_t> s, counted_t<table_t> t);
     counted_t<val_t> new_val(counted_t<const db_t> db);
@@ -50,7 +53,7 @@ public:
     virtual void accumulate_captures(var_captures_t *captures) const = 0;
 
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) = 0;
+    virtual counted_t<val_t> term_eval(scope_env_t *env, eval_flags_t) = 0;
     protob_t<const Term> src;
 
     DISABLE_COPYING(term_t);

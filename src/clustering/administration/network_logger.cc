@@ -22,11 +22,12 @@ void network_logger_t::on_change() {
     std::set<machine_id_t> servers_seen;
     std::set<peer_id_t> proxies_seen;
 
-    /* C++11: auto op = [&](const change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> *directory) -> void { ... }
-    Because we cannot use C++11 lambdas yet due to missing support in
-    GCC 4.4, this is the messy work-around: */
     struct op_closure_t {
-        void operator()(const change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> *directory) {
+        static void apply(const machines_semilattice_metadata_t &_semilattice,
+                          std::set<machine_id_t> *_servers_seen,
+                          std::set<peer_id_t> *_proxies_seen,
+                          network_logger_t *parent,
+                          const change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> *directory) {
             for (auto it = directory->get_inner().begin(); it != directory->get_inner().end(); it++) {
                 if (it->first == parent->us) {
                     continue;
@@ -36,12 +37,13 @@ void network_logger_t::on_change() {
                         break;
                     }
                     case SERVER_PEER: {
-                        servers_seen.insert(it->second.machine_id);
-                        machines_semilattice_metadata_t::machine_map_t::iterator jt = semilattice.machines.find(it->second.machine_id);
+                        _servers_seen->insert(it->second.machine_id);
+                        machines_semilattice_metadata_t::machine_map_t::const_iterator jt
+                            = _semilattice.machines.find(it->second.machine_id);
                         /* If they don't appear in the machines map, assume that they're
                         a new machine and that an entry for them will appear as soon as
                         the semilattice finishes syncing. */
-                        if (jt != semilattice.machines.end()) {
+                        if (jt != _semilattice.machines.end()) {
                             if (parent->connected_servers.count(it->second.machine_id) == 0) {
                                 parent->connected_servers.insert(it->second.machine_id);
                                 logINF("Connected to server %s", parent->pretty_print_machine(it->second.machine_id).c_str());
@@ -50,7 +52,7 @@ void network_logger_t::on_change() {
                         break;
                     }
                     case PROXY_PEER: {
-                        proxies_seen.insert(it->first);
+                        _proxies_seen->insert(it->first);
                         if (parent->connected_proxies.count(it->first)) {
                             logINF("Connected to proxy %s", uuid_to_str(it->first.get_uuid()).c_str());
                         }
@@ -60,22 +62,14 @@ void network_logger_t::on_change() {
                 }
             }
         }
-        op_closure_t(machines_semilattice_metadata_t &c1,
-                     std::set<machine_id_t> &c2,
-                     std::set<peer_id_t> &c3,
-                     network_logger_t *c4) :
-            semilattice(c1),
-            servers_seen(c2),
-            proxies_seen(c3),
-            parent(c4) { }
-        machines_semilattice_metadata_t &semilattice;
-        std::set<machine_id_t> &servers_seen;
-        std::set<peer_id_t> &proxies_seen;
-        network_logger_t *parent; // Parent would go away in a C++11 lambda
     };
-    op_closure_t op(semilattice, servers_seen, proxies_seen, this);
 
-    directory_view->apply_read(std::bind(&op_closure_t::operator(), &op, std::placeholders::_1));
+    directory_view->apply_read(std::bind(&op_closure_t::apply,
+                                         std::ref(semilattice),
+                                         &servers_seen,
+                                         &proxies_seen,
+                                         this,
+                                         ph::_1));
 
     std::set<machine_id_t> connected_servers_copy = connected_servers;
     for (std::set<machine_id_t>::iterator it = connected_servers_copy.begin(); it != connected_servers_copy.end(); it++) {

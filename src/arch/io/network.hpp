@@ -283,7 +283,7 @@ private:
     void internal_flush_write_buffer();
 
     /* Used to queue up buffers to write. The functions in `write_queue` will all be
-    `boost::bind()`s of the `perform_write()` function below. */
+    `std::bind()`s of the `perform_write()` function below. */
     unlimited_fifo_queue_t<write_queue_op_t*, intrusive_list_t<write_queue_op_t> > write_queue;
 
     /* This semaphore prevents the write queue from getting arbitrarily big. */
@@ -351,7 +351,7 @@ protected:
 
 private:
     static const uint32_t MAX_BIND_ATTEMPTS = 20;
-    void init_sockets();
+    int init_sockets();
     bool bind_sockets_internal(int *port_out);
 
     /* accept_loop() runs in a separate coroutine. It repeatedly tries to accept

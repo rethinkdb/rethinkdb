@@ -1,9 +1,10 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_BROADCASTER_HPP_
 #define CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_BROADCASTER_HPP_
 
 #include <list>
 #include <map>
+#include <vector>
 
 #include "utils.hpp"
 #include <boost/shared_ptr.hpp>
@@ -38,11 +39,6 @@ private:
     class incomplete_write_t;
 
 public:
-    /* If the number of calls to `spawn_write()` minus the number of writes that
-    have completed is equal to `MAX_OUTSTANDING_WRITES`, it's illegal to call
-    `spawn_write()` again. */
-    static const int MAX_OUTSTANDING_WRITES;
-
     class write_callback_t {
     public:
         write_callback_t();
@@ -175,7 +171,6 @@ private:
     std::list<boost::shared_ptr<incomplete_write_t> > incomplete_writes;
     state_timestamp_t current_timestamp, newest_complete_timestamp;
     order_checkpoint_t order_checkpoint;
-    semaphore_assertion_t enforce_max_outstanding_writes;
 
     std::map<dispatchee_t *, auto_drainer_t::lock_t> dispatchees;
     intrusive_list_t<dispatchee_t> readable_dispatchees;

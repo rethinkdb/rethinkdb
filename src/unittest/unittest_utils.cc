@@ -1,8 +1,4 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
-#define private public
-#include "rdb_protocol/protocol.hpp"
-#undef private
-
 #include "unittest/unittest_utils.hpp"
 
 #include <stdlib.h>
@@ -14,29 +10,36 @@
 
 #include "arch/timing.hpp"
 #include "arch/runtime/starter.hpp"
+#include "rdb_protocol/protocol.hpp"
 #include "unittest/gtest.hpp"
 #include "utils.hpp"
 
 namespace unittest {
 
+struct make_sindex_read_t {
+    static rdb_protocol_t::read_t make_sindex_read(
+            counted_t<const ql::datum_t> key, const std::string &id) {
+        datum_range_t rng(key, key_range_t::closed, key, key_range_t::closed);
+        return rdb_protocol_t::read_t(
+            rdb_protocol_t::rget_read_t(
+                rdb_protocol_t::region_t::universe(),
+                std::map<std::string, ql::wire_func_t>(),
+                ql::batchspec_t::user(ql::batch_type_t::NORMAL,
+                                      counted_t<const ql::datum_t>()),
+                std::vector<rdb_protocol_details::transform_variant_t>(),
+                boost::optional<rdb_protocol_details::terminal_variant_t>(),
+                rdb_protocol_t::sindex_rangespec_t(
+                    id,
+                    rdb_protocol_t::region_t(rng.to_sindex_keyrange()),
+                    rng),
+                sorting_t::UNORDERED),
+            profile_bool_t::PROFILE);
+    }
+};
+
 rdb_protocol_t::read_t make_sindex_read(
-    counted_t<const ql::datum_t> key, const std::string &id) {
-    using namespace rdb_protocol_details;
-    datum_range_t rng(key, key_range_t::closed, key, key_range_t::closed);
-    return rdb_protocol_t::read_t(
-        rdb_protocol_t::rget_read_t(
-            rdb_protocol_t::region_t::universe(),
-            std::map<std::string, ql::wire_func_t>(),
-            ql::batchspec_t::user(ql::batch_type_t::NORMAL,
-                                  counted_t<const ql::datum_t>()),
-            transform_t(),
-            boost::optional<terminal_t>(),
-            rdb_protocol_t::sindex_rangespec_t(
-                id,
-                rdb_protocol_t::region_t(rng.to_sindex_keyrange()),
-                rng),
-            sorting_t::UNORDERED),
-        profile_bool_t::PROFILE);
+        counted_t<const ql::datum_t> key, const std::string &id) {
+    return make_sindex_read_t::make_sindex_read(key, id);
 }
 
 serializer_filepath_t manual_serializer_filepath(const std::string &permanent_path,
@@ -57,7 +60,7 @@ temp_file_t::temp_file_t() {
 
         // Check that both the permanent and temporary file paths are unused.
         const std::string tmpfilename = std::string(tmpl) + temp_file_create_suffix;
-        if (::access(tmpfilename.c_str(), F_OK) == -1 && errno == ENOENT) {
+        if (::access(tmpfilename.c_str(), F_OK) == -1 && get_errno() == ENOENT) {
             filename = tmpl;
             break;
         } else {
@@ -70,9 +73,9 @@ temp_file_t::temp_file_t() {
 temp_file_t::~temp_file_t() {
     // Unlink both possible locations of the file.
     const int res1 = ::unlink(name().temporary_path().c_str());
-    EXPECT_TRUE(res1 == 0 || errno == ENOENT);
+    EXPECT_TRUE(res1 == 0 || get_errno() == ENOENT);
     const int res2 = ::unlink(name().permanent_path().c_str());
-    EXPECT_TRUE(res2 == 0 || errno == ENOENT);
+    EXPECT_TRUE(res2 == 0 || get_errno() == ENOENT);
 }
 
 serializer_filepath_t temp_file_t::name() const {

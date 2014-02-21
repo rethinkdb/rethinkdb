@@ -29,6 +29,7 @@ static const int SEQUENCE_TYPE = val_t::type_t::SEQUENCE * MAX_TYPE;
 static const int SINGLE_SELECTION_TYPE = val_t::type_t::SINGLE_SELECTION * MAX_TYPE;
 static const int DATUM_TYPE = val_t::type_t::DATUM * MAX_TYPE;
 static const int FUNC_TYPE = val_t::type_t::FUNC * MAX_TYPE;
+static const int GROUPED_DATA_TYPE = val_t::type_t::GROUPED_DATA * MAX_TYPE;
 
 static const int R_NULL_TYPE = val_t::type_t::DATUM * MAX_TYPE + datum_t::R_NULL;
 static const int R_BOOL_TYPE = val_t::type_t::DATUM * MAX_TYPE + datum_t::R_BOOL;
@@ -48,7 +49,8 @@ public:
         map["SELECTION<OBJECT>"] = SINGLE_SELECTION_TYPE;
         map["DATUM"] = DATUM_TYPE;
         map["FUNCTION"] = FUNC_TYPE;
-        CT_ASSERT(val_t::type_t::FUNC < MAX_TYPE);
+        map["GROUPED_DATA"] = GROUPED_DATA_TYPE;
+        CT_ASSERT(val_t::type_t::GROUPED_DATA < MAX_TYPE);
 
         map["NULL"] = R_NULL_TYPE;
         map["BOOL"] = R_BOOL_TYPE;
@@ -62,6 +64,7 @@ public:
                  it = map.begin(); it != map.end(); ++it) {
             rmap[it->second] = it->first;
         }
+        guarantee(map.size() == rmap.size());
     }
     int get_type(const std::string &s, const rcheckable_t *caller) const {
         std::map<std::string, int>::const_iterator it = map.find(s);
@@ -94,6 +97,7 @@ private:
         case val_t::type_t::SINGLE_SELECTION:
         case val_t::type_t::DATUM:
         case val_t::type_t::FUNC:
+        case val_t::type_t::GROUPED_DATA:
         default: break;
         }
         switch (t2) {
@@ -144,7 +148,7 @@ private:
         }
         int start_type = merge_types(start_supertype, start_subtype);
 
-        std::string end_type_name = arg(env, 1)->as_str();
+        std::string end_type_name = arg(env, 1)->as_str().to_std();
         int end_type = get_type(end_type_name, this);
 
         // Identity
@@ -182,7 +186,7 @@ private:
 
                 // STR -> NUM
                 if (start_type == R_STR_TYPE && end_type == R_NUM_TYPE) {
-                    const std::string &s = d->as_str();
+                    const wire_string_t &s = d->as_str();
                     double dbl;
                     char end; // Used to ensure that there's no trailing garbage.
                     if (sscanf(s.c_str(), "%lf%c", &dbl, &end) == 1) {
@@ -210,17 +214,7 @@ private:
 
             // SEQUENCE -> ARRAY
             if (end_type == R_ARRAY_TYPE || end_type == DATUM_TYPE) {
-                datum_ptr_t arr(datum_t::R_ARRAY);
-                batchspec_t batchspec
-                    = batchspec_t::user(batch_type_t::TERMINAL, env->env);
-                {
-                    profile::sampler_t sampler("Coercing to array.", env->env->trace);
-                    while (auto el = ds->next(env->env, batchspec)) {
-                        arr.add(el);
-                        sampler.new_sample();
-                    }
-                }
-                return new_val(arr.to_counted());
+                return ds->to_array(env->env);
             }
 
             // SEQUENCE -> OBJECT
@@ -229,17 +223,17 @@ private:
                 batchspec_t batchspec
                     = batchspec_t::user(batch_type_t::TERMINAL, env->env);
                 {
-                    profile::sampler_t sampler("Coercing to array.", env->env->trace);
+                    profile::sampler_t sampler("Coercing to object.", env->env->trace);
                     while (auto pair = ds->next(env->env, batchspec)) {
-                        std::string key = pair->get(0)->as_str();
+                        std::string key = pair->get(0)->as_str().to_std();
                         counted_t<const datum_t> keyval = pair->get(1);
                         bool b = obj.add(key, keyval);
                         rcheck(!b, base_exc_t::GENERIC,
-                               strprintf("Duplicate key %s in coerced object.  "
-                                         "(got %s and %s as values)",
+                               strprintf("Duplicate key `%s` in coerced object.  "
+                                         "(got `%s` and `%s` as values)",
                                          key.c_str(),
-                                         obj->get(key)->print().c_str(),
-                                         keyval->print().c_str()));
+                                         obj->get(key)->trunc_print().c_str(),
+                                         keyval->trunc_print().c_str()));
                         sampler.new_sample();
                     }
                 }
@@ -275,17 +269,22 @@ private:
         if (v->get_type().raw_type == val_t::type_t::DATUM) {
             counted_t<const datum_t> d = v->as_datum();
             return new_val(make_counted<const datum_t>(d->get_type_name()));
+        } else if (v->get_type().raw_type == val_t::type_t::SEQUENCE
+                   && v->as_seq(env->env)->is_grouped()) {
+            return new_val(make_counted<const datum_t>("GROUPED_STREAM"));
         } else {
             return new_val(
-                make_counted<const datum_t>(get_name(val_type(arg(env, 0)))));
+                make_counted<const datum_t>(get_name(val_type(v))));
         }
     }
     virtual const char *name() const { return "typeof"; }
+    virtual bool can_be_grouped() { return false; }
 };
 
 class info_term_t : public op_term_t {
 public:
-    info_term_t(compile_env_t *env, const protob_t<const Term> &term) : op_term_t(env, term, argspec_t(1)) { }
+    info_term_t(compile_env_t *env, const protob_t<const Term> &term)
+        : op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         return new_val(val_info(env, arg(env, 0)));
@@ -346,6 +345,7 @@ private:
     }
 
     virtual const char *name() const { return "info"; }
+    virtual bool can_be_grouped() { return false; }
 };
 
 counted_t<term_t> make_coerce_term(compile_env_t *env, const protob_t<const Term> &term) {

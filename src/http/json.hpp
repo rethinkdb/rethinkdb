@@ -4,13 +4,14 @@
 
 #include <string>
 #include <set>
+#include <utility>
 
 #include "http/json/cJSON.hpp"
 #include "containers/archive/archive.hpp"
 
 class http_res_t;
 
-http_res_t http_json_res(cJSON *json);
+void http_json_res(cJSON *json, http_res_t *result);
 
 //TODO: do we both merge and cJSON_merge?
 //Merge two cJSON objects, crashes if there are overlapping keys

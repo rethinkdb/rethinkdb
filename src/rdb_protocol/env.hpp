@@ -29,7 +29,7 @@ counted_t<const datum_t> static_optarg(const std::string &key, protob_t<Query> q
 class global_optargs_t {
 public:
     global_optargs_t();
-    global_optargs_t(protob_t<Query> q);
+    explicit global_optargs_t(protob_t<Query> q);
 
     // Returns whether or not there was a key conflict.
     MUST_USE bool add_optarg(const std::string &key, const Term &val);
@@ -83,7 +83,7 @@ public:
 class env_t : public home_thread_mixin_t {
 public:
     typedef namespaces_semilattice_metadata_t<rdb_protocol_t> ns_metadata_t;
-    // This is copied basically verbatim from old code.
+
     env_t(
         extproc_pool_t *_extproc_pool,
         base_namespace_repo_t<rdb_protocol_t> *_ns_repo,
@@ -116,13 +116,18 @@ public:
         uuid_u _this_machine,
         profile_bool_t _profile);
 
-    explicit env_t(signal_t *);
+    env_t(rdb_protocol_t::context_t *ctx, signal_t *interruptor);
 
     ~env_t();
     void throw_if_interruptor_pulsed() THROWS_ONLY(interrupted_exc_t) {
         if (interruptor->is_pulsed()) throw interrupted_exc_t();
     }
 
+    static const uint32_t EVALS_BEFORE_YIELD = 256;
+    uint32_t evals_since_yield;
+
+    // Will yield after EVALS_BEFORE_YIELD calls
+    void maybe_yield();
 
     // Returns js_runner, but first calls js_runner->begin() if it hasn't
     // already been called.

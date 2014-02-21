@@ -1,10 +1,10 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef BTREE_DEPTH_FIRST_TRAVERSAL_HPP_
 #define BTREE_DEPTH_FIRST_TRAVERSAL_HPP_
 
 #include "btree/keys.hpp"
 #include "btree/slice.hpp"
-#include "buffer_cache/buffer_cache.hpp"
+#include "buffer_cache/alt/alt.hpp"
 #include "containers/archive/archive.hpp"
 
 class superblock_t;
@@ -15,7 +15,8 @@ class counted_buf_lock_t : public buf_lock_t,
                            public single_threaded_countable_t<counted_buf_lock_t> {
 public:
     template <class... Args>
-    counted_buf_lock_t(Args &&... args) : buf_lock_t(std::forward<Args>(args)...) { }
+    explicit counted_buf_lock_t(Args &&... args)
+        : buf_lock_t(std::forward<Args>(args)...) { }
 };
 
 // A btree leaf key/value pair that also owns a reference to the buf_lock_t that
@@ -45,9 +46,13 @@ public:
         guarantee(buf_.has());
         return value_;
     }
+    buf_parent_t expose_buf() {
+        guarantee(buf_.has());
+        return buf_parent_t(buf_.get());
+    }
 
-    // Releases the hold on the buf_lock_t, after which key() and value() may not be
-    // used.
+    // Releases the hold on the buf_lock_t, after which key(), value(), and
+    // expose_buf() may not be used.
     void reset() { buf_.reset(); }
 
 private:
@@ -75,8 +80,9 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(direction_t, int8_t, FORWARD, BACKWARD);
 
 /* Returns `true` if we reached the end of the btree or range, and `false` if
 `cb->handle_value()` returned `false`. */
-bool btree_depth_first_traversal(btree_slice_t *slice, transaction_t *transaction,
-        superblock_t *superblock, const key_range_t &range,
-        depth_first_traversal_callback_t *cb, direction_t direction);
+bool btree_depth_first_traversal(btree_slice_t *slice, superblock_t *superblock,
+                                 const key_range_t &range,
+                                 depth_first_traversal_callback_t *cb,
+                                 direction_t direction);
 
 #endif /* BTREE_DEPTH_FIRST_TRAVERSAL_HPP_ */

@@ -31,12 +31,24 @@ run: $(TEST_FILES) cursor connect
 
 .PHONY: py
 py: py_connect py_cursor py_polyglot
+py_connect py_cursor py_polyglot: py_build
+
+py_build:
+	MAKEFLAGS= make -C ../../drivers/python
 
 .PHONY: js
 js: js_connect js_cursor js_polyglot
+js_connect js_cursor js_polyglot: js_build
+
+js_build:
+	MAKEFLAGS= make -C ../../drivers/javascript
 
 .PHONY: rb
-rb: rb_polyglot
+rb: rb_polyglot rb_server
+rb_polyglot: rb_build
+
+rb_build:
+	MAKEFLAGS= make -C ../../drivers/ruby
 
 .PHONY: py_polyglot
 py_polyglot: $(TEST_FILES)
@@ -49,6 +61,10 @@ js_polyglot: $(TEST_FILES)
 .PHONY: rb_polyglot
 rb_polyglot: $(TEST_FILES)
 	./test-runner run \"$(BUILD_DIR)\" \"rb\"
+
+.PHONY: rb_server
+rb_server: $(TEST_FILES)
+	./test-runner run \"$(BUILD_DIR)\" \"rb_server\"
 
 .PHONY: attach
 attach: $(TEST_FILES)

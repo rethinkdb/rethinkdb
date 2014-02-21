@@ -28,7 +28,6 @@
 #include "memcached/tcp_conn.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "mock/dummy_protocol_parser.hpp"
-#include "rdb_protocol/parser.hpp"
 #include "rdb_protocol/pb_server.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rpc/connectivity/cluster.hpp"
@@ -99,7 +98,7 @@ bool do_serve(
         connectivity_cluster_t connectivity_cluster;
         message_multiplexer_t message_multiplexer(&connectivity_cluster);
 
-        message_multiplexer_t::client_t heartbeat_manager_client(&message_multiplexer, 'H');
+        message_multiplexer_t::client_t heartbeat_manager_client(&message_multiplexer, 'H', SEMAPHORE_NO_LIMIT);
         heartbeat_manager_t heartbeat_manager(&heartbeat_manager_client);
         message_multiplexer_t::client_t::run_t heartbeat_manager_client_run(&heartbeat_manager_client, &heartbeat_manager);
 
@@ -245,7 +244,8 @@ bool do_serve(
                                           semilattice_manager_cluster.get_root_view(),
                                           auth_manager_cluster.get_root_view(),
                                           &directory_read_manager,
-                                          machine_id);
+                                          machine_id,
+                                          &get_global_perfmon_collection());
 
         namespace_repo_t<rdb_protocol_t> rdb_namespace_repo(&mailbox_manager,
             directory_read_manager.get_root_view()->incremental_subview(
@@ -376,8 +376,6 @@ bool do_serve(
                     &local_issue_tracker,
                     &perfmon_repo);
 
-                rdb_protocol::query_http_app_t rdb_parser(semilattice_manager_cluster.get_root_view(), &rdb_namespace_repo);
-
                 query2_server_t rdb_pb2_server(address_ports.local_addresses,
                                                address_ports.reql_port, &rdb_ctx);
                 logINF("Listening for client driver connections on port %d\n",
@@ -469,6 +467,9 @@ bool do_serve(
         logINF("Storage engine shut down.\n");
 
     } catch (const address_in_use_exc_t &ex) {
+        logERR("%s.\n", ex.what());
+        return false;
+    } catch (const tcp_socket_exc_t &ex) {
         logERR("%s.\n", ex.what());
         return false;
     }

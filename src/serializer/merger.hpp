@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef SERIALIZER_MERGER_HPP_
 #define SERIALIZER_MERGER_HPP_
 
@@ -10,7 +10,7 @@
 #include "containers/scoped.hpp"
 #include "serializer/serializer.hpp"
 
-/* 
+/*
  * The merger serializer is a wrapper around another serializer. It limits
  * the number of active index_writes. If more index_writes come in while
  * `max_active_writes` index_writes are already going on, the new index
@@ -18,7 +18,7 @@
  * The advantage of this is that multiple index writes (e.g. coming from different
  * hash shards) can be merged together, improving efficiency and significantly
  * reducing the number of disk seeks on rotational drives.
- * 
+ *
  */
 
 class merger_serializer_t : public serializer_t {
@@ -30,13 +30,10 @@ public:
     /* serializer_t interface */
 
     scoped_malloc_t<ser_buffer_t> malloc() { return inner->malloc(); }
-    scoped_malloc_t<ser_buffer_t> clone(const ser_buffer_t *b) {
-        return inner->clone(b);
-    }
 
     /* Allocates a new io account for the underlying file.
     Use delete to free it. */
-    file_account_t *make_io_account(int priority) { return inner->make_io_account(priority); }
+    using serializer_t::make_io_account;
     file_account_t *make_io_account(int priority, int outstanding_requests_limit) {
         return inner->make_io_account(priority, outstanding_requests_limit);
     }
@@ -73,8 +70,10 @@ public:
      * created. */
     block_id_t max_block_id() { return inner->max_block_id(); }
 
-    /* Gets a block's timestamp.  This may return repli_timestamp_t::invalid. */
-    repli_timestamp_t get_recency(block_id_t id) { return inner->get_recency(id); }
+    segmented_vector_t<repli_timestamp_t> get_all_recencies(block_id_t first,
+                                                            block_id_t step) {
+        return inner->get_all_recencies(first, step);
+    }
 
     /* Reads the block's delete bit. */
     bool get_delete_bit(block_id_t id) { return inner->get_delete_bit(id); }
@@ -99,7 +98,7 @@ public:
     }
 
     /* The size, in bytes, of each serializer block */
-    block_size_t get_block_size() const { return inner->get_block_size(); }
+    block_size_t max_block_size() const { return inner->max_block_size(); }
 
     /* Return true if no other processes have the file locked */
     bool coop_lock_and_check() { return inner->coop_lock_and_check(); }
@@ -122,7 +121,8 @@ private:
     // Index writes which are currently outstanding keep a pointer to this condition.
     // It is pulsed once the write completes.
     class counted_cond_t : public cond_t,
-                           public single_threaded_countable_t<counted_cond_t> { };
+                           public single_threaded_countable_t<counted_cond_t> {
+    };
     counted_t<counted_cond_t> on_inner_index_write_complete;
     bool unhandled_index_write_waiter_exists;
 
@@ -130,7 +130,7 @@ private:
     int max_active_writes;
 
     void do_index_write();
-    
+
     DISABLE_COPYING(merger_serializer_t);
 };
 

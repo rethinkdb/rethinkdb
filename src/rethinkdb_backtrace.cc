@@ -1,8 +1,9 @@
 #include "rethinkdb_backtrace.hpp"
 
+#include <execinfo.h>
+
 #ifdef __MACH__
 
-#include <execinfo.h>
 #include <pthread.h>
 #include <stdlib.h>
 
@@ -79,7 +80,7 @@ int rethinkdb_backtrace(void **buffer, int size) {
         void *const stackaddr = pthread_get_stackaddr_np(self);
         const size_t stacksize = pthread_get_stacksize_np(self);
 
-        artificial_stack_t *const stack = coro->get_stack();
+        coro_stack_t *const stack = coro->get_stack();
         void *const coro_addr = stack->get_stack_base();
         const size_t coro_size = static_cast<char *>(coro_addr)
             - static_cast<char *>(stack->get_stack_bound());
@@ -92,9 +93,9 @@ int rethinkdb_backtrace(void **buffer, int size) {
 }
 
 #else
-#include <execinfo.h>
 
 int rethinkdb_backtrace(void **buffer, int size) {
     return backtrace(buffer, size);
 }
+
 #endif  // __MACH__

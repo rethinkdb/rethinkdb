@@ -63,7 +63,7 @@ protected:
 
 class message_handler_t {
 public:
-    virtual void on_message(peer_id_t source_peer, string_read_stream_t *) = 0;
+    virtual void on_message(peer_id_t source_peer, read_stream_t *) = 0;
 protected:
     virtual ~message_handler_t() { }
 };

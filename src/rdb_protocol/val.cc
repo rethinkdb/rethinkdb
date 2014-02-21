@@ -7,8 +7,6 @@
 #include "rdb_protocol/minidriver.hpp"
 #include "rdb_protocol/term.hpp"
 
-#pragma GCC diagnostic ignored "-Wshadow"
-
 namespace ql {
 
 table_t::table_t(env_t *env,
@@ -28,10 +26,8 @@ table_t::table_t(env_t *env,
                      name.c_str(), name_string_t::valid_char_msg));
     cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > namespaces_metadata
         = env->cluster_access.namespaces_semilattice_metadata->get();
-    cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t
-        namespaces_metadata_change(&namespaces_metadata);
-    metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >
-        ns_searcher(&namespaces_metadata_change.get()->namespaces);
+    const_metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >
+        ns_searcher(&namespaces_metadata.get()->namespaces);
     // TODO: fold into iteration below
     namespace_predicate_t pred(&table_name, &db_id);
     uuid_u id = meta_get_uuid(&ns_searcher, pred,
@@ -41,7 +37,7 @@ table_t::table_t(env_t *env,
     access.init(new rdb_namespace_access_t(id, env));
 
     metadata_search_status_t status;
-    metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >::iterator
+    const_metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >::iterator
         ns_metadata_it = ns_searcher.find_uniq(pred, &status);
     rcheck(status == METADATA_SUCCESS,
            base_exc_t::GENERIC,
@@ -84,15 +80,17 @@ counted_t<const datum_t> table_t::do_batched_write(
 
 counted_t<const datum_t> table_t::batched_replace(
     env_t *env,
-    const std::vector<counted_t<const datum_t> > &original_values,
+    const std::vector<counted_t<const datum_t> > &vals,
+    const std::vector<counted_t<const datum_t> > &keys,
     counted_t<func_t> replacement_generator,
     bool nondeterministic_replacements_ok,
     durability_requirement_t durability_requirement,
     bool return_vals) {
+    r_sanity_check(vals.size() == keys.size());
 
-    if (original_values.empty()) {
+    if (vals.empty()) {
         return make_counted<const datum_t>(ql::datum_t::R_OBJECT);
-    } else if (original_values.size() != 1) {
+    } else if (vals.size() != 1) {
         r_sanity_check(!return_vals);
     }
 
@@ -100,12 +98,12 @@ counted_t<const datum_t> table_t::batched_replace(
         r_sanity_check(nondeterministic_replacements_ok);
         datum_ptr_t stats(datum_t::R_OBJECT);
         std::vector<counted_t<const datum_t> > replacement_values;
-        replacement_values.reserve(original_values.size());
-        for (auto it = original_values.begin(); it != original_values.end(); ++it) {
+        replacement_values.reserve(vals.size());
+        for (size_t i = 0; i < vals.size(); ++i) {
             counted_t<const datum_t> new_val;
             try {
-                new_val = replacement_generator->call(env, *it)->as_datum();
-                new_val->rcheck_valid_replace(*it, get_pkey());
+                new_val = replacement_generator->call(env, vals[i])->as_datum();
+                new_val->rcheck_valid_replace(vals[i], keys[i], get_pkey());
                 r_sanity_check(new_val.has());
                 replacement_values.push_back(new_val);
             } catch (const base_exc_t &e) {
@@ -117,15 +115,15 @@ counted_t<const datum_t> table_t::batched_replace(
             durability_requirement, return_vals);
         return stats.to_counted()->merge(insert_stats, stats_merge);
     } else {
-        std::vector<store_key_t> keys;
-        keys.reserve(original_values.size());
-        for (auto it = original_values.begin(); it != original_values.end(); ++it) {
-            keys.push_back(store_key_t((*it)->get(get_pkey())->print_primary()));
+        std::vector<store_key_t> store_keys;
+        store_keys.reserve(keys.size());
+        for (auto it = keys.begin(); it != keys.end(); ++it) {
+            store_keys.push_back(store_key_t((*it)->print_primary()));
         }
         return do_batched_write(
             env,
             rdb_protocol_t::batched_replace_t(
-                std::move(keys),
+                std::move(store_keys),
                 get_pkey(),
                 replacement_generator,
                 env->global_optargs.get_all_optargs(),
@@ -144,10 +142,11 @@ counted_t<const datum_t> table_t::batched_insert(
     datum_ptr_t stats(datum_t::R_OBJECT);
     std::vector<counted_t<const datum_t> > valid_inserts;
     valid_inserts.reserve(insert_datums.size());
-    counted_t<const datum_t> empty_old_val(new datum_t(datum_t::R_NULL));
     for (auto it = insert_datums.begin(); it != insert_datums.end(); ++it) {
         try {
-            (*it)->rcheck_valid_replace(empty_old_val, get_pkey());
+            (*it)->rcheck_valid_replace(counted_t<const datum_t>(),
+                                        counted_t<const datum_t>(),
+                                        get_pkey());
             counted_t<const ql::datum_t> keyval = (*it)->get(get_pkey(), ql::NOTHROW);
             (*it)->get(get_pkey())->print_primary(); // does error checking
             valid_inserts.push_back(std::move(*it));
@@ -381,21 +380,23 @@ val_t::type_t::type_t(val_t::type_t::raw_type_t _raw_type) : raw_type(_raw_type)
 bool raw_type_is_convertible(val_t::type_t::raw_type_t _t1,
                              val_t::type_t::raw_type_t _t2) {
     const int t1 = _t1, t2 = _t2,
-        DB = val_t::type_t::DB,
-        TABLE = val_t::type_t::TABLE,
-        SELECTION = val_t::type_t::SELECTION,
-        SEQUENCE = val_t::type_t::SEQUENCE,
+        DB               = val_t::type_t::DB,
+        TABLE            = val_t::type_t::TABLE,
+        SELECTION        = val_t::type_t::SELECTION,
+        SEQUENCE         = val_t::type_t::SEQUENCE,
         SINGLE_SELECTION = val_t::type_t::SINGLE_SELECTION,
-        DATUM = val_t::type_t::DATUM,
-        FUNC = val_t::type_t::FUNC;
+        DATUM            = val_t::type_t::DATUM,
+        FUNC             = val_t::type_t::FUNC,
+        GROUPED_DATA     = val_t::type_t::GROUPED_DATA;
     switch (t1) {
-    case DB: return t2 == DB;
-    case TABLE: return t2 == TABLE || t2 == SELECTION || t2 == SEQUENCE;
-    case SELECTION: return t2 == SELECTION || t2 == SEQUENCE;
-    case SEQUENCE: return t2 == SEQUENCE;
+    case DB:               return t2 == DB;
+    case TABLE:            return t2 == TABLE || t2 == SELECTION || t2 == SEQUENCE;
+    case SELECTION:        return t2 == SELECTION || t2 == SEQUENCE;
+    case SEQUENCE:         return t2 == SEQUENCE;
     case SINGLE_SELECTION: return t2 == SINGLE_SELECTION || t2 == DATUM;
-    case DATUM: return t2 == DATUM || t2 == SEQUENCE;
-    case FUNC: return t2 == FUNC;
+    case DATUM:            return t2 == DATUM || t2 == SEQUENCE;
+    case FUNC:             return t2 == FUNC;
+    case GROUPED_DATA:     return t2 == GROUPED_DATA;
     default: unreachable();
     }
 }
@@ -412,6 +413,7 @@ const char *val_t::type_t::name() const {
     case SINGLE_SELECTION: return "SINGLE_SELECTION";
     case DATUM: return "DATUM";
     case FUNC: return "FUNCTION";
+    case GROUPED_DATA: return "GROUPED_DATA";
     default: unreachable();
     }
 }
@@ -423,11 +425,32 @@ val_t::val_t(counted_t<const datum_t> _datum, protob_t<const Backtrace> backtrac
     guarantee(datum().has());
 }
 
+val_t::val_t(const counted_t<grouped_data_t> &groups,
+             protob_t<const Backtrace> bt)
+    : pb_rcheckable_t(bt),
+      type(type_t::GROUPED_DATA),
+      u(groups) {
+    guarantee(groups.has());
+}
+
 val_t::val_t(counted_t<const datum_t> _datum, counted_t<table_t> _table,
              protob_t<const Backtrace> backtrace)
     : pb_rcheckable_t(backtrace),
       type(type_t::SINGLE_SELECTION),
       table(_table),
+      u(_datum) {
+    guarantee(table.has());
+    guarantee(datum().has());
+}
+
+val_t::val_t(counted_t<const datum_t> _datum,
+             counted_t<const datum_t> _orig_key,
+             counted_t<table_t> _table,
+             protob_t<const Backtrace> backtrace)
+    : pb_rcheckable_t(backtrace),
+      type(type_t::SINGLE_SELECTION),
+      table(_table),
+      orig_key(_orig_key),
       u(_datum) {
     guarantee(table.has());
     guarantee(datum().has());
@@ -504,6 +527,11 @@ counted_t<datum_stream_t> val_t::as_seq(env_t *env) {
     }
     rcheck_literal_type(type_t::SEQUENCE);
     unreachable();
+}
+
+counted_t<grouped_data_t> val_t::as_grouped_data() {
+    rcheck_literal_type(type_t::GROUPED_DATA);
+    return boost::get<counted_t<grouped_data_t> >(u);
 }
 
 std::pair<counted_t<table_t>, counted_t<datum_stream_t> > val_t::as_selection(env_t *env) {
@@ -592,7 +620,7 @@ int64_t val_t::as_int() {
         rfail(e.get_type(), "%s", e.what());
     }
 }
-const std::string &val_t::as_str() {
+const wire_string_t &val_t::as_str() {
     try {
         counted_t<const datum_t> d = as_datum();
         r_sanity_check(d.has());
@@ -638,5 +666,8 @@ std::string val_t::trunc_print() const {
     }
 }
 
+counted_t<const datum_t> val_t::get_orig_key() const {
+    return orig_key;
+}
 
 } // namespace ql

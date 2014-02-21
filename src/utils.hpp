@@ -1,13 +1,6 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef UTILS_HPP_
 #define UTILS_HPP_
-
-#ifndef __STDC_FORMAT_MACROS
-#define __STDC_FORMAT_MACROS
-#endif
-#ifndef __STDC_LIMIT_MACROS
-#define __STDC_LIMIT_MACROS
-#endif
 
 #include <inttypes.h>
 #include <math.h>
@@ -18,6 +11,7 @@
 #include <valgrind/memcheck.h>
 #endif  // VALGRIND
 
+#include <functional>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -25,6 +19,8 @@
 #include "containers/printf_buffer.hpp"
 #include "errors.hpp"
 #include "config/args.hpp"
+
+namespace ph = std::placeholders;
 
 class Term;
 void pb_print(Term *t);
@@ -64,16 +60,24 @@ public:
     }
 };
 
-/* Pad a value to the size of a cache line to avoid false sharing.
- * TODO: This is implemented as a struct with subtraction rather than a union
- * so that it gives an error when trying to pad a value bigger than
- * CACHE_LINE_SIZE. If that's needed, this may have to be done differently.
+/* Forbid the following function definition to be inlined
+ * (note: some compilers might require `noinline` instead of `__attribute__ ((noinline))`)
  */
+#define NOINLINE __attribute__ ((noinline))
+
+/* Pad a value to the size of one or multiple cache lines to avoid false sharing.
+ */
+#define COMPUTE_PADDING_SIZE(value, alignment) \
+    (alignment) - ((((value) + (alignment) - 1) % (alignment)) + 1)
+
 template<typename value_t>
 struct cache_line_padded_t {
+    cache_line_padded_t() { }
+    explicit cache_line_padded_t(value_t const &_value) : value(_value) { }
     value_t value;
-    char padding[CACHE_LINE_SIZE - sizeof(value_t)];
+    char padding[COMPUTE_PADDING_SIZE(sizeof(value_t), CACHE_LINE_SIZE)];
 };
+#undef COMPUTE_PADDING_SIZE
 
 void *malloc_aligned(size_t size, size_t alignment);
 
@@ -139,6 +143,11 @@ void debugf_dump_buf(printf_buffer_t *buf);
 void debug_print(printf_buffer_t *buf, uint64_t x);
 void debug_print(printf_buffer_t *buf, const std::string& s);
 
+template <class T>
+void debug_print(printf_buffer_t *buf, T *ptr) {
+    buf->appendf("%p", ptr);
+}
+
 #ifndef NDEBUG
 void debugf(const char *msg, ...) __attribute__((format (printf, 1, 2)));
 template <class T>
@@ -170,6 +179,7 @@ private:
     std::string message;
 };
 
+
 class rng_t {
 public:
 // Returns a random number in [0, n).  Is not perfectly uniform; the
@@ -186,6 +196,7 @@ private:
 void get_dev_urandom(void *out, int64_t nbytes);
 
 int randint(int n);
+size_t randsize(size_t n);
 double randdouble();
 std::string rand_string(int len);
 
@@ -259,7 +270,11 @@ public:
 protected:
     explicit home_thread_mixin_t(threadnum_t specified_home_thread);
     home_thread_mixin_t();
+    home_thread_mixin_t(home_thread_mixin_t &&movee)
+        : real_home_thread(movee.real_home_thread) { }
     ~home_thread_mixin_t() { }
+
+    void operator=(home_thread_mixin_t &&) = delete;
 
     threadnum_t real_home_thread;
 

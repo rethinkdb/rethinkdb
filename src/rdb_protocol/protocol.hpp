@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_PROTOCOL_HPP_
 #define RDB_PROTOCOL_PROTOCOL_HPP_
 
@@ -16,7 +16,6 @@
 #include <boost/optional.hpp>
 
 #include "btree/btree_store.hpp"
-#include "btree/depth_first_traversal.hpp"
 #include "btree/keys.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/cond_var.hpp"
@@ -25,11 +24,7 @@
 #include "http/json/cJSON.hpp"
 #include "memcached/region.hpp"
 #include "protocol_api.hpp"
-#include "rdb_protocol/datum.hpp"
-#include "rdb_protocol/profile.hpp"
-#include "rdb_protocol/rdb_protocol_json.hpp"
-#include "rdb_protocol/wire_func.hpp"
-#include "rdb_protocol/batching.hpp"
+#include "rdb_protocol/shards.hpp"
 #include "utils.hpp"
 
 class extproc_pool_t;
@@ -44,7 +39,7 @@ template <class> class namespaces_semilattice_metadata_t;
 template <class> class semilattice_readwrite_view_t;
 class traversal_progress_combiner_t;
 
-using query_language::shared_scoped_less_t;
+namespace unittest { struct make_sindex_read_t; }
 
 enum class profile_bool_t {
     PROFILE,
@@ -74,13 +69,20 @@ RDB_DECLARE_SERIALIZABLE(Term);
 RDB_DECLARE_SERIALIZABLE(Datum);
 RDB_DECLARE_SERIALIZABLE(Backtrace);
 
-enum class sorting_t {
-    UNORDERED,
-    ASCENDING,
-    DESCENDING
+typedef ql::sorting_t sorting_t;
+
+class key_le_t {
+public:
+    explicit key_le_t(sorting_t _sorting) : sorting(_sorting) { }
+    bool operator()(const store_key_t &key1, const store_key_t &key2) const {
+        return (!reversed(sorting) && key1 <= key2)
+            || (reversed(sorting) && key2 <= key1);
+    }
+private:
+    sorting_t sorting;
 };
-// UNORDERED sortings aren't reversed
-bool reversed(sorting_t sorting);
+
+store_key_t key_max(sorting_t sorting);
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
         sorting_t, int8_t,
@@ -108,32 +110,28 @@ public:
 
     bool contains(counted_t<const ql::datum_t> val) const;
     bool is_universe() const;
+
     RDB_DECLARE_ME_SERIALIZABLE;
+
 private:
     // Only `readgen_t` and its subclasses should do anything fancy with a range.
+    // (Modulo unit tests.)
     friend class ql::readgen_t;
     friend class ql::primary_readgen_t;
     friend class ql::sindex_readgen_t;
+    friend struct unittest::make_sindex_read_t;
+
     key_range_t to_primary_keyrange() const;
     key_range_t to_sindex_keyrange() const;
+
     counted_t<const ql::datum_t> left_bound, right_bound;
     key_range_t::bound_t left_bound_type, right_bound_type;
 };
 
-struct filter_transform_t {
-    filter_transform_t() { }
-    filter_transform_t(const ql::wire_func_t &_filter_func,
-                       const boost::optional<ql::wire_func_t> &_default_filter_val)
-        : filter_func(_filter_func),
-          default_filter_val(_default_filter_val) { }
-
-    ql::wire_func_t filter_func;
-    boost::optional<ql::wire_func_t> default_filter_val;
-};
-
-RDB_DECLARE_SERIALIZABLE(filter_transform_t);
-
 namespace rdb_protocol_details {
+
+typedef ql::transform_variant_t transform_variant_t;
+typedef ql::terminal_variant_t terminal_variant_t;
 
 struct backfill_atom_t {
     store_key_t key;
@@ -152,38 +150,11 @@ struct backfill_atom_t {
 
 RDB_DECLARE_SERIALIZABLE(backfill_atom_t);
 
-typedef boost::variant<ql::map_wire_func_t,
-                       filter_transform_t,
-                       ql::concatmap_wire_func_t> transform_variant_t;
-typedef std::list<transform_variant_t> transform_t;
-
-typedef boost::variant<ql::gmr_wire_func_t,
-                       ql::count_wire_func_t,
-                       ql::reduce_wire_func_t> terminal_variant_t;
-typedef terminal_variant_t terminal_t;
-
 void bring_sindexes_up_to_date(
         const std::set<std::string> &sindexes_to_bring_up_to_date,
         btree_store_t<rdb_protocol_t> *store,
-        buf_lock_t *sindex_block,
-        transaction_t *txn)
+        buf_lock_t *sindex_block)
     THROWS_NOTHING;
-
-struct rget_item_t {
-    rget_item_t() { }
-    rget_item_t(const store_key_t &_key, counted_t<const ql::datum_t> _data)
-        : key(_key), data(_data) { }
-
-    rget_item_t(const store_key_t &_key, counted_t<const ql::datum_t> _sindex_key,
-                counted_t<const ql::datum_t> _data)
-        : key(_key), sindex_key(_sindex_key), data(_data) { }
-
-    RDB_DECLARE_ME_SERIALIZABLE;
-
-    store_key_t key;
-    boost::optional<counted_t<const ql::datum_t> > sindex_key;
-    counted_t<const ql::datum_t> data;
-};
 
 struct single_sindex_status_t {
     single_sindex_status_t()
@@ -227,13 +198,14 @@ struct rdb_protocol_t {
         context_t();
         context_t(extproc_pool_t *_extproc_pool,
                   namespace_repo_t<rdb_protocol_t> *_ns_repo,
-                  boost::shared_ptr<semilattice_readwrite_view_t<
+                  boost::shared_ptr< semilattice_readwrite_view_t<
                       cluster_semilattice_metadata_t> > _cluster_metadata,
-                  boost::shared_ptr<semilattice_readwrite_view_t<
+                  boost::shared_ptr< semilattice_readwrite_view_t<
                       auth_semilattice_metadata_t> > _auth_metadata,
                   directory_read_manager_t<
                       cluster_directory_metadata_t> *_directory_read_manager,
-                  uuid_u _machine_id);
+                  uuid_u _machine_id,
+                  perfmon_collection_t *global_stats);
         ~context_t();
 
         extproc_pool_t *extproc_pool;
@@ -241,14 +213,14 @@ struct rdb_protocol_t {
 
         /* These arrays contain a watchable for each thread.
          * ie cross_thread_namespace_watchables[0] is a watchable for thread 0. */
-        scoped_array_t<scoped_ptr_t<cross_thread_watchable_variable_t<cow_ptr_t<
+        scoped_array_t< scoped_ptr_t< cross_thread_watchable_variable_t< cow_ptr_t<
             namespaces_semilattice_metadata_t<rdb_protocol_t> > > > >
                 cross_thread_namespace_watchables;
-        scoped_array_t<scoped_ptr_t<cross_thread_watchable_variable_t<
+        scoped_array_t< scoped_ptr_t< cross_thread_watchable_variable_t<
             databases_semilattice_metadata_t> > > cross_thread_database_watchables;
-        boost::shared_ptr<semilattice_readwrite_view_t<
+        boost::shared_ptr< semilattice_readwrite_view_t<
             cluster_semilattice_metadata_t> > cluster_metadata;
-        boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> >
+        boost::shared_ptr< semilattice_readwrite_view_t<auth_semilattice_metadata_t> >
             auth_metadata;
         directory_read_manager_t<cluster_directory_metadata_t> *directory_read_manager;
         // TODO figure out where we're going to want to interrupt this from and
@@ -256,6 +228,11 @@ struct rdb_protocol_t {
         cond_t interruptor;
         scoped_array_t<scoped_ptr_t<cross_thread_signal_t> > signals;
         uuid_u machine_id;
+
+        perfmon_collection_t ql_stats_collection;
+        perfmon_membership_t ql_stats_membership;
+        perfmon_counter_t ql_ops_running;
+        perfmon_membership_t ql_ops_running_membership;
     };
 
     struct point_read_response_t {
@@ -267,38 +244,20 @@ struct rdb_protocol_t {
     };
 
     struct rget_read_response_t {
-         // Present if there was no terminal
-        typedef std::vector<rdb_protocol_details::rget_item_t> stream_t;
 
         class empty_t { RDB_MAKE_ME_SERIALIZABLE_0() };
 
-        typedef boost::variant<
-            // Error.
-            ql::exc_t,
-            ql::datum_exc_t,
-
-            // Result of a terminal.
-            counted_t<const ql::datum_t>,
-            empty_t, // for `reduce`, sometimes
-            ql::wire_datum_map_t, // for `gmr`, always
-
-            // Streaming Result.
-            stream_t
-            > result_t;
-
         key_range_t key_range;
-        result_t result;
+        ql::result_t result;
         bool truncated;
-        store_key_t last_considered_key;
+        store_key_t last_key;
 
-        // Code seems to depend on a default-initialized rget_read_response_t
-        // having a `stream_t` in this variant.  TODO: wtf?
-        rget_read_response_t() : result(stream_t()), truncated(false) { }
+        rget_read_response_t() : truncated(false) { }
         rget_read_response_t(
-            const key_range_t &_key_range, const result_t _result,
-            bool _truncated, const store_key_t &_last_considered_key)
+            const key_range_t &_key_range, const ql::result_t &_result,
+            bool _truncated, const store_key_t &_last_key)
             : key_range(_key_range), result(_result),
-              truncated(_truncated), last_considered_key(_last_considered_key) { }
+              truncated(_truncated), last_key(_last_key) { }
 
         RDB_DECLARE_ME_SERIALIZABLE;
     };
@@ -374,20 +333,22 @@ struct rdb_protocol_t {
     };
 
     class rget_read_t {
+        typedef rdb_protocol_details::transform_variant_t transform_variant_t;
+        typedef rdb_protocol_details::terminal_variant_t terminal_variant_t;
     public:
         rget_read_t() : batchspec(ql::batchspec_t::empty()) { }
 
         rget_read_t(const region_t &_region,
                     const std::map<std::string, ql::wire_func_t> &_optargs,
                     const ql::batchspec_t &_batchspec,
-                    const rdb_protocol_details::transform_t &_transform,
-                    boost::optional<rdb_protocol_details::terminal_t> &&_terminal,
+                    const std::vector<transform_variant_t> &_transforms,
+                    boost::optional<terminal_variant_t> &&_terminal,
                     boost::optional<sindex_rangespec_t> &&_sindex,
                     sorting_t _sorting)
             : region(_region),
               optargs(_optargs),
               batchspec(_batchspec),
-              transform(_transform),
+              transforms(_transforms),
               terminal(std::move(_terminal)),
               sindex(std::move(_sindex)),
               sorting(_sorting) { }
@@ -397,8 +358,8 @@ struct rdb_protocol_t {
         ql::batchspec_t batchspec; // used to size batches
 
         // We use these two for lazy maps, reductions, etc.
-        rdb_protocol_details::transform_t transform;
-        boost::optional<rdb_protocol_details::terminal_t> terminal;
+        std::vector<rdb_protocol_details::transform_variant_t> transforms;
+        boost::optional<rdb_protocol_details::terminal_variant_t> terminal;
 
         // This is non-empty if we're doing an sindex read.
         // TODO: `read_t` should maybe be multiple types.  Determining the type
@@ -436,7 +397,7 @@ struct rdb_protocol_t {
     class sindex_status_t {
     public:
         sindex_status_t() { }
-        sindex_status_t(const std::set<std::string> &_sindexes)
+        explicit sindex_status_t(const std::set<std::string> &_sindexes)
             : sindexes(_sindexes), region(region_t::universe())
         { }
         std::set<std::string> sindexes;
@@ -645,7 +606,7 @@ struct rdb_protocol_t {
 
         RDB_DECLARE_ME_SERIALIZABLE;
     };
-    
+
     class sync_t {
     public:
         sync_t()
@@ -809,9 +770,7 @@ struct rdb_protocol_t {
         void protocol_read(const read_t &read,
                            read_response_t *response,
                            btree_slice_t *btree,
-                           transaction_t *txn,
                            superblock_t *superblock,
-                           read_token_pair_t *token_pair,
                            signal_t *interruptor);
 
         friend struct write_visitor_t;
@@ -819,9 +778,7 @@ struct rdb_protocol_t {
                             write_response_t *response,
                             transition_timestamp_t timestamp,
                             btree_slice_t *btree,
-                            transaction_t *txn,
                             scoped_ptr_t<superblock_t> *superblock,
-                            write_token_pair_t *token_pair,
                             signal_t *interruptor);
 
         void protocol_send_backfill(const region_map_t<rdb_protocol_t, state_timestamp_t> &start_point,
@@ -829,23 +786,18 @@ struct rdb_protocol_t {
                                     superblock_t *superblock,
                                     buf_lock_t *sindex_block,
                                     btree_slice_t *btree,
-                                    transaction_t *txn,
                                     backfill_progress_t *progress,
                                     signal_t *interruptor)
                                     THROWS_ONLY(interrupted_exc_t);
 
         void protocol_receive_backfill(btree_slice_t *btree,
-                                       transaction_t *txn,
                                        superblock_t *superblock,
-                                       write_token_pair_t *token_pair,
                                        signal_t *interruptor,
                                        const backfill_chunk_t &chunk);
 
         void protocol_reset_data(const region_t& subregion,
                                  btree_slice_t *btree,
-                                 transaction_t *txn,
                                  superblock_t *superblock,
-                                 write_token_pair_t *token_pair,
                                  signal_t *interruptor);
         context_t *ctx;
     };

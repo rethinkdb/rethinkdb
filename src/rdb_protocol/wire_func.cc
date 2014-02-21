@@ -1,6 +1,7 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "rdb_protocol/wire_func.hpp"
 
+#include "containers/archive/archive.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/protocol.hpp"
@@ -46,7 +47,7 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(wire_func_type_t, int8_t,
 
 class wire_func_serialization_visitor_t : public func_visitor_t {
 public:
-    wire_func_serialization_visitor_t(write_message_t *_msg) : msg(_msg) { }
+    explicit wire_func_serialization_visitor_t(write_message_t *_msg) : msg(_msg) { }
 
     void on_reql_func(const reql_func_t *reql_func) {
         *msg << wire_func_type_t::REQL;
@@ -75,7 +76,7 @@ private:
 };
 
 
-void wire_func_t::rdb_serialize(write_message_t &msg) const {
+void wire_func_t::rdb_serialize(write_message_t &msg) const { // NOLINT
     wire_func_serialization_visitor_t v(&msg);
     func->visit(&v);
 }
@@ -102,8 +103,10 @@ archive_result_t wire_func_t::rdb_deserialize(read_stream_t *s) {
         res = deserialize(s, &*backtrace);
         if (res) { return res; }
 
-        compile_env_t env(scope.compute_visibility().with_func_arg_name_list(arg_names));
-        func = make_counted<reql_func_t>(backtrace, scope, arg_names, compile_term(&env, body));
+        compile_env_t env(
+            scope.compute_visibility().with_func_arg_name_list(arg_names));
+        func = make_counted<reql_func_t>(
+            backtrace, scope, arg_names, compile_term(&env, body));
         return res;
     } break;
     case wire_func_type_t::JS: {
@@ -127,6 +130,22 @@ archive_result_t wire_func_t::rdb_deserialize(read_stream_t *s) {
     }
 }
 
+group_wire_func_t::group_wire_func_t(std::vector<counted_t<func_t> > &&_funcs) {
+    funcs.reserve(_funcs.size());
+    for (size_t i = 0; i < _funcs.size(); ++i) {
+        funcs.push_back(wire_func_t(std::move(_funcs[i])));
+    }
+}
+std::vector<counted_t<func_t> > group_wire_func_t::compile_funcs() const {
+    std::vector<counted_t<func_t> > ret;
+    ret.reserve(funcs.size());
+    for (size_t i = 0; i < funcs.size(); ++i) {
+        ret.push_back(funcs[i].compile_wire_func());
+    }
+    return std::move(ret);
+}
+
+
 map_wire_func_t map_wire_func_t::make_safely(
     pb::dummy_var_t dummy_var,
     const std::function<protob_t<Term>(sym_t argname)> &body_generator,
@@ -137,21 +156,15 @@ map_wire_func_t map_wire_func_t::make_safely(
     return map_wire_func_t(body, make_vector(varname), backtrace);
 }
 
+RDB_IMPL_SERIALIZABLE_2(filter_wire_func_t, filter_func, default_filter_val);
 
-gmr_wire_func_t::gmr_wire_func_t(counted_t<func_t> _group,
-                                 counted_t<func_t> _map,
-                                 counted_t<func_t> _reduce)
-    : group(_group), map(_map), reduce(_reduce) { }
-
-counted_t<func_t> gmr_wire_func_t::compile_group() const {
-    return group.compile_wire_func();
-}
-counted_t<func_t> gmr_wire_func_t::compile_map() const {
-    return map.compile_wire_func();
-}
-counted_t<func_t> gmr_wire_func_t::compile_reduce() const {
-    return reduce.compile_wire_func();
+void bt_wire_func_t::rdb_serialize(write_message_t &msg) const { // NOLINT
+    msg << *bt;
 }
 
+archive_result_t bt_wire_func_t::rdb_deserialize(read_stream_t *s) {
+    // It's OK to cheat on const-ness during deserialization.
+    return deserialize(s, const_cast<Backtrace *>(&*bt));
+}
 
 }  // namespace ql

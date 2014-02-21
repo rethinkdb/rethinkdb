@@ -56,12 +56,9 @@ private:
     // debug mode.
     void do_store_message(threadnum_t nthread, linux_thread_message_t *msg);
 
-    // Moves messages from our own entry in queues_ onto incoming_messages_
-    void deliver_local_messages();
-
     // Moves messages from incoming_messages_ into the respective entries of
     // priority_msg_lists, depending on the messages' priorities.
-    void sort_incoming_messages_by_priority(bool reset_is_woken_up);
+    void sort_incoming_messages_by_priority();
 
     msg_list_t &get_priority_msg_list(int priority);
 

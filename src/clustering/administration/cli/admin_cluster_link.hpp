@@ -112,8 +112,9 @@ private:
     size_t get_machine_count_in_datacenter(const cluster_semilattice_metadata_t& cluster_metadata, const datacenter_id_t& datacenter);
 
     void do_metadata_update(cluster_semilattice_metadata_t *cluster_metadata,
-                            metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t *change_request,
-                            bool prioritize_distribution);
+            metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t *change_request,
+            const boost::optional<namespace_id_t> &prioritize_distr_for_ns
+                = boost::optional<namespace_id_t>());
 
     template <class protocol_t>
     std::string admin_merge_shard_internal(namespaces_semilattice_metadata_t<protocol_t> *ns_map,
@@ -374,6 +375,9 @@ private:
     template <class T>
     void add_subset_to_maps(const std::string& base, const T& data_map);
 
+    template <class T>
+    void add_ns_subset_to_maps(const std::string& base, const T& ns_map);
+
     metadata_info_t *get_info_from_id(const std::string& id);
 
     local_issue_tracker_t local_issue_tracker;
@@ -422,6 +426,7 @@ private:
     struct metadata_info_t {
         uuid_u uuid;
         std::string name;
+        std::string alt_name; // Used by namespaces for "db.table" notation
         std::vector<std::string> path;
     };
 

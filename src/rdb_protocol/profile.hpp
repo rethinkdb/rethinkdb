@@ -1,7 +1,8 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_PROFILE_HPP_
 #define RDB_PROTOCOL_PROFILE_HPP_
 
+#include <string>
 #include <vector>
 
 #include "errors.hpp"
@@ -66,7 +67,7 @@ class trace_t {
 public:
     trace_t();
     counted_t<const ql::datum_t> as_datum();
-    event_log_t &&get_event_log() RVALUE_THIS;
+    event_log_t extract_event_log() RVALUE_THIS;
 private:
     friend class starter_t;
     friend class splitter_t;
@@ -122,8 +123,8 @@ private:
  * {
  *     splitter_t splitter(trace);
  *     event_log_t log1, log2;
- *     coro_t::spawn(&perform_task_1, &log1);
- *     coro_t::spawn(&perform_task_2, &log2);
+ *     coro_t::spawn_*(&perform_task_1, &log1);
+ *     coro_t::spawn_*(&perform_task_2, &log2);
  *
  *     wait_for_tasks_to_complete();
  *     log1.insert(log2.begin(), log2.end(), log1.end());
@@ -188,8 +189,8 @@ private:
  * trace_t illegally due to their reentrancy. */
 class disabler_t {
 public:
-    disabler_t(trace_t *parent);
-    disabler_t(const scoped_ptr_t<trace_t> &parent);
+    explicit disabler_t(trace_t *parent);
+    explicit disabler_t(const scoped_ptr_t<trace_t> &parent);
     ~disabler_t();
 private:
     void init(trace_t *parent);
@@ -198,5 +199,6 @@ private:
 
 void print_event_log(const event_log_t &event_log);
 
-} //namespace profile
-#endif
+}  // namespace profile
+
+#endif  // RDB_PROTOCOL_PROFILE_HPP_

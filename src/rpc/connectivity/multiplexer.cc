@@ -8,9 +8,6 @@
 #include "rpc/connectivity/connectivity.hpp"
 
 
-#define MAX_OUTSTANDING_WRITES_PER_MULTIPLEXER_CLIENT_THREAD 4
-
-
 message_multiplexer_t::run_t::run_t(message_multiplexer_t *p) : parent(p) {
     guarantee(parent->run == NULL);
     parent->run = this;
@@ -28,7 +25,7 @@ message_multiplexer_t::run_t::~run_t() {
     parent->run = NULL;
 }
 
-void message_multiplexer_t::run_t::on_message(peer_id_t source, string_read_stream_t *stream) {
+void message_multiplexer_t::run_t::on_message(peer_id_t source, read_stream_t *stream) {
     tag_t tag;
     archive_result_t res = deserialize(stream, &tag);
     if (res) { throw fake_archive_exc_t(); }
@@ -52,11 +49,13 @@ message_multiplexer_t::client_t::run_t::~run_t() {
     parent->run = NULL;
 }
 
-message_multiplexer_t::client_t::client_t(message_multiplexer_t *p, tag_t t) :
+message_multiplexer_t::client_t::client_t(message_multiplexer_t *p,
+                                          tag_t t,
+                                          int max_outstanding) :
     parent(p),
     tag(t),
     run(NULL),
-    outstanding_writes_semaphores(MAX_OUTSTANDING_WRITES_PER_MULTIPLEXER_CLIENT_THREAD)
+    outstanding_writes_semaphores(max_outstanding)
 {
     guarantee(parent->run == NULL);
     guarantee(parent->clients[tag] == NULL);

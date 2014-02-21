@@ -58,9 +58,6 @@ BUILD_DIR ?=
 # Destination directory when installing. Defaults to /
 DESTDIR ?=
 
-# Set to 1 to allow downloading the toolchain internally into support/
-FETCH_INTERNAL_TOOLS?=0
-
 # Time every command
 TIMINGS ?= 0
 
@@ -113,6 +110,9 @@ SIGN_PACKAGE ?= 1
 # variable should be incremented.
 PACKAGE_BUILD_NUMBER ?= 0
 
+# Implement coroutines on top of (POSIX) threads
+THREADED_COROUTINES ?= 0
+
 # TODO: Document these variables
 STATIC_LIBGCC ?= 0
 DISABLE_BREAKPOINTS ?= 0
@@ -128,7 +128,6 @@ RT_REDUCE_NATIVE ?= 0
 KEEP_INLINE ?= 0
 OPROFILE ?= 0
 BTREE_DEBUG ?= 0
-MALLOC_PROF ?= 0
 SERIALIZER_DEBUG ?= 0
 MEMCACHED_STRICT ?= 0
 NO_EVENTFD ?= 0

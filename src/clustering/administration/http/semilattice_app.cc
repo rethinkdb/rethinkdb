@@ -1,5 +1,6 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include <string>
+#include <vector>
 
 #include "errors.hpp"
 #include <boost/algorithm/string/predicate.hpp>
@@ -36,7 +37,7 @@ void semilattice_http_app_t<metadata_t>::get_root(scoped_cJSON_t *json_out) {
 }
 
 template <class metadata_t>
-http_res_t semilattice_http_app_t<metadata_t>::handle(const http_req_t &req) {
+void semilattice_http_app_t<metadata_t>::handle(const http_req_t &req, http_res_t *result, signal_t *) {
     try {
         metadata_t metadata = metadata_change_handler->get();
 
@@ -50,7 +51,8 @@ http_res_t semilattice_http_app_t<metadata_t>::handle(const http_req_t &req) {
         while (it != req.resource.end()) {
             json_adapter_if_t::json_adapter_map_t subfields = json_adapter_head->get_subfields();
             if (subfields.find(*it) == subfields.end()) {
-                return http_res_t(HTTP_NOT_FOUND); //someone tried to walk off the edge of the world
+                *result = http_res_t(HTTP_NOT_FOUND); //someone tried to walk off the edge of the world
+                return;
             }
             json_adapter_head = subfields[*it];
             it++;
@@ -61,7 +63,7 @@ http_res_t semilattice_http_app_t<metadata_t>::handle(const http_req_t &req) {
             case GET:
             {
                 scoped_cJSON_t json_repr(json_adapter_head->render());
-                return http_json_res(json_repr.get());
+                http_json_res(json_repr.get(), result);
             }
             break;
             case POST:
@@ -69,14 +71,34 @@ http_res_t semilattice_http_app_t<metadata_t>::handle(const http_req_t &req) {
                 // TODO: Get rid of this release mode wrapper, make Michael unhappy.
 #ifdef NDEBUG
                 if (!verify_content_type(req, "application/json")) {
-                    return http_res_t(HTTP_UNSUPPORTED_MEDIA_TYPE);
+                    *result = http_res_t(HTTP_UNSUPPORTED_MEDIA_TYPE);
+                    return;
                 }
 #endif
                 scoped_cJSON_t change(cJSON_Parse(req.body.c_str()));
                 if (!change.get()) { //A null value indicates that parsing failed
                     logINF("Json body failed to parse. Here's the data that failed: %s",
                            req.get_sanitized_body().c_str());
-                    return http_res_t(HTTP_BAD_REQUEST);
+                    *result = http_res_t(HTTP_BAD_REQUEST);
+                    return;
+                }
+
+                // Determine for which namespaces we should prioritize distribution
+                // Default: none
+                boost::optional<namespace_id_t> prioritize_distr_for_ns;
+                const boost::optional<std::string> prefer_distribution_param =
+                    req.find_query_param("prefer_distribution_for");
+                if (prefer_distribution_param) {
+                    try {
+                        const namespace_id_t ns_id =
+                            str_to_uuid(prefer_distribution_param.get());
+                        prioritize_distr_for_ns.reset(ns_id);
+                    } catch (...) {
+                        logINF("Invalid value for prefer_distribution_for argument: %s",
+                           prefer_distribution_param.get().c_str());
+                        *result = http_res_t(HTTP_BAD_REQUEST);
+                        return;
+                    }
                 }
 
                 json_adapter_head->apply(change.get());
@@ -92,11 +114,11 @@ http_res_t semilattice_http_app_t<metadata_t>::handle(const http_req_t &req) {
                     logINF("Applying data %s", absolute_change.PrintUnformatted().c_str());
                 }
 
-                metadata_change_callback(&metadata, !!req.find_query_param("prefer_distribution"));
+                metadata_change_callback(&metadata, prioritize_distr_for_ns);
                 metadata_change_handler->update(metadata);
 
                 scoped_cJSON_t json_repr(json_adapter_head->render());
-                return http_json_res(json_repr.get());
+                http_json_res(json_repr.get(), result);
             }
             break;
             case DELETE:
@@ -105,11 +127,12 @@ http_res_t semilattice_http_app_t<metadata_t>::handle(const http_req_t &req) {
 
                 logINF("Deleting %s", req.resource.as_string().c_str());
 
-                metadata_change_callback(&metadata, false);
+                metadata_change_callback(&metadata,
+                                         boost::optional<namespace_id_t>());
                 metadata_change_handler->update(metadata);
 
                 scoped_cJSON_t json_repr(json_adapter_head->render());
-                return http_json_res(json_repr.get());
+                http_json_res(json_repr.get(), result);
             }
             break;
             case PUT:
@@ -117,14 +140,16 @@ http_res_t semilattice_http_app_t<metadata_t>::handle(const http_req_t &req) {
                 // TODO: Get rid of this release mode wrapper, make Michael unhappy.
 #ifdef NDEBUG
                 if (!verify_content_type(req, "application/json")) {
-                    return http_res_t(HTTP_UNSUPPORTED_MEDIA_TYPE);
+                    *result = http_res_t(HTTP_UNSUPPORTED_MEDIA_TYPE);
+                    return;
                 }
 #endif
                 scoped_cJSON_t change(cJSON_Parse(req.body.c_str()));
                 if (!change.get()) { //A null value indicates that parsing failed
                     logINF("Json body failed to parse. Here's the data that failed: %s",
                            req.get_sanitized_body().c_str());
-                    return http_res_t(HTTP_BAD_REQUEST);
+                    *result = http_res_t(HTTP_BAD_REQUEST);
+                    return;
                 }
 
                 {
@@ -141,11 +166,12 @@ http_res_t semilattice_http_app_t<metadata_t>::handle(const http_req_t &req) {
                 json_adapter_head->reset();
                 json_adapter_head->apply(change.get());
 
-                metadata_change_callback(&metadata, false);
+                metadata_change_callback(&metadata,
+                                         boost::optional<namespace_id_t>());
                 metadata_change_handler->update(metadata);
 
                 scoped_cJSON_t json_repr(json_adapter_head->render());
-                return http_json_res(json_repr.get());
+                http_json_res(json_repr.get(), result);
             }
             break;
             case HEAD:
@@ -154,23 +180,25 @@ http_res_t semilattice_http_app_t<metadata_t>::handle(const http_req_t &req) {
             case CONNECT:
             case PATCH:
             default:
-                return http_res_t(HTTP_METHOD_NOT_ALLOWED);
+                *result = http_res_t(HTTP_METHOD_NOT_ALLOWED);
                 break;
         }
     } catch (const schema_mismatch_exc_t &e) {
         logINF("HTTP request throw a schema_mismatch_exc_t with what = %s", e.what());
-        return http_error_res(e.what());
+        *result =  http_error_res(e.what());
     } catch (const permission_denied_exc_t &e) {
         logINF("HTTP request throw a permission_denied_exc_t with what = %s", e.what());
-        return http_error_res(e.what());
+        *result = http_error_res(e.what());
     } catch (const cannot_satisfy_goals_exc_t &e) {
         logINF("The server was given a set of goals for which it couldn't find a valid blueprint. %s", e.what());
-        return http_error_res(e.what(), HTTP_INTERNAL_SERVER_ERROR);
-    } catch (const gone_exc_t & e) {
+        *result = http_error_res(e.what(), HTTP_INTERNAL_SERVER_ERROR);
+    } catch (const gone_exc_t &e) {
         logINF("HTTP request throw a gone_exc_t with what = %s", e.what());
-        return http_error_res(e.what(), HTTP_GONE);
+        *result = http_error_res(e.what(), HTTP_GONE);
+    } catch (const multiple_choices_exc_t &e) {
+        logINF("HTTP request failed to change semilattice data. %s", e.what());
+        *result = http_error_res(e.what(), HTTP_METHOD_NOT_ALLOWED);
     }
-    unreachable();
 }
 
 template <class metadata_t>
@@ -201,9 +229,13 @@ cluster_semilattice_http_app_t::~cluster_semilattice_http_app_t() {
 }
 
 void cluster_semilattice_http_app_t::metadata_change_callback(cluster_semilattice_metadata_t *new_metadata,
-                                                              bool prefer_distribution) {
+        const boost::optional<namespace_id_t> &prioritize_distr_for_ns) {
+
     try {
-        fill_in_blueprints(new_metadata, directory_metadata->get().get_inner(), us, prefer_distribution);
+        fill_in_blueprints(new_metadata,
+                           directory_metadata->get().get_inner(),
+                           us,
+                           prioritize_distr_for_ns);
     } catch (const missing_machine_exc_t &e) { }
 }
 
@@ -220,7 +252,8 @@ auth_semilattice_http_app_t::~auth_semilattice_http_app_t() {
 }
 
 void auth_semilattice_http_app_t::metadata_change_callback(auth_semilattice_metadata_t *,
-                                                           bool) {
+        const boost::optional<namespace_id_t> &) {
+
     // Do nothing
 }
 

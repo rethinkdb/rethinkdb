@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_BTREE_HPP_
 #define RDB_PROTOCOL_BTREE_HPP_
 
@@ -81,7 +81,6 @@ class rdb_modification_report_cb_t;
 void rdb_get(
     const store_key_t &key,
     btree_slice_t *slice,
-    transaction_t *txn,
     superblock_t *superblock,
     point_read_response_t *response,
     profile::trace_t *trace);
@@ -94,17 +93,14 @@ enum return_vals_t {
 struct btree_info_t {
     btree_info_t(btree_slice_t *_slice,
                  repli_timestamp_t _timestamp,
-                 transaction_t *_txn,
                  const std::string *_primary_key)
-        : slice(_slice), timestamp(_timestamp), txn(_txn),
+        : slice(_slice), timestamp(_timestamp),
           primary_key(_primary_key) {
         guarantee(slice != NULL);
-        guarantee(txn != NULL);
         guarantee(primary_key != NULL);
     }
     btree_slice_t *const slice;
     const repli_timestamp_t timestamp;
-    transaction_t *const txn;
     const std::string *primary_key;
 };
 
@@ -143,9 +139,10 @@ batched_replace_response_t rdb_batched_replace(
     rdb_modification_report_cb_t *sindex_cb,
     profile::trace_t *trace);
 
-void rdb_set(const store_key_t &key, counted_t<const ql::datum_t> data, bool overwrite,
+void rdb_set(const store_key_t &key, counted_t<const ql::datum_t> data,
+             bool overwrite,
              btree_slice_t *slice, repli_timestamp_t timestamp,
-             transaction_t *txn, superblock_t *superblock,
+             superblock_t *superblock,
              point_write_response_t *response,
              rdb_modification_info_t *mod_info,
              profile::trace_t *trace);
@@ -171,61 +168,65 @@ protected:
 
 
 void rdb_backfill(btree_slice_t *slice, const key_range_t& key_range,
-        repli_timestamp_t since_when, rdb_backfill_callback_t *callback,
-        transaction_t *txn, superblock_t *superblock,
-        buf_lock_t *sindex_block,
-        parallel_traversal_progress_t *p, signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t);
+                  repli_timestamp_t since_when, rdb_backfill_callback_t *callback,
+                  superblock_t *superblock,
+                  buf_lock_t *sindex_block,
+                  parallel_traversal_progress_t *p, signal_t *interruptor)
+    THROWS_ONLY(interrupted_exc_t);
 
 
 void rdb_delete(const store_key_t &key, btree_slice_t *slice, repli_timestamp_t
-        timestamp, transaction_t *txn, superblock_t *superblock,
-        point_delete_response_t *response,
-        rdb_modification_info_t *mod_info,
-        profile::trace_t *trace);
+                timestamp, superblock_t *superblock,
+                point_delete_response_t *response,
+                rdb_modification_info_t *mod_info,
+                profile::trace_t *trace);
 
 /* A deleter that doesn't actually delete the values. Needed for secondary
  * indexes which only have references. */
-class rdb_value_non_deleter_t : public value_deleter_t {
-    void delete_value(transaction_t *_txn, void *_value);
+class rdb_value_detacher_t : public value_deleter_t {
+    void delete_value(buf_parent_t parent, void *value);
 };
 
-void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
+void rdb_erase_range(key_tester_t *tester,
                      const key_range_t &keys,
-                     transaction_t *txn, superblock_t *superblock,
+                     buf_lock_t *sindex_block,
+                     superblock_t *superblock,
                      btree_store_t<rdb_protocol_t> *store,
-                     write_token_pair_t *token_pair,
                      signal_t *interruptor);
 
 /* RGETS */
 size_t estimate_rget_response_size(const counted_t<const ql::datum_t> &datum);
 
-void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
-                    transaction_t *txn, superblock_t *superblock,
-                    ql::env_t *ql_env, const ql::batchspec_t &batchspec,
-                    const rdb_protocol_details::transform_t &transform,
-                    const boost::optional<rdb_protocol_details::terminal_t> &terminal,
-                    sorting_t sorting,
-                    rget_read_response_t *response);
+void rdb_rget_slice(
+    btree_slice_t *slice,
+    const key_range_t &range,
+    superblock_t *superblock,
+    ql::env_t *ql_env,
+    const ql::batchspec_t &batchspec,
+    const std::vector<rdb_protocol_details::transform_variant_t> &transforms,
+    const boost::optional<rdb_protocol_details::terminal_variant_t> &terminal,
+    sorting_t sorting,
+    rget_read_response_t *response);
 
 void rdb_rget_secondary_slice(
     btree_slice_t *slice,
     const datum_range_t &datum_range,
     const rdb_protocol_t::region_t &sindex_region,
-    transaction_t *txn,
     superblock_t *superblock,
     ql::env_t *ql_env,
     const ql::batchspec_t &batchspec,
-    const rdb_protocol_details::transform_t &transform,
-    const boost::optional<rdb_protocol_details::terminal_t> &terminal,
+    const std::vector<rdb_protocol_details::transform_variant_t> &transforms,
+    const boost::optional<rdb_protocol_details::terminal_variant_t> &terminal,
     const key_range_t &pk_range,
     sorting_t sorting,
     const ql::map_wire_func_t &sindex_func,
     sindex_multi_bool_t sindex_multi,
     rget_read_response_t *response);
 
-void rdb_distribution_get(btree_slice_t *slice, int max_depth, const store_key_t &left_key,
-                          transaction_t *txn, superblock_t *superblock, distribution_read_response_t *response);
+void rdb_distribution_get(int max_depth,
+                          const store_key_t &left_key,
+                          superblock_t *superblock,
+                          distribution_read_response_t *response);
 
 /* Secondary Indexes */
 
@@ -268,35 +269,33 @@ typedef boost::variant<rdb_modification_report_t,
 class rdb_modification_report_cb_t {
 public:
     rdb_modification_report_cb_t(
-            btree_store_t<rdb_protocol_t> *store, write_token_pair_t *token_pair,
-            transaction_t *txn, block_id_t sindex_block, auto_drainer_t::lock_t lock);
+            btree_store_t<rdb_protocol_t> *store,
+            buf_lock_t *sindex_block,
+            auto_drainer_t::lock_t lock);
 
     void on_mod_report(const rdb_modification_report_t &mod_report);
 
     ~rdb_modification_report_cb_t();
-private:
 
+private:
     /* Fields initialized by the constructor. */
-    btree_store_t<rdb_protocol_t> *store_;
-    write_token_pair_t *token_pair_;
-    transaction_t *txn_;
-    block_id_t sindex_block_id_;
     auto_drainer_t::lock_t lock_;
+    btree_store_t<rdb_protocol_t> *store_;
+    buf_lock_t *sindex_block_;
 
     /* Fields initialized by calls to on_mod_report */
-    scoped_ptr_t<buf_lock_t> sindex_block_;
     btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindexes_;
 };
 
 void rdb_update_sindexes(
         const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,
         const rdb_modification_report_t *modification,
-        transaction_t *txn);
+        txn_t *txn);
+
 
 void rdb_erase_range_sindexes(
         const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,
         const rdb_erase_range_report_t *erase_range,
-        transaction_t *txn,
         signal_t *interruptor);
 
 void post_construct_secondary_indexes(
@@ -306,11 +305,11 @@ void post_construct_secondary_indexes(
     THROWS_ONLY(interrupted_exc_t);
 
 class rdb_value_deleter_t : public value_deleter_t {
-friend void rdb_update_sindexes(
+    friend void rdb_update_sindexes(
         const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,
-        const rdb_modification_report_t *modification, transaction_t *txn);
+        const rdb_modification_report_t *modification, txn_t *txn);
 
-    void delete_value(transaction_t *_txn, void *_value);
+    void delete_value(buf_parent_t parent, void *_value);
 };
 
 

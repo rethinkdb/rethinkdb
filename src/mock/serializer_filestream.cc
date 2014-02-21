@@ -1,8 +1,9 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "mock/serializer_filestream.hpp"
 
-#include "buffer_cache/buffer_cache.hpp"
+#include "buffer_cache/alt/alt.hpp"
 #include "perfmon/core.hpp"
+#include "serializer/serializer.hpp"
 
 namespace mock {
 
@@ -10,12 +11,19 @@ namespace mock {
 
 serializer_file_read_stream_t::serializer_file_read_stream_t(serializer_t *serializer)
     : known_size_(-1), position_(0) {
-    mirrored_cache_config_t config;
-    cache_.init(new cache_t(serializer, config, &get_global_perfmon_collection()));
-    if (cache_->contains_block(0)) {
-        transaction_t txn(cache_.get(), rwi_read, order_token_t::ignore);
-        buf_lock_t bufzero(&txn, 0, rwi_read);
-        const void *data = bufzero.get_data_read();
+    bool has_block_zero;
+    {
+        on_thread_t th(serializer->home_thread());
+        has_block_zero = !serializer->get_delete_bit(0);
+    }
+    cache_.init(new cache_t(serializer, alt_cache_config_t(),
+                            &get_global_perfmon_collection()));
+    cache_conn_.init(new cache_conn_t(cache_.get()));
+    if (has_block_zero) {
+        txn_t txn(cache_conn_.get(), read_access_t::read);
+        buf_lock_t bufzero(buf_parent_t(&txn), 0, access_t::read);
+        buf_read_t bufzero_read(&bufzero);
+        const void *data = bufzero_read.get_data_read();
         known_size_ = *static_cast<const int64_t *>(data);
         guarantee(known_size_ >= 0);
     }
@@ -45,47 +53,70 @@ MUST_USE int64_t serializer_file_read_stream_t::read(void *p, int64_t n) {
     const int64_t num_copied = end_block_offset - block_offset;
     rassert(num_copied > 0);
 
-    transaction_t txn(cache_.get(), rwi_read, order_token_t::ignore);
-    buf_lock_t block(&txn, block_number, rwi_read);
-    const char *data = static_cast<const char *>(block.get_data_read());
+    txn_t txn(cache_conn_.get(), read_access_t::read);
+    buf_lock_t block(buf_parent_t(&txn), block_number, access_t::read);
+    buf_read_t block_read(&block);
+    const char *data = static_cast<const char *>(block_read.get_data_read());
     memcpy(p, data + block_offset, num_copied);
+    position_ += num_copied;
     return num_copied;
 }
 
-serializer_file_write_stream_t::serializer_file_write_stream_t(serializer_t *serializer) : size_(0) {
-    cache_t::create(serializer);
-    mirrored_cache_config_t config;
-    cache_.init(new cache_t(serializer, config, &get_global_perfmon_collection()));
-
-    transaction_t txn(cache_.get(),
-                      rwi_write,
-                      1,
-                      repli_timestamp_t::invalid,
-                      order_token_t::ignore,
-                      WRITE_DURABILITY_HARD);
-
-    // Hold the size block during writes, to lock out other writers.
-    buf_lock_t z(&txn, 0, rwi_write);
-    int64_t *p = static_cast<int64_t *>(z.get_data_write());
-    *p = 0;
-    for (block_id_t i = 1; cache_->contains_block(i); ++i) {
-        buf_lock_t b(&txn, i, rwi_write);
-        b.mark_deleted();
+void delete_contiguous_blocks_from_0(serializer_t *serializer) {
+    on_thread_t th(serializer->home_thread());
+    scoped_ptr_t<file_account_t>
+        account(serializer->make_io_account(CACHE_WRITES_IO_PRIORITY));
+    block_id_t num_blocks = 0;
+    while (!serializer->get_delete_bit(num_blocks)) {
+        ++num_blocks;
     }
+    if (num_blocks > 0) {
+        std::vector<index_write_op_t> deletes;
+        for (block_id_t i = 0; i < num_blocks; ++i) {
+            deletes.push_back(index_write_op_t(i,
+                                               counted_t<standard_block_token_t>()));
+        }
+        serializer->index_write(deletes, account.get());
+    }
+}
+
+serializer_file_write_stream_t::serializer_file_write_stream_t(serializer_t *serializer) : size_(0) {
+    // The serializer might be reused for the sake of a write stream.  We delete all
+    // of its blocks.  (Having the cache support testing whether a block is deleted
+    // (given a particular parent block) would be possible and nice but somewhat
+    // problematic.)
+    delete_contiguous_blocks_from_0(serializer);
+
+    cache_.init(new cache_t(serializer, alt_cache_config_t(),
+                            &get_global_perfmon_collection()));
+    cache_conn_.init(new cache_conn_t(cache_.get()));
+
+    txn_t txn(cache_conn_.get(), write_durability_t::HARD,
+              repli_timestamp_t::invalid, 1);
+
+    buf_lock_t z(&txn, 0, alt_create_t::create);
+    buf_write_t z_write(&z);
+    int64_t *p = static_cast<int64_t *>(z_write.get_data_write());
+    *p = 0;
 }
 
 serializer_file_write_stream_t::~serializer_file_write_stream_t() { }
 
 MUST_USE int64_t serializer_file_write_stream_t::write(const void *p, int64_t n) {
-    const char *chp = static_cast<const char *>(p);
+    const char *const chp = static_cast<const char *>(p);
     const int block_size = cache_->get_block_size().value();
 
-    transaction_t txn(cache_.get(), rwi_write, 2 + n / block_size, repli_timestamp_t::invalid, order_token_t::ignore, WRITE_DURABILITY_HARD);
+    txn_t txn(cache_conn_.get(), write_durability_t::HARD, repli_timestamp_t::invalid,
+              2 + n / block_size);
     // Hold the size block during writes, to lock out other writers.
-    buf_lock_t z(&txn, 0, rwi_write);
-    int64_t *const size_ptr = static_cast<int64_t *>(z.get_data_write());
-    guarantee(*size_ptr == size_);
-    int64_t offset = size_ + sizeof(int64_t);
+    buf_lock_t z(buf_parent_t(&txn), 0, access_t::write);
+    {
+        buf_read_t z_read(&z);
+        const int64_t *size_ptr = static_cast<const int64_t *>(z_read.get_data_read());
+        guarantee(*size_ptr == size_);
+    }
+    const int64_t start_offset = size_ + sizeof(int64_t);
+    int64_t offset = start_offset;
     const int64_t end_offset = offset + n;
     while (offset < end_offset) {
         int64_t block_id = offset / block_size;
@@ -93,21 +124,32 @@ MUST_USE int64_t serializer_file_write_stream_t::write(const void *p, int64_t n)
         buf_lock_t block;
         buf_lock_t *b = &z;
         if (block_id > 0) {
-            buf_lock_t tmp(&txn, block_id, rwi_write);
-            block.swap(tmp);
+            if (offset % block_size == 0) {
+                block = buf_lock_t(buf_parent_t(&z), block_id,
+                                   alt_create_t::create);
+            } else {
+                block = buf_lock_t(&z, block_id, access_t::write);
+            }
             b = &block;
         }
 
         const int64_t block_offset = offset % block_size;
         const int64_t end_block_offset = end_offset / block_size == block_id ? end_offset % block_size : block_size;
-        char *const buf = static_cast<char *>(b->get_data_write());
         const int64_t num_written = end_block_offset - block_offset;
         guarantee(num_written > 0);
-        memcpy(buf + block_offset, chp, num_written);
+        {
+            buf_write_t b_read(b);
+            char *buf = static_cast<char *>(b_read.get_data_write());
+            memcpy(buf + block_offset, chp + (offset - start_offset), num_written);
+        }
         offset += num_written;
     }
     size_ += n;
-    *size_ptr = size_;
+    {
+        buf_write_t z_write(&z);
+        int64_t *size_ptr = static_cast<int64_t *>(z_write.get_data_write());
+        *size_ptr = size_;
+    }
     return n;
 }
 

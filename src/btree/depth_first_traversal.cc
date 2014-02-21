@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "btree/depth_first_traversal.hpp"
 
 #include "btree/operations.hpp"
@@ -6,13 +6,16 @@
 
 /* Returns `true` if we reached the end of the subtree or range, and `false` if
 `cb->handle_value()` returned `false`. */
-bool btree_depth_first_traversal(btree_slice_t *slice, transaction_t *transaction,
+bool btree_depth_first_traversal(btree_slice_t *slice,
                                  counted_t<counted_buf_lock_t> block,
                                  const key_range_t &range,
                                  depth_first_traversal_callback_t *cb,
                                  direction_t direction);
 
-bool btree_depth_first_traversal(btree_slice_t *slice, transaction_t *transaction, superblock_t *superblock, const key_range_t &range, depth_first_traversal_callback_t *cb, direction_t direction) {
+bool btree_depth_first_traversal(btree_slice_t *slice, superblock_t *superblock,
+                                 const key_range_t &range,
+                                 depth_first_traversal_callback_t *cb,
+                                 direction_t direction) {
     block_id_t root_block_id = superblock->get_root_block_id();
     if (root_block_id == NULL_BLOCK_ID) {
         superblock->release();
@@ -20,21 +23,31 @@ bool btree_depth_first_traversal(btree_slice_t *slice, transaction_t *transactio
     } else {
         counted_t<counted_buf_lock_t> root_block;
         {
+            // We know that `superblock` is already read-acquired because we call
+            // get_block_id() above -- so `starter` won't measure time waiting for
+            // the parent to become acquired.
             profile::starter_t starter("Acquire block for read.", cb->get_trace());
-            root_block = make_counted<counted_buf_lock_t>(transaction, root_block_id,
-                                                           rwi_read);
+            root_block = make_counted<counted_buf_lock_t>(superblock->expose_buf(),
+                                                          root_block_id,
+                                                          access_t::read);
+            // Release the superblock ASAP because that's good.
+            superblock->release();
+            // Wait for read acquisition of the root block, so that `starter`'s
+            // profiling information is correct.
+            root_block->read_acq_signal()->wait();
         }
-        superblock->release();
-        return btree_depth_first_traversal(slice, transaction, std::move(root_block), range, cb, direction);
+        return btree_depth_first_traversal(slice, std::move(root_block), range, cb,
+                                           direction);
     }
 }
 
-bool btree_depth_first_traversal(btree_slice_t *slice, transaction_t *transaction,
+bool btree_depth_first_traversal(btree_slice_t *slice,
                                  counted_t<counted_buf_lock_t> block,
                                  const key_range_t &range,
                                  depth_first_traversal_callback_t *cb,
                                  direction_t direction) {
-    const node_t *node = reinterpret_cast<const node_t *>(block->get_data_read());
+    buf_read_t read(block.get());
+    const node_t *node = static_cast<const node_t *>(read.get_data_read());
     if (node::is_internal(node)) {
         const internal_node_t *inode = reinterpret_cast<const internal_node_t *>(node);
         int start_index = internal_node::get_offset_index(inode, range.left.btree_key());
@@ -52,10 +65,11 @@ bool btree_depth_first_traversal(btree_slice_t *slice, transaction_t *transactio
             counted_t<counted_buf_lock_t> lock;
             {
                 profile::starter_t starter("Acquire block for read.", cb->get_trace());
-                lock = make_counted<counted_buf_lock_t>(transaction, pair->lnode,
-                                                             rwi_read);
+                lock = make_counted<counted_buf_lock_t>(block.get(), pair->lnode,
+                                                        access_t::read);
             }
-            if (!btree_depth_first_traversal(slice, transaction, std::move(lock),
+            if (!btree_depth_first_traversal(slice,
+                                             std::move(lock),
                                              range, cb, direction)) {
                 return false;
             }

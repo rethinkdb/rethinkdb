@@ -14,7 +14,7 @@ public:
     // This constructor fills in the backtraces of a term (`walk`) and checks
     // that it's well-formed with regard to write placement.
     explicit term_walker_t(Term *root)
-        : depth(0), writes_legal(true), bt(0), curtime(pseudo::time_now()) {
+        : depth(0), writes_legal(true), bt(0) {
         walk(root, 0, head_frame);
     }
 
@@ -37,6 +37,10 @@ public:
         add_bt(t, parent, frame);
 
         if (t->type() == Term::NOW && t->args_size() == 0) {
+            // Construct curtime the first time we access it
+            if (!curtime.has()) {
+                curtime = pseudo::time_now();
+            }
             *t = r::expr(*curtime.get()).get();
         }
 
@@ -152,15 +156,18 @@ private:
         case Term::MAP:
         case Term::FILTER:
         case Term::CONCATMAP:
+        case Term::GROUP:
         case Term::ORDERBY:
         case Term::DISTINCT:
         case Term::COUNT:
+        case Term::SUM:
+        case Term::AVG:
+        case Term::MIN:
+        case Term::MAX:
         case Term::UNION:
         case Term::NTH:
-        case Term::GROUPED_MAP_REDUCE:
         case Term::LIMIT:
         case Term::SKIP:
-        case Term::GROUPBY:
         case Term::INNER_JOIN:
         case Term::OUTER_JOIN:
         case Term::EQ_JOIN:
@@ -189,6 +196,7 @@ private:
         case Term::DEFAULT:
         case Term::CONTAINS:
         case Term::KEYS:
+        case Term::OBJECT:
         case Term::WITH_FIELDS:
         case Term::JSON:
         case Term::ISO8601:
@@ -258,8 +266,7 @@ private:
         case Term::MAP:
         case Term::FILTER:
         case Term::CONCATMAP:
-        case Term::GROUPED_MAP_REDUCE:
-        case Term::GROUPBY:
+        case Term::GROUP:
         case Term::INNER_JOIN:
         case Term::OUTER_JOIN:
         case Term::EQ_JOIN:
@@ -268,6 +275,10 @@ private:
         case Term::REPLACE:
         case Term::INSERT:
         case Term::COUNT:
+        case Term::SUM:
+        case Term::AVG:
+        case Term::MIN:
+        case Term::MAX:
             return true;
 
         case Term::DATUM:
@@ -352,6 +363,7 @@ private:
         case Term::DEFAULT:
         case Term::CONTAINS:
         case Term::KEYS:
+        case Term::OBJECT:
         case Term::WITH_FIELDS:
         case Term::JSON:
         case Term::ISO8601:

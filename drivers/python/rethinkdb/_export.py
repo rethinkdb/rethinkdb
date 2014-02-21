@@ -159,18 +159,25 @@ def get_tables(host, port, auth_key, tables):
     # Remove duplicates by making results a set
     return set(res)
 
+def os_call_wrapper(fn, filename, error_str):
+    try:
+        fn(filename)
+    except OSError as ex:
+        raise RuntimeError(error_str % (filename, ex.strerror))
+
 # Make sure the output directory doesn't exist and create the temporary directory structure
 def prepare_directories(base_path, base_path_partial, db_table_set):
+    os_call_wrapper(lambda x: os.makedirs(x), base_path_partial, "Failed to create temporary directory (%s): %s")
+
     db_set = set([db for (db, table) in db_table_set])
     for db in db_set:
-        os.makedirs(base_path_partial + "/%s" % db)
+        db_dir = base_path_partial + "/%s" % db
+        os_call_wrapper(lambda x: os.makedirs(x), db_dir, "Failed to create temporary directory (%s): %s")
 
 # Move the temporary directory structure over to the original output directory
 def finalize_directory(base_path, base_path_partial):
-    try:
-        os.rename(base_path_partial, base_path)
-    except OSError as ex:
-        raise RuntimeError("Failed to move temporary directory to output directory (%s): %s" % (base_path, ex.strerror))
+    os_call_wrapper(lambda x: os.rename(base_path_partial, x), base_path,
+                    "Failed to move temporary directory to output directory (%s): %s")
 
 def write_table_metadata(conn, db, table, base_path):
     out = open(base_path + "/%s/%s.info" % (db, table), "w")
@@ -359,8 +366,13 @@ def run_clients(options, db_table_set):
         if error_queue.empty() and not interrupt_event.is_set():
             print_progress(1.0)
 
-        # Continue past the progress output line
+        # Continue past the progress output line and print total rows processed
+        def plural(num, text):
+            return "%d %s%s" % (num, text, "" if num == 1 else "s")
+
         print ""
+        print "%s exported from %s" % (plural(sum([info[0].value for info in progress_info]), "row"),
+                                       plural(len(db_table_set), "table"))
     finally:
         signal.signal(signal.SIGINT, signal.SIG_DFL)
 

@@ -1,16 +1,12 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef SERIALIZER_TYPES_HPP_
 #define SERIALIZER_TYPES_HPP_
-
-#ifndef __STDC_FORMAT_MACROS
-#define __STDC_FORMAT_MACROS
-#endif
 
 #include <inttypes.h>
 #include <time.h>
 
-#include <algorithm>
 #include <string>
+#include <utility>
 
 #include "containers/counted.hpp"
 #include "containers/scoped.hpp"
@@ -23,15 +19,9 @@ typedef uint64_t block_id_t;
 
 #define PR_BLOCK_ID PRIu64
 
-/* Each time we write a block to disk, that block receives a new unique block sequence id */
-typedef uint64_t block_sequence_id_t;
-#define NULL_BLOCK_SEQUENCE_ID  (block_sequence_id_t(0))
-#define FIRST_BLOCK_SEQUENCE_ID (block_sequence_id_t(1))
-
 // The first bytes of any block stored on disk or (as it happens) cached in memory.
 struct ls_buf_data_t {
     block_id_t block_id;
-    block_sequence_id_t block_sequence_id;
 } __attribute__((__packed__));
 
 // For use via scoped_malloc_t, a buffer that represents a block on disk.  Contains
@@ -126,6 +116,9 @@ private:
     DISABLE_COPYING(ls_block_token_pointee_t);
 };
 
+void debug_print(printf_buffer_t *buf,
+                 const counted_t<ls_block_token_pointee_t> &token);
+
 void counted_add_ref(ls_block_token_pointee_t *p);
 void counted_release(ls_block_token_pointee_t *p);
 
@@ -218,7 +211,6 @@ void counted_release(scs_block_token_t<inner_serializer_t> *p) {
 }
 
 
-
 template <class inner_serializer_type>
 struct serializer_traits_t<semantic_checking_serializer_t<inner_serializer_type> > {
     typedef scs_block_token_t<inner_serializer_type> block_token_type;
@@ -230,6 +222,15 @@ inline counted_t< scs_block_token_t<log_serializer_t> > to_standard_block_token(
                                                               scs_block_info_t(),
                                                               tok);
 }
+
+template <class inner_serializer_t>
+void debug_print(printf_buffer_t *buf,
+                 const counted_t<scs_block_token_t<inner_serializer_t> > &token) {
+    debug_print(buf, token->inner_token);
+}
+
+
+
 
 #else
 
@@ -254,46 +255,9 @@ struct serializer_traits_t<serializer_t> {
     typedef standard_block_token_t block_token_type;
 };
 
+// TODO: This is obsolete because the serializer multiplexer isn't used with multiple
+// files any more.
 typedef int64_t creation_timestamp_t;
-
-class serializer_data_ptr_t {
-public:
-    serializer_data_ptr_t() { }
-    explicit serializer_data_ptr_t(void *ptr) : ptr_(ptr) { }
-    explicit serializer_data_ptr_t(scoped_malloc_t<ser_buffer_t> &&ptr)
-        : ptr_(std::move(ptr)) { }
-
-    void free();
-    void init_malloc(serializer_t *ser);
-    void init_clone(serializer_t *ser, const serializer_data_ptr_t &other);
-    void swap(serializer_data_ptr_t &other) {
-        std::swap(ptr_, other.ptr_);
-    }
-
-    bool has() const {
-        return ptr_.has();
-    }
-
-    ser_buffer_t *get_ser_buffer() const {
-        rassert(ptr_.has());
-        return ptr_.get();
-    }
-
-    void *get() const {
-        rassert(ptr_.has());
-        char *ret = ptr_->cache_data;
-        return ret;
-    }
-
-    // TODO: All uses of this function are disgusting.
-    bool equals(const void *buf) const {
-        return (ptr_.has() ? ptr_->cache_data : NULL) == buf;
-    }
-
-private:
-    scoped_malloc_t<ser_buffer_t> ptr_;
-    DISABLE_COPYING(serializer_data_ptr_t);
-};
 
 
 class serializer_read_ahead_callback_t {
@@ -305,8 +269,7 @@ public:
     // ownership, by leaving the pointer owned by `*buf`.
     virtual void offer_read_ahead_buf(block_id_t block_id,
                                       scoped_malloc_t<ser_buffer_t> *buf,
-                                      const counted_t<standard_block_token_t> &token,
-                                      repli_timestamp_t recency_timestamp) = 0;
+                                      const counted_t<standard_block_token_t> &token) = 0;
 };
 
 struct buf_write_info_t {
@@ -318,5 +281,6 @@ struct buf_write_info_t {
     block_id_t block_id;
 };
 
+void debug_print(printf_buffer_t *buf, const buf_write_info_t &info);
 
 #endif  // SERIALIZER_TYPES_HPP_

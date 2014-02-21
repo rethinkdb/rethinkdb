@@ -32,6 +32,17 @@ funcWrap = (val) ->
 
     return val
 
+hasImplicit = (args) ->
+    # args is an array of (strings and arrays)
+    # We recurse to look for `r.row` which is an implicit var
+    if Array.isArray(args)
+        for arg in args
+            if hasImplicit(arg) is true
+                return true
+    else if args is 'r.row'
+        return true
+    return false
+
 # AST classes
 
 class TermBase
@@ -46,8 +57,8 @@ class TermBase
         # Parse out run options from connOrOptions object
         if connOrOptions? and connOrOptions.constructor is Object
             for own key of connOrOptions
-                unless key in ['connection', 'useOutdated', 'noreply', 'timeFormat', 'profile']
-                    throw new err.RqlDriverError "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, profile: <bool>}."
+                unless key in ['connection', 'useOutdated', 'noreply', 'timeFormat', 'groupFormat', 'profile', 'durability', 'batchConf']
+                    throw new err.RqlDriverError "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, groupFormat: <string>, profile: <bool>, durability: <string>}."
             conn = connOrOptions.connection
             opts = connOrOptions
         else
@@ -57,7 +68,7 @@ class TermBase
         # This only checks that the argument is of the right type, connection
         # closed errors will be handled elsewhere
         unless conn? and conn._start?
-            throw new err.RqlDriverError "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, profile: <bool>}."
+            throw new err.RqlDriverError "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, groupFormat: <string>, profile: <bool>, durability: <string>}."
 
         # We only require a callback if noreply isn't set
         if not opts.noreply and typeof(cb) isnt 'function'
@@ -121,7 +132,7 @@ class RDBVal extends TermBase
 
     merge: varar(1, null, (fields...) -> new Merge {}, @, fields.map(funcWrap)...)
     between: aropt (left, right, opts) -> new Between opts, @, left, right
-    reduce: varar(1, 2, (func, base) -> new Reduce {base:base}, @, funcWrap(func))
+    reduce: varar(1, 2, (func) -> new Reduce {}, @, funcWrap(func))
     map: ar (func) -> new Map {}, @, funcWrap(func)
     filter: aropt (predicate, opts) -> new Filter opts, @, funcWrap(predicate)
     concatMap: ar (func) -> new ConcatMap {}, @, funcWrap(func)
@@ -134,10 +145,9 @@ class RDBVal extends TermBase
     upcase: ar () -> new Upcase {}, @
     downcase: ar () -> new Downcase {}, @
     isEmpty: ar () -> new IsEmpty {}, @
-    groupedMapReduce: varar(3, 4, (group, map, reduce, base) -> new GroupedMapReduce {base:base}, @, funcWrap(group), funcWrap(map), funcWrap(reduce))
     innerJoin: ar (other, predicate) -> new InnerJoin {}, @, other, predicate
     outerJoin: ar (other, predicate) -> new OuterJoin {}, @, other, predicate
-    eqJoin: aropt (left_attr, right, opts) -> new EqJoin opts, @, left_attr, right
+    eqJoin: aropt (left_attr, right, opts) -> new EqJoin opts, @, funcWrap(left_attr), right
     zip: ar () -> new Zip {}, @
     coerceTo: ar (type) -> new CoerceTo {}, @, type
     typeOf: ar () -> new TypeOf {}, @
@@ -152,11 +162,11 @@ class RDBVal extends TermBase
 
     forEach: ar (func) -> new ForEach {}, @, funcWrap(func)
 
-    groupBy: (attrs..., collector) ->
-        unless collector? and attrs.length >= 1
-            numArgs = attrs.length + (if collector? then 1 else 0)
-            throw new err.RqlDriverError "Expected 2 or more argument(s) but found #{numArgs}."
-        new GroupBy {}, @, attrs, collector
+    group: varar(1, null, (fields...) -> new Group {}, @, fields.map(funcWrap)...)
+    sum: varar(0, null, (fields...) -> new Sum {}, @, fields.map(funcWrap)...)
+    avg: varar(0, null, (fields...) -> new Avg {}, @, fields.map(funcWrap)...)
+    min: varar(0, null, (fields...) -> new Min {}, @, fields.map(funcWrap)...)
+    max: varar(0, null, (fields...) -> new Max {}, @, fields.map(funcWrap)...)
 
     info: ar () -> new Info {}, @
     sample: ar (count) -> new Sample {}, @, count
@@ -287,6 +297,23 @@ class DatumTerm extends RDBVal
             datum: datum
         return term
 
+translateBackOptargs = (optargs) ->
+    result = {}
+    for own key,val of optargs
+        key = switch key
+            when 'primary_key' then 'primaryKey'
+            when 'return_vals' then 'returnVals'
+            when 'use_outdated' then 'useOutdated'
+            when 'non_atomic' then 'nonAtomic'
+            when 'cache_size' then 'cacheSize'
+            when 'left_bound' then 'leftBound'
+            when 'right_bound' then 'rightBound'
+            when 'default_timezone' then 'defaultTimezone'
+            else key
+
+        result[key] = val
+    return result
+
 translateOptargs = (optargs) ->
     result = {}
     for own key,val of optargs
@@ -355,7 +382,7 @@ intspallargs = (args, optargs) ->
     if Object.keys(optargs).length > 0
         if argrepr.length > 0
             argrepr.push(', ')
-        argrepr.push(kved(optargs))
+        argrepr.push(kved(translateBackOptargs(optargs)))
     return argrepr
 
 shouldWrap = (arg) ->
@@ -412,9 +439,9 @@ class Table extends RDBOp
 
     compose: (args, optargs) ->
         if @args[0] instanceof Db
-            [args[0], '.table(', args[1], ')']
+            [args[0], '.table(', intspallargs(args[1..], optargs), ')']
         else
-            ['r.table(', args[0], ')']
+            ['r.table(', intspallargs(args, optargs), ')']
 
 class Get extends RDBOp
     tt: "GET"
@@ -554,6 +581,10 @@ class Keys extends RDBOp
     tt: "KEYS"
     mt: 'keys'
 
+class Object_ extends RDBOp
+    tt: "OBJECT"
+    mt: 'object'
+
 class Pluck extends RDBOp
     tt: "PLUCK"
     mt: 'pluck'
@@ -630,17 +661,25 @@ class IsEmpty extends RDBOp
     tt: "IS_EMPTY"
     mt: 'isEmpty'
 
-class GroupedMapReduce extends RDBOp
-    tt: "GROUPED_MAP_REDUCE"
-    mt: 'groupedMapReduce'
+class Group extends RDBOp
+    tt: "GROUP"
+    mt: 'group'
 
-class GroupBy extends RDBOp
-    tt: "GROUPBY"
-    mt: 'groupBy'
+class Sum extends RDBOp
+    tt: "SUM"
+    mt: 'sum'
 
-class GroupBy extends RDBOp
-    tt: "GROUPBY"
-    mt: 'groupBy'
+class Avg extends RDBOp
+    tt: "AVG"
+    mt: 'avg'
+
+class Min extends RDBOp
+    tt: "MIN"
+    mt: 'min'
+
+class Max extends RDBOp
+    tt: "MAX"
+    mt: 'max'
 
 class InnerJoin extends RDBOp
     tt: "INNER_JOIN"
@@ -786,13 +825,22 @@ class Func extends RDBOp
 
         body = func(args...)
         if body is undefined
-            throw new err.RqlDriverError "Annonymous function returned `undefined`. Did you forget a `return`?"
+            throw new err.RqlDriverError "Anonymous function returned `undefined`. Did you forget a `return`?"
 
         argsArr = new MakeArray({}, argNums...)
         return super(optargs, argsArr, body)
 
     compose: (args) ->
-        ['function(', (Var::compose(arg) for arg in args[0][1...-1]), ') { return ', args[1], '; }']
+        if hasImplicit(args[1]) is true
+            [args[1]]
+        else
+            varStr = ""
+            for arg, i in args[0][1] # ['0', ', ', '1']
+                if i%2 is 0
+                    varStr += Var::compose(arg)
+                else
+                    varStr += arg
+            ['function(', varStr, ') { return ', args[1], '; }']
 
 class Asc extends RDBOp
     tt: "ASC"
@@ -978,10 +1026,6 @@ rethinkdb.do = varar 1, null, (args...) ->
 
 rethinkdb.branch = ar (test, trueBranch, falseBranch) -> new Branch {}, test, trueBranch, falseBranch
 
-rethinkdb.count =              {'COUNT': true}
-rethinkdb.sum   = ar (attr) -> {'SUM': attr}
-rethinkdb.avg   = ar (attr) -> {'AVG': attr}
-
 rethinkdb.asc = (attr) -> new Asc {}, funcWrap(attr)
 rethinkdb.desc = (attr) -> new Desc {}, funcWrap(attr)
 
@@ -1032,6 +1076,8 @@ rethinkdb.september = new (class extends RDBOp then tt: 'SEPTEMBER')()
 rethinkdb.october = new (class extends RDBOp then tt: 'OCTOBER')()
 rethinkdb.november = new (class extends RDBOp then tt: 'NOVEMBER')()
 rethinkdb.december = new (class extends RDBOp then tt: 'DECEMBER')()
+
+rethinkdb.object = varar 0, null, (args...) -> new Object_ {}, args...
 
 # Export all names defined on rethinkdb
 module.exports = rethinkdb

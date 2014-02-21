@@ -122,7 +122,9 @@ public:
     }
 
     bool operator <(const counted_t<T> &other) const {
-        return *p_ < *other.p_;
+        return (p_ == NULL)
+            ? (other.p_ != NULL ? true : false)
+            : (other.p_ != NULL ? (*p_ < *other.p_) : false);
     }
 
 private:
@@ -200,11 +202,6 @@ inline intptr_t counted_use_count(const single_threaded_countable_t<T> *p) {
     return p->refcount_;
 }
 
-
-
-
-
-
 template <class> class slow_atomic_countable_t;
 
 template <class T>
@@ -271,7 +268,7 @@ inline intptr_t counted_use_count(const slow_atomic_countable_t<T> *p) {
 template <class T>
 class movable_t {
 public:
-    movable_t(const counted_t<T> &copyee) : ptr_(copyee) { }
+    explicit movable_t(const counted_t<T> &copyee) : ptr_(copyee) { }
     movable_t(movable_t &&movee) : ptr_(std::move(movee.ptr_)) { }
     movable_t &operator=(movable_t &&movee) {
         ptr_ = std::move(movee.ptr_);

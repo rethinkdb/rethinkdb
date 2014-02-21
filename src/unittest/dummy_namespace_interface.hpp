@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef UNITTEST_DUMMY_NAMESPACE_INTERFACE_HPP_
 #define UNITTEST_DUMMY_NAMESPACE_INTERFACE_HPP_
 
@@ -74,7 +74,7 @@ public:
         store->write(
             DEBUG_ONLY(metainfo_checker, )
             region_map_t<protocol_t, binary_blob_t>(store->get_region(), binary_blob_t(transition_timestamp.timestamp_after())),
-            write, response, WRITE_DURABILITY_SOFT, transition_timestamp, order_token, &token_pair, &non_interruptor);
+            write, response, write_durability_t::SOFT, transition_timestamp, order_token, &token_pair, &non_interruptor);
     }
 
     order_source_t bs_outdated_read_source;

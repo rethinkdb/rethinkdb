@@ -60,10 +60,12 @@ public:
     static batchspec_t user(batch_type_t batch_type,
                             const counted_t<const datum_t> &conf);
     static batchspec_t user(batch_type_t batch_type, env_t *env);
+    static batchspec_t all(); // Gimme everything.
     static batchspec_t empty() { return batchspec_t(); }
     batch_type_t get_batch_type() const { return batch_type; }
     batchspec_t with_new_batch_type(batch_type_t new_batch_type) const;
     batchspec_t with_at_most(uint64_t max_els) const;
+    batchspec_t scale_down(int64_t divisor) const;
     batcher_t to_batcher() const;
     RDB_MAKE_ME_SERIALIZABLE_4(batch_type, els_left, size_left, end_time);
 private:

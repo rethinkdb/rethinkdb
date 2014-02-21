@@ -10,12 +10,12 @@ public:
         : op_term_t(env, term, argspec_t(1)) { }
 
     counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
-        std::string data = arg(env, 0)->as_str();
+        const wire_string_t &data = arg(env, 0)->as_str();
         scoped_cJSON_t cjson(cJSON_Parse(data.c_str()));
         rcheck(cjson.get() != NULL, base_exc_t::GENERIC,
                strprintf("Failed to parse \"%s\" as JSON.",
                  (data.size() > 40
-                  ? (data.substr(0, 37) + "...").c_str()
+                  ? (data.to_std().substr(0, 37) + "...").c_str()
                   : data.c_str())));
         return new_val(make_counted<const datum_t>(cjson.get()));
     }

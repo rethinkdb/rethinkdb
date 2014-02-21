@@ -89,11 +89,34 @@ private:
                       "Unrecognized value `%d` for _SHORTCUT_ argument.", shortcut);
         }
         counted_t<func_t> f = arg(env, 0, flags)->as_func(shortcut);
-        std::vector<counted_t<const datum_t> > args;
-        for (size_t i = 1; i < num_args(); ++i) {
-            args.push_back(arg(env, i)->as_datum());
+
+        // We need specialized logic for `grouped_data` here because `funcall`
+        // needs to be polymorphic on its second argument rather than its first.
+        // (We might have wanted to do this anyway, though, because otherwise
+        // we'd be compiling shortcut functions `n` times.)
+        if (num_args() == 1) {
+            return f->call(env->env, flags);
+        } else {
+            counted_t<val_t> arg1 = arg(env, 1, flags);
+            std::vector<counted_t<const datum_t> > args(1);
+            args.reserve(num_args() - 1);
+            for (size_t i = 2; i < num_args(); ++i) {
+                args.push_back(arg(env, i, flags)->as_datum());
+            }
+            r_sanity_check(!args[0].has());
+            if (arg1->get_type().is_convertible(val_t::type_t::GROUPED_DATA)) {
+                counted_t<grouped_data_t> gd = arg1->as_grouped_data();
+                counted_t<grouped_data_t> out(new grouped_data_t());
+                for (auto kv = gd->begin(); kv != gd->end(); ++kv) {
+                    args[0] = kv->second;
+                    (*out)[kv->first] = f->call(env->env, args, flags)->as_datum();
+                }
+                return make_counted<val_t>(out, backtrace());
+            } else {
+                args[0] = arg1->as_datum();
+                return f->call(env->env, args, flags);
+            }
         }
-        return f->call(env->env, args);
     }
     virtual const char *name() const { return "funcall"; }
 };
