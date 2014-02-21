@@ -163,13 +163,13 @@ r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
 
                     // Run test first on cpp server
                     try {
-                        var opts = {connection:cpp_conn};
+                        var opts = {};
                         if (runopts) {
                             for (var key in runopts) {
                                 opts[key] = runopts[key]
                             }
                         }
-                        test.run(opts, cpp_cont);
+                        test.run(cpp_conn, opts, cpp_cont);
 
                     } catch(err) {
                         if (exp_fun.isErr) {
