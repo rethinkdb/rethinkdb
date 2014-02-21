@@ -15,6 +15,7 @@
 
 class key_tester_t;
 class parallel_traversal_progress_t;
+template <class> class promise_t;
 struct rdb_value_t;
 
 typedef rdb_protocol_t::read_t read_t;
@@ -144,7 +145,8 @@ void rdb_set(const store_key_t &key, counted_t<const ql::datum_t> data,
              superblock_t *superblock,
              point_write_response_t *response,
              rdb_modification_info_t *mod_info,
-             profile::trace_t *trace);
+             profile::trace_t *trace,
+             promise_t<superblock_t *> *pass_back_superblock = NULL);
 
 class rdb_backfill_callback_t {
 public:
@@ -155,8 +157,8 @@ public:
         const btree_key_t *key,
         repli_timestamp_t recency,
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
-    virtual void on_keyvalue(
-        const rdb_protocol_details::backfill_atom_t& atom,
+    virtual void on_keyvalues(
+        std::vector<rdb_protocol_details::backfill_atom_t> &&atoms,
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
     virtual void on_sindexes(
         const std::map<std::string, secondary_index_t> &sindexes,

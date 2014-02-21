@@ -93,18 +93,17 @@ describe('Javascript connection API', function(){
         it("fails when trying to connect", function(done){
             ifTestDefault(
                 function(cont){
-                    console.log('FOO');
-                    r.connect({}, givesError("RqlDriverError", "Could not connect to localhost:28015.", function(){
-                        r.connect({host:'0.0.0.0'}, givesError("RqlDriverError", "Could not connect to 0.0.0.0:28015.", cont))})); },
+                    r.connect({}, givesError("RqlDriverError", "Could not connect to localhost:28015.\nconnect ECONNREFUSED", function(){
+                        r.connect({host:'0.0.0.0'}, givesError("RqlDriverError", "Could not connect to 0.0.0.0:28015.\nconnect ECONNREFUSED", cont))})); },
                 function(){
-                    r.connect({port:11221}, givesError("RqlDriverError", "Could not connect to localhost:11221.", function(){
-                        r.connect({host:'0.0.0.0', port:11221}, givesError("RqlDriverError", "Could not connect to 0.0.0.0:11221.", done))}))});
+                    r.connect({port:11221}, givesError("RqlDriverError", "Could not connect to localhost:11221.\nconnect ECONNREFUSED", function(){
+                        r.connect({host:'0.0.0.0', port:11221}, givesError("RqlDriverError", "Could not connect to 0.0.0.0:11221.\nconnect ECONNREFUSED", done))}))});
         });
 
         it("empty run", function(done) {
           assert.throws(function(){ r.expr(1).run(); },
                         checkError("RqlDriverError",
-                                   "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, profile: <bool>, durability: <string>}."));
+                                   "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, groupFormat: <string>, profile: <bool>, durability: <string>}."));
           done();
         });
     });

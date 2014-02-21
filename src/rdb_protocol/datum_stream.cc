@@ -84,9 +84,6 @@ rdb_namespace_interface_t rdb_namespace_access_t::get_namespace_if() {
     return rdb_namespace_interface_t(internal_.get_namespace_if(), env_);
 }
 
-const char *const empty_stream_msg =
-    "Cannot reduce over an empty stream with no base.";
-
 template<class T>
 T groups_to_batch(std::map<counted_t<const datum_t>, T> *g) {
     if (g->size() == 0) {
