@@ -6,8 +6,6 @@
 
 #include <vector>
 
-#include "stl_utils.hpp"
-
 template <class T>
 vclock_t<T>::vclock_t(const stamped_value_t &_value) {
     values.insert(_value);
