@@ -8,6 +8,6 @@ pkg_install () {
     if [[ "$CROSS_COMPILING" = 1 ]]; then
         configure_flags="--host=$(${CXX:-c++} -dumpmachine)"
     fi
-    pkg_configure $configure_flags
+    pkg_configure ${configure_flags:-}
     pkg_make install
 }

@@ -440,7 +440,7 @@ static int linenoisePrompt(int fd, char *buf, size_t buflen, const char *prompt)
          * character that should be handled next. */
         if (c == 9 && completionCallback != NULL) {
             int ret = completeLine(fd,prompt,buf,buflen,&len,&pos,cols);
-            c = ret;
+            c = static_cast<char>(ret);
 
             /* Return on errors */
             if (ret < 0) return len;

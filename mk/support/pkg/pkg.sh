@@ -138,20 +138,15 @@ pkg_depends_env () {
 }
 
 cross_build_env () {
+    # Unsetting these variables will pick up the toolchain from PATH.
+    # Assuming that cross-compilation is achieved by setting these variables,
+    # the toolchain in PATH will build executables that can be executed in the
+    # build environment.
     unset CXX
     unset AR
     unset RANLIB
     unset CC
     unset LD
-    tmpdir=$(mktemp -d)
-    echo 'int main(){ return 0; }' > "$tmpdir/true.cc"
-    for cxx in c++ g++ clang; do
-        if $cxx "$tmpdir/true.cc" -o "$tmpdir/true" && "$tmpdir/true" >/dev/null 2>&1; then
-            export CXX=$cxx
-            rm -rf "$tmpdir"
-            return
-        fi
-    done
 }
 
 error () {
