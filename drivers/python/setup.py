@@ -24,7 +24,7 @@ class build_ext_genproto(build_ext):
             print("* * * * * * * * * * * * * * * * *")
 
 setup(name="rethinkdb"
-      ,version = "1.11.0-1"
+      ,version = "1.11.0-2"
       ,description = "This package provides the Python driver library for the RethinkDB database server."
       ,url = "http://rethinkdb.com"
       ,maintainer = "RethinkDB Inc."

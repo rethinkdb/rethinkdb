@@ -3,10 +3,11 @@
 #define ARCH_TYPES_HPP_
 
 #include <inttypes.h>
+#include <string.h>
 
 #include <string>
 
-#include "errors.hpp"
+#include "utils.hpp"
 
 template <class> class scoped_array_t;
 struct iovec;
@@ -24,6 +25,22 @@ public:
         : info(msg) { }
 
     ~address_in_use_exc_t() throw () { }
+
+    const char *what() const throw () {
+        return info.c_str();
+    }
+
+private:
+    std::string info;
+};
+
+class tcp_socket_exc_t : public std::exception {
+public:
+    tcp_socket_exc_t(int err) throw () {
+        info = strprintf("TCP socket creation failed: %s", strerror(err));
+    }
+
+    ~tcp_socket_exc_t() throw () { }
 
     const char *what() const throw () {
         return info.c_str();

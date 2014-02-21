@@ -8,9 +8,6 @@
 
 const size_t js_runner_t::CACHE_SIZE = 100;
 
-const js_id_t MIN_ID = 1;
-const js_id_t MAX_ID = UINT64_MAX;
-
 // This class allows us to manage timeouts in a cleaner manner
 class js_timeout_t {
 public:

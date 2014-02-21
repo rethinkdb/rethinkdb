@@ -5,7 +5,10 @@
 // always will be, `read` and `write`.
 enum class access_t { read, write };
 
-// For specifying read access.  (Use for readability.)
+// For specifying read access.
 enum class read_access_t { read };
+
+// For specifying write access.
+enum class write_access_t { write };
 
 #endif  // CONCURRENCY_ACCESS_HPP_

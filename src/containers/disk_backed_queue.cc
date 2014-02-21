@@ -35,8 +35,10 @@ internal_disk_backed_queue_t::internal_disk_backed_queue_t(io_backender_t *io_ba
     cache_dynamic_config.page_config.memory_limit = MEGABYTE;
     cache.init(new cache_t(serializer.get(), cache_dynamic_config,
                            &perfmon_collection));
+    cache_conn.init(new cache_conn_t(cache.get()));
     // Emulate cache_t::create behavior by zeroing the block with id SUPERBLOCK_ID.
-    txn_t txn(cache.get(), write_durability_t::HARD, repli_timestamp_t::distant_past, 1);
+    txn_t txn(cache_conn.get(), write_durability_t::HARD,
+              repli_timestamp_t::distant_past, 1);
     buf_lock_t block(&txn, SUPERBLOCK_ID, alt_create_t::create);
     buf_write_t write(&block);
     const block_size_t block_size = cache->max_block_size();
@@ -50,7 +52,8 @@ void internal_disk_backed_queue_t::push(const write_message_t &wm) {
     mutex_t::acq_t mutex_acq(&mutex);
 
     // There's no need for hard durability with an unlinked dbq file.
-    txn_t txn(cache.get(), write_durability_t::SOFT, repli_timestamp_t::distant_past, 2);
+    txn_t txn(cache_conn.get(), write_durability_t::SOFT,
+              repli_timestamp_t::distant_past, 2);
 
     if (head_block_id == NULL_BLOCK_ID) {
         add_block_to_head(&txn);
@@ -93,7 +96,8 @@ void internal_disk_backed_queue_t::pop(buffer_group_viewer_t *viewer) {
 
     char buffer[DBQ_MAX_REF_SIZE];
     // No need for hard durability with an unlinked dbq file.
-    txn_t txn(cache.get(), write_durability_t::SOFT, repli_timestamp_t::distant_past, 2);
+    txn_t txn(cache_conn.get(), write_durability_t::SOFT,
+              repli_timestamp_t::distant_past, 2);
 
     buf_lock_t _tail(buf_parent_t(&txn), tail_block_id, access_t::write);
 

@@ -381,21 +381,23 @@ val_t::type_t::type_t(val_t::type_t::raw_type_t _raw_type) : raw_type(_raw_type)
 bool raw_type_is_convertible(val_t::type_t::raw_type_t _t1,
                              val_t::type_t::raw_type_t _t2) {
     const int t1 = _t1, t2 = _t2,
-        DB = val_t::type_t::DB,
-        TABLE = val_t::type_t::TABLE,
-        SELECTION = val_t::type_t::SELECTION,
-        SEQUENCE = val_t::type_t::SEQUENCE,
+        DB               = val_t::type_t::DB,
+        TABLE            = val_t::type_t::TABLE,
+        SELECTION        = val_t::type_t::SELECTION,
+        SEQUENCE         = val_t::type_t::SEQUENCE,
         SINGLE_SELECTION = val_t::type_t::SINGLE_SELECTION,
-        DATUM = val_t::type_t::DATUM,
-        FUNC = val_t::type_t::FUNC;
+        DATUM            = val_t::type_t::DATUM,
+        FUNC             = val_t::type_t::FUNC,
+        GROUPED_DATA     = val_t::type_t::GROUPED_DATA;
     switch (t1) {
-    case DB: return t2 == DB;
-    case TABLE: return t2 == TABLE || t2 == SELECTION || t2 == SEQUENCE;
-    case SELECTION: return t2 == SELECTION || t2 == SEQUENCE;
-    case SEQUENCE: return t2 == SEQUENCE;
+    case DB:               return t2 == DB;
+    case TABLE:            return t2 == TABLE || t2 == SELECTION || t2 == SEQUENCE;
+    case SELECTION:        return t2 == SELECTION || t2 == SEQUENCE;
+    case SEQUENCE:         return t2 == SEQUENCE;
     case SINGLE_SELECTION: return t2 == SINGLE_SELECTION || t2 == DATUM;
-    case DATUM: return t2 == DATUM || t2 == SEQUENCE;
-    case FUNC: return t2 == FUNC;
+    case DATUM:            return t2 == DATUM || t2 == SEQUENCE;
+    case FUNC:             return t2 == FUNC;
+    case GROUPED_DATA:     return t2 == GROUPED_DATA;
     default: unreachable();
     }
 }
@@ -412,6 +414,7 @@ const char *val_t::type_t::name() const {
     case SINGLE_SELECTION: return "SINGLE_SELECTION";
     case DATUM: return "DATUM";
     case FUNC: return "FUNCTION";
+    case GROUPED_DATA: return "GROUPED_DATA";
     default: unreachable();
     }
 }
@@ -421,6 +424,14 @@ val_t::val_t(counted_t<const datum_t> _datum, protob_t<const Backtrace> backtrac
       type(type_t::DATUM),
       u(_datum) {
     guarantee(datum().has());
+}
+
+val_t::val_t(const counted_t<grouped_data_t> &groups,
+             protob_t<const Backtrace> bt)
+    : pb_rcheckable_t(bt),
+      type(type_t::GROUPED_DATA),
+      u(groups) {
+    guarantee(groups.has());
 }
 
 val_t::val_t(counted_t<const datum_t> _datum, counted_t<table_t> _table,
@@ -519,6 +530,11 @@ counted_t<datum_stream_t> val_t::as_seq(env_t *env) {
     unreachable();
 }
 
+counted_t<grouped_data_t> val_t::as_grouped_data() {
+    rcheck_literal_type(type_t::GROUPED_DATA);
+    return boost::get<counted_t<grouped_data_t> >(u);
+}
+
 std::pair<counted_t<table_t>, counted_t<datum_stream_t> > val_t::as_selection(env_t *env) {
     if (type.raw_type != type_t::TABLE && type.raw_type != type_t::SELECTION) {
         rcheck_literal_type(type_t::SELECTION);
@@ -605,7 +621,7 @@ int64_t val_t::as_int() {
         rfail(e.get_type(), "%s", e.what());
     }
 }
-const std::string &val_t::as_str() {
+const wire_string_t &val_t::as_str() {
     try {
         counted_t<const datum_t> d = as_datum();
         r_sanity_check(d.has());

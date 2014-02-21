@@ -224,11 +224,11 @@ publisher_t<boost::function<void()> > *semilattice_manager_t<metadata_t>::root_v
 }
 
 template<class metadata_t>
-void semilattice_manager_t<metadata_t>::on_message(peer_id_t sender, string_read_stream_t *stream) {
+void semilattice_manager_t<metadata_t>::on_message(peer_id_t sender, read_stream_t *stream) {
     uint8_t code;
     {
-        int res = deserialize(stream, &code);
-        if (res) { throw fake_archive_exc_t(); }
+        archive_result_t res = deserialize(stream, &code);
+        if (bad(res)) { throw fake_archive_exc_t(); }
     }
 
     switch (code) {
@@ -236,10 +236,10 @@ void semilattice_manager_t<metadata_t>::on_message(peer_id_t sender, string_read
             metadata_t added_metadata;
             metadata_version_t change_version;
             {
-                int res = deserialize(stream, &added_metadata);
-                if (res) { throw fake_archive_exc_t(); }
+                archive_result_t res = deserialize(stream, &added_metadata);
+                if (bad(res)) { throw fake_archive_exc_t(); }
                 res = deserialize(stream, &change_version);
-                if (res) { throw fake_archive_exc_t(); }
+                if (bad(res)) { throw fake_archive_exc_t(); }
             }
             coro_t::spawn_sometime(boost::bind(
                 &semilattice_manager_t<metadata_t>::deliver_metadata_on_home_thread, this,
@@ -249,8 +249,8 @@ void semilattice_manager_t<metadata_t>::on_message(peer_id_t sender, string_read
         case message_code_sync_from_query: {
             sync_from_query_id_t query_id;
             {
-                int res = deserialize(stream, &query_id);
-                if (res) { throw fake_archive_exc_t(); }
+                archive_result_t res = deserialize(stream, &query_id);
+                if (bad(res)) { throw fake_archive_exc_t(); }
             }
             coro_t::spawn_sometime(boost::bind(
                 &semilattice_manager_t<metadata_t>::deliver_sync_from_query_on_home_thread, this,
@@ -261,10 +261,10 @@ void semilattice_manager_t<metadata_t>::on_message(peer_id_t sender, string_read
             sync_from_query_id_t query_id;
             metadata_version_t version;
             {
-                int res = deserialize(stream, &query_id);
-                if (res) { throw fake_archive_exc_t(); }
+                archive_result_t res = deserialize(stream, &query_id);
+                if (bad(res)) { throw fake_archive_exc_t(); }
                 res = deserialize(stream, &version);
-                if (res) { throw fake_archive_exc_t(); }
+                if (bad(res)) { throw fake_archive_exc_t(); }
             }
             coro_t::spawn_sometime(boost::bind(
                 &semilattice_manager_t<metadata_t>::deliver_sync_from_reply_on_home_thread, this,
@@ -275,10 +275,10 @@ void semilattice_manager_t<metadata_t>::on_message(peer_id_t sender, string_read
             sync_from_query_id_t query_id;
             metadata_version_t version;
             {
-                int res = deserialize(stream, &query_id);
-                if (res) { throw fake_archive_exc_t(); }
+                archive_result_t res = deserialize(stream, &query_id);
+                if (bad(res)) { throw fake_archive_exc_t(); }
                 res = deserialize(stream, &version);
-                if (res) { throw fake_archive_exc_t(); }
+                if (bad(res)) { throw fake_archive_exc_t(); }
             }
             coro_t::spawn_sometime(boost::bind(
                 &semilattice_manager_t<metadata_t>::deliver_sync_to_query_on_home_thread, this,
@@ -288,8 +288,8 @@ void semilattice_manager_t<metadata_t>::on_message(peer_id_t sender, string_read
         case message_code_sync_to_reply: {
             sync_from_query_id_t query_id;
             {
-                int res = deserialize(stream, &query_id);
-                if (res) { throw fake_archive_exc_t(); }
+                archive_result_t res = deserialize(stream, &query_id);
+                if (bad(res)) { throw fake_archive_exc_t(); }
             }
             coro_t::spawn_sometime(boost::bind(
                 &semilattice_manager_t<metadata_t>::deliver_sync_to_reply_on_home_thread, this,

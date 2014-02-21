@@ -251,7 +251,7 @@ class PyTestDriver:
 
         except Exception as err:
             if not isinstance(exp_val, Err):
-                print_test_failure(name, src, "Error running test on CPP server:\n\t%s" % repr(err))
+                print_test_failure(name, src, "Error running test on CPP server:\n\t%s %s" % (repr(err), err.message))
             elif not eq(exp_val)(err):
                 print_test_failure(name, src,
                     "Error running test on CPP server not equal to expected err:\n\tERROR: %s\n\tEXPECTED: %s" %
@@ -262,7 +262,12 @@ driver = PyTestDriver()
 driver.connect()
 
 # Emitted test code will consist of calls to this function
-def test(query, expected, name, runopts={'batch_conf': {'max_els': 3}}):
+def test(query, expected, name, runopts={}):
+    for (k,v) in runopts.items():
+        if isinstance(v, str):
+            runopts[k] = eval(v)
+    if 'batch_conf' not in runopts:
+        runopts['batch_conf'] = {'max_els': 3}
     if expected == '':
         expected = None
     driver.run(query, expected, name, runopts)

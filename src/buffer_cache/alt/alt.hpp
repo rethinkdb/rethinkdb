@@ -1,3 +1,4 @@
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef BUFFER_CACHE_ALT_ALT_HPP_
 #define BUFFER_CACHE_ALT_ALT_HPP_
 
@@ -5,10 +6,8 @@
 #include <vector>
 #include <utility>
 
-#include "buffer_cache/alt/page.hpp"
+#include "buffer_cache/alt/page_cache.hpp"
 #include "buffer_cache/types.hpp"
-#include "concurrency/auto_drainer.hpp"
-#include "concurrency/semaphore.hpp"
 #include "containers/two_level_array.hpp"
 #include "repli_timestamp.hpp"
 #include "utils.hpp"
@@ -21,16 +20,23 @@ class alt_cache_stats_t;
 class alt_snapshot_node_t;
 class perfmon_collection_t;
 
+// KSI: This is kind of F'd up a bit.  Throttling doesn't use the stuff we learn in
+// inform_memory_change (right now) so this is just a nonsensical mixing of notions.
 class alt_memory_tracker_t : public memory_tracker_t {
 public:
     alt_memory_tracker_t();
     ~alt_memory_tracker_t();
+
+    alt::tracker_acq_t begin_txn_or_throttle(int64_t expected_change_count);
+    void end_txn(alt::tracker_acq_t acq);
+
+private:
+    friend class txn_t;
+
     void inform_memory_change(uint64_t in_memory_size,
                               uint64_t memory_limit);
-    void begin_txn_or_throttle(int64_t expected_change_count);
-    void end_txn(int64_t saved_expected_change_count);
-private:
-    adjustable_semaphore_t semaphore_;
+
+    new_semaphore_t unwritten_changes_semaphore_;
     DISABLE_COPYING(alt_memory_tracker_t);
 };
 
@@ -50,104 +56,80 @@ public:
     // throttling systems.  TODO: Come up with a consistent priority scheme,
     // i.e. define a "default" priority etc.  TODO: As soon as we can support it, we
     // might consider supporting a mem_cap paremeter.
-    void create_cache_account(int priority, scoped_ptr_t<alt_cache_account_t> *out);
+    cache_account_t create_cache_account(int priority);
 
 private:
-    friend class txn_t;  // for drainer_->lock()
-    friend class alt_inner_txn_t;  // for &page_cache_
-    friend class buf_read_t;  // for &page_cache_
-    friend class buf_write_t;  // for &page_cache_
+    friend class txn_t;
+    friend class buf_read_t;
+    friend class buf_write_t;
+    friend class buf_lock_t;
 
-    friend class buf_lock_t;  // for latest_snapshot_node and
-                              // push_latest_snapshot_node
-
-    alt_snapshot_node_t *matching_snapshot_node_or_null(block_id_t block_id,
-                                                        block_version_t block_version);
+    alt_snapshot_node_t *matching_snapshot_node_or_null(
+            block_id_t block_id,
+            alt::block_version_t block_version);
     void add_snapshot_node(block_id_t block_id, alt_snapshot_node_t *node);
     void remove_snapshot_node(block_id_t block_id, alt_snapshot_node_t *node);
 
     scoped_ptr_t<alt_cache_stats_t> stats_;
 
     // tracker_ is used for throttling (which can cause the txn_t constructor to
-    // block).  RSI: The throttling interface is bad (maybe) because it's worried
-    // about transaction_t's passing one another(?) or maybe the callers are bad with
-    // their use of chained mutexes.  Make sure that timestamps don't get mixed up in
-    // their ordering, once they begin to play a role.
+    // block).
     alt_memory_tracker_t tracker_;
-    page_cache_t page_cache_;
+    alt::page_cache_t page_cache_;
 
     two_level_nevershrink_array_t<intrusive_list_t<alt_snapshot_node_t> > snapshot_nodes_by_block_id_;
 
-    scoped_ptr_t<auto_drainer_t> drainer_;
-
     DISABLE_COPYING(cache_t);
-};
-
-class alt_inner_txn_t {
-public:
-    // This is public because scoped_ptr_t needs to call it.
-    ~alt_inner_txn_t();
-
-private:
-    friend class txn_t;
-    alt_inner_txn_t(cache_t *cache,
-                    // Unused for read transactions, pass repli_timestamp_t::invalid.
-                    repli_timestamp_t txn_recency,
-                    alt_inner_txn_t *preceding_txn_or_null);
-
-    cache_t *cache() { return cache_; }
-
-    page_txn_t *page_txn() { return &page_txn_; }
-
-    cache_t *cache_;
-    page_txn_t page_txn_;
-
-    DISABLE_COPYING(alt_inner_txn_t);
 };
 
 class txn_t {
 public:
     // Constructor for read-only transactions.
-    // RSI: Generally speaking I don't think we use preceding_txn.
-    explicit txn_t(cache_t *cache,
-                   read_access_t read_access,
-                   txn_t *preceding_txn = NULL);
-
+    txn_t(cache_conn_t *cache_conn, read_access_t read_access);
 
     // KSI: Remove default parameter for expected_change_count.
-    // RSI: Generally speaking I don't think we use preceding_txn and we should.
-    txn_t(cache_t *cache,
+    txn_t(cache_conn_t *cache_conn,
           write_durability_t durability,
           repli_timestamp_t txn_timestamp,
-          int64_t expected_change_count = 2,
-          txn_t *preceding_txn = NULL);
+          int64_t expected_change_count = 2);
 
     ~txn_t();
 
-    cache_t *cache() { return inner_->cache(); }
-    page_txn_t *page_txn() { return inner_->page_txn(); }
+    cache_t *cache() { return cache_; }
+    alt::page_txn_t *page_txn() { return page_txn_.get(); }
     access_t access() const { return access_; }
 
-    void set_account(alt_cache_account_t *cache_account);
+    void set_account(cache_account_t *cache_account);
+    cache_account_t *account() { return cache_account_; }
 
 private:
-    void help_construct(cache_t *cache,
-                        repli_timestamp_t txn_timestamp,
-                        txn_t *preceding_txn);
+    // Resets the *tracker_acq parameter.
+    static void inform_tracker(cache_t *cache,
+                               alt::tracker_acq_t *tracker_acq);
 
-    static void destroy_inner_txn(alt_inner_txn_t *inner,
-                                  cache_t *cache,
-                                  int64_t saved_expected_change_count,
-                                  auto_drainer_t::lock_t);
+    // Resets the *tracker_acq parameter.
+    static void pulse_and_inform_tracker(cache_t *cache,
+                                         alt::tracker_acq_t *tracker_acq,
+                                         cond_t *pulsee);
+
+
+    void help_construct(repli_timestamp_t txn_timestamp,
+                        int64_t expected_change_count,
+                        cache_conn_t *cache_conn);
+
+    cache_t *const cache_;
+
+    // Initialized to cache()->page_cache_.default_cache_account(), and modified by
+    // set_account().
+    cache_account_t *cache_account_;
 
     const access_t access_;
 
     // Only applicable if access_ == write.
     const write_durability_t durability_;
-    const int64_t saved_expected_change_count_;  // RSI: A fugly relationship with
-                                                 // the tracker.
 
-    scoped_ptr_t<alt_inner_txn_t> inner_;
+    scoped_ptr_t<alt::page_txn_t> page_txn_;
+
     DISABLE_COPYING(txn_t);
 };
 
@@ -157,7 +139,7 @@ class buf_lock_t {
 public:
     buf_lock_t();
 
-    // alt_buf_parent_t is a type that either points at a buf_lock_t (its parent) or
+    // buf_parent_t is a type that either points at a buf_lock_t (its parent) or
     // merely at a txn_t (e.g. for acquiring the superblock, which has no parent).
     // If acquiring the child for read, the constructor will wait for the parent to
     // be acquired for read.  Similarly, if acquiring the child for write, the
@@ -246,30 +228,37 @@ private:
     void help_construct(buf_parent_t parent, alt_create_t create);
     void help_construct(buf_parent_t parent, block_id_t block_id, alt_create_t create);
 
+    static alt_snapshot_node_t *help_make_child(cache_t *cache, block_id_t child_id,
+                                                cache_account_t *account);
+
+
     static void wait_for_parent(buf_parent_t parent, access_t access);
     static alt_snapshot_node_t *
     get_or_create_child_snapshot_node(cache_t *cache,
                                       alt_snapshot_node_t *parent,
-                                      block_id_t child_id);
-    static void create_empty_child_snapshot_nodes(cache_t *cache,
-                                                  block_version_t parent_version,
+                                      block_id_t child_id,
+                                      cache_account_t *account);
+    static void create_empty_child_snapshot_attachments(
+            cache_t *cache,
+            alt::block_version_t parent_version,
+            block_id_t parent_id,
+            block_id_t child_id);
+    static void create_child_snapshot_attachments(cache_t *cache,
+                                                  alt::block_version_t parent_version,
                                                   block_id_t parent_id,
-                                                  block_id_t child_id);
-    static void create_child_snapshot_nodes(cache_t *cache,
-                                            block_version_t parent_version,
-                                            block_id_t parent_id,
-                                            block_id_t child_id);
-    current_page_acq_t *current_page_acq() const;
+                                                  block_id_t child_id,
+                                                  cache_account_t *account);
+    alt::current_page_acq_t *current_page_acq() const;
 
     friend class buf_read_t;  // for get_held_page_for_read, access_ref_count_.
     friend class buf_write_t;  // for get_held_page_for_write, access_ref_count_.
 
-    page_t *get_held_page_for_read();
-    page_t *get_held_page_for_write();
+    alt::page_t *get_held_page_for_read();
+    alt::page_t *get_held_page_for_write();
 
     txn_t *txn_;
 
-    scoped_ptr_t<current_page_acq_t> current_page_acq_;
+    scoped_ptr_t<alt::current_page_acq_t> current_page_acq_;
 
     alt_snapshot_node_t *snapshot_node_;
 
@@ -336,7 +325,7 @@ public:
 
 private:
     buf_lock_t *lock_;
-    page_acq_t page_acq_;
+    alt::page_acq_t page_acq_;
 
     DISABLE_COPYING(buf_read_t);
 };
@@ -352,7 +341,7 @@ public:
 
 private:
     buf_lock_t *lock_;
-    page_acq_t page_acq_;
+    alt::page_acq_t page_acq_;
 
     DISABLE_COPYING(buf_write_t);
 };

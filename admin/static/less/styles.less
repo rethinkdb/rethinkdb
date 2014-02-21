@@ -758,9 +758,26 @@ TODO: retire this
     .modal-body {
         font-family: @sans;
         padding: 0px 15px 15px 15px;
+        hr{
+            border: 0px;
+            height: 1px;
+            background: #e9e9e9;
+            margin: 20px 0px 0px 0px;
+        }
     }
     .large_input{
         width: 294px;
+    }
+    .error_verification{
+        float: right;
+        padding-right: 10px;
+        margin: 4px 70px 0px 0px;
+        color: #d95b5b;
+        font-weight: bold;
+        display: none;
+    }
+    .first_question{
+        margin-top: 0px;
     }
 }
 
@@ -1308,8 +1325,12 @@ TODO: retire this
             margin: 10px 0px;
             overflow: auto;
 
-            button {
+            .button_query {
                 float: right;
+                width: 70px;
+            }
+            .abort_query{
+                display: none;
             }
 
             .CodeMirror{
@@ -1968,7 +1989,7 @@ TODO: retire this
                 }
 
                 &.datetime {
-                    right: 125px;
+                    right: 155px;
                     width: 175px;
                     @icon_width: 30px;
                     @icon_padding: 20px;
@@ -2628,8 +2649,11 @@ TODO: retire this
                 padding: 5px 0px 5px 20px;
                 font-family: @sans;
                 font-size: 15px;
-                color: #a9a9a9;
-                .secondary_index_name{
+                color: #a3a3a3;
+                .name{
+                    font-weight: bold;
+                }
+                .new_index_name{
                     margin-bottom: -1px;
                 }
             }
@@ -2641,6 +2665,10 @@ TODO: retire this
                     margin-top: 5px;
                     margin-bottom: 5px;
                 }
+            }
+            .add_index_li{
+                margin-top: 27px;
+                display: none;
             }
         }
         .create_container{
@@ -2821,17 +2849,38 @@ TODO: retire this
     Progress bar UIComponent
     ----------------------------
 */
-.replica-status, .shard-status {
+
+.replica-status, .shard-status{
+    p {
+        margin: 0;
+        line-height: 48px;
+    }
+    .progress-status {
+        p {
+            margin-bottom: 10px;
+        }
+    }
+}
+.secondary_indexes{
+    .progress-status {
+        margin: 5px 0px -9px 0px;
+        p {
+            margin: 0px 0px -5px 0px;
+        }
+    }
+    .progress_li{
+        color: #a9a9a9;
+        margin: 0px 0px 8px 20px;
+    }
+}
+
+.replica-status, .shard-status, .secondary_indexes {
     font-family: @sans;
     font-size: 15px;
     color: #72BDDF;
     padding: 10px 0;
     border-bottom: 1px solid #efefef;
     margin-bottom: 20px;
-    p {
-        margin: 0;
-        line-height: 48px;
-    }
     span.big {
         font-size: 24px;
         color: #5C6169;
@@ -2841,9 +2890,7 @@ TODO: retire this
         p {
             color: #a9a9a9;
             line-height: normal;
-            margin-bottom: 10px;
         }
-
         .progress {
             height: 12px;
             .border-radius(12px);
@@ -2861,7 +2908,7 @@ TODO: retire this
             p {
                 text-align: right;
                 font-size: 13px;
-                margin-bottom: 15px;
+                margin: -3px 0px 15px 0px;
                 &.completed:before {
                     content: '\2714';
                     display: block;

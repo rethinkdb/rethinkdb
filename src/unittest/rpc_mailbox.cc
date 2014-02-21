@@ -22,11 +22,8 @@ private:
     class write_impl_t : public mailbox_write_callback_t {
     public:
         explicit write_impl_t(int _arg) : arg(_arg) { }
-        void write(write_stream_t *stream) {
-            write_message_t msg;
-            msg << arg;
-            int res = send_write_message(stream, &msg);
-            if (res) { throw fake_archive_exc_t(); }
+        void write(write_message_t *msg) {
+            *msg << arg;
         }
     private:
         friend class read_impl_t;
@@ -38,8 +35,8 @@ private:
         explicit read_impl_t(dummy_mailbox_t *_parent) : parent(_parent) { }
         void read(read_stream_t *stream) {
             int i;
-            int res = deserialize(stream, &i);
-            if (res) { throw fake_archive_exc_t(); }
+            archive_result_t res = deserialize(stream, &i);
+            if (bad(res)) { throw fake_archive_exc_t(); }
             parent->inbox.insert(i);
         }
     private:

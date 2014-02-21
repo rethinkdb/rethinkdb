@@ -6,10 +6,11 @@
 #include <vector>
 
 #include "buffer_cache/types.hpp"
+#include "buffer_cache/alt/cache_account.hpp"
 #include "containers/scoped.hpp"
 #include "perfmon/perfmon.hpp"
 
-class alt_cache_account_t;
+class cache_account_t;
 class backfill_callback_t;
 class buf_lock_t;
 class buf_parent_t;
@@ -59,7 +60,7 @@ public:
     ~btree_slice_t();
 
     cache_t *cache() { return cache_; }
-    alt_cache_account_t *get_backfill_account() { return backfill_account_.get(); }
+    cache_account_t *get_backfill_account() { return &backfill_account_; }
 
     btree_stats_t stats;
 
@@ -67,7 +68,7 @@ private:
     cache_t *cache_;
 
     // Cache account to be used when backfilling.
-    scoped_ptr_t<alt_cache_account_t> backfill_account_;
+    cache_account_t backfill_account_;
 
     DISABLE_COPYING(btree_slice_t);
 };

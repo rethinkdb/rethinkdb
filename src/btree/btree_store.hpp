@@ -153,7 +153,6 @@ public:
         const secondary_index_t::opaque_definition_t &definition,
         buf_lock_t *sindex_block);
 
-    // RSI: Is interruptor actually used?
     void set_sindexes(
         const std::map<std::string, secondary_index_t> &sindexes,
         buf_lock_t *sindex_block,
@@ -173,7 +172,6 @@ public:
         buf_lock_t *sindex_block)
     THROWS_NOTHING;
 
-    // RSI: Is interruptor actually used?
     bool drop_sindex(
         const std::string &id,
         buf_lock_t *sindex_block,
@@ -182,30 +180,16 @@ public:
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t);
 
-    // RSI: This should release the superblock internally after getting its
-    // sindex_block (so that sindex_list_t and sindex_status_t, the queries which use
-    // this, don't block other queries).  It would be nice in general if we supported
-    // passing the superblock_t in some way by rvalue reference.
-    void get_sindexes(
-        superblock_t *super_block,
-        std::map<std::string, secondary_index_t> *sindexes_out);
-
-    void get_sindexes(
-        buf_lock_t *sindex_block,
-        std::map<std::string, secondary_index_t> *sindexes_out);
-
     MUST_USE bool acquire_sindex_superblock_for_read(
             const std::string &id,
-            block_id_t sindex_block_id,
-            buf_parent_t parent,
+            superblock_t *superblock,  // releases this.
             scoped_ptr_t<real_superblock_t> *sindex_sb_out,
             std::vector<char> *opaque_definition_out) // Optional, may be NULL
         THROWS_ONLY(sindex_not_post_constructed_exc_t);
 
     MUST_USE bool acquire_sindex_superblock_for_write(
             const std::string &id,
-            block_id_t sindex_block_id,
-            buf_parent_t parent,
+            superblock_t *superblock,  // releases this.
             scoped_ptr_t<real_superblock_t> *sindex_sb_out)
         THROWS_ONLY(sindex_not_post_constructed_exc_t);
 
@@ -350,6 +334,7 @@ public:
     // Mind the constructor ordering. We must destruct the cache and btree
     // before we destruct perfmon_collection
     scoped_ptr_t<cache_t> cache;
+    scoped_ptr_t<cache_conn_t> general_cache_conn;
     scoped_ptr_t<btree_slice_t> btree;
     io_backender_t *io_backender_;
     base_path_t base_path_;
@@ -358,7 +343,7 @@ public:
     boost::ptr_map<const std::string, btree_slice_t> secondary_index_slices;
 
     std::vector<internal_disk_backed_queue_t *> sindex_queues;
-    // RSI: mutex_t is a horrible type.
+    // KSI: mutex_t is a horrible type.
     mutex_t sindex_queue_mutex;
     std::map<uuid_u, const parallel_traversal_progress_t *> progress_trackers;
 

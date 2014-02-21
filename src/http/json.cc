@@ -16,8 +16,10 @@ std::string (*cJSON_default_print)(cJSON *json) = cJSON_print_std_string;
 #else
 std::string (*cJSON_default_print)(cJSON *json) = cJSON_print_unformatted_std_string;
 #endif
-http_res_t http_json_res(cJSON *json) {
-    return http_res_t(HTTP_OK, "application/json", cJSON_default_print(json));
+
+void http_json_res(cJSON *json, http_res_t *result) {
+    result->code = HTTP_OK;
+    result->set_body("application/json", cJSON_default_print(json));
 }
 
 cJSON *cJSON_merge(cJSON *lhs, cJSON *rhs) {
@@ -273,61 +275,61 @@ write_message_t &operator<<(write_message_t &msg, const cJSON &cjson) {
 
 MUST_USE archive_result_t deserialize(read_stream_t *s, cJSON *cjson) {
     archive_result_t res = deserialize(s, &cjson->type);
-    if (res) { return res; }
+    if (bad(res)) { return res; }
 
     switch (cjson->type) {
     case cJSON_False:
     case cJSON_True:
     case cJSON_NULL:
-        return ARCHIVE_SUCCESS;
+        return archive_result_t::SUCCESS;
         break;
     case cJSON_Number:
         res = deserialize(s, &cjson->valuedouble);
-        if (res) { return res; }
+        if (bad(res)) { return res; }
         cjson->valueint = static_cast<int>(cjson->valuedouble);
-        return ARCHIVE_SUCCESS;
+        return archive_result_t::SUCCESS;
         break;
     case cJSON_String:
         {
             std::string str;
             res = deserialize(s, &str);
-            if (res) { return res; }
+            if (bad(res)) { return res; }
             cjson->valuestring = strdup(str.c_str());
-            return ARCHIVE_SUCCESS;
+            return archive_result_t::SUCCESS;
         }
         break;
     case cJSON_Array:
         {
             int size;
             res = deserialize(s, &size);
-            if (res) { return res; }
+            if (bad(res)) { return res; }
             for (int i = 0; i < size; ++i) {
                 cJSON *item = cJSON_CreateBlank();
                 res = deserialize(s, item);
-                if (res) { return res; }
+                if (bad(res)) { return res; }
                 cJSON_AddItemToArray(cjson, item);
             }
-            return ARCHIVE_SUCCESS;
+            return archive_result_t::SUCCESS;
         }
         break;
     case cJSON_Object:
         {
             int size;
             res = deserialize(s, &size);
-            if (res) { return res; }
+            if (bad(res)) { return res; }
             for (int i = 0; i < size; ++i) {
                 //grab the key
                 std::string key;
                 res = deserialize(s, &key);
-                if (res) { return res; }
+                if (bad(res)) { return res; }
 
                 //grab the item
                 cJSON *item = cJSON_CreateBlank();
                 res = deserialize(s, item);
-                if (res) { return res; }
+                if (bad(res)) { return res; }
                 cJSON_AddItemToObject(cjson, key.c_str(), item);
             }
-            return ARCHIVE_SUCCESS;
+            return archive_result_t::SUCCESS;
         }
         break;
     default:

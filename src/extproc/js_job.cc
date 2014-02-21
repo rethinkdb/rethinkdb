@@ -13,6 +13,7 @@
 #endif
 
 #include <cmath>
+#include <limits>
 
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/stl_types.hpp"
@@ -20,8 +21,15 @@
 #include "rdb_protocol/rdb_protocol_json.hpp"
 #include "rdb_protocol/pseudo_time.hpp"
 
+#ifdef V8_PRE_3_19
+#define DECLARE_HANDLE_SCOPE(scope) v8::HandleScope scope
+#else
+#define DECLARE_HANDLE_SCOPE(scope) v8::HandleScope scope(v8::Isolate::GetCurrent())
+#endif
+
+
 const js_id_t MIN_ID = 1;
-const js_id_t MAX_ID = UINT64_MAX;
+const js_id_t MAX_ID = std::numeric_limits<js_id_t>::max();
 
 // Picked from a hat.
 #define TO_JSON_RECURSION_LIMIT  500
@@ -66,6 +74,7 @@ public:
     v8::Persistent<v8::Context> context;
 #else
     js_context_t() :
+        local_scope(v8::Isolate::GetCurrent()),
         context(v8::Context::New(v8::Isolate::GetCurrent())),
         scope(context) { }
 
@@ -91,12 +100,16 @@ js_result_t js_job_t::eval(const std::string &source) {
     write_message_t msg;
     msg.append(&task, sizeof(task));
     msg << source;
-    int res = send_write_message(extproc_job.write_stream(), &msg);
-    if (res != 0) { throw js_worker_exc_t("failed to send data to the worker"); }
+    {
+        int res = send_write_message(extproc_job.write_stream(), &msg);
+        if (res != 0) { throw js_worker_exc_t("failed to send data to the worker"); }
+    }
 
     js_result_t result;
-    res = deserialize(extproc_job.read_stream(), &result);
-    if (res != ARCHIVE_SUCCESS) { throw js_worker_exc_t("failed to deserialize result from worker"); }
+    archive_result_t res = deserialize(extproc_job.read_stream(), &result);
+    if (bad(res)) {
+        throw js_worker_exc_t("failed to deserialize result from worker");
+    }
     return result;
 }
 
@@ -106,12 +119,16 @@ js_result_t js_job_t::call(js_id_t id, const std::vector<counted_t<const ql::dat
     msg.append(&task, sizeof(task));
     msg << id;
     msg << args;
-    int res = send_write_message(extproc_job.write_stream(), &msg);
-    if (res != 0) { throw js_worker_exc_t("failed to send data to the worker"); }
+    {
+        int res = send_write_message(extproc_job.write_stream(), &msg);
+        if (res != 0) { throw js_worker_exc_t("failed to send data to the worker"); }
+    }
 
     js_result_t result;
-    res = deserialize(extproc_job.read_stream(), &result);
-    if (res != ARCHIVE_SUCCESS) { throw js_worker_exc_t("failed to deserialize result from worker"); }
+    archive_result_t res = deserialize(extproc_job.read_stream(), &result);
+    if (bad(res)) {
+        throw js_worker_exc_t("failed to deserialize result from worker");
+    }
     return result;
 }
 
@@ -143,20 +160,24 @@ bool js_job_t::worker_fn(read_stream_t *stream_in, write_stream_t *stream_out) {
     while (running) {
         js_task_t task;
         int64_t read_size = sizeof(task);
-        int64_t res = force_read(stream_in, &task, read_size);
-        if (res != read_size) { return false; }
+        {
+            int64_t res = force_read(stream_in, &task, read_size);
+            if (res != read_size) { return false; }
+        }
 
         switch (task) {
         case TASK_EVAL:
             {
                 std::string source;
-                res = deserialize(stream_in, &source);
-                if (res != ARCHIVE_SUCCESS) { return false; }
+                {
+                    archive_result_t res = deserialize(stream_in, &source);
+                    if (bad(res)) { return false; }
+                }
 
                 js_result_t js_result = js_env.eval(source);
                 write_message_t msg;
                 msg << js_result;
-                res = send_write_message(stream_out, &msg);
+                int res = send_write_message(stream_out, &msg);
                 if (res != 0) { return false; }
             }
             break;
@@ -164,23 +185,25 @@ bool js_job_t::worker_fn(read_stream_t *stream_in, write_stream_t *stream_out) {
             {
                 js_id_t id;
                 std::vector<counted_t<const ql::datum_t> > args;
-                res = deserialize(stream_in, &id);
-                if (res != ARCHIVE_SUCCESS) { return false; }
-                res = deserialize(stream_in, &args);
-                if (res != ARCHIVE_SUCCESS) { return false; }
+                {
+                    archive_result_t res = deserialize(stream_in, &id);
+                    if (bad(res)) { return false; }
+                    res = deserialize(stream_in, &args);
+                    if (bad(res)) { return false; }
+                }
 
                 js_result_t js_result = js_env.call(id, args);
                 write_message_t msg;
                 msg << js_result;
-                res = send_write_message(stream_out, &msg);
+                int res = send_write_message(stream_out, &msg);
                 if (res != 0) { return false; }
             }
             break;
         case TASK_RELEASE:
             {
                 js_id_t id;
-                res = deserialize(stream_in, &id);
-                if (res != ARCHIVE_SUCCESS) { return false; }
+                archive_result_t res = deserialize(stream_in, &id);
+                if (bad(res)) { return false; }
                 js_env.release(id);
             }
             break;
@@ -219,7 +242,7 @@ js_result_t js_env_t::eval(const std::string &source) {
     js_result_t result("");
     std::string *errmsg = boost::get<std::string>(&result);
 
-    v8::HandleScope handle_scope;
+    DECLARE_HANDLE_SCOPE(handle_scope);
 
     // TODO: use an "external resource" to avoid copy?
     v8::Handle<v8::String> src = v8::String::New(source.data(), source.size());
@@ -290,7 +313,7 @@ v8::Handle<v8::Value> run_js_func(v8::Handle<v8::Function> fn,
                                   const std::vector<counted_t<const ql::datum_t> > &args,
                                   std::string *errmsg) {
     v8::TryCatch try_catch;
-    v8::HandleScope scope;
+    DECLARE_HANDLE_SCOPE(scope);
 
     // Construct receiver object.
     v8::Handle<v8::Object> obj = v8::Object::New();
@@ -320,7 +343,7 @@ js_result_t js_env_t::call(js_id_t id,
     const boost::shared_ptr<v8::Persistent<v8::Value> > found_value = find_value(id);
     guarantee(!found_value->IsEmpty());
 
-    v8::HandleScope handle_scope;
+    DECLARE_HANDLE_SCOPE(handle_scope);
 
     // Construct local handle from persistent handle
 
@@ -367,7 +390,7 @@ counted_t<const ql::datum_t> js_make_datum(const v8::Handle<v8::Value> &value,
     --recursion_limit;
 
     // TODO: should we handle BooleanObject, NumberObject, StringObject?
-    v8::HandleScope handle_scope;
+    DECLARE_HANDLE_SCOPE(handle_scope);
 
     if (value->IsString()) {
         v8::Handle<v8::String> string = value->ToString();
@@ -471,7 +494,7 @@ counted_t<const ql::datum_t> js_to_datum(const v8::Handle<v8::Value> &value, std
     guarantee(!value.IsEmpty());
     guarantee(errmsg != NULL);
 
-    v8::HandleScope handle_scope;
+    DECLARE_HANDLE_SCOPE(handle_scope);
     errmsg->assign("Unknown error when converting to ql::datum_t.");
 
     return js_make_datum(value, TO_JSON_RECURSION_LIMIT, errmsg);
@@ -497,7 +520,7 @@ v8::Handle<v8::Value> js_from_datum(const counted_t<const ql::datum_t> &datum) {
         const std::vector<counted_t<const ql::datum_t> > &source_array = datum->as_array();
 
         for (size_t i = 0; i < source_array.size(); ++i) {
-            v8::HandleScope scope;
+            DECLARE_HANDLE_SCOPE(scope);
             v8::Handle<v8::Value> val = js_from_datum(source_array[i]);
             guarantee(!val.IsEmpty());
             array->Set(i, val);
@@ -515,7 +538,7 @@ v8::Handle<v8::Value> js_from_datum(const counted_t<const ql::datum_t> &datum) {
             const std::map<std::string, counted_t<const ql::datum_t> > &source_map = datum->as_object();
 
             for (auto it = source_map.begin(); it != source_map.end(); ++it) {
-                v8::HandleScope scope;
+                DECLARE_HANDLE_SCOPE(scope);
                 v8::Handle<v8::Value> key = v8::String::New(it->first.c_str());
                 v8::Handle<v8::Value> val = js_from_datum(it->second);
                 guarantee(!key.IsEmpty() && !val.IsEmpty());

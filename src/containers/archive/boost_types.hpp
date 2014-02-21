@@ -128,17 +128,17 @@ template <class T> struct archive_variant_deserialize_standin_t {
     static MUST_USE archive_result_t do_the_deserialization(read_stream_t *s, boost::variant<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20> *x) {
         T v;
         archive_result_t res = deserialize(s, &v);
-        if (res) { return res; }
+        if (bad(res)) { return res; }
         *x = v;
 
-        return ARCHIVE_SUCCESS;
+        return archive_result_t::SUCCESS;
     }
 };
 
 template <> struct archive_variant_deserialize_standin_t<boost::detail::variant::void_> {
     template <class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8, class T9, class T10, class T11, class T12, class T13, class T14, class T15, class T16, class T17, class T18, class T19, class T20>
     static MUST_USE archive_result_t do_the_deserialization(UNUSED read_stream_t *s, UNUSED boost::variant<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20> *x) {
-        return ARCHIVE_RANGE_ERROR;
+        return archive_result_t::RANGE_ERROR;
     }
 };
 
@@ -146,9 +146,9 @@ template <class T1, class T2, class T3, class T4, class T5, class T6, class T7, 
 MUST_USE archive_result_t deserialize(read_stream_t *s, boost::variant<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20> *x) {
     uint8_t n;
     archive_result_t res = deserialize(s, &n);
-    if (res) { return res; }
+    if (bad(res)) { return res; }
     if (!(1 <= n && n <= 20)) {
-        return ARCHIVE_RANGE_ERROR;
+        return archive_result_t::RANGE_ERROR;
     }
 
     switch (n) {
@@ -198,14 +198,14 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, boost::optional<T> *x) {
     bool exists;
 
     archive_result_t res = deserialize(s, &exists);
-    if (res) { return res; }
+    if (bad(res)) { return res; }
     if (exists) {
         x->reset(T());
         res = deserialize(s, x->get_ptr());
         return res;
     } else {
         x->reset();
-        return ARCHIVE_SUCCESS;
+        return archive_result_t::SUCCESS;
     }
 }
 
@@ -227,19 +227,19 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, boost::ptr_map<K, V> *x)
 
     uint64_t size;
     archive_result_t res = deserialize_varint_uint64(s, &size);
-    if (res != ARCHIVE_SUCCESS) { return res; }
+    if (res != archive_result_t::SUCCESS) { return res; }
 
     for (typename boost::ptr_map<K, V>::size_type i = 0; i < size; ++i) {
         K k;
         res = deserialize(s, &k);
-        if (res != ARCHIVE_SUCCESS) { return res; }
+        if (res != archive_result_t::SUCCESS) { return res; }
 
         res = deserialize(s, &tmp[k]);
-        if (res != ARCHIVE_SUCCESS) { return res; }
+        if (res != archive_result_t::SUCCESS) { return res; }
     }
 
     x->swap(tmp);
-    return ARCHIVE_SUCCESS;
+    return archive_result_t::SUCCESS;
 }
 
 #endif  // CONTAINERS_ARCHIVE_BOOST_TYPES_HPP_

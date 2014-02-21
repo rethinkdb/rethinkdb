@@ -127,7 +127,6 @@ public:
     REQL_METHOD(operator [], GET_FIELD)
     REQL_METHOD(nth, NTH)
     REQL_METHOD(pluck, PLUCK)
-    REQL_METHOD(grouped_map_reduce, GROUPED_MAP_REDUCE)
     REQL_METHOD(has_fields, HAS_FIELDS)
     REQL_METHOD(coerce_to, COERCE_TO)
     REQL_METHOD(get_all, GET_ALL)

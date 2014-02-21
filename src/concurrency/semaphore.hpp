@@ -14,6 +14,7 @@ public:
 
 #define SEMAPHORE_NO_LIMIT (-1)
 
+// DEPRECATED.
 class semaphore_t {
 public:
     virtual ~semaphore_t() { }
@@ -30,6 +31,9 @@ public:
 /* `static_semaphore_t` is a `semaphore_t` with a fixed capacity that has
  to be provided at the time of construction. */
 
+// DEPRECATED.  Why not use new_semaphore_t?  It doesn't have starvation issues.  It
+// doesn't have starvation issues, obeys first-in/first-out semantics.  You wouldn't
+// want starvation issues.
 class static_semaphore_t : public semaphore_t {
     struct lock_request_t : public intrusive_list_node_t<lock_request_t> {
         semaphore_available_callback_t *cb;
@@ -77,6 +81,8 @@ than the current number of objects that hold the semaphore, then new objects
 will be allowed to enter at `trickle_fraction` of the rate that the objects are
 leaving until the number of objects drops to the desired capacity. */
 
+// DEPRECATED.  Why not use new_semaphore_t?  It doesn't have starvation issues,
+// obeys first-in/first-out semantics.
 class adjustable_semaphore_t : public semaphore_t {
     struct lock_request_t : public intrusive_list_node_t<lock_request_t> {
         semaphore_available_callback_t *cb;

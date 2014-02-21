@@ -279,16 +279,6 @@ void admin_command_parser_t::param_options_t::add_option(const char *term) {
     valid_options.insert(term);
 }
 
-void admin_command_parser_t::param_options_t::add_options(const char *term, ...) {
-    va_list terms;
-    va_start(terms, term);
-    while (term != NULL) {
-        add_option(term);
-        term = va_arg(terms, const char *);
-    }
-    va_end(terms);
-}
-
 admin_command_parser_t::command_info_t::~command_info_t() {
     for (std::map<std::string, param_options_t *>::iterator i = flags.begin(); i != flags.end(); ++i) {
         delete i->second;
@@ -671,11 +661,11 @@ void admin_command_parser_t::build_command_descriptions() {
     info = add_command(unset_auth_command, unset_auth_command, unset_auth_usage, &admin_cluster_link_t::do_admin_unset_auth, &commands);
 
     info = add_command(list_command, list_command, list_usage, &admin_cluster_link_t::do_admin_list, &commands);
-    info->add_positional("object", 1, false)->add_options("!id", NULLPTR);
+    info->add_positional("object", 1, false)->add_option("!id");
     info->add_flag("long", 0, false);
 
     info = add_command(list_stats_command, list_stats_command, list_stats_usage, &admin_cluster_link_t::do_admin_list_stats, &commands);
-    info->add_positional("id-filter", -1, false)->add_options("!machine", "!namespace", NULLPTR);
+    info->add_positional("id-filter", -1, false)->add_options("!machine", "!namespace");
 
     info = add_command(list_issues_command, list_issues_command, list_issues_usage, &admin_cluster_link_t::do_admin_list_issues, &commands);
 
@@ -688,7 +678,7 @@ void admin_command_parser_t::build_command_descriptions() {
     info = add_command(list_tables_command, list_tables_command, list_tables_usage, &admin_cluster_link_t::do_admin_list_tables, &commands);
     // TODO: fix this once multiple protocols are supported again
     info->add_flag("protocol", 1, false, true); // hidden option
-    // info->add_flag("protocol", 1, false)->add_options("rdb", "memcached", NULLPTR);
+    // info->add_flag("protocol", 1, false)->add_options("rdb", "memcached");
     info->add_flag("long", 0, false);
 
     info = add_command(list_datacenters_command, list_datacenters_command, list_datacenters_usage, &admin_cluster_link_t::do_admin_list_datacenters, &commands);
@@ -704,7 +694,7 @@ void admin_command_parser_t::build_command_descriptions() {
     // TODO: fix this once multiple protocols are supported again
     info->add_flag("protocol", 1, false, true); // hidden option
     info->add_flag("port", 1, false, true); // hidden option
-    // info->add_flag("protocol", 1, false)->add_options("rdb", "memcached", NULLPTR);
+    // info->add_flag("protocol", 1, false)->add_options("rdb", "memcached");
     // info->add_flag("port", 1, true);
     info->add_flag("primary", 1, false)->add_option("!datacenter");
     info->add_flag("primary-key", 1, false);
@@ -731,11 +721,11 @@ void admin_command_parser_t::build_command_descriptions() {
     info = add_command(touch_command, touch_command, touch_usage, &admin_cluster_link_t::do_admin_touch, &commands);
 
     info = add_command(help_command, help_command, help_usage, NULL, &commands); // Special case, 'help' is not done through the cluster
-    info->add_positional("command", 1, false)->add_options("split", "merge", "set", "unset", "ls", "create", "rm", "resolve", "help", "pin", "touch", NULLPTR);
+    info->add_positional("command", 1, false)->add_options("split", "merge", "set", "unset", "ls", "create", "rm", "resolve", "help", "pin", "touch");
     info->add_positional("subcommand", 1, false);
 
     info = add_command(dashed_help_command, dashed_help_command, help_usage, NULL, &commands); // Also allow --help to work for consistency with other rethinkdb subcommands
-    info->add_positional("command", 1, false)->add_options("split", "merge", "set", "ls", "create", "rm", "resolve", "help", "pin", "touch", NULLPTR);
+    info->add_positional("command", 1, false)->add_options("split", "merge", "set", "ls", "create", "rm", "resolve", "help", "pin", "touch");
     info->add_positional("subcommand", 1, false);
 }
 

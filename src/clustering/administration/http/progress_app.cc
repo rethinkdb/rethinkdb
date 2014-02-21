@@ -187,9 +187,10 @@ progress_app_t::progress_app_t(clone_ptr_t<watchable_t<change_tracking_map_t<pee
     : directory_metadata(_directory_metadata), mbox_manager(_mbox_manager)
 { }
 
-http_res_t progress_app_t::handle(const http_req_t &req) {
+void progress_app_t::handle(const http_req_t &req, http_res_t *result, signal_t *interruptor) {
     if (req.method != GET) {
-        return http_res_t(HTTP_METHOD_NOT_ALLOWED);
+        *result = http_res_t(HTTP_METHOD_NOT_ALLOWED);
+        return;
     }
 
     /* This function is an absolute mess, basically because we need to hack
@@ -311,7 +312,8 @@ http_res_t progress_app_t::handle(const http_req_t &req) {
     uint64_t timeout = DEFAULT_PROGRESS_REQ_TIMEOUT_MS;
     if (timeout_param) {
         if (!strtou64_strict(timeout_param.get(), 10, &timeout) || timeout == 0 || timeout > MAX_PROGRESS_REQ_TIMEOUT_MS) {
-            return http_error_res("Invalid timeout value.");
+            *result = http_error_res("Invalid timeout value.");
+            return;
         }
     }
 
@@ -360,7 +362,7 @@ http_res_t progress_app_t::handle(const http_req_t &req) {
                      * that the promise is pulsed, not that the timer isn't So
                      * eacho request is guarunteed to get at least 500ms to
                      * complete. */
-                    wait_any_t waiter(&timer, r_it->second->promise->get_ready_signal());
+                    wait_any_t waiter(&timer, r_it->second->promise->get_ready_signal(), interruptor);
                     waiter.wait();
 
                     if (r_it->second->promise->get_ready_signal()->is_pulsed()) {
@@ -370,6 +372,8 @@ http_res_t progress_app_t::handle(const http_req_t &req) {
                         cJSON_AddItemToArray(pair, cJSON_CreateNumber(response.first));
                         cJSON_AddItemToArray(pair, cJSON_CreateNumber(response.second));
                         cJSON_AddItemToArray(region_info, pair);
+                    } else if (interruptor->is_pulsed()) {
+                        throw interrupted_exc_t();
                     } else {
                         /* The promise is not pulsed.. we timed out. */
                         cJSON_AddItemToArray(region_info, cJSON_CreateString("Timeout"));
@@ -379,5 +383,5 @@ http_res_t progress_app_t::handle(const http_req_t &req) {
         }
     }
 
-    return http_json_res(body.get());
+    http_json_res(body.get(), result);
 }

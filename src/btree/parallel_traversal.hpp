@@ -5,13 +5,13 @@
 #include <utility>
 #include <vector>
 
+#include "concurrency/access.hpp"
 #include "backfill_progress.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/interruptor.hpp"
 #include "concurrency/signal.hpp"
 #include "containers/scoped.hpp"
 
-enum class access_t;
 class buf_lock_t;
 class buf_parent_t;
 struct btree_superblock_t;
@@ -145,7 +145,6 @@ struct btree_traversal_helper_t {
 
 void btree_parallel_traversal(
         superblock_t *superblock,
-        btree_slice_t *slice,
         btree_traversal_helper_t *helper,
         signal_t *interruptor,
         bool release_superblock = true)

@@ -27,6 +27,22 @@ int compute_mod_count(int32_t file_number, int32_t n_files, int32_t n_slices) {
     return n_slices / n_files + (n_slices % n_files > file_number);
 }
 
+counted_t<standard_block_token_t> serializer_block_write(serializer_t *ser, ser_buffer_t *buf,
+                                                         block_size_t block_size,
+                                                         block_id_t block_id, file_account_t *io_account) {
+    struct : public cond_t, public iocallback_t {
+        void on_io_complete() { pulse(); }
+    } cb;
+
+    std::vector<counted_t<standard_block_token_t> > tokens
+        = ser->block_writes({ buf_write_info_t(buf, block_size, block_id) },
+                            io_account, &cb);
+    guarantee(tokens.size() == 1);
+    cb.wait();
+    return tokens[0];
+
+}
+
 void prep_serializer(
         const std::vector<serializer_t *>& serializers,
         creation_timestamp_t creation_timestamp,
@@ -56,7 +72,11 @@ void prep_serializer(
     op.token = serializer_block_write(ser, buf.get(), config_block_size,
                                       CONFIG_BLOCK_ID.ser_id, DEFAULT_DISK_ACCOUNT);
     op.recency = repli_timestamp_t::invalid;
-    serializer_index_write(ser, op, DEFAULT_DISK_ACCOUNT);
+    {
+        std::vector<index_write_op_t> ops;
+        ops.push_back(std::move(op));
+        ser->index_write(ops, DEFAULT_DISK_ACCOUNT);
+    }
 }
 
 /* static */
@@ -271,8 +291,7 @@ bool translator_serializer_t::get_delete_bit(block_id_t id) {
 void translator_serializer_t::offer_read_ahead_buf(
         block_id_t block_id,
         scoped_malloc_t<ser_buffer_t> *buf,
-        const counted_t<standard_block_token_t> &token,
-        repli_timestamp_t recency_timestamp) {
+        const counted_t<standard_block_token_t> &token) {
     inner->assert_thread();
 
     if (block_id <= CONFIG_BLOCK_ID.ser_id) {
@@ -294,20 +313,20 @@ void translator_serializer_t::offer_read_ahead_buf(
 
     if (read_ahead_callback != NULL) {
         const block_id_t inner_block_id = untranslate_block_id_to_id(block_id, mod_count, mod_id, cfgid);
-        read_ahead_callback->offer_read_ahead_buf(inner_block_id, buf,
-                                                  token, recency_timestamp);
+        read_ahead_callback->offer_read_ahead_buf(inner_block_id, &local_buf,
+                                                  token);
     }
 }
 
 void translator_serializer_t::register_read_ahead_cb(serializer_read_ahead_callback_t *cb) {
-    on_thread_t t(inner->home_thread());
+    assert_thread();
 
     rassert(!read_ahead_callback);
     inner->register_read_ahead_cb(this);
     read_ahead_callback = cb;
 }
 void translator_serializer_t::unregister_read_ahead_cb(DEBUG_VAR serializer_read_ahead_callback_t *cb) {
-    on_thread_t t(inner->home_thread());
+    assert_thread();
 
     rassert(read_ahead_callback == NULL || cb == read_ahead_callback);
     inner->unregister_read_ahead_cb(this);

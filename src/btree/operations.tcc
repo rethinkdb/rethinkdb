@@ -26,7 +26,7 @@ void find_keyvalue_location_for_write(
         btree_stats_t *stats,
         profile::trace_t *trace,
         promise_t<superblock_t *> *pass_back_superblock = NULL) {
-    value_sizer_t<Value> sizer(superblock->expose_buf().cache()->max_block_size());
+    value_sizer_t<Value> sizer(superblock->cache()->max_block_size());
 
     keyvalue_location_out->superblock = superblock;
     keyvalue_location_out->pass_back_superblock = pass_back_superblock;
@@ -42,7 +42,7 @@ void find_keyvalue_location_for_write(
     buf_lock_t last_buf;
     buf_lock_t buf;
     {
-        // RSI: We can't acquire the block for write here -- we could, but it would
+        // KSI: We can't acquire the block for write here -- we could, but it would
         // worsen the performance of the program -- sometimes we only end up using
         // this block for read.  So the profiling information is not very good.
         profile::starter_t starter("Acquiring block for write.\n", trace);
@@ -60,14 +60,12 @@ void find_keyvalue_location_for_write(
         // Check if the node is overfull and proactively split it if it is (since this is an internal node).
         {
             profile::starter_t starter("Perhaps split node.", trace);
-            // RSI: Ugh, we're passing the superblock, buf, and last_buf.  Really?
             check_and_handle_split(&sizer, &buf, &last_buf, superblock, key, static_cast<Value *>(NULL));
         }
 
         // Check if the node is underfull, and merge/level if it is.
         {
             profile::starter_t starter("Perhaps merge nodes.", trace);
-            // RSI: Ugh, we're passing the superblock, buf, last_buf here too.
             check_and_handle_underfull(&sizer, &buf, &last_buf, superblock, key);
         }
 
@@ -120,7 +118,6 @@ void find_keyvalue_location_for_write(
         }
     }
 
-    // RSI: keyvalue_location_out really saves last_buf?  Why??
     keyvalue_location_out->last_buf.swap(last_buf);
     keyvalue_location_out->buf.swap(buf);
 }
@@ -131,7 +128,7 @@ void find_keyvalue_location_for_read(
         keyvalue_location_t<Value> *keyvalue_location_out,
         btree_stats_t *stats, profile::trace_t *trace) {
     stats->pm_keys_read.record();
-    value_sizer_t<Value> sizer(superblock->expose_buf().cache()->max_block_size());
+    value_sizer_t<Value> sizer(superblock->cache()->max_block_size());
 
     const block_id_t root_id = superblock->get_root_block_id();
     rassert(root_id != SUPERBLOCK_ID);
@@ -158,18 +155,16 @@ void find_keyvalue_location_for_read(
 #endif  // NDEBUG
 
     for (;;) {
-        {
-            buf_read_t read(&buf);
-            if (!node::is_internal(static_cast<const node_t *>(read.get_data_read()))) {
-                break;
-            }
-        }
         block_id_t node_id;
         {
             buf_read_t read(&buf);
-            const internal_node_t *node
-                = static_cast<const internal_node_t *>(read.get_data_read());
-            node_id = internal_node::lookup(node, key);
+            const void *data = read.get_data_read();
+            if (!node::is_internal(static_cast<const node_t *>(data))) {
+                break;
+            }
+
+            node_id = internal_node::lookup(static_cast<const internal_node_t *>(data),
+                                            key);
         }
         rassert(node_id != NULL_BLOCK_ID && node_id != SUPERBLOCK_ID);
 
@@ -296,11 +291,11 @@ void apply_keyvalue_change(keyvalue_location_t<Value> *kv_loc,
     check_and_handle_underfull(&sizer, &kv_loc->buf, &kv_loc->last_buf,
                                kv_loc->superblock, key);
 
-    // Modify the stats block.
-    // RSI: Should we _actually_ pass kv_loc->buf as the parent?
-    // RSI: See parallel_traversal.cc for another use of the stat block -- we do the
-    // same thing there.
-    buf_lock_t stat_block(&kv_loc->buf, kv_loc->stat_block, access_t::write);
+    // Modify the stats block.  The stats block is detached from the rest of the
+    // btree, we don't keep a consistent view of it, so we pass the txn as its
+    // parent.
+    buf_lock_t stat_block(buf_parent_t(kv_loc->buf.txn()),
+                          kv_loc->stat_block, access_t::write);
     buf_write_t stat_block_write(&stat_block);
     auto stat_block_buf
         = static_cast<btree_statblock_t *>(stat_block_write.get_data_write());

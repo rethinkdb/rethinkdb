@@ -47,20 +47,20 @@ archive_result_t deserialize_varint_uint64(read_stream_t *s, uint64_t *value_out
             value |= (x << offset);
             if ((buf[0] & (1 << 7)) == 0) {
                 if (offset == 63 && x > 1) {
-                    return ARCHIVE_RANGE_ERROR;
+                    return archive_result_t::RANGE_ERROR;
                 } else {
                     *value_out = value;
-                    return ARCHIVE_SUCCESS;
+                    return archive_result_t::SUCCESS;
                 }
             }
             if (offset == 63) {
-                return ARCHIVE_RANGE_ERROR;
+                return archive_result_t::RANGE_ERROR;
             }
             offset += 7;
         } else if (res == -1) {
-            return ARCHIVE_SOCK_ERROR;
+            return archive_result_t::SOCK_ERROR;
         } else if (res == 0) {
-            return ARCHIVE_SOCK_EOF;
+            return archive_result_t::SOCK_EOF;
         } else {
             unreachable();
         }

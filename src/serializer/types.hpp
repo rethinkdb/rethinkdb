@@ -22,15 +22,9 @@ typedef uint64_t block_id_t;
 
 #define PR_BLOCK_ID PRIu64
 
-/* Each time we write a block to disk, that block receives a new unique block sequence id */
-typedef uint64_t block_sequence_id_t;
-#define NULL_BLOCK_SEQUENCE_ID  (block_sequence_id_t(0))
-#define FIRST_BLOCK_SEQUENCE_ID (block_sequence_id_t(1))
-
 // The first bytes of any block stored on disk or (as it happens) cached in memory.
 struct ls_buf_data_t {
     block_id_t block_id;
-    block_sequence_id_t block_sequence_id;
 } __attribute__((__packed__));
 
 // For use via scoped_malloc_t, a buffer that represents a block on disk.  Contains
@@ -278,8 +272,7 @@ public:
     // ownership, by leaving the pointer owned by `*buf`.
     virtual void offer_read_ahead_buf(block_id_t block_id,
                                       scoped_malloc_t<ser_buffer_t> *buf,
-                                      const counted_t<standard_block_token_t> &token,
-                                      repli_timestamp_t recency_timestamp) = 0;
+                                      const counted_t<standard_block_token_t> &token) = 0;
 };
 
 struct buf_write_info_t {

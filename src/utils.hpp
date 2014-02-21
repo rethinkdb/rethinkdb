@@ -88,7 +88,6 @@ void print_hd(const void *buf, size_t offset, size_t length);
 
 
 
-
 /* `with_priority_t` changes the priority of the current coroutine to the
  value given in its constructor. When it is destructed, it restores the
  original priority of the coroutine. */

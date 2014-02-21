@@ -14,6 +14,10 @@ tests:
       ot: ({'created':1})
       def: tbl3 = r.db('test').table('test3')
 
+    - cd: r.db('test').table_create('test4')
+      ot: ({'created':1})
+      def: tbl4 = r.db('test').table('test4')
+
     - py: tbl.insert([{'id':i, 'a':i%4} for i in xrange(100)])
       js: |
         tbl.insert(function(){
@@ -50,136 +54,272 @@ tests:
       rb: tbl3.insert((0..99).map{ |i| { :id => i, :a => i % 4, :b => { :c => i % 5 } } })
       ot: ({'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':100})
 
-    # GMR
-    - rb: tbl.grouped_map_reduce(lambda { |row| row[:a] }, lambda { |row| row[:id] }, lambda { |a, b| a + b})
-      py:
-        - tbl.grouped_map_reduce(lambda row:row['a'], lambda row:row['id'], lambda a,b:a + b)
-        - tbl.grouped_map_reduce(r.row['a'], r.row['id'], lambda a,b:a + b)
-      js:
-        - |
-          tbl.groupedMapReduce(function(row) {
-              return row('a');
-          }, function(row) {
-              return row('id');
-          }, function(a,b) {
-              return a.add(b);
-          })
-        - |
-          tbl.groupedMapReduce(r.row('a'), r.row('id'),
-          function(a,b) {
-              return a.add(b);
-          })
-      ot: |
-          ([{'group':0, 'reduction':1200},
-            {'group':1, 'reduction':1225},
-            {'group':2, 'reduction':1250},
-            {'group':3, 'reduction':1275}])
+    - def:
+        cd: time1 = 1375115782.24
+        js: time1 = 1375115782.24 * 1000
+
+    - def:
+        cd: time2 = 1375147296.68
+        js: time2 = 1375147296.68 * 1000
+
+    - cd:
+        - tbl4.insert({'id':0, 'time':r.epoch_time(time1)})
+        - tbl4.insert({'id':1, 'time':r.epoch_time(time2)})
+      ot: ({'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':1})
 
     # GMR
-    - rb: tbl.union(tbl).grouped_map_reduce(lambda { |row| row[:a] }, lambda { |row| row[:id] }, lambda { |a, b| a + b})
+
+    - cd: tbl.sum('a')
+      ot: 150
+    - rb: tbl.map{|row| row['a']}.sum()
+      py: tbl.map(lambda row:row['a']).sum()
+      js: tbl.map(function(row){return row('a')}).sum()
+      ot: 150
+    - cd: tbl.group('a').sum('id')
+      ot:
+        py: ({0:1200, 1:1225, 2:1250, 3:1275})
+        js: ([[0,1200],[1,1225],[2,1250],[3,1275]])
+        rb: ({0=>1200, 1=>1225, 2=>1250, 3=>1275})
+    - cd: tbl.avg('a')
+      ot: 1.5
+    - rb: tbl.map{|row| row['a']}.avg()
+      py: tbl.map(lambda row:row['a']).avg()
+      js: tbl.map(function(row){return row('a')}).avg()
+      ot: 1.5
+    - cd: tbl.group('a').avg('id')
+      ot:
+        py: ({0:48, 1:49, 2:50, 3:51})
+        js: ([[0,48],[1,49],[2,50],[3,51]])
+        rb: ({0=>48, 1=>49, 2=>50, 3=>51})
+    - cd: tbl.min('a')
+      ot: 0
+    - rb: tbl.map{|row| row['a']}.min()
+      py: tbl.map(lambda row:row['a']).min()
+      js: tbl.map(function(row){return row('a')}).min()
+      ot: 0
+    - cd: tbl.group('a').min('id')
+      ot:
+        py: ({0:0, 1:1, 2:2, 3:3})
+        js: ([[0,0],[1,1],[2,2],[3,3]])
+        rb: ({0=>0, 1=>1, 2=>2, 3=>3})
+    - cd: tbl.max('a')
+      ot: 3
+    - rb: tbl.map{|row| row['a']}.max()
+      py: tbl.map(lambda row:row['a']).max()
+      js: tbl.map(function(row){return row('a')}).max()
+      ot: 3
+    - cd: tbl.group('a').max('id')
+      ot:
+        py: ({0:96, 1:97, 2:98, 3:99})
+        js: ([[0,96],[1,97],[2,98],[3,99]])
+        rb: ({0=>96, 1=>97, 2=>98, 3=>99})
+
+    - cd: tbl.min()
+      ot:
+        py: ({"a":0, "id":0})
+        js: ({"a":0, "id":0})
+        rb: ({"a"=>0, "id"=>0})
+    - cd: tbl.group('a').min()
+      ot:
+        py: ({0:{"a":0, "id":0}, 1:{"a":1, "id":1}, 2:{"a":2, "id":2}, 3:{"a":3, "id":3}})
+        js: ([[0,{"a":0,"id":0}],[1,{"a":1,"id":1}],[2,{"a":2,"id":2}],[3,{"a":3,"id":3}]])
+        rb: ({0=>{"a"=>0, "id"=>0}, 1=>{"a"=>1, "id"=>1}, 2=>{"a"=>2, "id"=>2}, 3=>{"a"=>3, "id"=>3}})
+    - cd: tbl.max()
+      ot:
+        py: ({"a":3, "id":99})
+        js: ({"a":3, "id":99})
+        rb: ({"a"=>3, "id"=>99})
+    - cd: tbl.group('a').max()
+      ot:
+        py: ({0:{'a':0, 'id':96}, 1:{'a':1, 'id':97}, 2:{'a':2, 'id':98}, 3:{'a':3, 'id':99}})
+        js: ([[0,{"a":0,"id":96}],[1,{"a":1,"id":97}],[2,{"a":2,"id":98}],[3,{"a":3,"id":99}]])
+        rb: ({0=>{'a':0, 'id':96}, 1=>{'a':1, 'id':97}, 2=>{'a':2, 'id':98}, 3=>{'a':3, 'id':99}})
+
+    - rb:
+        - tbl.sum{|row| row['a']}
       py:
-        - tbl.union(tbl).grouped_map_reduce(lambda row:row['a'], lambda row:row['id'], lambda a,b:a + b)
-        - tbl.union(tbl).grouped_map_reduce(r.row['a'], r.row['id'], lambda a,b:a + b)
+        - tbl.sum(lambda row:row['a'])
+        - tbl.sum(r.row['a'])
       js:
-        - |
-          tbl.union(tbl).groupedMapReduce(function(row) {
-              return row('a');
-          }, function(row) {
-              return row('id');
-          }, function(a,b) {
-              return a.add(b);
-          })
-        - |
-          tbl.union(tbl).groupedMapReduce(r.row('a'), r.row('id'),
-          function(a,b) {
-              return a.add(b);
-          })
-      ot: |
-          ([{'group':0, 'reduction':2400},
-            {'group':1, 'reduction':2450},
-            {'group':2, 'reduction':2500},
-            {'group':3, 'reduction':2550}])
+        - tbl.sum(function(row){return row('a')})
+        - tbl.sum(r.row('a'))
+      ot: 150
+    - rb: tbl.map{|row| row['a']}.sum()
+      py: tbl.map(lambda row:row['a']).sum()
+      js: tbl.map(function(row){return row('a')}).sum()
+      ot: 150
+    - rb: tbl.group{|row| row['a']}.sum{|row| row['id']}
+      py: tbl.group(lambda row:row['a']).sum(lambda row:row['id'])
+      js: tbl.group(function(row){return row('a')}).sum(function(row){return row('id')})
+      ot:
+        py: ({0:1200, 1:1225, 2:1250, 3:1275})
+        js: ([[0,1200],[1,1225],[2,1250],[3,1275]])
+        rb: ({0=>1200, 1=>1225, 2=>1250, 3=>1275})
+    - rb:
+        - tbl.avg{|row| row['a']}
+      py:
+        - tbl.avg(lambda row:row['a'])
+        - tbl.avg(r.row['a'])
+      js:
+        - tbl.avg(function(row){return row('a')})
+        - tbl.avg(r.row('a'))
+      ot: 1.5
+    - rb: tbl.map{|row| row['a']}.avg()
+      py: tbl.map(lambda row:row['a']).avg()
+      js: tbl.map(function(row){return row('a')}).avg()
+      ot: 1.5
+    - rb: tbl.group{|row| row['a']}.avg{|row| row['id']}
+      py: tbl.group(lambda row:row['a']).avg(lambda row:row['id'])
+      js: tbl.group(function(row){return row('a')}).avg(function(row){return row('id')})
+      ot:
+        py: ({0:48, 1:49, 2:50, 3:51})
+        js: ([[0,48],[1,49],[2,50],[3,51]])
+        rb: ({0=>48, 1=>49, 2=>50, 3=>51})
+    - rb:
+        - tbl.min{|row| row['a']}
+      py:
+        - tbl.min(lambda row:row['a'])
+        - tbl.min(r.row['a'])
+      js:
+        - tbl.min(function(row){return row('a')})
+        - tbl.min(r.row('a'))
+      ot: 0
+    - rb: tbl.map{|row| row['a']}.min()
+      py: tbl.map(lambda row:row['a']).min()
+      js: tbl.map(function(row){return row('a')}).min()
+      ot: 0
+    - rb: tbl.group{|row| row['a']}.min{|row| row['id']}
+      py: tbl.group(lambda row:row['a']).min(lambda row:row['id'])
+      js: tbl.group(function(row){return row('a')}).min(function(row){return row('id')})
+      ot:
+        py: ({0:0, 1:1, 2:2, 3:3})
+        js: ([[0,0],[1,1],[2,2],[3,3]])
+        rb: ({0=>0, 1=>1, 2=>2, 3=>3})
+    - rb:
+        - tbl.max{|row| row['a']}
+      py:
+        - tbl.max(lambda row:row['a'])
+        - tbl.max(r.row['a'])
+      js:
+        - tbl.max(function(row){return row('a')})
+        - tbl.max(r.row('a'))
+      ot: 3
+    - rb: tbl.map{|row| row['a']}.max()
+      py: tbl.map(lambda row:row['a']).max()
+      js: tbl.map(function(row){return row('a')}).max()
+      ot: 3
+    - rb: tbl.group{|row| row['a']}.max{|row| row['id']}
+      py: tbl.group(lambda row:row['a']).max(lambda row:row['id'])
+      js: tbl.group(function(row){return row('a')}).max(function(row){return row('id')})
+      ot:
+        py: ({0:96, 1:97, 2:98, 3:99})
+        js: ([[0,96],[1,97],[2,98],[3,99]])
+        rb: ({0=>96, 1=>97, 2=>98, 3=>99})
+
+    - rb: tbl.group{|row| row[:a]}.map{|row| row[:id]}.reduce{|a,b| a+b}
+      py: tbl.group(lambda row:row['a']).map(lambda row:row['id']).reduce(lambda a,b:a+b)
+      js: tbl.group(function(row){return row('a')}).map(function(row){return row('id')}).reduce(function(a,b){return a.add(b)})
+      ot:
+        py: ({0:1200, 1:1225, 2:1250, 3:1275})
+        js: ([[0,1200],[1,1225],[2,1250],[3,1275]])
+        rb: ({0=>1200, 1=>1225, 2=>1250, 3=>1275})
+
+    - rb: tbl.group{|row| row[:a]}.map{|row| row[:id]}.reduce{|a,b| a+b}
+      runopts:
+        group_format: '"raw"'
+      py:
+        - tbl.group(lambda row:row['a']).map(lambda row:row['id']).reduce(lambda a,b:a+b)
+        - tbl.group(r.row['a']).map(r.row['id']).reduce(lambda a,b:a + b)
+      js:
+        - tbl.group(function(row){return row('a')}).map(function(row){return row('id')}).reduce(function(a,b){return a.add(b)})
+        - tbl.group(r.row('a')).map(r.row('id')).reduce(function(a,b){return a.add(b)})
+      ot: ({'$reql_type$':'GROUPED_DATA', 'data':[[0, 1200], [1, 1225], [2, 1250], [3, 1275]]})
 
     # GMR
-    - rb: tbl.coerce_to("array").union(tbl).grouped_map_reduce(lambda { |row| row[:a] }, lambda { |row| row[:id] }, lambda { |a, b| a + b})
+    - cd: tbl.group('a').type_of()
+      ot: ("GROUPED_STREAM")
+    - cd: tbl.group('a').count().type_of()
+      ot: ("GROUPED_DATA")
+    - cd: tbl.group('a').coerce_to('ARRAY').type_of()
+      ot: ("GROUPED_DATA")
+
+    - rb: tbl.orderby(index:'id').filter{|row| row['id'].lt(10)}.group('a').map{|row| row['id']}.coerce_to('ARRAY')
+      py: tbl.order_by(index='id').filter(lambda row:row['id'] < 10).group('a').map(lambda row:row['id']).coerce_to('ARRAY')
+      js: tbl.orderBy({index:'id'}).filter(function(row){return row('id').lt(10)}).group('a').map(function(row){return row('id')}).coerce_to('ARRAY')
+      ot:
+        py: ({0:[0,4,8],1:[1,5,9],2:[2,6],3:[3,7]})
+        js: ([[0,[0,4,8]],[1,[1,5,9]],[2,[2,6]],[3,[3,7]]])
+        rb: ({0=>[0,4,8],1=>[1,5,9],2=>[2,6],3=>[3,7]})
+
+    - rb: tbl.filter{|row| row['id'].lt(10)}.group('a').count().do{|x| x*x}
+      py: tbl.filter(lambda row:row['id'] < 10).group('a').count().do(lambda x:x*x)
+      js: tbl.filter(function(row){return row('id').lt(10)}).group('a').count().do(function(x){return x.mul(x)})
+      ot:
+        py: ({0:9,1:9,2:4,3:4})
+        js: ([[0,9],[1,9],[2,4],[3,4]])
+        rb: ({0=>9,1=>9,2=>4,3=>4})
+
+    - rb: tbl.union(tbl).group('a').map{|x| x['id']}.reduce{|a,b| a+b}
+      runopts:
+        group_format: '"raw"'
       py:
-        - tbl.coerce_to("array").union(tbl).grouped_map_reduce(lambda row:row['a'], lambda row:row['id'], lambda a,b:a + b)
-        - tbl.coerce_to("array").union(tbl).grouped_map_reduce(r.row['a'], r.row['id'], lambda a,b:a + b)
+        - tbl.union(tbl).group(lambda row:row['a']).map(lambda row:row['id']).reduce(lambda a,b:a + b)
+        - tbl.union(tbl).group(r.row['a']).map(r.row['id']).reduce(lambda a,b:a + b)
       js:
-        - |
-          tbl.coerce_to("array").union(tbl).groupedMapReduce(function(row) {
-              return row('a');
-          }, function(row) {
-              return row('id');
-          }, function(a,b) {
-              return a.add(b);
-          })
-        - |
-          tbl.coerce_to("array").union(tbl).groupedMapReduce(r.row('a'), r.row('id'),
-          function(a,b) {
-              return a.add(b);
-          })
-      ot: |
-          ([{'group':0, 'reduction':2400},
-            {'group':1, 'reduction':2450},
-            {'group':2, 'reduction':2500},
-            {'group':3, 'reduction':2550}])
+        - tbl.union(tbl).group(function(row){return row('a')}).map(function(row){return row('id')}).reduce(function(a,b){return a.add(b)})
+        - tbl.union(tbl).group(r.row('a')).map(r.row('id')).reduce(function(a,b){return a.add(b)})
+      ot: ({'$reql_type$':'GROUPED_DATA', 'data':[[0, 2400], [1, 2450], [2, 2500], [3, 2550]]})
 
     # GMR
-    - rb: tbl.union(tbl.coerce_to("array")).grouped_map_reduce(lambda { |row| row[:a] }, lambda { |row| row[:id] }, lambda { |a, b| a + b})
+    - rb: tbl.coerce_to("array").union(tbl).group('a').map{|x| x['id']}.reduce{|a,b| a+b}
+      runopts:
+        group_format: '"raw"'
       py:
-        - tbl.union(tbl.coerce_to("array")).grouped_map_reduce(lambda row:row['a'], lambda row:row['id'], lambda a,b:a + b)
-        - tbl.union(tbl.coerce_to("array")).grouped_map_reduce(r.row['a'], r.row['id'], lambda a,b:a + b)
+        - tbl.coerce_to("array").union(tbl).group(lambda row:row['a']).map(lambda row:row['id']).reduce(lambda a,b:a + b)
+        - tbl.coerce_to("array").union(tbl).group(r.row['a']).map(r.row['id']).reduce(lambda a,b:a + b)
       js:
-        - |
-          tbl.union(tbl.coerce_to("array")).groupedMapReduce(function(row) {
-              return row('a');
-          }, function(row) {
-              return row('id');
-          }, function(a,b) {
-              return a.add(b);
-          })
-        - |
-          tbl.union(tbl.coerce_to("array")).groupedMapReduce(r.row('a'), r.row('id'),
-          function(a,b) {
-              return a.add(b);
-          })
-      ot: |
-          ([{'group':0, 'reduction':2400},
-            {'group':1, 'reduction':2450},
-            {'group':2, 'reduction':2500},
-            {'group':3, 'reduction':2550}])
+        - tbl.coerce_to("array").union(tbl).group(function(row){return row('a')}).map(function(row){return row('id')}).reduce(function(a,b){return a.add(b)})
+        - tbl.coerce_to("array").union(tbl).group(r.row('a')).map(r.row('id')).reduce(function(a,b){return a.add(b)})
+      ot: ({'$reql_type$':'GROUPED_DATA', 'data':[[0, 2400], [1, 2450], [2, 2500], [3, 2550]]})
+
+    # GMR
+    - rb: tbl.union(tbl.coerce_to("array")).group('a').map{|x| x['id']}.reduce{|a,b| a+b}
+      runopts:
+        group_format: '"raw"'
+      py:
+        - tbl.union(tbl.coerce_to("array")).group(lambda row:row['a']).map(lambda row:row['id']).reduce(lambda a,b:a + b)
+        - tbl.union(tbl.coerce_to("array")).group(r.row['a']).map(r.row['id']).reduce(lambda a,b:a + b)
+      js:
+        - tbl.union(tbl.coerce_to("array")).group(function(row){return row('a')}).map(function(row){return row('id')}).reduce(function(a,b){return a.add(b)})
+        - tbl.union(tbl.coerce_to("array")).group(r.row('a')).map(r.row('id')).reduce(function(a,b){return a.add(b)})
+      ot: ({'$reql_type$':'GROUPED_DATA', 'data':[[0, 2400], [1, 2450], [2, 2500], [3, 2550]]})
 
     - py:
-        - tbl.grouped_map_reduce(lambda row:row['a'], lambda row:row['id'], lambda a,b:a + b)
-        - tbl.grouped_map_reduce(r.row['a'], r.row['id'], lambda a,b:a + b)
+        - tbl.group(lambda row:row['a']).map(lambda row:row['id']).reduce(lambda a,b:a + b)
+        - tbl.group(r.row['a']).map(r.row['id']).reduce(lambda a,b:a + b)
       js:
-        - |
-          tbl.groupedMapReduce(function(row) {
-              return row('a');
-          }, function(row) {
-              return row('id');
-          }, function(a,b) {
-              return a.add(b);
-          }, 0)
-        - |
-          tbl.groupedMapReduce(r.row('a'), r.row('id'),
-              function(a,b) {
-                  return a.add(b);
-              }, 0)
-      rb: tbl.grouped_map_reduce(proc{ |row| row['a'] }, proc{ |row| row['id'] }, proc{ |a, b| a + b })
-      ot: |
-          ([{'group':0, 'reduction':1200},
-            {'group':1, 'reduction':1225},
-            {'group':2, 'reduction':1250},
-            {'group':3, 'reduction':1275}])
+        - tbl.group(function(row){return row('a')}).map(function(row){return row('id')}).reduce(function(a,b){return a.add(b)})
+        - tbl.group(r.row('a')).map(r.row('id')).reduce(function(a,b){return a.add(b)})
+        - tbl.group('a').map(r.row('id')).reduce(function(a,b){return a.add(b)})
+      rb: tbl.group('a').map{|x| x['id']}.reduce{|a,b| a+b}
+      runopts:
+        group_format: '"raw"'
+      ot: ({'$reql_type$':'GROUPED_DATA', 'data':[[0, 1200], [1, 1225], [2, 1250], [3, 1275]]})
 
     # undefined...
-    - js: |
-          tbl.groupedMapReduce(function(row) {
-          }, function(row) {
-          }, function(a,b) {
-          })
+    - js:
+        - tbl.group(function(row){})
+        - tbl.map(function(row){})
+        - tbl.reduce(function(row){})
+        - tbl.group(r.row('a')).group(function(row){})
+        - tbl.group(r.row('a')).map(function(row){})
+        - tbl.group(r.row('a')).reduce(function(row){})
+        - tbl.map(r.row('id')).group(function(row){})
+        - tbl.map(r.row('id')).map(function(row){})
+        - tbl.map(r.row('id')).reduce(function(row){})
+        - tbl.reduce(function(a,b){return a+b}).group(function(row){})
+        - tbl.reduce(function(a,b){return a+b}).map(function(row){})
+        - tbl.reduce(function(a,b){return a+b}).reduce(function(row){})
       cd: []
       ot: err('RqlDriverError', 'Anonymous function returned `undefined`. Did you forget a `return`?', [0])
 
@@ -187,41 +327,54 @@ tests:
 
     # COUNT
 
-    - cd: tbl.group_by('a', r.count)
-      ot: |
-          ([{'group':{'a':0}, 'reduction':25},
-            {'group':{'a':1}, 'reduction':25},
-            {'group':{'a':2}, 'reduction':25},
-            {'group':{'a':3}, 'reduction':25}])
+    - cd: tbl.group('a').count()
+      runopts:
+        group_format: '"raw"'
+      ot: ({'$reql_type$':'GROUPED_DATA', 'data':[[0, 25], [1, 25], [2, 25], [3, 25]]})
 
     # SUM
-    - cd: tbl.group_by('a', r.sum('id'))
-      ot: |
-          ([{'group':{'a':0}, 'reduction':1200},
-            {'group':{'a':1}, 'reduction':1225},
-            {'group':{'a':2}, 'reduction':1250},
-            {'group':{'a':3}, 'reduction':1275}])
+    - cd: tbl.group('a').sum('id')
+      runopts:
+        group_format: '"raw"'
+      ot: ({'$reql_type$':'GROUPED_DATA', 'data':[[0, 1200], [1, 1225], [2, 1250], [3, 1275]]})
 
     # AVG
-    - cd: tbl.group_by('a', r.avg('id'))
-      ot: |
-          ([{'group':{'a':0}, 'reduction':48},
-            {'group':{'a':1}, 'reduction':49},
-            {'group':{'a':2}, 'reduction':50},
-            {'group':{'a':3}, 'reduction':51}])
+    - cd: tbl.group('a').avg('id')
+      runopts:
+        group_format: '"raw"'
+      ot: ({'$reql_type$':'GROUPED_DATA', 'data':[[0, 48], [1, 49], [2, 50], [3, 51]]})
 
     # Pattern Matching
-    - cd: tbl3.group_by({'b':'c'}, r.count)
-      ot: |
-          ([{'group':{'b':{'c':0}}, 'reduction':20},
-            {'group':{'b':{'c':1}}, 'reduction':20},
-            {'group':{'b':{'c':2}}, 'reduction':20},
-            {'group':{'b':{'c':3}}, 'reduction':20},
-            {'group':{'b':{'c':4}}, 'reduction':20}])
+    - rb: tbl3.group{|row| row['b']['c']}.count()
+      py: tbl3.group(lambda row:row['b']['c']).count()
+      js: tbl3.group(function(row){return row('b')('c')}).count()
+      runopts:
+        group_format: '"raw"'
+      ot: ({'$reql_type$':'GROUPED_DATA', 'data':[[0, 20], [1, 20], [2, 20], [3, 20], [4, 20]]})
 
     # Multiple keys
-    - cd: tbl.group_by('a','id', r.count).count()
-      ot: 100
+    - rb: tbl.group('a', lambda {|row| row['id']%3}).count()
+      py: tbl.group('a', lambda row:row['id'].mod(3)).count()
+      js: tbl.group('a', function(row){return row('id').mod(3)}).count()
+      runopts:
+        group_format: '"raw"'
+      ot: ({'$reql_type$':'GROUPED_DATA', 'data':[[[0, 0], 9], [[0, 1], 8], [[0, 2], 8], [[1, 0], 8], [[1, 1], 9], [[1, 2], 8], [[2, 0], 8], [[2, 1], 8], [[2, 2], 9], [[3, 0], 9], [[3, 1], 8], [[3, 2], 8]]})
+
+    # Grouping by time
+    - rb: tbl4.group('time').coerce_to('array')
+      runopts:
+        time_format: '"raw"'
+      ot: ({{"$reql_type$"=>"TIME","epoch_time"=>1375115782.24,"timezone"=>"+00:00"}=>[{"id"=>0,"time"=>{"$reql_type$"=>"TIME","epoch_time"=>1375115782.24,"timezone"=>"+00:00"}}],{"$reql_type$"=>"TIME","epoch_time"=>1375147296.68,"timezone"=>"+00:00"}=>[{"id"=>1,"time"=>{"$reql_type$"=>"TIME","epoch_time"=>1375147296.68,"timezone"=>"+00:00"}}]})
+
+    - py: tbl4.group('time').coerce_to('array')
+      runopts:
+        time_format: '"raw"'
+      ot: ({frozenset([('$reql_type$','TIME'),('timezone','+00:00'),('epoch_time',1375115782.24)]):[{'id':0,'time':{'timezone':'+00:00','$reql_type$':'TIME','epoch_time':1375115782.24}}],frozenset([('$reql_type$','TIME'),('timezone','+00:00'),('epoch_time',1375147296.68)]):[{'id':1,'time':{'timezone':'+00:00','$reql_type$':'TIME','epoch_time':1375147296.68}}]})
+
+    - js: tbl4.group('time').coerce_to('array')
+      runopts:
+        timeFormat: '"raw"'
+      ot: ([[{"$reql_type$":"TIME","epoch_time":1375115782240,"timezone":"+00:00"},[{"id":0,"time":{"$reql_type$":"TIME","epoch_time":1375115782240,"timezone":"+00:00"}}]],[{"$reql_type$":"TIME","epoch_time":1375147296680,"timezone":"+00:00"},[{"id":1,"time":{"$reql_type$":"TIME","epoch_time":1375147296680,"timezone":"+00:00"}}]]])
 
     # Distinct
     - py: tbl.map(lambda row:row['a']).distinct().count()
@@ -239,4 +392,6 @@ tests:
     - cd: r.db('test').table_drop('test2')
       ot: ({'dropped':1})
     - cd: r.db('test').table_drop('test3')
+      ot: ({'dropped':1})
+    - cd: r.db('test').table_drop('test4')
       ot: ({'dropped':1})

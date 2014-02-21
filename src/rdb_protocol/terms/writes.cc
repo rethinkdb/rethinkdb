@@ -31,7 +31,7 @@ counted_t<const datum_t> new_stats_object() {
 durability_requirement_t parse_durability_optarg(counted_t<val_t> arg,
                                                  pb_rcheckable_t *target) {
     if (!arg.has()) { return DURABILITY_REQUIREMENT_DEFAULT; }
-    std::string str = arg->as_str();
+    const wire_string_t &str = arg->as_str();
     if (str == "hard") { return DURABILITY_REQUIREMENT_HARD; }
     if (str == "soft") { return DURABILITY_REQUIREMENT_SOFT; }
     rfail_target(target,
@@ -253,9 +253,9 @@ private:
         {
             profile::sampler_t sampler("Evaluating elements in for each.",
                                        env->env->trace);
+            counted_t<func_t> f = arg(env, 1)->as_func(CONSTANT_SHORTCUT);
             while (counted_t<const datum_t> row = ds->next(env->env, batchspec)) {
-                counted_t<val_t> v
-                    = arg(env, 1)->as_func(CONSTANT_SHORTCUT)->call(env->env, row);
+                counted_t<val_t> v = f->call(env->env, row);
                 try {
                     counted_t<const datum_t> d = v->as_datum();
                     if (d->get_type() == datum_t::R_OBJECT) {
