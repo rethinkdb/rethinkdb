@@ -51,6 +51,16 @@ cJSON *render_as_json(perfmon_result_t *target) {
     }
 }
 
+template<class A, class B>
+std::map<B, A> invert_bijection_map(const std::map<A, B> &bijection) {
+    std::map<B, A> inverted;
+    for (typename std::map<A, B>::const_iterator it = bijection.begin(); it != bijection.end(); ++it) {
+        DEBUG_VAR bool inserted = inverted.insert(std::make_pair(it->second, it->first)).second;
+        rassert(inserted, "The map that was given is not a bijection and can't be inverted");
+    }
+    return inverted;
+}
+
 cJSON *stat_http_app_t::prepare_machine_info(const std::vector<machine_id_t> &not_replied) {
     scoped_cJSON_t machines(cJSON_CreateObject());
 
