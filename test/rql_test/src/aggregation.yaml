@@ -235,6 +235,11 @@ tests:
         - tbl.group(r.row('a')).map(r.row('id')).reduce(function(a,b){return a.add(b)})
       ot: ({'$reql_type$':'GROUPED_DATA', 'data':[[0, 1200], [1, 1225], [2, 1250], [3, 1275]]})
 
+    - cd: r.expr([{'a':1}]).filter(true).limit(1).group('a')
+      runopts:
+        group_format: '"raw"'
+      ot: ({'$reql_type$':'GROUPED_DATA', 'data':[[1, [{'a':1}]]]})
+
     # GMR
     - cd: tbl.group('a').type_of()
       ot: ("GROUPED_STREAM")

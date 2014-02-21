@@ -9,7 +9,8 @@
 #include "concurrency/queue/unlimited_fifo.hpp"
 #include "containers/death_runner.hpp"
 
-#define ALLOCATION_CHUNK 50
+// Must be <= than MAX_CHUNKS_OUT in backfiller.cc
+#define ALLOCATION_CHUNK 8
 
 template <class protocol_t>
 struct backfill_queue_entry_t {
