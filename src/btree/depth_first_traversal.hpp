@@ -3,14 +3,14 @@
 #define BTREE_DEPTH_FIRST_TRAVERSAL_HPP_
 
 #include "btree/keys.hpp"
-#include "buffer_cache/alt/alt.hpp"
 #include "containers/archive/archive.hpp"
-
-class superblock_t;
+#include "containers/counted.hpp"
 
 namespace profile { class trace_t; }
 
+class buf_parent_t;
 class counted_buf_lock_t;
+class superblock_t;
 
 // A btree leaf key/value pair that also owns a reference to the buf_lock_t that
 // contains said key/value pair.

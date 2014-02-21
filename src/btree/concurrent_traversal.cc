@@ -1,5 +1,7 @@
 #include "btree/concurrent_traversal.hpp"
 
+#include <stdint.h>
+
 #include "arch/runtime/coroutines.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/semaphore.hpp"
@@ -8,7 +10,7 @@
 class incr_decr_t {
 public:
     explicit incr_decr_t(size_t *ptr) : ptr_(ptr) {
-        guarantee(*ptr_ < INT_MAX);
+        guarantee(*ptr_ < SIZE_MAX);
         ++*ptr_;
     }
     ~incr_decr_t() {
