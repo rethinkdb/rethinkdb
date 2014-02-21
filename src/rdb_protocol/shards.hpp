@@ -2,6 +2,11 @@
 #ifndef RDB_PROTOCOL_SHARDS_HPP_
 #define RDB_PROTOCOL_SHARDS_HPP_
 
+#include <map>
+#include <limits>
+#include <utility>
+#include <vector>
+
 #include "utils.hpp"
 
 #include "btree/concurrent_traversal.hpp"
@@ -158,7 +163,7 @@ private:
 // `slow_atomic_countable_t` deletes our copy constructor, but boost variants
 // want us to have a copy constructor.
 class grouped_data_t : public grouped_t<counted_t<const datum_t> >,
-                       public slow_atomic_countable_t<grouped_data_t> { };
+                       public slow_atomic_countable_t<grouped_data_t> { }; // NOLINT
 
 typedef boost::variant<
     grouped_t<uint64_t>, // Count.
