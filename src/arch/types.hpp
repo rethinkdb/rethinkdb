@@ -7,7 +7,7 @@
 
 #include <string>
 
-#include "utils.hpp"
+#include "errors.hpp"
 
 template <class> class scoped_array_t;
 struct iovec;
@@ -36,9 +36,7 @@ private:
 
 class tcp_socket_exc_t : public std::exception {
 public:
-    tcp_socket_exc_t(int err) throw () {
-        info = strprintf("TCP socket creation failed: %s", strerror(err));
-    }
+    tcp_socket_exc_t(int err) throw ();
 
     ~tcp_socket_exc_t() throw () { }
 

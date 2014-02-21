@@ -2,6 +2,11 @@
 
 #include "utils.hpp"
 
+tcp_socket_exc_t::tcp_socket_exc_t(int errsv) throw () {
+    info = strprintf("TCP socket creation failed: %s", errno_string(errsv).c_str());
+}
+
+
 address_in_use_exc_t::address_in_use_exc_t(const char* hostname, int port) throw () {
     if (port == 0) {
         info = strprintf("Could not establish sockets on all selected local addresses using the same port");
