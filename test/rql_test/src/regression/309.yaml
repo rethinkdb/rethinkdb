@@ -9,10 +9,10 @@ tests:
 
     # Try to union to an array
     - cd: t.union([2,3,4])
-      ot: bag([{'id':1}, {'id':0}, 2, 3, 4])
+      ot: bag([{'id':0}, {'id':1}, 2, 3, 4])
 
     - cd: r.expr([2,3,4]).union(t)
-      ot: bag([{'id':1}, {'id':0}, 2, 3, 4])
+      ot: bag([{'id':0}, {'id':1}, 2, 3, 4])
 
     # clean up
     - cd: r.db('test').table_drop('t309')
