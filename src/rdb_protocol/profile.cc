@@ -1,3 +1,5 @@
+#include "rdb_protocol/profile.hpp"
+
 #include <inttypes.h>
 
 #include <limits>
@@ -9,7 +11,6 @@
 #include "logger.hpp"
 #include "math.hpp"
 #include "rdb_protocol/datum.hpp"
-#include "rdb_protocol/profile.hpp"
 
 namespace profile {
 
