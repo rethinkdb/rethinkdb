@@ -87,14 +87,13 @@ public:
     std::vector<store_key_t> *keys;
 };
 
-void get_btree_key_distribution(btree_slice_t *slice,
-                                superblock_t *superblock, int depth_limit,
+void get_btree_key_distribution(superblock_t *superblock, int depth_limit,
                                 int64_t *key_count_out,
                                 std::vector<store_key_t> *keys_out) {
     get_distribution_traversal_helper_t helper(depth_limit, keys_out);
     rassert(keys_out->empty(), "Why is this output parameter not an empty vector\n");
 
     cond_t non_interruptor;
-    btree_parallel_traversal(superblock, slice, &helper, &non_interruptor);
+    btree_parallel_traversal(superblock, &helper, &non_interruptor);
     *key_count_out = helper.key_count;
 }

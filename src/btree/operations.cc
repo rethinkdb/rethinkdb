@@ -128,8 +128,8 @@ bool get_superblock_metainfo(buf_lock_t *superblock,
 
         // The const cast is okay because we access the data with access_t::read.
         blob_t blob(superblock->cache()->get_block_size(),
-                         const_cast<char *>(data->metainfo_blob),
-                         btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
+                    const_cast<char *>(data->metainfo_blob),
+                    btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
 
         blob_acq_t acq;
         buffer_group_t group;
@@ -168,8 +168,8 @@ void get_superblock_metainfo(
         // The const cast is okay because we access the data with access_t::read
         // and don't write to the blob.
         blob_t blob(superblock->cache()->get_block_size(),
-                         const_cast<char *>(data->metainfo_blob),
-                         btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
+                    const_cast<char *>(data->metainfo_blob),
+                    btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
         blob_acq_t acq;
         buffer_group_t group;
         blob.expose_all(buf_parent_t(superblock), access_t::read,
@@ -199,7 +199,7 @@ void set_superblock_metainfo(buf_lock_t *superblock,
         = static_cast<btree_superblock_t *>(write.get_data_write());
 
     blob_t blob(superblock->cache()->get_block_size(),
-                     data->metainfo_blob, btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
+                data->metainfo_blob, btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
 
     std::vector<char> metainfo;
 
@@ -271,7 +271,7 @@ void delete_superblock_metainfo(buf_lock_t *superblock,
         = static_cast<btree_superblock_t *>(write.get_data_write());
 
     blob_t blob(superblock->cache()->get_block_size(),
-                     data->metainfo_blob, btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
+                data->metainfo_blob, btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
 
     std::vector<char> metainfo;
 
@@ -324,8 +324,8 @@ void clear_superblock_metainfo(buf_lock_t *superblock) {
     buf_write_t write(superblock);
     auto data = static_cast<btree_superblock_t *>(write.get_data_write());
     blob_t blob(superblock->cache()->get_block_size(),
-                     data->metainfo_blob,
-                     btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
+                data->metainfo_blob,
+                btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
     blob.clear(buf_parent_t(superblock));
 }
 
@@ -338,7 +338,8 @@ void ensure_stat_block(superblock_t *sb) {
 
     if (node_id == NULL_BLOCK_ID) {
         //Create a block
-        buf_lock_t temp_lock(sb->expose_buf(), alt_create_t::create);
+        buf_lock_t temp_lock(buf_parent_t(sb->expose_buf().txn()),
+                             alt_create_t::create);
         buf_write_t write(&temp_lock);
         //Make the stat block be the default constructed statblock
         *static_cast<btree_statblock_t *>(write.get_data_write())
@@ -588,52 +589,48 @@ void get_btree_superblock(txn_t *txn, access_t access,
     *got_superblock_out = std::move(tmp_sb);
 }
 
-void get_btree_superblock_and_txn(btree_slice_t *slice,
-                                  access_t superblock_access,
+void get_btree_superblock_and_txn(cache_conn_t *cache_conn,
+                                  UNUSED write_access_t superblock_access,
                                   int expected_change_count,
                                   repli_timestamp_t tstamp,
                                   write_durability_t durability,
                                   scoped_ptr_t<real_superblock_t> *got_superblock_out,
                                   scoped_ptr_t<txn_t> *txn_out) {
-    slice->assert_thread();
-
-    // RSI: We should pass a preceding_txn here or something.
-    txn_t *txn = new txn_t(slice->cache(), durability, tstamp, expected_change_count);
+    txn_t *txn = new txn_t(cache_conn, durability, tstamp, expected_change_count);
 
     txn_out->init(txn);
 
-    get_btree_superblock(txn, superblock_access, got_superblock_out);
+    get_btree_superblock(txn, access_t::write, got_superblock_out);
 }
 
-void get_btree_superblock_and_txn_for_backfilling(btree_slice_t *slice,
+void get_btree_superblock_and_txn_for_backfilling(cache_conn_t *cache_conn,
+                                                  cache_account_t *backfill_account,
                                                   scoped_ptr_t<real_superblock_t> *got_superblock_out,
                                                   scoped_ptr_t<txn_t> *txn_out) {
-    slice->assert_thread();
-    txn_t *txn = new txn_t(slice->cache(), read_access_t::read);
+    txn_t *txn = new txn_t(cache_conn, read_access_t::read);
     txn_out->init(txn);
     // KSI: Does using a backfill account needlessly slow other operations down?
-    txn->set_account(slice->get_backfill_account());
+    txn->set_account(backfill_account);
 
     get_btree_superblock(txn, access_t::read, got_superblock_out);
-    // RSI: This is bad -- we want to backfill, we don't want to snapshot from the
+    // KSI: This is bad -- we want to backfill, we don't want to snapshot from the
     // superblock (and therefore secondary indexes)-- we really want to snapshot the
     // subtree underneath the root node.
     (*got_superblock_out)->get()->snapshot_subdag();
 }
 
-// RSI: This function is possibly stupid: it's nonsensical to talk about the entire
+// KSI: This function is possibly stupid: it's nonsensical to talk about the entire
 // cache being snapshotted -- we want some subtree to be snapshotted, at least.
-void get_btree_superblock_and_txn_for_reading(btree_slice_t *slice,
+void get_btree_superblock_and_txn_for_reading(cache_conn_t *cache_conn,
                                               cache_snapshotted_t snapshotted,
                                               scoped_ptr_t<real_superblock_t> *got_superblock_out,
                                               scoped_ptr_t<txn_t> *txn_out) {
-    slice->assert_thread();
-    txn_t *txn = new txn_t(slice->cache(), read_access_t::read);
+    txn_t *txn = new txn_t(cache_conn, read_access_t::read);
     txn_out->init(txn);
 
     get_btree_superblock(txn, access_t::read, got_superblock_out);
 
-    // RSI: As mentioned, snapshotting here is stupid.
+    // KSI: As mentioned, snapshotting here is stupid.
     if (snapshotted == CACHE_SNAPSHOTTED_YES) {
         (*got_superblock_out)->get()->snapshot_subdag();
     }

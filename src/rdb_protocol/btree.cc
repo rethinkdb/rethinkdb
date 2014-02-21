@@ -18,7 +18,7 @@
 #include "rdb_protocol/blob_wrapper.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/lazy_json.hpp"
-#include "rdb_protocol/transform_visitors.hpp"
+#include "rdb_protocol/shards.hpp"
 
 value_sizer_t<rdb_value_t>::value_sizer_t(block_size_t bs) : block_size_(bs) { }
 
@@ -50,8 +50,7 @@ block_magic_t value_sizer_t<rdb_value_t>::btree_leaf_magic() const {
 block_size_t value_sizer_t<rdb_value_t>::block_size() const { return block_size_; }
 
 bool btree_value_fits(block_size_t bs, int data_length, const rdb_value_t *value) {
-    return blob::ref_fits(bs, data_length, value->value_ref(),
-                               blob::btree_maxreflen);
+    return blob::ref_fits(bs, data_length, value->value_ref(), blob::btree_maxreflen);
 }
 
 // Remember that secondary indexes and the main btree both point to the same rdb
@@ -67,7 +66,7 @@ void detach_rdb_value(buf_parent_t parent, void *value) {
     blob_t blob(parent.cache()->get_block_size(),
                 static_cast<rdb_value_t *>(value)->value_ref(),
                 blob::btree_maxreflen);
-    blob.detach_subtree(parent);
+    blob.detach_subtrees(parent);
 }
 
 void rdb_get(const store_key_t &store_key, btree_slice_t *slice,
@@ -165,8 +164,7 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location,
 
     // Update the leaf, if needed.
     kv_location->value = std::move(new_value);
-    // RSI: Any place we have tnhe null_key_modification_callback_t check for a need
-    // to detach.
+
     null_key_modification_callback_t<rdb_value_t> null_cb;
     apply_keyvalue_change(kv_location, key.btree_key(), timestamp,
                           expired_t::NO, &null_cb);
@@ -332,7 +330,9 @@ void do_a_replace_from_batched_replace(
         info, &one_replace, superblock_promise, &mod_report.info, trace);
     *stats_out = (*stats_out)->merge(res, ql::stats_merge);
 
-    // RSI: What is this for?  are we waiting to get in line to call on_mod_report?  I guess so.
+    // KSI: What is this for?  are we waiting to get in line to call on_mod_report?
+    // I guess so.
+
     // JD: Looks like this is a do_a_replace_from_batched_replace specific thing.
     exiter.wait();
     sindex_cb->on_mod_report(mod_report);
@@ -461,8 +461,8 @@ void rdb_backfill(btree_slice_t *slice, const key_range_t& key_range,
                   parallel_traversal_progress_t *p, signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t) {
     agnostic_rdb_backfill_callback_t agnostic_cb(callback, key_range, slice);
-    value_sizer_t<rdb_value_t> sizer(slice->cache()->get_block_size());
-    do_agnostic_btree_backfill(&sizer, slice, key_range, since_when, &agnostic_cb,
+    value_sizer_t<rdb_value_t> sizer(superblock->cache()->get_block_size());
+    do_agnostic_btree_backfill(&sizer, key_range, since_when, &agnostic_cb,
                                superblock, sindex_block, p, interruptor);
 }
 
@@ -490,7 +490,7 @@ void rdb_value_deleter_t::delete_value(buf_parent_t parent, void *value) {
     actually_delete_rdb_value(parent, value);
 }
 
-void rdb_value_non_deleter_t::delete_value(buf_parent_t parent, void *value) {
+void rdb_value_detacher_t::delete_value(buf_parent_t parent, void *value) {
     detach_rdb_value(parent, value);
 }
 
@@ -513,20 +513,20 @@ typedef btree_store_t<rdb_protocol_t>::sindex_access_t sindex_access_t;
 typedef btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindex_access_vector_t;
 
 void sindex_erase_range(const key_range_t &key_range,
-        const sindex_access_t *sindex_access, auto_drainer_t::lock_t,
+        superblock_t *superblock, auto_drainer_t::lock_t,
         signal_t *interruptor, bool release_superblock) THROWS_NOTHING {
 
-    value_sizer_t<rdb_value_t> rdb_sizer(sindex_access->btree->cache()->get_block_size());
+    value_sizer_t<rdb_value_t> rdb_sizer(superblock->cache()->get_block_size());
     value_sizer_t<void> *sizer = &rdb_sizer;
 
-    rdb_value_non_deleter_t deleter;
+    rdb_value_detacher_t deleter;
 
     sindex_key_range_tester_t tester(key_range);
 
     try {
-        btree_erase_range_generic(sizer, sindex_access->btree, &tester,
+        btree_erase_range_generic(sizer, &tester,
                                   &deleter, NULL, NULL,
-                                  sindex_access->super_block.get(), interruptor,
+                                  superblock, interruptor,
                                   release_superblock);
     } catch (const interrupted_exc_t &) {
         // We were interrupted. That's fine nothing to be done about it.
@@ -543,13 +543,13 @@ void spawn_sindex_erase_ranges(
         signal_t *interruptor) {
     for (auto it = sindex_access->begin(); it != sindex_access->end(); ++it) {
         coro_t::spawn_sometime(std::bind(
-                    &sindex_erase_range, key_range, &*it,
+                    &sindex_erase_range, key_range, it->super_block.get(),
                     auto_drainer_t::lock_t(drainer), interruptor,
                     release_superblock));
     }
 }
 
-void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
+void rdb_erase_range(key_tester_t *tester,
                      const key_range_t &key_range,
                      buf_lock_t *sindex_block,
                      superblock_t *superblock,
@@ -609,310 +609,226 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
      * names. */
 
     /* We need these structures to perform the erase range. */
-    value_sizer_t<rdb_value_t> rdb_sizer(slice->cache()->get_block_size());
+    value_sizer_t<rdb_value_t> rdb_sizer(superblock->cache()->get_block_size());
     value_sizer_t<void> *sizer = &rdb_sizer;
 
     rdb_value_deleter_t deleter;
 
-    btree_erase_range_generic(sizer, slice, tester, &deleter,
+    btree_erase_range_generic(sizer, tester, &deleter,
         left_key_supplied ? left_key_exclusive.btree_key() : NULL,
         right_key_supplied ? right_key_inclusive.btree_key() : NULL,
         superblock, interruptor);
 }
 
-// This is actually a kind of misleading name. This function estimates the size of a datum,
-// not a whole rget, though it is used for that purpose (by summing up these responses).
+// This is actually a kind of misleading name. This function estimates the size
+// of a datum, not a whole rget, though it is used for that purpose (by summing
+// up these responses).
 size_t estimate_rget_response_size(const counted_t<const ql::datum_t> &datum) {
     return serialized_size(datum);
 }
 
-class rdb_rget_depth_first_traversal_callback_t
-    : public concurrent_traversal_callback_t {
+
+typedef rdb_protocol_details::transform_variant_t transform_variant_t;
+typedef rdb_protocol_details::terminal_variant_t terminal_variant_t;
+
+class sindex_data_t {
 public:
-    /* This constructor does a traversal on the primary btree, it's not to be
-     * used with sindexes. The constructor below is for use with sindexes. */
-    rdb_rget_depth_first_traversal_callback_t(
-        ql::env_t *_ql_env,
-        const ql::batchspec_t &batchspec,
-        const rdb_protocol_details::transform_t &_transform,
-        boost::optional<rdb_protocol_details::terminal_t> _terminal,
-        const key_range_t &range,
-        sorting_t _sorting,
-        rget_read_response_t *_response,
-        btree_slice_t *_slice)
-        : bad_init(false),
-          response(_response),
-          ql_env(_ql_env),
+    sindex_data_t(const key_range_t &_pkey_range, const datum_range_t &_range,
+                  ql::map_wire_func_t wire_func, sindex_multi_bool_t _multi)
+        : pkey_range(_pkey_range),range(_range),
+          func(wire_func.compile_wire_func()), multi(_multi) { }
+private:
+    friend class rget_cb_t;
+    const key_range_t pkey_range;
+    const datum_range_t range;
+    const counted_t<ql::func_t> func;
+    const sindex_multi_bool_t multi;
+};
+
+class job_data_t {
+public:
+    job_data_t(ql::env_t *_env, const ql::batchspec_t &batchspec,
+               const std::vector<transform_variant_t> &_transforms,
+               const boost::optional<terminal_variant_t> &_terminal,
+               sorting_t _sorting)
+        : env(_env),
           batcher(batchspec.to_batcher()),
-          transform(_transform),
-          terminal(_terminal),
           sorting(_sorting),
-          slice(_slice)
-    {
-        init(range);
-    }
-
-    /* This constructor is used if you're doing a secondary index get, it takes
-     * an extra key_range_t (_primary_key_range) which is used to filter out
-     * unwanted results. The reason you can get unwanted results is is
-     * oversharding. When we overshard multiple logical shards are stored in
-     * the same physical btree_store_t, this is transparent with all other
-     * operations but their sindex values get mixed together and you wind up
-     * with multiple copies of each. This constructor will filter out the
-     * duplicates. This was issue #606. */
-    rdb_rget_depth_first_traversal_callback_t(
-        ql::env_t *_ql_env,
-        const ql::batchspec_t &batchspec,
-        const rdb_protocol_details::transform_t &_transform,
-        boost::optional<rdb_protocol_details::terminal_t> _terminal,
-        const key_range_t &range,
-        const key_range_t &_primary_key_range,
-        sorting_t _sorting,
-        ql::map_wire_func_t _sindex_function,
-        sindex_multi_bool_t _sindex_multi,
-        datum_range_t _sindex_range,
-        rget_read_response_t *_response,
-        btree_slice_t *_slice)
-        : bad_init(false),
-          response(_response),
-          ql_env(_ql_env),
-          batcher(batchspec.to_batcher()),
-          transform(_transform),
-          terminal(_terminal),
-          sorting(_sorting),
-          primary_key_range(_primary_key_range),
-          sindex_range(_sindex_range),
-          sindex_multi(_sindex_multi),
-          slice(_slice)
-    {
-        sindex_function = _sindex_function.compile_wire_func();
-        init(range);
-    }
-
-    void init(const key_range_t &range) {
-        try {
-            if (!reversed(sorting)) {
-                response->last_considered_key = range.left;
-            } else {
-                if (!range.right.unbounded) {
-                    response->last_considered_key = range.right.key;
-                } else {
-                    response->last_considered_key = store_key_t::max();
-                }
-            }
-
-            if (terminal) {
-                query_language::terminal_initialize(&*terminal, &response->result);
-            }
-
-            disabler.init(new profile::disabler_t(ql_env->trace));
-            sampler.init(new profile::sampler_t("Range traversal doc evaluation.", ql_env->trace));
-        } catch (const ql::exc_t &e2) {
-            /* Evaluation threw so we're not going to be accepting any more requests. */
-            response->result = e2;
-            bad_init = true;
-        } catch (const ql::datum_exc_t &e2) {
-            /* Evaluation threw so we're not going to be accepting any more requests. */
-            terminal_exception(e2, *terminal, &response->result);
-            bad_init = true;
+          accumulator(_terminal
+                      ? ql::make_terminal(env, *_terminal)
+                      : ql::make_append(sorting, &batcher)) {
+        for (size_t i = 0; i < _transforms.size(); ++i) {
+            transformers.emplace_back(ql::make_op(env, _transforms[i]));
         }
+        guarantee(transformers.size() == _transforms.size());
     }
-
-    virtual bool handle_pair(scoped_key_value_t &&keyvalue,
-                     concurrent_traversal_fifo_enforcer_signal_t waiter)
-        THROWS_ONLY(interrupted_exc_t) {
-        sampler->new_sample();
-        store_key_t store_key(keyvalue.key());
-        if (bad_init) {
-            return false;
-        }
-        if (primary_key_range) {
-            std::string pk = ql::datum_t::extract_primary(
-                    key_to_unescaped_str(store_key));
-            if (!primary_key_range->contains_key(store_key_t(pk))) {
-                return true;
-            }
-        }
-
-        try {
-            lazy_json_t first_value(static_cast<const rdb_value_t *>(keyvalue.value()),
-                                    keyvalue.expose_buf());
-
-            // When doing "count" queries, we don't want to actually load the json
-            // value. Here we detect up-front whether we will need to load the value.
-            // If nothing uses the value, we load it here.  Otherwise we never load
-            // it.  The main problem with this code is that we still need a time to
-            // exclusively process each row, in between the call to
-            // waiter.wait_interruptible() and the end of this function.  If we fixed
-            // the design that makes us need to _process_ each row one at a time, we
-            // wouldn't have to guess up front whether the lazy_json_t actually needs
-            // to be loaded, and the code would be safer (and algorithmically more
-            // parallelized).
-
-            if (sindex_function.has() || !transform.empty() || !terminal
-                || query_language::terminal_uses_value(*terminal)) {
-                // Force the value to be loaded.
-                first_value.get();
-                // Increment reads here since the btree doesn't know if we actually do a read
-                slice->stats.pm_keys_read.record();
-            } else {
-                // We _must_ load the value before calling keyvalue.reset(), and
-                // before calling waiter.wait_interruptible().  So we call
-                // first_value.reset() to make any later call to .get() fail.
-                first_value.reset();
-            }
-
-            rassert(!first_value.references_parent());
-            keyvalue.reset();
-
-            waiter.wait_interruptible();
-
-            if ((response->last_considered_key < store_key && !reversed(sorting)) ||
-                (response->last_considered_key > store_key && reversed(sorting))) {
-                response->last_considered_key = store_key;
-            }
-
-            std::vector<lazy_json_t> data;
-            data.push_back(first_value);
-
-            counted_t<const ql::datum_t> sindex_value;
-            if (sindex_function) {
-                sindex_value =
-                    sindex_function->call(ql_env, first_value.get())->as_datum();
-                guarantee(sindex_range);
-                guarantee(sindex_multi);
-
-                if (sindex_multi == sindex_multi_bool_t::MULTI &&
-                    sindex_value->get_type() == ql::datum_t::R_ARRAY) {
-                        boost::optional<uint64_t> tag =
-                            ql::datum_t::extract_tag(key_to_unescaped_str(store_key));
-                        guarantee(tag);
-                        guarantee(sindex_value->size() > *tag);
-                        sindex_value = sindex_value->get(*tag);
-                }
-                if (!sindex_range->contains(sindex_value)) {
-                    return true;
-                }
-            }
-
-            // Apply transforms to the data
-            {
-                rdb_protocol_details::transform_t::iterator it;
-                for (it = transform.begin(); it != transform.end(); ++it) {
-                    try {
-                        std::vector<counted_t<const ql::datum_t> > tmp;
-
-                        for (auto jt = data.begin(); jt != data.end(); ++jt) {
-                            query_language::transform_apply(
-                                ql_env, jt->get(), &*it, &tmp);
-                        }
-                        data.clear();
-                        for (auto jt = tmp.begin(); jt != tmp.end(); ++jt) {
-                            data.push_back(lazy_json_t(*jt));
-                        }
-                    } catch (const ql::datum_exc_t &e2) {
-                        /* Evaluation threw so we're not going to be accepting any
-                           more requests. */
-                        transform_exception(e2, *it, &response->result);
-                        return false;
-                    }
-                }
-            }
-
-            if (!terminal) {
-                typedef rget_read_response_t::stream_t stream_t;
-                stream_t *stream = boost::get<stream_t>(&response->result);
-                guarantee(stream);
-                for (auto it = data.begin(); it != data.end(); ++it) {
-                    counted_t<const ql::datum_t> datum = it->get();
-                    if (sorting != sorting_t::UNORDERED && sindex_value) {
-                        stream->push_back(rdb_protocol_details::rget_item_t(
-                                    store_key, sindex_value, datum));
-                    } else {
-                        stream->push_back(rdb_protocol_details::rget_item_t(
-                                              store_key, datum));
-                    }
-
-                    batcher.note_el(datum);
-                }
-                return !batcher.should_send_batch();
-            } else {
-                try {
-                    for (auto jt = data.begin(); jt != data.end(); ++jt) {
-                        query_language::terminal_apply(
-                            ql_env, *jt, &*terminal, &response->result);
-                    }
-                    return true;
-                } catch (const ql::datum_exc_t &e2) {
-                    /* Evaluation threw so we're not going to be accepting any
-                       more requests. */
-                    terminal_exception(e2, *terminal, &response->result);
-                    return false;
-                }
-            }
-        } catch (const ql::exc_t &e2) {
-            /* Evaluation threw so we're not going to be accepting any more requests. */
-            response->result = e2;
-            return false;
-        }
-
+    job_data_t(job_data_t &&jd)
+        : env(jd.env),
+          batcher(std::move(jd.batcher)),
+          transformers(std::move(jd.transformers)),
+          sorting(jd.sorting),
+          accumulator(jd.accumulator.release()) {
     }
-
-    virtual profile::trace_t *get_trace() THROWS_NOTHING {
-        return ql_env->trace.get_or_null();
-    }
-
-
-    bool bad_init;
-    rget_read_response_t *response;
-    ql::env_t *ql_env;
+private:
+    friend class rget_cb_t;
+    ql::env_t *const env;
     ql::batcher_t batcher;
-    rdb_protocol_details::transform_t transform;
-    boost::optional<rdb_protocol_details::terminal_t> terminal;
+    std::vector<scoped_ptr_t<ql::op_t> > transformers;
     sorting_t sorting;
+    scoped_ptr_t<ql::accumulator_t> accumulator;
+};
 
-    /* Only present if we're doing a sindex read.*/
-    boost::optional<key_range_t> primary_key_range;
-    boost::optional<datum_range_t> sindex_range;
-    counted_t<ql::func_t> sindex_function;
-    boost::optional<sindex_multi_bool_t> sindex_multi;
+class io_data_t {
+public:
+    io_data_t(rget_read_response_t *_response, btree_slice_t *_slice)
+        : response(_response), slice(_slice) { }
+private:
+    friend class rget_cb_t;
+    rget_read_response_t *const response;
+    btree_slice_t *const slice;
+};
 
+class rget_cb_t : public concurrent_traversal_callback_t {
+public:
+    rget_cb_t(io_data_t &&_io,
+              job_data_t &&_job,
+              boost::optional<sindex_data_t> &&_sindex,
+              const key_range_t &range);
+
+    virtual done_t handle_pair(scoped_key_value_t &&keyvalue,
+                               concurrent_traversal_fifo_enforcer_signal_t waiter)
+    THROWS_ONLY(interrupted_exc_t);
+    void finish() THROWS_ONLY(interrupted_exc_t);
+private:
+    const io_data_t io; // How do get data in/out.
+    job_data_t job; // What to do next (stateful).
+    const boost::optional<sindex_data_t> sindex; // Optional sindex information.
+
+    // State for internal bookkeeping.
+    bool bad_init;
     scoped_ptr_t<profile::disabler_t> disabler;
     scoped_ptr_t<profile::sampler_t> sampler;
-
-    btree_slice_t *slice;
 };
 
-class result_finalizer_visitor_t : public boost::static_visitor<void> {
-public:
-    void operator()(const rget_read_response_t::stream_t &) const { }
-    void operator()(const ql::exc_t &) const { }
-    void operator()(const ql::datum_exc_t &) const { }
-    void operator()(const std::vector<ql::wire_datum_map_t> &) const { }
-    void operator()(const rget_read_response_t::empty_t &) const { }
-    void operator()(const counted_t<const ql::datum_t> &) const { }
+rget_cb_t::rget_cb_t(io_data_t &&_io,
+                     job_data_t &&_job,
+                     boost::optional<sindex_data_t> &&_sindex,
+                     const key_range_t &range)
+    : io(std::move(_io)),
+      job(std::move(_job)),
+      sindex(std::move(_sindex)),
+      bad_init(false) {
+    io.response->last_key = !reversed(job.sorting)
+        ? range.left
+        : (!range.right.unbounded ? range.right.key : store_key_t::max());
+    disabler.init(new profile::disabler_t(job.env->trace));
+    sampler.init(new profile::sampler_t("Range traversal doc evaluation.",
+                                        job.env->trace));
+}
 
-    void operator()(ql::wire_datum_map_t &dm) const {  // NOLINT(runtime/references)
-        dm.finalize();
+void rget_cb_t::finish() THROWS_ONLY(interrupted_exc_t) {
+    job.accumulator->finish(&io.response->result);
+    if (job.accumulator->should_send_batch()) {
+        io.response->truncated = true;
     }
-};
+}
 
-void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
-                    superblock_t *superblock,
-                    ql::env_t *ql_env, const ql::batchspec_t &batchspec,
-                    const rdb_protocol_details::transform_t &transform,
-                    const boost::optional<rdb_protocol_details::terminal_t> &terminal,
-                    sorting_t sorting,
-                    rget_read_response_t *response) {
+// Handle a keyvalue pair.  Returns whether or not we're done early.
+done_t rget_cb_t::handle_pair(scoped_key_value_t &&keyvalue,
+                              concurrent_traversal_fifo_enforcer_signal_t waiter)
+THROWS_ONLY(interrupted_exc_t) {
+    sampler->new_sample();
+
+    if (bad_init || boost::get<ql::exc_t>(&io.response->result) != NULL) {
+        return done_t::YES;
+    }
+
+    // Load the key and value.
+    store_key_t key(keyvalue.key());
+    if (sindex && !sindex->pkey_range.contains_key(ql::datum_t::extract_primary(key))) {
+        return done_t::NO;
+    }
+
+    lazy_json_t row(static_cast<const rdb_value_t *>(keyvalue.value()),
+                    keyvalue.expose_buf());
+    counted_t<const ql::datum_t> val;
+    // We only load the value if we actually use it (`count` does not).
+    if (job.accumulator->uses_val() || job.transformers.size() != 0 || sindex) {
+        val = row.get();
+        io.slice->stats.pm_keys_read.record();
+    } else {
+        row.reset();
+    }
+    guarantee(!row.references_parent());
+    keyvalue.reset();
+    waiter.wait_interruptible();
+
+    try {
+        // Update the last considered key.
+        if ((io.response->last_key < key && !reversed(job.sorting)) ||
+            (io.response->last_key > key && reversed(job.sorting))) {
+            io.response->last_key = key;
+        }
+
+        // Check whether we're out of sindex range.
+        counted_t<const ql::datum_t> sindex_val; // NULL if no sindex.
+        if (sindex) {
+            sindex_val = sindex->func->call(job.env, val)->as_datum();
+            if (sindex->multi == sindex_multi_bool_t::MULTI
+                && sindex_val->get_type() == ql::datum_t::R_ARRAY) {
+                boost::optional<uint64_t> tag = *ql::datum_t::extract_tag(key);
+                guarantee(tag);
+                sindex_val = sindex_val->get(*tag, ql::NOTHROW);
+                guarantee(sindex_val);
+            }
+            if (!sindex->range.contains(sindex_val)) {
+                return done_t::NO;
+            }
+        }
+
+        ql::groups_t data{{counted_t<const ql::datum_t>(), ql::datums_t{val}}};
+
+        for (auto it = job.transformers.begin(); it != job.transformers.end(); ++it) {
+            (**it)(&data);
+        }
+        // We need lots of extra data for the accumulation because we might be
+        // accumulating `rget_item_t`s for a batch.
+        return (*job.accumulator)(&data, std::move(key), std::move(sindex_val));
+        //                                       NULL if no sindex ^^^^^^^^^^
+    } catch (const ql::exc_t &e) {
+        io.response->result = e;
+        return done_t::YES;
+    } catch (const ql::datum_exc_t &e) {
+#ifndef NDEBUG
+        unreachable();
+#else
+        io.response->result = ql::exc_t(e, NULL);
+        return done_t::YES;
+#endif // NDEBUG
+    }
+}
+
+// TODO: Having two functions which are 99% the same sucks.
+void rdb_rget_slice(
+    btree_slice_t *slice,
+    const key_range_t &range,
+    superblock_t *superblock,
+    ql::env_t *ql_env,
+    const ql::batchspec_t &batchspec,
+    const std::vector<transform_variant_t> &transforms,
+    const boost::optional<terminal_variant_t> &terminal,
+    sorting_t sorting,
+    rget_read_response_t *response) {
+    r_sanity_check(boost::get<ql::exc_t>(&response->result) == NULL);
     profile::starter_t starter("Do range scan on primary index.", ql_env->trace);
-    rdb_rget_depth_first_traversal_callback_t callback(
-            ql_env, batchspec, transform, terminal, range, sorting, response, slice);
+    rget_cb_t callback(
+        io_data_t(response, slice),
+        job_data_t(ql_env, batchspec, transforms, terminal, sorting),
+        boost::optional<sindex_data_t>(),
+        range);
     btree_concurrent_traversal(slice, superblock, range, &callback,
                                (!reversed(sorting) ? FORWARD : BACKWARD));
-
-    response->truncated = callback.batcher.should_send_batch();
-
-    boost::apply_visitor(result_finalizer_visitor_t(), response->result);
+    callback.finish();
 }
 
 void rdb_rget_secondary_slice(
@@ -922,33 +838,33 @@ void rdb_rget_secondary_slice(
     superblock_t *superblock,
     ql::env_t *ql_env,
     const ql::batchspec_t &batchspec,
-    const rdb_protocol_details::transform_t &transform,
-    const boost::optional<rdb_protocol_details::terminal_t> &terminal,
+    const std::vector<transform_variant_t> &transforms,
+    const boost::optional<terminal_variant_t> &terminal,
     const key_range_t &pk_range,
     sorting_t sorting,
     const ql::map_wire_func_t &sindex_func,
     sindex_multi_bool_t sindex_multi,
     rget_read_response_t *response) {
+    r_sanity_check(boost::get<ql::exc_t>(&response->result) == NULL);
     profile::starter_t starter("Do range scan on secondary index.", ql_env->trace);
-    rdb_rget_depth_first_traversal_callback_t callback(
-        ql_env, batchspec, transform, terminal, sindex_region.inner, pk_range,
-        sorting, sindex_func, sindex_multi, sindex_range, response, slice);
+    rget_cb_t callback(
+        io_data_t(response, slice),
+        job_data_t(ql_env, batchspec, transforms, terminal, sorting),
+        sindex_data_t(pk_range, sindex_range, sindex_func, sindex_multi),
+        sindex_region.inner);
     btree_concurrent_traversal(
         slice, superblock, sindex_region.inner, &callback,
         (!reversed(sorting) ? FORWARD : BACKWARD));
-
-    response->truncated = callback.batcher.should_send_batch();
-
-    boost::apply_visitor(result_finalizer_visitor_t(), response->result);
+    callback.finish();
 }
 
-void rdb_distribution_get(btree_slice_t *slice, int max_depth,
+void rdb_distribution_get(int max_depth,
                           const store_key_t &left_key,
                           superblock_t *superblock,
                           distribution_read_response_t *response) {
     int64_t key_count_out;
     std::vector<store_key_t> key_splits;
-    get_btree_key_distribution(slice, superblock, max_depth,
+    get_btree_key_distribution(superblock, max_depth,
                                &key_count_out, &key_splits);
 
     int64_t keys_per_bucket;
@@ -1069,7 +985,7 @@ void rdb_update_single_sindex(
 
     ql::map_wire_func_t mapping;
     sindex_multi_bool_t multi = sindex_multi_bool_t::MULTI;
-    vector_read_stream_t read_stream(&sindex->sindex.opaque_definition);
+    inplace_vector_read_stream_t read_stream(&sindex->sindex.opaque_definition);
     archive_result_t success = deserialize(&read_stream, &mapping);
     guarantee_deserialization(success, "sindex deserialize");
     success = deserialize(&read_stream, &multi);
@@ -1081,7 +997,7 @@ void rdb_update_single_sindex(
     // for now we pass null and it will segfault if an illegal sindex
     // mapping is passed.
     cond_t non_interruptor;
-    ql::env_t env(&non_interruptor);
+    ql::env_t env(NULL, &non_interruptor);
 
     superblock_t *super_block = sindex->super_block.get();
 
@@ -1217,9 +1133,9 @@ public:
         try {
             scoped_ptr_t<real_superblock_t> superblock;
 
-            // We want soft durability because having a partially constructed secondary index is
-            // okay -- we wipe it and rebuild it, if it has not been marked completely
-            // constructed.
+            // We want soft durability because having a partially constructed
+            // secondary index is okay -- we wipe it and rebuild it, if it has not
+            // been marked completely constructed.
             store_->acquire_superblock_for_write(
                     repli_timestamp_t::distant_past,
                     2,  // KSI: This is not the right value.
@@ -1228,28 +1144,9 @@ public:
                     &wtxn,
                     &superblock,
                     interruptor_);
-            // RSI: We used to have this comment.  We no longer do that (and we no
-            // longer want to do that).  How is performance affected?  We shouldn't
-            // have stuff blocking on the superblock (generally) anyway, right?
 
-
-            // While we need wtxn to be a write transaction (thus calling
-            // `acquire_superblock_for_write`), we only need a read lock
-            // on the superblock (which is why we pass in `rwi_read`).
-            // Usually in btree code, we are supposed to acquire the superblock
-            // in write mode if we are going to do writes further down the tree,
-            // in order to guarantee that no other read can bypass the write on
-            // the way down. However in this special case this is already
-            // guaranteed by the token_pair that all secondary index operations
-            // use, so we can safely acquire it with `rwi_read` instead.
-
-            // RSI: ^^ remove the above outdated comment left for reference for the
-            // previous RSI comment.
-
-            // Synchronization is guaranteed through the token_pair.
-            // Let's get the information we need from the superblock and then
-            // release it immediately.
-            block_id_t sindex_block_id = superblock->get_sindex_block_id();
+            // Acquire the sindex block.
+            const block_id_t sindex_block_id = superblock->get_sindex_block_id();
 
             buf_lock_t sindex_block
                 = store_->acquire_sindex_block_for_write(superblock->expose_buf(),
@@ -1308,16 +1205,6 @@ public:
         cb->no_more_interesting_children();
     }
 
-    // RSI: Parallel traversal should release the superblock, right?  That way we can
-    // get at the sindexes.
-
-    // RSI: Instead of wtxn we should just have one (write) transaction, pre-visit
-    // the sindex block, traverse the main subtree (snapshottedly) without releasing
-    // the superblock, instead of this two-transaction business.  We could get
-    // everything done in one write transaction?  But having big write transactions
-    // is bad for some reason (if it actually touches the superblock).  Think about
-    // that, make sindexes better, and talk to other people about known sindex
-    // problems.
     access_t btree_superblock_mode() { return access_t::read; }
     access_t btree_node_mode() { return access_t::read; }
 
@@ -1360,7 +1247,7 @@ void post_construct_secondary_indexes(
     // The superblock must be released before txn (`btree_parallel_traversal`
     // usually already takes care of that).
     // The txn must be destructed before the cache_account.
-    scoped_ptr_t<alt_cache_account_t> cache_account;
+    cache_account_t cache_account;
     scoped_ptr_t<txn_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
 
@@ -1371,11 +1258,9 @@ void post_construct_secondary_indexes(
         interruptor,
         true /* USE_SNAPSHOT */);
 
-    // KSI: Is this high(?) priority why making an sindex slows stuff down a lot?
-    txn->cache()->create_cache_account(SINDEX_POST_CONSTRUCTION_CACHE_PRIORITY,
-                                       &cache_account);
-    txn->set_account(cache_account.get());
+    cache_account
+        = txn->cache()->create_cache_account(SINDEX_POST_CONSTRUCTION_CACHE_PRIORITY);
+    txn->set_account(&cache_account);
 
-    btree_parallel_traversal(superblock.get(),
-                             store->btree.get(), &helper, &wait_any);
+    btree_parallel_traversal(superblock.get(), &helper, &wait_any);
 }

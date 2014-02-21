@@ -286,7 +286,7 @@ int64_t blob_t::valuesize() const {
     return blob::value_size(ref_, maxreflen_);
 }
 
-void blob_t::detach_subtree(buf_parent_t root) {
+void blob_t::detach_subtrees(buf_parent_t root) {
     if (blob::is_small(ref_, maxreflen_)) {
         return;
     }

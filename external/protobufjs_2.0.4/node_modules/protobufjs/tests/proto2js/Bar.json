@@ -1,0 +1,46 @@
+{
+    "package": null,
+    "messages": [
+        {
+            "ref": "Foo",
+            "fields": [
+                {
+                    "rule": "required",
+                    "type": "string",
+                    "name": "buzz",
+                    "id": 2,
+                    "options": {}
+                }
+            ]
+        }
+    ],
+    "enums": [],
+    "imports": [
+        {
+            "package": null,
+            "messages": [
+                {
+                    "name": "Foo",
+                    "fields": [
+                        {
+                            "rule": "required",
+                            "type": "string",
+                            "name": "fizz",
+                            "id": 1,
+                            "options": {}
+                        }
+                    ],
+                    "enums": [],
+                    "messages": [],
+                    "options": {}
+                }
+            ],
+            "enums": [],
+            "imports": [],
+            "options": {},
+            "services": []
+        }
+    ],
+    "options": {},
+    "services": []
+}

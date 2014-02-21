@@ -49,26 +49,29 @@ private:
     std::set<std::string> legal_args;
 };
 
+class arg_verifier_t;
+
 // Almost all terms will inherit from this and use its member functions to
 // access their arguments.
 class op_term_t : public term_t {
-public:
+protected:
     op_term_t(compile_env_t *env, protob_t<const Term> term,
               argspec_t argspec, optargspec_t optargspec = optargspec_t({}));
     virtual ~op_term_t();
-protected:
+
     size_t num_args() const; // number of arguments
-    counted_t<val_t> arg(scope_env_t *env, size_t i, eval_flags_t flags = NO_FLAGS); // returns argument `i`
-    // Tries to get an optional argument, returns `counted_t<val_t>()` if not
-    // found.
+    // Returns argument `i`.
+    counted_t<val_t> arg(scope_env_t *env, size_t i, eval_flags_t flags = NO_FLAGS);
+    // Tries to get an optional argument, returns `counted_t<val_t>()` if not found.
     counted_t<val_t> optarg(scope_env_t *env, const std::string &key);
-    // This reeturns an optarg which is:
+    // This returns an optarg which is:
     // * lazy -- it's wrapped in a function, so you don't get the value until
     //   you call that function.
     // * literal -- it checks whether this operation has the literal key you
     //   provided and doesn't look anywhere else for optargs (in particular, it
     //   doesn't check global optargs).
-    counted_t<func_term_t> lazy_literal_optarg(compile_env_t *env, const std::string &key);
+    counted_t<func_term_t> lazy_literal_optarg(
+        compile_env_t *env, const std::string &key);
 
     // Provides a default implementation, passing off a call to arg terms and optarg
     // terms.  implicit_var_term_t overrides this.  (var_term_t does too, but it's not
@@ -76,8 +79,22 @@ protected:
     virtual void accumulate_captures(var_captures_t *captures) const;
 
 private:
+    // TODO: this interface is a terrible hack.  `term_eval` should be named
+    // `eval_impl`, `eval_impl` should be named `op_eval`, and `op_eval` should
+    // take `arg0` as one of its arguments.  (Actually, the `arg` function
+    // should be passed down too so that the `arg_verifier` it shares with
+    // `term_eval` doesn't have to be on this object.)
+    virtual counted_t<val_t> term_eval(scope_env_t *env, eval_flags_t eval_flags);
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t eval_flags) = 0;
+    virtual bool can_be_grouped() { return true; }
+
     virtual bool is_deterministic() const;
+
+    counted_t<term_t> consume(size_t i);
+
+    counted_t<val_t> arg0;
     std::vector<counted_t<term_t> > args;
+    arg_verifier_t *arg_verifier; // Use this to access `args`.
 
     friend class make_obj_term_t; // needs special access to optargs
     std::map<std::string, counted_t<term_t> > optargs;

@@ -124,6 +124,7 @@ void persistent_file_t<metadata_t>::construct_serializer_and_cache(const bool cr
         alt_cache_config_t cache_dynamic_config;
         cache_dynamic_config.page_config.memory_limit = MEGABYTE;
         cache.init(new cache_t(serializer.get(), cache_dynamic_config, perfmon_parent));
+        cache_conn.init(new cache_conn_t(cache.get()));
     }
 
     if (create) {
@@ -138,7 +139,7 @@ void persistent_file_t<metadata_t>::construct_serializer_and_cache(const bool cr
 
 template <class metadata_t>
 void persistent_file_t<metadata_t>::get_write_transaction(object_buffer_t<txn_t> *txn_out) {
-    txn_out->create(cache.get(),
+    txn_out->create(cache_conn.get(),
                     write_durability_t::HARD,
                     repli_timestamp_t::distant_past,
                     1);
@@ -146,7 +147,7 @@ void persistent_file_t<metadata_t>::get_write_transaction(object_buffer_t<txn_t>
 
 template <class metadata_t>
 void persistent_file_t<metadata_t>::get_read_transaction(object_buffer_t<txn_t> *txn_out) {
-    txn_out->create(cache.get(),
+    txn_out->create(cache_conn.get(),
                     read_access_t::read);
 }
 

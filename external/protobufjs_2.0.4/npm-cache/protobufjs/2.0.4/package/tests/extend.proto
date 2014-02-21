@@ -1,0 +1,19 @@
+import "google/protobuf/descriptor.proto";
+
+extend google.protobuf.MessageOptions {
+  optional int32 foo = 123;
+}
+
+message Foo {
+    extensions 2 to max;
+}
+
+extend Foo {
+    optional string bar = 2;
+}
+
+message Bar {
+    extend Foo {
+        optional Bar bar2 = 3;
+    }
+}

@@ -7,7 +7,6 @@
 #include "buffer_cache/types.hpp"
 
 class buf_parent_t;
-class btree_slice_t;
 struct store_key_t;
 struct btree_key_t;
 class order_token_t;
@@ -42,7 +41,7 @@ protected:
     DISABLE_COPYING(value_deleter_t);
 };
 
-void btree_erase_range_generic(value_sizer_t<void> *sizer, btree_slice_t *slice,
+void btree_erase_range_generic(value_sizer_t<void> *sizer,
                                key_tester_t *tester,
                                value_deleter_t *deleter,
                                const btree_key_t *left_exclusive_or_null,
@@ -51,7 +50,7 @@ void btree_erase_range_generic(value_sizer_t<void> *sizer, btree_slice_t *slice,
                                signal_t *interruptor,
                                bool release_superblock = true);
 
-void erase_all(value_sizer_t<void> *sizer, btree_slice_t *slice,
+void erase_all(value_sizer_t<void> *sizer,
                value_deleter_t *deleter,
                superblock_t *superblock,
                signal_t *interruptor,

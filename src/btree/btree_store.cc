@@ -39,6 +39,7 @@ btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
         alt_cache_config_t config;
         config.page_config.memory_limit = cache_target;
         cache.init(new cache_t(serializer, config, &perfmon_collection));
+        general_cache_conn.init(new cache_conn_t(cache.get()));
     }
 
     if (create) {
@@ -46,10 +47,11 @@ btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
         write_message_t msg;
         typename protocol_t::region_t kr = protocol_t::region_t::universe();
         msg << kr;
+        key.reserve(msg.size());
         int res = send_write_message(&key, &msg);
         guarantee(!res);
 
-        txn_t txn(cache.get(), write_durability_t::HARD,
+        txn_t txn(general_cache_conn.get(), write_durability_t::HARD,
                   repli_timestamp_t::distant_past, 1);
         buf_lock_t superblock(&txn, SUPERBLOCK_ID, alt_create_t::create);
         btree_slice_t::init_superblock(&superblock, key.vector(), std::vector<char>());
@@ -241,8 +243,8 @@ template <class protocol_t>
 void btree_store_t<protocol_t>::lock_sindex_queue(buf_lock_t *sindex_block,
                                                   mutex_t::acq_t *acq) {
     assert_thread();
-    // RSI (for sam): Review this conversation and the code and learn how everything
-    // works.
+    // KSI: Prove that we can remove this "lock_sindex_queue" stuff
+    // (probably).
 
     // SRH: WTF should we do here?  Why is there a mutex?
     // JD: There's a mutex to protect the sindex queue which is an in memory
@@ -394,11 +396,11 @@ bool btree_store_t<protocol_t>::add_sindex(
     }
 }
 
-// RSI: There's no reason why this should work with detached sindexes.  Make this
+// KSI: There's no reason why this should work with detached sindexes.  Make this
 // just take the buf_parent_t.  (The reason might be that it's interruptible?)
 void clear_sindex(
         txn_t *txn, block_id_t superblock_id,
-        btree_slice_t *slice, value_sizer_t<void> *sizer,
+        value_sizer_t<void> *sizer,
         value_deleter_t *deleter, signal_t *interruptor) {
     /* Notice we're acquire sindex.superblock twice below which seems odd,
      * the reason for this is that erase_all releases the sindex_superblock
@@ -411,8 +413,8 @@ void clear_sindex(
                 buf_parent_t(txn), superblock_id, access_t::write);
         real_superblock_t sindex_superblock(std::move(sindex_superblock_lock));
 
-        erase_all(sizer, slice,
-                deleter, &sindex_superblock, interruptor);
+        erase_all(sizer,
+                  deleter, &sindex_superblock, interruptor);
     }
 
     {
@@ -448,9 +450,8 @@ void btree_store_t<protocol_t>::set_sindexes(
             sindex_block->detach_child(it->second.superblock);
 
             guarantee(std_contains(secondary_index_slices, it->first));
-            btree_slice_t *sindex_slice = &(secondary_index_slices.at(it->first));
             clear_sindex(sindex_block->txn(), it->second.superblock,
-                    sindex_slice, sizer, deleter, interruptor);
+                         sizer, deleter, interruptor);
             secondary_index_slices.erase(it->first);
         }
     }
@@ -535,39 +536,17 @@ MUST_USE bool btree_store_t<protocol_t>::drop_sindex(
 
         /* Make sure we have a record of the slice. */
         guarantee(std_contains(secondary_index_slices, id));
-        btree_slice_t *sindex_slice = &(secondary_index_slices.at(id));
         clear_sindex(txn, sindex.superblock,
-                sindex_slice, sizer, deleter, interruptor);
+                     sizer, deleter, interruptor);
         secondary_index_slices.erase(id);
     }
     return true;
 }
 
-
-template <class protocol_t>
-void btree_store_t<protocol_t>::get_sindexes(
-        superblock_t *super_block,
-        std::map<std::string, secondary_index_t> *sindexes_out) {
-    buf_lock_t sindex_block
-        = acquire_sindex_block_for_read(super_block->expose_buf(),
-                                        super_block->get_sindex_block_id());
-
-    return get_secondary_indexes(&sindex_block, sindexes_out);
-}
-
-template <class protocol_t>
-void btree_store_t<protocol_t>::get_sindexes(
-        buf_lock_t *sindex_block,
-        std::map<std::string, secondary_index_t> *sindexes_out) {
-    return get_secondary_indexes(sindex_block, sindexes_out);
-}
-
-// RSI: Should anybody really rightfully use this?  The caller wants us to be the sindex_block constructor?
 template <class protocol_t>
 MUST_USE bool btree_store_t<protocol_t>::acquire_sindex_superblock_for_read(
         const std::string &id,
-        block_id_t sindex_block_id,
-        buf_parent_t parent,
+        superblock_t *superblock,
         scoped_ptr_t<real_superblock_t> *sindex_sb_out,
         std::vector<char> *opaque_definition_out)
     THROWS_ONLY(sindex_not_post_constructed_exc_t) {
@@ -575,7 +554,9 @@ MUST_USE bool btree_store_t<protocol_t>::acquire_sindex_superblock_for_read(
 
     /* Acquire the sindex block. */
     buf_lock_t sindex_block
-        = acquire_sindex_block_for_read(parent, sindex_block_id);
+        = acquire_sindex_block_for_read(superblock->expose_buf(),
+                                        superblock->get_sindex_block_id());
+    superblock->release();
 
     /* Figure out what the superblock for this index is. */
     secondary_index_t sindex;
@@ -600,14 +581,16 @@ MUST_USE bool btree_store_t<protocol_t>::acquire_sindex_superblock_for_read(
 template <class protocol_t>
 MUST_USE bool btree_store_t<protocol_t>::acquire_sindex_superblock_for_write(
         const std::string &id,
-        block_id_t sindex_block_id,
-        buf_parent_t parent,
+        superblock_t *superblock,
         scoped_ptr_t<real_superblock_t> *sindex_sb_out)
     THROWS_ONLY(sindex_not_post_constructed_exc_t) {
     assert_thread();
 
     /* Get the sindex block. */
-    buf_lock_t sindex_block = acquire_sindex_block_for_write(parent, sindex_block_id);
+    buf_lock_t sindex_block
+        = acquire_sindex_block_for_write(superblock->expose_buf(),
+                                         superblock->get_sindex_block_id());
+    superblock->release();
 
     /* Figure out what the superblock for this index is. */
     secondary_index_t sindex;
@@ -781,6 +764,7 @@ void btree_store_t<protocol_t>::update_metainfo(const metainfo_t &old_metainfo,
         vector_stream_t key;
         write_message_t msg;
         msg << i->first;
+        key.reserve(msg.size());
         DEBUG_VAR int res = send_write_message(&key, &msg);
         rassert(!res);
 
@@ -823,7 +807,7 @@ get_metainfo_internal(buf_lock_t *sb_buf,
 
         typename protocol_t::region_t region;
         {
-            vector_read_stream_t key(&i->first);
+            inplace_vector_read_stream_t key(&i->first);
             archive_result_t res = deserialize(&key, &region);
             guarantee_deserialization(res, "region");
         }
@@ -867,7 +851,6 @@ void btree_store_t<protocol_t>::acquire_superblock_for_read(
         bool use_snapshot)
         THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
-    btree->assert_thread();
 
     object_buffer_t<fifo_enforcer_sink_t::exit_read_t>::destruction_sentinel_t destroyer(token);
     wait_interruptible(token->get(), interruptor);
@@ -875,7 +858,7 @@ void btree_store_t<protocol_t>::acquire_superblock_for_read(
     cache_snapshotted_t cache_snapshotted =
         use_snapshot ? CACHE_SNAPSHOTTED_YES : CACHE_SNAPSHOTTED_NO;
     get_btree_superblock_and_txn_for_reading(
-        btree.get(), cache_snapshotted, sb_out, txn_out);
+        general_cache_conn.get(), cache_snapshotted, sb_out, txn_out);
 }
 
 template <class protocol_t>
@@ -885,14 +868,14 @@ void btree_store_t<protocol_t>::acquire_superblock_for_backfill(
         scoped_ptr_t<real_superblock_t> *sb_out,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
-
     assert_thread();
-    btree->assert_thread();
 
     object_buffer_t<fifo_enforcer_sink_t::exit_read_t>::destruction_sentinel_t destroyer(token);
     wait_interruptible(token->get(), interruptor);
 
-    get_btree_superblock_and_txn_for_backfilling(btree.get(), sb_out, txn_out);
+    get_btree_superblock_and_txn_for_backfilling(general_cache_conn.get(),
+                                                 btree->get_backfill_account(),
+                                                 sb_out, txn_out);
 }
 
 template <class protocol_t>
@@ -921,14 +904,12 @@ void btree_store_t<protocol_t>::acquire_superblock_for_write(
         scoped_ptr_t<real_superblock_t> *sb_out,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
-
     assert_thread();
-    btree->assert_thread();
 
     object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer(token);
     wait_interruptible(token->get(), interruptor);
 
-    get_btree_superblock_and_txn(btree.get(), access_t::write,
+    get_btree_superblock_and_txn(general_cache_conn.get(), write_access_t::write,
                                  expected_change_count, timestamp,
                                  durability, sb_out, txn_out);
 }

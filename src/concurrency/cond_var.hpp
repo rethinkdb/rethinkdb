@@ -6,20 +6,20 @@
 #include "concurrency/signal.hpp"
 
 /* A cond_t is the simplest form of signal. It just exposes the pulse() method
-directly. It is safe to call pulse() on any thread. */
+directly. */
 
 class coro_t;
 
 class cond_t : public signal_t {
 public:
     cond_t() { }
-    void pulse();
+    cond_t(cond_t &&movee) : signal_t(std::move(movee)) { }
     void pulse_if_not_already_pulsed();
 
-    // Pulses, but you have to be on the cond_t's home thread to call this.
-    void do_pulse();
-private:
+    using signal_t::pulse;
+    using signal_t::reset;
 
+private:
     DISABLE_COPYING(cond_t);
 };
 

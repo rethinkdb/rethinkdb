@@ -884,6 +884,7 @@ module 'DataUtils', ->
             nreplicas: 0
             nashards: 0 # Number of available shards
             nareplicas: 0 # Number of available replicas
+            reachability: 'Live' # 'Live' if we can write on the table, 'Down' if we can't
 
         # If we can't see the namespace...
         if not namespace?
@@ -921,10 +922,109 @@ module 'DataUtils', ->
 
         json.nmachines = _.uniq(_machines).length
         json.ndatacenters = _.uniq(_datacenters).length
-        if json.nshards is json.nashards
-            json.reachability = 'Live'
-        else
-            json.reachability = 'Down'
+
+        # Getting the directoy per namespace
+        directory_by_namespaces = DataUtils.get_directory_activities_by_namespaces()
+
+        # We now want to know if the table is available or not
+        # The table is available only if these two conditions are met:
+        # - A write can succeed, which means that for each shard, # the number of available
+        #   replicas in each datacenter should be at least the number of acks required in this datacenter
+        # - The master for this shard is available
+
+        # This is an object that will store the number of acks for each shard and datacenter
+        # Ex: _shard_required = {
+        #   ['', 'foo']: {
+        #       universe_id: 0,
+        #       datacenter_1: 3,
+        #       datacenter_2: 1
+        #   }
+        #   ['foo', null]: {
+        #       universe_id: 0,
+        #       datacenter_1: 3,
+        #       datacenter_2: 1
+        #  }
+        # }
+        _shard_required = {}
+
+        # An object that will store for each shard a boolean that represents whether its master is available or not
+        # Ex: _shard_has_master = {
+        #   ['', 'foo']: Boolean
+        #   ['foo', null]: Boolean
+        # }
+        _shard_has_master = {}
+
+
+        # Initialize all the two previous variable
+        for shard in namespace.get('shards')
+            _shard_required[shard] = {} # We will add the requirement per datacenter in the next loop
+            _shard_has_master[shard] = false # We haven't seen the master yet, so we consider it not available
+
+        # For each shard, we save the number of write required (per datacenter) to have a write acknowledge (in this datacenter)
+        for datacenter, value of namespace.get('ack_expectations')
+            for shard of _shard_required
+                _shard_required[shard][datacenter] = value.expectation
+
+        # Checking blueprint (goals) vs directory (real state of the cluster)
+        # For each shard assignments, we are going to
+        #     - Make sure there is a master
+        #     - Decrement the number of remaining ack we need to be available (per shard)
+        blueprint = namespace.get('blueprint').peers_roles
+        for machine_id of blueprint
+            if json.reachability isnt 'Live'
+                break
+
+            machine = machines.get(machine_id)
+            if not machine?
+                continue
+
+            datacenter_id = machine.get('datacenter_uuid')
+            machine_name = machine.get('name')
+
+            for shard, role of blueprint[machine_id]
+                if json.reachability isnt 'Live'
+                    break
+
+                if role is "role_primary" # This machine is the master for the current shard
+                    if directory_by_namespaces?[namespace.get('id')]?[machine_id]?[shard] is "primary"
+                        _shard_has_master[shard] = true
+                        
+                        if not _shard_required[shard]?[datacenter_id]?
+                            _shard_required[shard]?[datacenter_id] = 0
+                        _shard_required[shard]?[datacenter_id] -= 1
+                    else
+                        json.reachability = 'Down'
+                else if role is "role_secondary" # This machine is a secondary for the current shard
+                    if directory_by_namespaces?[namespace.get('id')]?[machine_id]?[shard] is "secondary_up_to_date"
+                        # The shard can be defined in shards but not in the blueprint if there were not yet reprinted
+                        if not _shard_required[shard]?[datacenter_id]?
+                            _shard_required[shard]?[datacenter_id] = 0
+                        _shard_required[shard]?[datacenter_id] -= 1
+
+        # By default we consider a machine to hold a replica because of a per datacenter requirement
+        # If a datacenter has more responsabilities than required, it's because some of these machines
+        # are working for the whole cluster (universe), so we move them to universe
+        for shard of _shard_required
+            for datacenter of _shard_required[shard]
+                if _shard_required[shard][datacenter] < 0
+                    _shard_required[shard][universe_datacenter.get('id')] += _shard_required[shard][datacenter]
+                    _shard_required[shard][datacenter] = 0
+
+
+        # Make sure that all shards have a master
+        if json.reachability = 'Live'
+            for shard of _shard_has_master
+                if _shard_has_master[shard] is false
+                    json.reachability = 'Down'
+                    break
+
+        # Make sure that all shards have enough replica to satisfy a write
+        if json.reachability = 'Live'
+            for shard of _shard_required
+                for datacenter of _shard_required[shard]
+                    if _shard_required[shard][datacenter] > 0
+                        json.reachability = 'Down'
+                    break
 
         return json
 

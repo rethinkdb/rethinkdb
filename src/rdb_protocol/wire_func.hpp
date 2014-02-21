@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 
+#include "containers/archive/stl_types.hpp"
 #include "containers/uuid.hpp"
 #include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/pb_utils.hpp"
@@ -45,6 +46,16 @@ private:
     counted_t<func_t> func;
 };
 
+class group_wire_func_t {
+public:
+    group_wire_func_t() { }
+    group_wire_func_t(std::vector<counted_t<func_t> > &&_funcs);
+    std::vector<counted_t<func_t> > compile_funcs() const;
+    RDB_MAKE_ME_SERIALIZABLE_1(funcs);
+private:
+    std::vector<wire_func_t> funcs;
+};
+
 class map_wire_func_t : public wire_func_t {
 public:
     template <class... Args>
@@ -58,6 +69,23 @@ public:
         protob_t<const Backtrace> backtrace);
 };
 
+class filter_wire_func_t {
+public:
+    filter_wire_func_t() { }
+    filter_wire_func_t(const ql::wire_func_t &_filter_func,
+                       const boost::optional<ql::wire_func_t> &_default_filter_val)
+        : filter_func(_filter_func),
+          default_filter_val(_default_filter_val) { }
+    filter_wire_func_t(const counted_t<func_t> &_filter_func,
+                       const boost::optional<ql::wire_func_t> &_default_filter_val)
+        : filter_func(_filter_func),
+          default_filter_val(_default_filter_val) { }
+
+    ql::wire_func_t filter_func;
+    boost::optional<ql::wire_func_t> default_filter_val;
+};
+RDB_DECLARE_SERIALIZABLE(filter_wire_func_t);
+
 class reduce_wire_func_t : public wire_func_t {
 public:
     template <class... Args>
@@ -70,35 +98,42 @@ public:
     explicit concatmap_wire_func_t(Args... args) : wire_func_t(args...) { }
 };
 
-// Count is a fake function because we don't need to send anything.
-class count_wire_func_t {
-public:
-    RDB_MAKE_ME_SERIALIZABLE_0()
+// These are fake functions because we don't need to send anything.
+struct count_wire_func_t {
+    RDB_MAKE_ME_SERIALIZABLE_0();
 };
 
-
-// Grouped Map Reduce
-class gmr_wire_func_t {
+class bt_wire_func_t {
 public:
-    gmr_wire_func_t() { }
-    gmr_wire_func_t(counted_t<func_t> _group,
-                    counted_t<func_t> _map,
-                    counted_t<func_t> _reduce);
-    counted_t<func_t> compile_group() const;
-    counted_t<func_t> compile_map() const;
-    counted_t<func_t> compile_reduce() const;
-
-    protob_t<const Backtrace> get_bt() const {
-        // If this goes wrong at the toplevel, it goes wrong in reduce.
-        return reduce.get_bt();
-    }
-
-    RDB_MAKE_ME_SERIALIZABLE_3(group, map, reduce);
-
+    void rdb_serialize(write_message_t &msg) const;
+    archive_result_t rdb_deserialize(read_stream_t *s);
+    protob_t<const Backtrace> get_bt() const { return bt; }
+protected:
+    bt_wire_func_t() : bt(make_counted_backtrace()) { }
+    explicit bt_wire_func_t(const protob_t<const Backtrace> &_bt) : bt(_bt) { }
 private:
-    map_wire_func_t group;
-    map_wire_func_t map;
-    reduce_wire_func_t reduce;
+    protob_t<const Backtrace> bt;
+};
+class sum_wire_func_t : public bt_wire_func_t {
+public:
+    template<class... Args>
+    sum_wire_func_t(Args... args) : bt_wire_func_t(args...) { }
+};
+class avg_wire_func_t : public bt_wire_func_t {
+public:
+    template<class... Args>
+    avg_wire_func_t(Args... args) : bt_wire_func_t(args...) { }
+};
+
+struct min_wire_func_t {
+    min_wire_func_t() { }
+    explicit min_wire_func_t(const protob_t<const Backtrace> &) { }
+    RDB_MAKE_ME_SERIALIZABLE_0();
+};
+struct max_wire_func_t {
+    max_wire_func_t() { }
+    explicit max_wire_func_t(const protob_t<const Backtrace> &) { }
+    RDB_MAKE_ME_SERIALIZABLE_0();
 };
 
 }  // namespace ql

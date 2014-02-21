@@ -1,5 +1,7 @@
 #include "rpc/connectivity/heartbeat.hpp"
 
+#include <functional>
+
 #include "logger.hpp"
 
 heartbeat_manager_t::heartbeat_manager_t(message_service_t *_message_service) :

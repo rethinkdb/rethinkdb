@@ -33,6 +33,8 @@ protected:
             prev_->next_ = this;
             next_->prev_ = this;
         }
+        movee.prev_ = NULL;
+        movee.next_ = NULL;
     }
 
     // Don't implement this.  _Maybe_ you won't fuck it up.  Just use the
@@ -55,6 +57,19 @@ public:
         this->prev_ = this;
         this->next_ = this;
     }
+
+    intrusive_list_t(intrusive_list_t &&movee) : size_(0) {
+        // We just initialize ourselves to empty and then use append_and_clear.
+        this->prev_ = this;
+        this->next_ = this;
+
+        append_and_clear(&movee);
+    }
+
+    // We don't support generic assignment because non-empty intrusive lists may not
+    // be destroyed.  You have to manually remove all elements of the intrusive list
+    // before destroying it.
+    void operator=(intrusive_list_t &&movee) = delete;
 
     ~intrusive_list_t() {
         guarantee(this->prev_ == this, "non-empty intrusive list destroyed");

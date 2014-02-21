@@ -436,7 +436,7 @@ struct read_visitor_t : public boost::static_visitor<read_response_t> {
 
     read_response_t operator()(const distribution_get_query_t& dget) {
         distribution_result_t dstr
-            = memcached_distribution_get(btree, dget.max_depth,
+            = memcached_distribution_get(dget.max_depth,
                                          dget.region.inner.left, effective_time,
                                          superblock);
         for (std::map<store_key_t, int64_t>::iterator it = dstr.key_counts.begin(); it != dstr.key_counts.end(); ) {
@@ -578,7 +578,7 @@ private:
 };
 
 void call_memcached_backfill(
-        int i, btree_slice_t *btree,
+        int i,
         const std::vector<std::pair<region_t, state_timestamp_t> > &regions,
         memcached_backfill_callback_t *callback, superblock_t *superblock,
         buf_lock_t *sindex_block,
@@ -589,7 +589,7 @@ void call_memcached_backfill(
     progress->add_constituent(&p_owner);
     repli_timestamp_t timestamp = regions[i].second.to_repli_timestamp();
     try {
-        memcached_backfill(btree, regions[i].first.inner, timestamp, callback,
+        memcached_backfill(regions[i].first.inner, timestamp, callback,
                            superblock, sindex_block, p, interruptor);
     } catch (const interrupted_exc_t &) {
         /* do nothing; `protocol_send_backfill()` will notice and deal with it.
@@ -602,7 +602,7 @@ void store_t::protocol_send_backfill(const region_map_t<memcached_protocol_t, st
                                      chunk_fun_callback_t<memcached_protocol_t> *chunk_fun_cb,
                                      superblock_t *superblock,
                                      buf_lock_t *sindex_block,
-                                     btree_slice_t *btree,
+                                     UNUSED btree_slice_t *btree,
                                      backfill_progress_t *progress,
                                      signal_t *interruptor)
                                      THROWS_ONLY(interrupted_exc_t) {
@@ -616,7 +616,7 @@ void store_t::protocol_send_backfill(const region_map_t<memcached_protocol_t, st
         // it's harmless, because caching is basically perfect.
         refcount_superblock_t refcount_wrapper(superblock, regions.size());
         pmap(regions.size(), std::bind(&call_memcached_backfill, ph::_1,
-                                       btree, regions, &callback,
+                                       regions, &callback,
                                        &refcount_wrapper, sindex_block, progress,
                                        interruptor));
 
@@ -641,7 +641,7 @@ struct receive_backfill_visitor_t : public boost::static_visitor<> {
     }
     void operator()(const backfill_chunk_t::delete_range_t& delete_range) const {
         hash_range_key_tester_t tester(&delete_range.range);
-        memcached_erase_range(btree, &tester, delete_range.range.inner,
+        memcached_erase_range(&tester, delete_range.range.inner,
                               superblock, interruptor);
     }
     void operator()(const backfill_chunk_t::key_value_pair_t& kv) const {
@@ -705,11 +705,11 @@ private:
 }   /* anonymous namespace */
 
 void store_t::protocol_reset_data(const region_t& subregion,
-                                  btree_slice_t *btree,
+                                  UNUSED btree_slice_t *btree,
                                   superblock_t *superblock,
                                   signal_t *interruptor) {
     hash_key_tester_t key_tester(subregion.beg, subregion.end);
-    memcached_erase_range(btree, &key_tester, subregion.inner,
+    memcached_erase_range(&key_tester, subregion.inner,
                           superblock, interruptor);
 }
 

@@ -4,6 +4,7 @@
 
 #include <string>
 
+#include "containers/wire_string.hpp"
 #include "http/json/json_adapter.hpp"
 #include "rpc/serialize_macros.hpp"
 
@@ -16,7 +17,8 @@ public:
     name_string_t();
 
     // Succeeds on valid non-empty strings.
-    MUST_USE bool assign_value(const std::string& s);
+    MUST_USE bool assign_value(const std::string &s);
+    MUST_USE bool assign_value(const wire_string_t &s);
 
     const std::string& str() const { return str_; }
 

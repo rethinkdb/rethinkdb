@@ -1,0 +1,5 @@
+message Test1 {
+    required int32 a = 1;
+}
+
+// Test1 should encode to "08 96 01" with Test1#a=150

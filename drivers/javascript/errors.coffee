@@ -37,22 +37,22 @@ class RqlQueryPrinter
         (joinTree tree).replace(/[^\^]/g, ' ')
 
     composeCarrots = (term, frames) ->
-        argNum = frames.shift()
-        unless argNum? then argNum = -1
+        frame = frames.shift()
 
         args = for arg,i in term.args
-                    if i == argNum
+                    if frame is i
                         composeCarrots(arg, frames)
                     else
                         composeTerm(arg)
 
         optargs = {}
         for own key,arg of term.optargs
-            optargs[key] = if key == argNum
-                             composeCarrots(arg, frames)
-                           else
-                             composeTerm(arg)
-        if argNum != -1
+            if frame is key
+                optargs[key] = composeCarrots(arg, frames)
+            else
+                optargs[key] = composeTerm(arg)
+
+        if frame?
             term.compose(args, optargs)
         else
             carrotify(term.compose(args, optargs))

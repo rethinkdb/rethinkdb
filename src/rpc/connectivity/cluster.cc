@@ -3,6 +3,8 @@
 
 #include <netinet/in.h>
 
+#include <functional>
+
 #include "errors.hpp"
 #include <boost/optional.hpp>
 
@@ -12,12 +14,15 @@
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/pmap.hpp"
 #include "concurrency/semaphore.hpp"
-#include "containers/archive/string_stream.hpp"
+#include "containers/archive/vector_stream.hpp"
 #include "containers/object_buffer.hpp"
 #include "containers/uuid.hpp"
 #include "logger.hpp"
 #include "utils.hpp"
 #include "rpc/connectivity/heartbeat.hpp"
+
+// Number of messages after which the message handling loop yields
+#define MESSAGE_HANDLER_MAX_BATCH_SIZE           8
 
 const std::string connectivity_cluster_t::cluster_proto_header("RethinkDB cluster\n");
 const std::string connectivity_cluster_t::cluster_version(RETHINKDB_CODE_VERSION);
@@ -73,7 +78,8 @@ connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
                                      int port,
                                      message_handler_t *mh,
                                      int client_port,
-                                     heartbeat_manager_t *_heartbeat_manager) THROWS_ONLY(address_in_use_exc_t) :
+                                     heartbeat_manager_t *_heartbeat_manager)
+        THROWS_ONLY(address_in_use_exc_t, tcp_socket_exc_t) :
     parent(p),
     message_handler(mh),
     heartbeat_manager(_heartbeat_manager),
@@ -113,6 +119,7 @@ connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
                                 std::bind(&connectivity_cluster_t::run_t::on_new_connection,
                                           this, ph::_1, auto_drainer_t::lock_t(&drainer))))
 {
+    rassert(message_handler != NULL);
     parent->assert_thread();
 }
 
@@ -409,8 +416,8 @@ static bool deserialize_compatible_string(tcp_conn_stream_t *conn,
                                           std::string* str_out,
                                           const char *peer) {
     uint64_t raw_size;
-    int64_t res = deserialize(conn, &raw_size);
-    if (res != 0) {
+    archive_result_t res = deserialize(conn, &raw_size);
+    if (res != ARCHIVE_SUCCESS) {
         logWRN("Network error while receiving clustering header from %s, closing connection", peer);
         return false;
     }
@@ -804,17 +811,15 @@ void connectivity_cluster_t::run_t::handle(
         it's closed, which may be due to network events, or the other end
         shutting down, or us shutting down. */
         try {
+            int messages_handled_since_yield = 0;
             while (true) {
-                /* For now, we use `std::string` for messages on the wire: it's
-                just a length and a byte vector. This is obviously slow and we
-                should change it when we care about performance. */
-                std::string message;
-                if (deserialize_and_check(conn, &message, peername))
-                    break;
+                message_handler->on_message(other_id, conn); // might raise fake_archive_exc_t
 
-                string_read_stream_t stream(std::move(message), 0);
-                message_handler->on_message(other_id, &stream); // might raise fake_archive_exc_t
-                coro_t::yield();
+                ++messages_handled_since_yield;
+                if (messages_handled_since_yield >= MESSAGE_HANDLER_MAX_BATCH_SIZE) {
+                    coro_t::yield();
+                    messages_handled_since_yield = 0;
+                }
             }
         } catch (const fake_archive_exc_t &) {
             /* The exception broke us out of the loop, and that's what we
@@ -823,9 +828,9 @@ void connectivity_cluster_t::run_t::handle(
             called. */
         }
 
-        guarantee(!conn->is_read_open(), "the connection is still open for "
-            "read, which means we had a problem other than the TCP "
-            "connection closing or dying");
+        if(conn->is_read_open()) {
+            logWRN("Received invalid data on a cluster connection. Disconnecting.");
+        }
 
         /* The `conn_structure` destructor removes us from the connection map
         and notifies any disconnect listeners. */
@@ -882,11 +887,13 @@ void connectivity_cluster_t::send_message(peer_id_t dest, send_message_write_cal
 
     guarantee(!dest.is_nil());
 
-    /* We currently write the message to a string_stream_t, then
+    /* We currently write the message to a vector_stream_t, then
        serialize that as a string. It's horribly inefficient, of course. */
     // TODO: If we don't do it this way, we (or the caller) will need
     // to worry about having the writer run on the connection thread.
-    string_stream_t buffer;
+    vector_stream_t buffer;
+    // Reserve some space to reduce overhead (especially for small messages)
+    buffer.reserve(1024);
     {
         ASSERT_FINITE_CORO_WAITING;
         callback->write(&buffer);
@@ -900,8 +907,7 @@ void connectivity_cluster_t::send_message(peer_id_t dest, send_message_write_cal
         buf.appendf(" to ");
         debug_print(&buf, dest);
         buf.appendf("\n");
-        fprintf(stderr, "%s", buf.c_str());
-        print_hd(buffer.str()->data(), 0, buffer.str()->size());
+        print_hd(buffer.vector().data(), 0, buffer.vector().size());
     }
 #endif
 
@@ -931,13 +937,15 @@ void connectivity_cluster_t::send_message(peer_id_t dest, send_message_write_cal
         conn_structure_lock = it->second.second;
     }
 
-    size_t bytes_sent = buffer.str().size();
+    size_t bytes_sent = buffer.vector().size();
 
     if (conn_structure->conn == NULL) {
         // We're sending a message to ourself
         guarantee(dest == me);
         // We could be on any thread here! Oh no!
-        string_read_stream_t read_stream(std::move(buffer.str()), 0);
+        std::vector<char> buffer_data;
+        buffer.swap(&buffer_data);
+        vector_read_stream_t read_stream(std::move(buffer_data));
         current_run->message_handler->on_message(me, &read_stream);
     } else {
         guarantee(dest != me);
@@ -948,16 +956,17 @@ void connectivity_cluster_t::send_message(peer_id_t dest, send_message_write_cal
         mutex_t::acq_t acq(&conn_structure->send_mutex);
 
         {
-            write_message_t msg;
-            msg << buffer.str();
-            int res = send_write_message(conn_structure->conn, &msg);
-            if (res) {
+            int64_t res = conn_structure->conn->write(buffer.vector().data(),
+                                                      buffer.vector().size());
+            if (res == -1) {
                 /* Close the other half of the connection to make sure that
                    `connectivity_cluster_t::run_t::handle()` notices that something is
                    up */
                 if (conn_structure->conn->is_read_open()) {
                     conn_structure->conn->shutdown_read();
                 }
+            } else {
+                guarantee(res == static_cast<int64_t>(buffer.vector().size()));
             }
         }
     }
@@ -973,6 +982,7 @@ void connectivity_cluster_t::kill_connection(peer_id_t peer) THROWS_NOTHING {
 
     if (it != connection_map->end()) {
         tcp_conn_stream_t *conn = it->second.first->conn;
+        guarantee(conn != NULL, "Attempted to kill connection to myself.");
         guarantee(get_thread_id() == conn->home_thread());
 
         if (conn->is_read_open()) {

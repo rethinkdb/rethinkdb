@@ -7,8 +7,17 @@
 #include "buffer_cache/alt/stats.hpp"
 #include "concurrency/auto_drainer.hpp"
 
-// RSI: Get rid of this.
 #define ALT_DEBUG 0
+
+using alt::block_version_t;
+using alt::current_page_acq_t;
+using alt::page_acq_t;
+using alt::page_cache_t;
+using alt::page_t;
+using alt::page_txn_t;
+using alt::tracker_acq_t;
+
+const int SOFT_UNWRITTEN_CHANGES_LIMIT = 200;
 
 // There are very few ASSERT_NO_CORO_WAITING calls (instead we have
 // ASSERT_FINITE_CORO_WAITING) because most of the time we're at the mercy of the
@@ -45,44 +54,41 @@ private:
 };
 
 alt_memory_tracker_t::alt_memory_tracker_t()
-    : semaphore_(200) { }
+    : unwritten_changes_semaphore_(SOFT_UNWRITTEN_CHANGES_LIMIT) { }
 alt_memory_tracker_t::~alt_memory_tracker_t() { }
 
 void alt_memory_tracker_t::inform_memory_change(UNUSED uint64_t in_memory_size,
                                                 UNUSED uint64_t memory_limit) {
-    // RSI: implement this.
+    // KSI: implement this (for issue 97).
 }
 
-// RSI: An interface problem here is that this is measured in blocks while
+// KSI: An interface problem here is that this is measured in blocks while
 // inform_memory_change is measured in bytes.
-void alt_memory_tracker_t::begin_txn_or_throttle(int64_t expected_change_count) {
-    semaphore_.co_lock(expected_change_count);
-    // RSI: _Really_ implement this.
+tracker_acq_t alt_memory_tracker_t::begin_txn_or_throttle(int64_t expected_change_count) {
+    tracker_acq_t acq;
+    acq.semaphore_acq_.init(&unwritten_changes_semaphore_, expected_change_count);
+    acq.semaphore_acq_.acquisition_signal()->wait();
+    return acq;
 }
 
-void alt_memory_tracker_t::end_txn(int64_t saved_expected_change_count) {
-    // RSI: _Really_ implement this.
-    semaphore_.unlock(saved_expected_change_count);
+void alt_memory_tracker_t::end_txn(UNUSED tracker_acq_t acq) {
+    // Just let the acq destructor do its thing.
 }
 
 cache_t::cache_t(serializer_t *serializer, const alt_cache_config_t &config,
                  perfmon_collection_t *perfmon_collection)
     : stats_(make_scoped<alt_cache_stats_t>(perfmon_collection)),
       tracker_(),
-      page_cache_(serializer, config.page_config, &tracker_),
-      drainer_(make_scoped<auto_drainer_t>()) { }
+      page_cache_(serializer, config.page_config, &tracker_) { }
 
-cache_t::~cache_t() {
-    drainer_.reset();
-}
+cache_t::~cache_t() { }
 
 block_size_t cache_t::max_block_size() const {
     return page_cache_.max_block_size();
 }
 
-void cache_t::create_cache_account(int priority,
-                                   scoped_ptr_t<alt_cache_account_t> *out) {
-    page_cache_.create_cache_account(priority, out);
+cache_account_t cache_t::create_cache_account(int priority) {
+    return page_cache_.create_cache_account(priority);
 }
 
 alt_snapshot_node_t *
@@ -148,83 +154,77 @@ void cache_t::remove_snapshot_node(block_id_t block_id, alt_snapshot_node_t *nod
     }
 }
 
-alt_inner_txn_t::alt_inner_txn_t(cache_t *cache,
-                                 repli_timestamp_t txn_recency,
-                                 alt_inner_txn_t *preceding_txn)
-    : cache_(cache),
-      page_txn_(&cache->page_cache_,
-                txn_recency,
-                preceding_txn == NULL ? NULL : &preceding_txn->page_txn_) { }
-
-alt_inner_txn_t::~alt_inner_txn_t() { }
-
-alt_cache_account_t::alt_cache_account_t(threadnum_t thread, file_account_t *io_account)
-    : thread_(thread), io_account_(io_account) { }
-
-alt_cache_account_t::~alt_cache_account_t() {
-    on_thread_t thread_switcher(thread_);
-    delete io_account_;
+txn_t::txn_t(cache_conn_t *cache_conn,
+             read_access_t)
+    : cache_(cache_conn->cache()),
+      cache_account_(cache_->page_cache_.default_reads_account()),
+      access_(access_t::read),
+      durability_(write_durability_t::SOFT) {
+    // Right now, cache_conn is only used to control flushing of write txns.  When we
+    // need to support other cache_conn_t related features (like read operations
+    // magically passing write operations), we'll need to do something fancier with
+    // read txns on cache conns.
+    help_construct(repli_timestamp_t::invalid, 0, NULL);
 }
 
-txn_t::txn_t(cache_t *cache,
-             read_access_t,
-             txn_t *preceding_txn)
-    : access_(access_t::read),
-      // RSI: Why does OvershardedSindexCreateDrop depend on this being SOFT or HARD?
-      durability_(write_durability_t::HARD),
-      // RSI: Fix the semaphore so that we don't have to use 1.
-      saved_expected_change_count_(1) {
-    help_construct(cache, repli_timestamp_t::invalid, preceding_txn);
-}
-
-txn_t::txn_t(cache_t *cache,
+txn_t::txn_t(cache_conn_t *cache_conn,
              write_durability_t durability,
              repli_timestamp_t txn_timestamp,
-             int64_t expected_change_count,
-             txn_t *preceding_txn)
-    : access_(access_t::write),
-      durability_(durability),
-      // RSI: Fix the semaphore so that we don't have to use 1.
-      saved_expected_change_count_(std::max<int64_t>(expected_change_count, 1)) {
-    help_construct(cache, txn_timestamp, preceding_txn);
+             int64_t expected_change_count)
+    : cache_(cache_conn->cache()),
+      cache_account_(cache_->page_cache_.default_reads_account()),
+      access_(access_t::write),
+      durability_(durability) {
+    help_construct(txn_timestamp, expected_change_count, cache_conn);
 }
 
-void txn_t::help_construct(cache_t *cache,
-                           repli_timestamp_t txn_timestamp,
-                           txn_t *preceding_txn) {
-    cache->assert_thread();
-    cache->tracker_.begin_txn_or_throttle(saved_expected_change_count_);
+void txn_t::help_construct(repli_timestamp_t txn_timestamp,
+                           int64_t expected_change_count,
+                           cache_conn_t *cache_conn) {
+    cache_->assert_thread();
+    guarantee(expected_change_count >= 0);
+    tracker_acq_t tracker_acq
+        = cache_->tracker_.begin_txn_or_throttle(expected_change_count);
+
     ASSERT_FINITE_CORO_WAITING;
-    inner_.init(new alt_inner_txn_t(cache, txn_timestamp,
-                                    preceding_txn == NULL ?
-                                    NULL : preceding_txn->inner_.get()));
+
+    page_txn_.init(new page_txn_t(&cache_->page_cache_,
+                                  txn_timestamp,
+                                  std::move(tracker_acq),
+                                  cache_conn));
 }
 
-void txn_t::destroy_inner_txn(alt_inner_txn_t *inner, cache_t *cache,
-                              int64_t saved_expected_change_count,
-                              auto_drainer_t::lock_t) {
-    delete inner;
-    cache->tracker_.end_txn(saved_expected_change_count);
+void txn_t::inform_tracker(cache_t *cache, tracker_acq_t *tracker_acq) {
+    cache->tracker_.end_txn(std::move(*tracker_acq));
+}
+
+void txn_t::pulse_and_inform_tracker(cache_t *cache,
+                                     tracker_acq_t *tracker_acq,
+                                     cond_t *pulsee) {
+    inform_tracker(cache, tracker_acq);
+    pulsee->pulse();
 }
 
 txn_t::~txn_t() {
-    cache_t *cache = inner_->cache();
-    cache->assert_thread();
-    alt_inner_txn_t *inner = inner_.release();
+    cache_->assert_thread();
+
     if (durability_ == write_durability_t::SOFT) {
-        coro_t::spawn_sometime(std::bind(&txn_t::destroy_inner_txn,
-                                         inner,
-                                         cache,
-                                         saved_expected_change_count_,
-                                         cache->drainer_->lock()));
+        cache_->page_cache_.flush_and_destroy_txn(std::move(page_txn_),
+                                                  std::bind(&txn_t::inform_tracker,
+                                                            cache_,
+                                                            ph::_1));
     } else {
-        txn_t::destroy_inner_txn(inner, cache, saved_expected_change_count_,
-                                 cache->drainer_->lock());
+        cond_t cond;
+        cache_->page_cache_.flush_and_destroy_txn(
+                std::move(page_txn_),
+                std::bind(&txn_t::pulse_and_inform_tracker,
+                          cache_, ph::_1, &cond));
+        cond.wait();
     }
 }
 
-void txn_t::set_account(alt_cache_account_t *cache_account) {
-    inner_->page_txn()->set_account(cache_account);
+void txn_t::set_account(cache_account_t *cache_account) {
+    cache_account_ = cache_account;
 }
 
 
@@ -251,27 +251,44 @@ const char *show(access_t access) {
 }
 #endif
 
-// RSI: Add general explanation of correctness of snapshotting logic.  Explain why
-// it's correct for making a child snapshot node to just construct a
-// current_page_acq_t, and how there could not possibly be an intervening write
-// transaction that we need to jump ahead of.
+alt_snapshot_node_t *buf_lock_t::help_make_child(cache_t *cache,
+                                                 block_id_t child_id,
+                                                 cache_account_t *account) {
+    // KSI: This allocation is sometimes just unnecessary, right?
+    auto acq = make_scoped<current_page_acq_t>(&cache->page_cache_, child_id,
+                                               account, read_access_t::read);
 
+    alt_snapshot_node_t *child
+        = cache->matching_snapshot_node_or_null(child_id, acq->block_version());
+
+    if (child != NULL) {
+        acq.reset();
+    } else {
+        acq->declare_snapshotted();
+        child = new alt_snapshot_node_t(std::move(acq));
+        cache->add_snapshot_node(child_id, child);
+    }
+    return child;
+}
+
+// Returns a child snapshot node (using the current version of the block) for the
+// specified child block id.
 alt_snapshot_node_t *
 buf_lock_t::get_or_create_child_snapshot_node(cache_t *cache,
                                               alt_snapshot_node_t *parent,
-                                              block_id_t child_id) {
+                                              block_id_t child_id,
+                                              cache_account_t *account) {
     ASSERT_FINITE_CORO_WAITING;
     auto it = parent->children_.find(child_id);
     if (it == parent->children_.end()) {
-        // RSI: We could check snapshot_nodes_by_block_id_[child_id] here?  First see
-        // if the version would change.
-        auto acq = make_scoped<current_page_acq_t>(&cache->page_cache_,
-                                                   child_id,
-                                                   read_access_t::read);
-        acq->declare_snapshotted();
-        alt_snapshot_node_t *child = new alt_snapshot_node_t(std::move(acq));
-        rassert(child->ref_count_ == 0);
-        cache->add_snapshot_node(child_id, child);
+        // There's no child for the snapshot node for this child id.  That means a
+        // write transaction has not yet acquired [1].  So we create a child using
+        // the current version of the block.
+        //
+        // [1] assuming the cache is used proprely, with the child always acquired
+        // via the parent, or detached, before modification
+        alt_snapshot_node_t *child = help_make_child(cache, child_id, account);
+
         child->ref_count_++;
         parent->children_.insert(std::make_pair(child_id, child));
         return child;
@@ -280,10 +297,24 @@ buf_lock_t::get_or_create_child_snapshot_node(cache_t *cache,
     }
 }
 
-void buf_lock_t::create_child_snapshot_nodes(cache_t *cache,
-                                             block_version_t parent_version,
-                                             block_id_t parent_id,
-                                             block_id_t child_id) {
+// When a write transaction acquires a child of a parent node (for write), it needs
+// to save the current value of the child buf and attach it to any of the parent's
+// snapshot nodes (but only those that aren't newer than our acquisition of the
+// parent [1]).
+//
+// [1] We might need to be careful about this because if you have two write
+// acquisitions, W_X and W_Y of block B1 (where W_X acquires B1 before W_Y does),
+// which then both acquire the child B2, you only want the child of acquisition W1 to
+// attach to children of snapshot nodes that happened _before_ W_X and not after.
+// This can happen -- the snapshot nodes that happen _after_ W_X wouldn't have
+// acquired the block yet, but they'd exist, and they'd be in line, waiting for their
+// turn.
+
+void buf_lock_t::create_child_snapshot_attachments(cache_t *cache,
+                                                   block_version_t parent_version,
+                                                   block_id_t parent_id,
+                                                   block_id_t child_id,
+                                                   cache_account_t *account) {
     ASSERT_FINITE_CORO_WAITING;
     // We create at most one child snapshot node.
 
@@ -302,13 +333,7 @@ void buf_lock_t::create_child_snapshot_nodes(cache_t *cache,
         }
 
         if (child == NULL) {
-            // RSI: We could check snapshot_nodes_by_block_id_[child_id] here?
-            // Dedup with get_or_create_child_snapshot_node, too.
-            auto acq = make_scoped<current_page_acq_t>(&cache->page_cache_, child_id,
-                                                       read_access_t::read);
-            acq->declare_snapshotted();
-            child = new alt_snapshot_node_t(std::move(acq));
-            cache->add_snapshot_node(child_id, child);
+            child = help_make_child(cache, child_id, account);
         }
 
         child->ref_count_++;
@@ -317,10 +342,10 @@ void buf_lock_t::create_child_snapshot_nodes(cache_t *cache,
 }
 
 // Puts markers in the parent saying that no such child exists.
-void buf_lock_t::create_empty_child_snapshot_nodes(cache_t *cache,
-                                                   block_version_t parent_version,
-                                                   block_id_t parent_id,
-                                                   block_id_t child_id) {
+void buf_lock_t::create_empty_child_snapshot_attachments(cache_t *cache,
+                                                         block_version_t parent_version,
+                                                         block_id_t parent_id,
+                                                         block_id_t child_id) {
     ASSERT_NO_CORO_WAITING;
     intrusive_list_t<alt_snapshot_node_t> *list
         = &cache->snapshot_nodes_by_block_id_[parent_id];
@@ -350,7 +375,9 @@ void buf_lock_t::help_construct(buf_parent_t parent, block_id_t block_id,
         rassert(!parent_lock->current_page_acq_.has());
         snapshot_node_
             = get_or_create_child_snapshot_node(txn_->cache(),
-                                                parent_lock->snapshot_node_, block_id);
+                                                parent_lock->snapshot_node_,
+                                                block_id,
+                                                txn_->account());
         guarantee(snapshot_node_ != NULL,
                   "Tried to acquire (in cache %p) a deleted block (%" PRIu64
                   " as child of %" PRIu64 ") (with read access).",
@@ -359,12 +386,14 @@ void buf_lock_t::help_construct(buf_parent_t parent, block_id_t block_id,
         ++snapshot_node_->ref_count_;
     } else {
         if (access == access_t::write && parent.lock_or_null_ != NULL) {
-            create_child_snapshot_nodes(txn_->cache(),
-                                        parent.lock_or_null_->current_page_acq()->block_version(),
-                                        parent.lock_or_null_->block_id(),
-                                        block_id);
+            create_child_snapshot_attachments(txn_->cache(),
+                                              parent.lock_or_null_->current_page_acq()->block_version(),
+                                              parent.lock_or_null_->block_id(),
+                                              block_id,
+                                              txn_->account());
         }
-        current_page_acq_.init(new current_page_acq_t(txn_->page_txn(), block_id, access));
+        current_page_acq_.init(new current_page_acq_t(txn_->page_txn(), block_id,
+                                                      access, txn_->account()));
     }
 
 #if ALT_DEBUG
@@ -402,17 +431,19 @@ void buf_lock_t::help_construct(buf_parent_t parent, block_id_t block_id,
 
     // Makes sure nothing funny can happen in current_page_acq_t constructor.
     // Otherwise, we'd need to make choosing a block id a separate function, and call
-    // create_empty_child_snapshot_nodes before constructing the current_page_acq_t.
-    // RSI: Probably we should do that anyway.
+    // create_empty_child_snapshot_attachments before constructing the
+    // current_page_acq_t.
+    // KSI: Probably we should do that anyway.
     ASSERT_FINITE_CORO_WAITING;
 
     current_page_acq_.init(new current_page_acq_t(txn_->page_txn(),
                                                   block_id,
                                                   access_t::write,
-                                                  true));
+                                                  txn_->account(),
+                                                  alt::page_create_t::yes));
 
     if (parent.lock_or_null_ != NULL) {
-        create_empty_child_snapshot_nodes(txn_->cache(),
+        create_empty_child_snapshot_attachments(txn_->cache(),
                                           parent.lock_or_null_->current_page_acq()->block_version(),
                                           parent.lock_or_null_->block_id(),
                                           current_page_acq_->block_id());
@@ -476,15 +507,16 @@ void buf_lock_t::help_construct(buf_parent_t parent, alt_create_t) {
 
     // Makes sure nothing funny can happen in current_page_acq_t constructor.
     // Otherwise, we'd need to make choosing a block id a separate function, and call
-    // create_empty_child_snapshot_nodes before constructing the current_page_acq_t.
-    // RSI: Probably we should do that anyway.
+    // create_empty_child_snapshot_attachments before constructing the
+    // current_page_acq_t.
+    // KSI: Probably we should do that anyway.
     ASSERT_FINITE_CORO_WAITING;
 
     current_page_acq_.init(new current_page_acq_t(txn_->page_txn(),
                                                   alt_create_t::create));
 
     if (parent.lock_or_null_ != NULL) {
-        create_empty_child_snapshot_nodes(txn_->cache(),
+        create_empty_child_snapshot_attachments(txn_->cache(),
                                           parent.lock_or_null_->current_page_acq()->block_version(),
                                           parent.lock_or_null_->block_id(),
                                           current_page_acq_->block_id());
@@ -619,10 +651,13 @@ void buf_lock_t::detach_child(block_id_t child_id) {
     guarantee(!empty());
     guarantee(access() == access_t::write);
 
-    buf_lock_t::create_child_snapshot_nodes(cache(),
-                                            current_page_acq()->block_version(),
-                                            block_id(),
-                                            child_id);
+    // _This_ txn isn't loading the page, so use the default reads account.
+    buf_lock_t::create_child_snapshot_attachments(
+            cache(),
+            current_page_acq()->block_version(),
+            block_id(),
+            child_id,
+            cache()->page_cache_.default_reads_account());
 }
 
 repli_timestamp_t buf_lock_t::get_recency() const {
@@ -639,7 +674,7 @@ page_t *buf_lock_t::get_held_page_for_read() {
 
     ASSERT_FINITE_CORO_WAITING;
     guarantee(!empty());
-    return cpa->current_page_for_read();
+    return cpa->current_page_for_read(txn()->account());
 }
 
 page_t *buf_lock_t::get_held_page_for_write() {
@@ -649,7 +684,7 @@ page_t *buf_lock_t::get_held_page_for_write() {
 
     ASSERT_FINITE_CORO_WAITING;
     guarantee(!empty());
-    return current_page_acq_->current_page_for_write();
+    return current_page_acq_->current_page_for_write(txn()->account());
 }
 
 buf_read_t::buf_read_t(buf_lock_t *lock)
@@ -666,7 +701,8 @@ buf_read_t::~buf_read_t() {
 const void *buf_read_t::get_data_read(uint32_t *block_size_out) {
     page_t *page = lock_->get_held_page_for_read();
     if (!page_acq_.has()) {
-        page_acq_.init(page, &lock_->cache()->page_cache_);
+        page_acq_.init(page, &lock_->cache()->page_cache_,
+                       lock_->txn()->account());
     }
     page_acq_.buf_ready_signal()->wait();
     *block_size_out = page_acq_.get_buf_size();
@@ -685,11 +721,12 @@ buf_write_t::~buf_write_t() {
 }
 
 void *buf_write_t::get_data_write(uint32_t block_size) {
-    // RSI: Use block_size somehow.
+    // KSI: Use block_size somehow.
     (void)block_size;
     page_t *page = lock_->get_held_page_for_write();
     if (!page_acq_.has()) {
-        page_acq_.init(page, &lock_->cache()->page_cache_);
+        page_acq_.init(page, &lock_->cache()->page_cache_,
+                       lock_->txn()->account());
     }
     page_acq_.buf_ready_signal()->wait();
     return page_acq_.get_buf_write();

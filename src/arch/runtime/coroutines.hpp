@@ -134,7 +134,7 @@ public:
     static void set_coroutine_stack_size(size_t size);
 
     coro_stack_t *get_stack();
-    
+
     void set_priority(int _priority) {
         linux_thread_message_t::set_priority(_priority);
     }
@@ -187,6 +187,7 @@ private:
     static coro_t * get_coro();
 
     static void return_coro_to_free_list(coro_t *coro);
+    static void maybe_evict_from_free_list();
 
     static void run() NORETURN;
 

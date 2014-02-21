@@ -16,18 +16,6 @@ tests:
       ot: ({'created':1})
 
     # The fix also changed affected arg checking for other variable argument functions
-    - js: tbl.groupBy()
-      ot: err("RqlDriverError", "Expected 2 or more argument(s) but found 0.")
-
-    - js: tbl.groupBy('a')
-      ot: err("RqlDriverError", "Expected 2 or more argument(s) but found 1.")
-
-    - js: tbl.groupBy(r.count)
-      ot: err("RqlDriverError", "Expected 2 or more argument(s) but found 1.")
-
-    - js: tbl.groupBy('a', 'b', 'c', r.count)
-      ot: ([])
-
     - js: r('a').eq()
       ot: err("RqlDriverError", "Expected 1 or more argument(s) but found 0.")
 

@@ -23,7 +23,14 @@ module 'NamespaceView', ->
             @add_namespace_dialog = new NamespaceView.AddNamespaceModal
             @remove_namespace_dialog = new NamespaceView.RemoveNamespaceModal
 
-            super databases, NamespaceView.DatabaseListElement, '.collapsible-list', {}, 'database', 'cluster'
+            super databases, NamespaceView.DatabaseListElement, '.collapsible-list',
+                sort: (a, b) ->
+                    if b.model.get('name') < a.model.get('name')
+                        return 1
+                    else if b.model.get('name') > a.model.get('name')
+                        return -1
+                    return 0
+                , 'database', 'cluster'
 
             @datacenters_length = -1
             @databases_length = -1
@@ -33,10 +40,10 @@ module 'NamespaceView', ->
 
         update_button_create_namespace: =>
             if databases.length is 0 and @can_create_namespace is true
-                @.$('.add-namespace').prop 'disabled', 'disabled'
+                @.$('.add-namespace').prop 'disabled', true
                 @.$('.user_alert_space-cannot_create_namespace').show()
             else if databases.length > 0 and @can_create_namespace is false
-                @.$('.add-namespace').removeProp 'disabled'
+                @.$('.add-namespace').prop 'disabled', false
                 @.$('.user_alert_space-cannot_create_namespace').hide()
 
         render: (message) =>
@@ -95,7 +102,7 @@ module 'NamespaceView', ->
         # Callback that will be registered: updates the toolbar buttons based on how many namespaces have been selected
         update_toolbar_buttons: =>
             if @get_selected_namespaces().length < 1
-                @.$('.btn.remove-namespace').attr 'disabled', 'disabled'
+                @.$('.btn.remove-namespace').attr 'disabled', true
             else
                 @.$('.btn.remove-namespace').removeAttr 'disabled'
             #@.$('.btn.remove-namespace').is ':disabled', @get_selected_namespaces().length < 1
@@ -180,7 +187,13 @@ module 'NamespaceView', ->
 
             super namespaces, NamespaceView.NamespaceListElement, '.list',
                 {
-                filter: (model) -> model.get('database') is database_id
+                filter: (model) -> model.get('database') is database_id,
+                sort: (a, b) ->
+                    if b.model.get('name') < a.model.get('name')
+                        return 1
+                    else if b.model.get('name') > a.model.get('name')
+                        return -1
+                    return 0
                 }
                 , 'table', 'database'
 
@@ -333,12 +346,12 @@ module 'NamespaceView', ->
         check_if_can_create_table: =>
             if databases.length is 0
                 if @can_create_table_status
-                    @.$('.btn-primary').prop 'disabled', 'disabled'
+                    @.$('.btn-primary').prop 'disabled', true
                     @.$('.alert_modal').html 'You need to create a database before creating a table.'
             else
                 if @can_create_table_status is false
                     @.$('.alert_modal').empty()
-                    @.$('.btn-primary').removeProp 'disabled'
+                    @.$('.btn-primary').prop 'disabled', false
 
 
         render: ->
@@ -370,12 +383,18 @@ module 'NamespaceView', ->
                 id: universe_datacenter.get('id')
                 name: universe_datacenter.get('name')
 
+            ordered_databases = databases.map (d) ->
+                id: d.get('id')
+                name: d.get('name')
+
+            ordered_databases = _.sortBy ordered_databases, (d) -> d.name
+
             super
                 modal_title: 'Add table'
                 btn_primary_text: 'Add'
                 datacenters: ordered_datacenters
                 all_datacenters: datacenters.length is ordered_datacenters.length
-                databases: _.map(databases.models, (database) -> database.toJSON())
+                databases: ordered_databases
 
             @check_if_can_create_table()
             @.$('.show_advanced_settings-link').click @show_advanced_settings

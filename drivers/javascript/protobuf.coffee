@@ -39,7 +39,7 @@ module.exports.ParseResponse = (data) ->
         view = new Uint8Array(array)
         i = 0
         while i < data.length
-            view[i] = data.get(i)
+            view[i] = data[i]
             i++
 
         response = protodef.Response.decode(array)
@@ -88,3 +88,25 @@ module.exports.DatumTypeSwitch = (datum, map, dflt) ->
                 break
 
     return dflt()
+
+
+# Convert a backtrace frame
+module.exports.convertFrame = (frame) ->
+    # One protobuf library gives us string type names, the
+    # other type enum values. Handle both cases by converting
+    # strings to enum values and switching based on that.
+    if typeof frame?.type is 'string'
+        frame.type = protodef.Frame.FrameType[frame.type]
+
+    # We don't need to keep frame.type because
+    # - frame.pos is a number if frame.type is 1 (or "POS")
+    # - frame.opt is a string if frame.type is 2 (or "OPT")
+    if frame?.type is protodef.Frame.FrameType["POS"]
+        if frame.pos?.toInt?
+            frame.pos = frame.pos.toInt()
+        return frame.pos
+    else if frame?.type is protodef.Frame.FrameType["OPT"]
+        return frame.opt
+
+    return undefined
+

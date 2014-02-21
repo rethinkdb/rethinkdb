@@ -16,7 +16,7 @@
  */
 
 #define SOFTWARE_NAME_STRING "RethinkDB"
-#define SERIALIZER_VERSION_STRING "1.11"
+#define SERIALIZER_VERSION_STRING "1.12"
 
 /**
  * Basic configuration parameters.
@@ -25,7 +25,7 @@
 // The number of hash-based CPU shards per table.
 // This "must" be hard-coded because a cluster cannot run with
 // differing cpu sharding factors.
-#define CPU_SHARDING_FACTOR                       4
+#define CPU_SHARDING_FACTOR                       8
 
 // Defines the maximum size of the batch of IO events to process on
 // each loop iteration. A larger number will increase throughput but
@@ -199,6 +199,10 @@
 #define LBA_RECONSTRUCTION_BATCH_SIZE             1024
 
 #define COROUTINE_STACK_SIZE                      131072
+
+// How many unused coroutine stacks to keep around (maximally), before they are
+// freed. This value is per thread.
+#define COROUTINE_FREE_LIST_SIZE                  64
 
 #define MAX_COROS_PER_THREAD                      10000
 

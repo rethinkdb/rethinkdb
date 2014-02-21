@@ -25,7 +25,7 @@ message_multiplexer_t::run_t::~run_t() {
     parent->run = NULL;
 }
 
-void message_multiplexer_t::run_t::on_message(peer_id_t source, string_read_stream_t *stream) {
+void message_multiplexer_t::run_t::on_message(peer_id_t source, read_stream_t *stream) {
     tag_t tag;
     archive_result_t res = deserialize(stream, &tag);
     if (res) { throw fake_archive_exc_t(); }

@@ -51,8 +51,9 @@ var_captures_t &var_captures_t::operator=(var_captures_t &&movee) {
 
 var_scope_t::var_scope_t() : implicit_depth(0) { }
 
-var_scope_t var_scope_t::with_func_arg_list(const std::vector<sym_t> &arg_names,
-                                            const std::vector<counted_t<const datum_t> > &arg_values) const {
+var_scope_t var_scope_t::with_func_arg_list(
+    const std::vector<sym_t> &arg_names,
+    const std::vector<counted_t<const datum_t> > &arg_values) const {
     r_sanity_check(arg_names.size() == arg_values.size());
     var_scope_t ret = *this;
     if (function_emits_implicit_variable(arg_names)) {
@@ -65,6 +66,7 @@ var_scope_t var_scope_t::with_func_arg_list(const std::vector<sym_t> &arg_names,
     }
 
     for (size_t i = 0; i < arg_names.size(); ++i) {
+        r_sanity_check(arg_values[i].has());
         ret.vars.insert(std::make_pair(arg_names[i], arg_values[i]));
     }
     return ret;

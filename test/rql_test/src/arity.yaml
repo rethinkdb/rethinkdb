@@ -65,14 +65,6 @@ tests:
 
     - ot:
         js: err("RqlDriverError", "Expected 1 argument(s) but found 0.", [])
-        rb: err("ArgumentError", "wrong number of arguments (0 for 1)", [])
-        py: err_regex('TypeError', ".*takes exactly 1 argument \(0 given\)", [])
-      cd:
-      - r.sum()
-      - r.avg()
-
-    - ot:
-        js: err("RqlDriverError", "Expected 1 argument(s) but found 0.", [])
         rb: err("RqlCompileError", "Expected 2 argument(s) but found 1.", [])
         py: err_regex('TypeError', ".*takes exactly 2 arguments \(1 given\)", [])
       cd:
@@ -134,13 +126,6 @@ tests:
         rb: err("RqlCompileError", "Expected 1 argument(s) but found 2.", [])
         py: err('RqlRuntimeError', u"Expected type STRING but found NUMBER.", [])
 
-    - ot:
-        js: err("RqlDriverError", "Expected 1 argument(s) but found 2.", [])
-        rb: err("ArgumentError", "wrong number of arguments (2 for 1)", [])
-        py: err_regex('TypeError', ".*takes exactly 1 argument \(2 given\)", [])
-      cd:
-      - r.sum(1,2)
-      - r.avg(1,2)
     - ot:
         js: err("RqlDriverError", "Expected 1 argument(s) but found 2.", [])
         rb: err("RqlCompileError", "Expected 2 argument(s) but found 3.", [])
@@ -264,13 +249,6 @@ tests:
       - r.expr([]).change_at(1, 2, 3)
 
     - ot:
-        js: err("RqlDriverError", "Expected 2 or more argument(s) but found 0.", [])
-        rb: err("RqlCompileError", "Invalid aggregator for GROUPBY.", [])
-        py: err_regex('TypeError', ".*takes at least 3 arguments \(1 given\)", [])
-      cd:
-      - tbl.group_by()
-
-    - ot:
         js: err("RqlCompileError", "Expected 2 or more argument(s) but found 1.", [])
         rb: err("RqlCompileError", "Expected 2 or more argument(s) but found 1.", [])
         py: err('RqlCompileError', "Expected 2 or more argument(s) but found 1.", [])
@@ -287,12 +265,6 @@ tests:
         rb: err("RqlCompileError", "Expected 3 argument(s) but found 4.", [])
         py: err_regex('TypeError', ".*takes exactly 3 arguments \(4 given\)", [])
       cd: r.branch(1,2,3,4)
-
-    - ot:
-        js: err("RqlDriverError", "Expected between 3 and 4 argument(s) but found 2.", [])
-        rb: err("RqlCompileError", "Expected 4 argument(s) but found 3.", [])
-        py: err_regex('TypeError', ".*takes exactly 4 arguments \(3 given\)", [])
-      cd: tbl.grouped_map_reduce(1,2)
 
     - ot: err("RqlDriverError", "Expected 1 argument(s) but found 2.", [])
       js: r.expr({})(1,2)

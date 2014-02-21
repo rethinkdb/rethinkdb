@@ -122,6 +122,7 @@ void fifo_enforcer_sink_t::exit_write_t::end() THROWS_NOTHING {
     if (is_pulsed()) {
         parent->internal_finish_a_writer(token);
     } else {
+        // KSI: Why would we need a dummy?
         /* Swap us out for a dummy. */
         class dummy_exit_write_t : public internal_exit_write_t {
         public:
@@ -131,6 +132,7 @@ void fifo_enforcer_sink_t::exit_write_t::end() THROWS_NOTHING {
                 return token;
             }
             void on_reached_head_of_queue() {
+                // KSI: This probably calls 'delete this' later than it should.
                 sink->internal_write_queue.remove(this);
                 sink->internal_finish_a_writer(token);
                 delete this;

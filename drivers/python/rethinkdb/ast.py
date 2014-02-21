@@ -311,13 +311,13 @@ class RqlQuery(object):
     def __getitem__(self, index):
         if isinstance(index, slice):
             if index.stop:
-                return Slice(self, index.start or 0, index.stop)
+                return Slice(self, index.start or 0, index.stop, bracket_operator=True)
             else:
-                return Slice(self, index.start or 0, -1, right_bound='closed')
+                return Slice(self, index.start or 0, -1, right_bound='closed', bracket_operator=True)
         elif isinstance(index, int):
-            return Nth(self, index)
+            return Nth(self, index, bracket_operator=True)
         elif isinstance(index, types.StringTypes):
-            return GetField(self, index)
+            return GetField(self, index, bracket_operator=True)
         elif isinstance(index, RqlQuery):
             raise RqlDriverError(
                 "Bracket operator called with a ReQL expression parameter.\n"+
@@ -333,6 +333,9 @@ class RqlQuery(object):
                 "__iter__ called on an RqlQuery object.\n"+
                 "To iterate over the results of a query, call run first.\n"+
                 "To iterate inside a query, use map or for_each.")
+
+    def get_field(self, index):
+        return GetField(self, index)
 
     def nth(self, index):
         return Nth(self, index)
@@ -363,6 +366,18 @@ class RqlQuery(object):
 
     def reduce(self, func):
         return Reduce(self, func_wrap(func))
+
+    def sum(self, *args):
+        return Sum(self, *[func_wrap(arg) for arg in args])
+
+    def avg(self, *args):
+        return Avg(self, *[func_wrap(arg) for arg in args])
+
+    def min(self, *args):
+        return Min(self, *[func_wrap(arg) for arg in args])
+
+    def max(self, *args):
+        return Max(self, *[func_wrap(arg) for arg in args])
 
     def map(self, func):
         return Map(self, func_wrap(func))
@@ -406,13 +421,8 @@ class RqlQuery(object):
     def zip(self):
         return Zip(self)
 
-    def grouped_map_reduce(self, grouping, mapping, data_collector):
-        return GroupedMapReduce(self, func_wrap(grouping), func_wrap(mapping),
-            func_wrap(data_collector))
-
-    def group_by(self, arg1, arg2, *rest):
-        args = [arg1, arg2] + list(rest)
-        return GroupBy(self, list(args[:-1]), args[-1])
+    def group(self, *args):
+        return Group(self, *[func_wrap(arg) for arg in args])
 
     def for_each(self, mapping):
         return ForEach(self, func_wrap(mapping))
@@ -543,6 +553,24 @@ class RqlMethodQuery(RqlQuery):
 
         return T(args[0], '.', self.st, '(', restargs, ')')
 
+class RqlBracketQuery(RqlMethodQuery):
+    def __init__(self, *args, **optargs):
+        if 'bracket_operator' in optargs:
+            self.bracket_operator = optargs['bracket_operator']
+            del optargs['bracket_operator']
+        else:
+            self.bracket_operator = False
+
+        RqlMethodQuery.__init__(self, *args, **optargs)
+
+    def compose(self, args, optargs):
+        if self.bracket_operator:
+            if needs_wrap(self.args[0]):
+                args[0] = T('r.expr(', args[0], ')')
+            return T(args[0], '[', T(*args[1:], intsp=[',']), ']')
+        else:
+            return RqlMethodQuery.compose(self, args, optargs)
+
 class RqlTzinfo(datetime.tzinfo):
 
     def __init__(self, offsetstr):
@@ -574,6 +602,24 @@ def reql_type_time_to_datetime(obj):
         return datetime.datetime.fromtimestamp(obj['epoch_time'], RqlTzinfo(obj['timezone']))
     else:
         return datetime.datetime.utcfromtimestamp(obj['epoch_time'])
+
+# Python only allows immutable built-in types to be hashed, such as for keys in a dict
+# This means we can't use lists or dicts as keys in grouped data objects, so we convert
+# them to tuples and frozensets, respectively.
+# This may make it a little harder for users to work with converted grouped data, unless
+# they do a simple iteration over the result
+def recursively_make_hashable(obj):
+    if isinstance(obj, list):
+        return tuple([recursively_make_hashable(i) for i in obj])
+    elif isinstance(obj, dict):
+        return frozenset([(k, recursively_make_hashable(v)) for (k,v) in obj.items()])
+    return obj
+
+def reql_type_grouped_data_to_object(obj):
+    if not 'data' in obj:
+        raise RqlDriverError('pseudo-type GROUPED_DATA object %s does not have the expected field "data".' % py_json.dumps(obj))
+
+    return dict([(recursively_make_hashable(k),v) for (k,v) in obj['data']])
 
 # This class handles the conversion of RQL terminal types in both directions
 # Going to the server though it does not support R_ARRAY or R_OBJECT as those
@@ -610,51 +656,58 @@ class Datum(RqlQuery):
         return repr(self.data)
 
     @staticmethod
-    def _convert_pseudotype(obj, time_format):
+    def _convert_pseudotype(obj, format_opts):
         reql_type = obj.get('$reql_type$')
         if reql_type is not None:
             if reql_type == 'TIME':
-                if time_format == 'native':
+                time_format = format_opts.get('time_format')
+                if time_format is None or time_format == 'native':
                     # Convert to native python datetime object
                     return reql_type_time_to_datetime(obj)
                 elif time_format != 'raw':
                     raise RqlDriverError("Unknown time_format run option \"%s\"." % time_format)
+            elif reql_type == 'GROUPED_DATA':
+                group_format = format_opts.get('group_format')
+                if group_format is None or group_format == 'native':
+                    return reql_type_grouped_data_to_object(obj)
+                elif group_format != 'raw':
+                    raise RqlDriverError("Unknown group_format run option \"%s\"." % group_format)
             else:
                 raise RqlDriverError("Unknown pseudo-type %s" % reql_type)
         # If there was no pseudotype, or the time format is raw, return the original object
         return obj
 
     @staticmethod
-    def _recursively_convert_pseudotypes(obj, time_format):
+    def _recursively_convert_pseudotypes(obj, format_opts):
         if isinstance(obj, dict):
             for (key, value) in obj.iteritems():
-                obj[key] = Datum._recursively_convert_pseudotypes(value, time_format)
-            obj = Datum._convert_pseudotype(obj, time_format)
+                obj[key] = Datum._recursively_convert_pseudotypes(value, format_opts)
+            obj = Datum._convert_pseudotype(obj, format_opts)
         elif isinstance(obj, list):
             for i in xrange(len(obj)):
-                obj[i] = Datum._recursively_convert_pseudotypes(obj[i], time_format)
+                obj[i] = Datum._recursively_convert_pseudotypes(obj[i], format_opts)
         return obj
 
     @staticmethod
-    def deconstruct(datum, time_format='native'):
+    def deconstruct(datum, format_opts={}):
         d_type = datum.type
         if d_type == p.Datum.R_JSON:
             obj = py_json.loads(datum.r_str)
-            return Datum._recursively_convert_pseudotypes(obj, time_format)
+            return Datum._recursively_convert_pseudotypes(obj, format_opts)
         elif d_type == p.Datum.R_OBJECT:
             obj = { }
             for pair in datum.r_object:
-                obj[pair.key] = Datum.deconstruct(pair.val, time_format)
+                obj[pair.key] = Datum.deconstruct(pair.val, format_opts)
 
             # Thanks to "pseudo-types" we can't yet be quite sure if this object is meant to
             # be an object or something else. We need a second layer of type switching, this
             # time on an obfuscated field "$reql_type$" rather than the datum type field we
             # already switched on.
-            Datum._convert_pseudotype(obj, time_format)
+            Datum._convert_pseudotype(obj, format_opts)
             return obj
         elif d_type == p.Datum.R_ARRAY:
             array = datum.r_array
-            return [Datum.deconstruct(e, time_format) for e in array]
+            return [Datum.deconstruct(e, format_opts) for e in array]
         elif d_type == p.Datum.R_STR:
             return datum.r_str
         elif d_type == p.Datum.R_NUM:
@@ -805,11 +858,18 @@ class SetDifference(RqlMethodQuery):
     tt = p.Term.SET_DIFFERENCE
     st = "set_difference"
 
-class Slice(RqlQuery):
+class Slice(RqlBracketQuery):
     tt = p.Term.SLICE
+    st = 'slice'
 
+    # Slice has a special bracket syntax, implemented here
     def compose(self, args, optargs):
-        return T(args[0], '[', args[1], ':', args[2], ']')
+        if self.bracket_operator:
+            if needs_wrap(self.args[0]):
+                args[0] = T('r.expr(', args[0], ')')
+            return T(args[0], '[', args[1], ':', args[2], ']')
+        else:
+            return RqlBracketQuery.compose(self, args, optargs)
 
 class Skip(RqlMethodQuery):
     tt = p.Term.SKIP
@@ -819,11 +879,9 @@ class Limit(RqlMethodQuery):
     tt = p.Term.LIMIT
     st = 'limit'
 
-class GetField(RqlQuery):
+class GetField(RqlBracketQuery):
     tt = p.Term.GET_FIELD
-
-    def compose(self, args, optargs):
-        return T(args[0], '[', args[1], ']')
+    st = 'get_field'
 
 class Contains(RqlMethodQuery):
     tt = p.Term.CONTAINS
@@ -941,6 +999,22 @@ class Reduce(RqlMethodQuery):
     tt = p.Term.REDUCE
     st = 'reduce'
 
+class Sum(RqlMethodQuery):
+    tt = p.Term.SUM
+    st = 'sum'
+
+class Avg(RqlMethodQuery):
+    tt = p.Term.AVG
+    st = 'avg'
+
+class Min(RqlMethodQuery):
+    tt = p.Term.MIN
+    st = 'min'
+
+class Max(RqlMethodQuery):
+    tt = p.Term.MAX
+    st = 'max'
+
 class Map(RqlMethodQuery):
     tt = p.Term.MAP
     st = 'map'
@@ -969,11 +1043,9 @@ class Union(RqlMethodQuery):
     tt = p.Term.UNION
     st = 'union'
 
-class Nth(RqlQuery):
+class Nth(RqlBracketQuery):
     tt = p.Term.NTH
-
-    def compose(self, args, optargs):
-        return T(args[0], '[', args[1], ']')
+    st = 'nth'
 
 class Match(RqlMethodQuery):
     tt = p.Term.MATCH
@@ -995,13 +1067,9 @@ class IsEmpty(RqlMethodQuery):
     tt = p.Term.IS_EMPTY
     st = 'is_empty'
 
-class GroupedMapReduce(RqlMethodQuery):
-    tt = p.Term.GROUPED_MAP_REDUCE
-    st = 'grouped_map_reduce'
-
-class GroupBy(RqlMethodQuery):
-    tt = p.Term.GROUPBY
-    st = 'group_by'
+class Group(RqlMethodQuery):
+    tt = p.Term.GROUP
+    st = 'group'
 
 class InnerJoin(RqlMethodQuery):
     tt = p.Term.INNER_JOIN
