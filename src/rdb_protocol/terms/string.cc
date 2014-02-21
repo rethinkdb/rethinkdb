@@ -66,6 +66,8 @@ private:
     virtual const char *name() const { return "match"; }
 };
 
+const char *const splitchars = " \t\n\r\x0B\x0C";
+
 class split_term_t : public op_term_t {
 public:
     split_term_t(compile_env_t *env, const protob_t<const Term> &term)
@@ -100,10 +102,10 @@ private:
                 ? std::string::npos
                 : (delim
                    ? (delim->size() == 0 ? last + 1 : s.find(*delim, last))
-                   : s.find_first_of(" \t\n", last));
+                   : s.find_first_of(splitchars, last));
             std::string tmp;
             if (next == std::string::npos) {
-                size_t start = delim ? last : s.find_first_not_of(" \t\n", last);
+                size_t start = delim ? last : s.find_first_not_of(splitchars, last);
                 tmp = start == std::string::npos ? "" : s.substr(start);
             } else {
                 tmp = s.substr(last, next - last);
