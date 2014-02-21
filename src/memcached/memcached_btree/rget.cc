@@ -86,8 +86,7 @@ public:
     size_t cumulative_size;
 };
 
-// RSI slice
-rget_result_t memcached_rget_slice(UNUSED btree_slice_t *slice, const key_range_t &range,
+rget_result_t memcached_rget_slice(const key_range_t &range,
                                    int maximum, exptime_t effective_time,
                                    superblock_t *superblock) {
 

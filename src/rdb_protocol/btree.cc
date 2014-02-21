@@ -826,7 +826,7 @@ void rdb_rget_slice(
         job_data_t(ql_env, batchspec, transforms, terminal, sorting),
         boost::optional<sindex_data_t>(),
         range);
-    btree_concurrent_traversal(slice, superblock, range, &callback,
+    btree_concurrent_traversal(superblock, range, &callback,
                                (!reversed(sorting) ? FORWARD : BACKWARD));
     callback.finish();
 }
@@ -853,7 +853,7 @@ void rdb_rget_secondary_slice(
         sindex_data_t(pk_range, sindex_range, sindex_func, sindex_multi),
         sindex_region.inner);
     btree_concurrent_traversal(
-        slice, superblock, sindex_region.inner, &callback,
+        superblock, sindex_region.inner, &callback,
         (!reversed(sorting) ? FORWARD : BACKWARD));
     callback.finish();
 }

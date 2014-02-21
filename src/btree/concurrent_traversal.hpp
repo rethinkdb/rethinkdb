@@ -4,7 +4,6 @@
 #include "btree/depth_first_traversal.hpp"
 #include "concurrency/interruptor.hpp"
 
-class btree_slice_t;  // RSI
 class concurrent_traversal_adapter_t;
 
 namespace profile { class trace_t; }
@@ -45,8 +44,7 @@ private:
     DISABLE_COPYING(concurrent_traversal_callback_t);
 };
 
-bool btree_concurrent_traversal(btree_slice_t *slice,
-                                superblock_t *superblock, const key_range_t &range,
+bool btree_concurrent_traversal(superblock_t *superblock, const key_range_t &range,
                                 concurrent_traversal_callback_t *cb,
                                 direction_t direction);
 

@@ -430,7 +430,7 @@ struct read_visitor_t : public boost::static_visitor<read_response_t> {
 
     read_response_t operator()(const rget_query_t& rget) {
         return read_response_t(
-            memcached_rget_slice(btree, rget.region.inner, rget.maximum,
+            memcached_rget_slice(rget.region.inner, rget.maximum,
                                  effective_time, superblock));
     }
 

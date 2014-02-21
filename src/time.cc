@@ -5,7 +5,6 @@
 #include "config/args.hpp"
 #include "errors.hpp"
 
-// RSI: Does anybody seriously use this.
 microtime_t current_microtime() {
     // This could be done more efficiently, surely.
     struct timeval t;

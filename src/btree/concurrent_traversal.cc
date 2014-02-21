@@ -137,9 +137,7 @@ void concurrent_traversal_fifo_enforcer_signal_t::wait_interruptible()
     ::wait_interruptible(eval_exclusivity_signal_, parent_->failure_cond_);
 }
 
-// RSI
-bool btree_concurrent_traversal(UNUSED btree_slice_t *slice,
-                                superblock_t *superblock, const key_range_t &range,
+bool btree_concurrent_traversal(superblock_t *superblock, const key_range_t &range,
                                 concurrent_traversal_callback_t *cb,
                                 direction_t direction) {
     cond_t failure_cond;
