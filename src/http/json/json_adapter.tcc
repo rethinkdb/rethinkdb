@@ -14,7 +14,6 @@
 #include "containers/uuid.hpp"
 #include "http/json.hpp"
 #include "logger.hpp"
-#include "stl_utils.hpp"
 #include "utils.hpp"
 
 
@@ -427,8 +426,9 @@ void with_ctx_apply_json_to(cJSON *change, std::map<K, V> *map, const ctx_t &ctx
 
     cJSON *val;
     while ((val = it.next())) {
-        if (std_contains(elements, val->string)) {
-            elements[val->string]->apply(val);
+        auto elt = elements.find(val->string);
+        if (elt != elements.end()) {
+            elt->second->apply(val);
         } else {
             K k;
             scoped_cJSON_t key(cJSON_CreateString(val->string));
@@ -487,8 +487,9 @@ void apply_json_to(cJSON *change, std::map<K, V> *map) {
 
     cJSON *val;
     while ((val = it.next())) {
-        if (std_contains(elements, val->string)) {
-            elements[val->string]->apply(val);
+        auto elt = elements.find(val->string);
+        if (elt != elements.end()) {
+            elt->second->apply(val);
         } else {
             K k;
             scoped_cJSON_t key(cJSON_CreateString(val->string));
