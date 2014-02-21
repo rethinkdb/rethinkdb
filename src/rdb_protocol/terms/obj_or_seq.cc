@@ -84,13 +84,13 @@ private:
             switch (poly_type) {
             case MAP:
                 return new_val(env->env, v0->as_seq(env->env)->add_transformation(
-                                   env->env, map_wire_func_t(f)));
+                    env->env, map_wire_func_t(f), backtrace()));
             case FILTER:
                 return new_val(env->env, v0->as_seq(env->env)->add_transformation(
-                                   env->env, filter_wire_func_t(f, boost::none)));
+                    env->env, filter_wire_func_t(f, boost::none), backtrace()));
             case SKIP_MAP:
                 return new_val(env->env, v0->as_seq(env->env)->add_transformation(
-                                   env->env, concatmap_wire_func_t(f)));
+                    env->env, concatmap_wire_func_t(f), backtrace()));
             default: unreachable();
             }
         }
