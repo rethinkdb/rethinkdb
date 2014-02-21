@@ -756,8 +756,10 @@ THROWS_ONLY(interrupted_exc_t) {
     if (job.accumulator->uses_val() || job.transformers.size() != 0 || sindex) {
         val = row.get();
         io.slice->stats.pm_keys_read.record();
+    } else {
+        row.reset();
     }
-    rassert(!row.references_parent());
+    guarantee(!row.references_parent());
     keyvalue.reset();
     waiter.wait_interruptible();
 
