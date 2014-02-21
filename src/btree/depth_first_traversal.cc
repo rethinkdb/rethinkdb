@@ -4,6 +4,41 @@
 #include "btree/operations.hpp"
 #include "rdb_protocol/profile.hpp"
 
+scoped_key_value_t::scoped_key_value_t(const btree_key_t *key,
+                                       const void *value,
+                                       movable_t<counted_buf_lock_t> &&buf)
+    : key_(key), value_(value), buf_(std::move(buf)) {
+    guarantee(buf_.has());
+}
+
+scoped_key_value_t::scoped_key_value_t(scoped_key_value_t &&movee)
+    : key_(movee.key_),
+      value_(movee.value_),
+      buf_(std::move(movee.buf_)) {
+    movee.key_ = NULL;
+    movee.value_ = NULL;
+}
+
+const btree_key_t *scoped_key_value_t::key() const {
+    guarantee(buf_.has());
+    return key_;
+}
+
+const void *scoped_key_value_t::value() const {
+    guarantee(buf_.has());
+    return value_;
+}
+
+buf_parent_t scoped_key_value_t::expose_buf() {
+    guarantee(buf_.has());
+    return buf_parent_t(buf_.get());
+}
+
+// Releases the hold on the buf_lock_t, after which key(), value(), and expose_buf()
+// may not be used.
+void scoped_key_value_t::reset() { buf_.reset(); }
+
+
 /* Returns `true` if we reached the end of the subtree or range, and `false` if
 `cb->handle_value()` returned `false`. */
 bool btree_depth_first_traversal(counted_t<counted_buf_lock_t> block,

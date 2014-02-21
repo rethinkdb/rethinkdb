@@ -24,35 +24,18 @@ class scoped_key_value_t {
 public:
     scoped_key_value_t(const btree_key_t *key,
                        const void *value,
-                       movable_t<counted_buf_lock_t> &&buf)
-        : key_(key), value_(value), buf_(std::move(buf)) {
-        guarantee(buf_.has());
-    }
+                       movable_t<counted_buf_lock_t> &&buf);
 
-    scoped_key_value_t(scoped_key_value_t &&movee)
-        : key_(movee.key_),
-          value_(movee.value_),
-          buf_(std::move(movee.buf_)) {
-        movee.key_ = NULL;
-        movee.value_ = NULL;
-    }
+    scoped_key_value_t(scoped_key_value_t &&movee);
+    void operator=(scoped_key_value_t &&) = delete;
 
-    const btree_key_t *key() const {
-        guarantee(buf_.has());
-        return key_;
-    }
-    const void *value() const {
-        guarantee(buf_.has());
-        return value_;
-    }
-    buf_parent_t expose_buf() {
-        guarantee(buf_.has());
-        return buf_parent_t(buf_.get());
-    }
+    const btree_key_t *key() const;
+    const void *value() const;
+    buf_parent_t expose_buf();
 
     // Releases the hold on the buf_lock_t, after which key(), value(), and
     // expose_buf() may not be used.
-    void reset() { buf_.reset(); }
+    void reset();
 
 private:
     const btree_key_t *key_;
