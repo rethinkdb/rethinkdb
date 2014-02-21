@@ -80,7 +80,7 @@ int create_socket_wrapper(int address_family) {
         // Let the user know something is wrong - except in the case where
         // TCP doesn't support AF_INET6, which may be fairly common and spammy
         if (get_errno() != EAFNOSUPPORT || address_family == AF_INET) {
-            logERR("Failed to create socket: %s", strerror(get_errno()));
+            logERR("Failed to create socket: %s", errno_string(get_errno()).c_str());
         }
         throw linux_tcp_conn_t::connect_failed_exc_t(get_errno());
     }
