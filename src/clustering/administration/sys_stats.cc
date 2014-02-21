@@ -3,7 +3,7 @@
 
 #include <sys/statvfs.h>
 
-#include "errors.hpp"
+#include "utils.hpp"
 
 struct disk_stat_t {
     int64_t disk_space_free;

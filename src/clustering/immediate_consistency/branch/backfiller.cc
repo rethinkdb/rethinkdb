@@ -1,6 +1,9 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "clustering/immediate_consistency/branch/backfiller.hpp"
 
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
 #include "btree/parallel_traversal.hpp"
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "concurrency/fifo_enforcer.hpp"

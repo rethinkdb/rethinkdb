@@ -8,7 +8,6 @@
 #include "concurrency/mutex_assertion.hpp"
 #include "concurrency/signal.hpp"
 #include "containers/intrusive_priority_queue.hpp"
-#include "perfmon/perfmon.hpp"
 #include "rpc/serialize_macros.hpp"
 #include "stl_utils.hpp"
 #include "timestamps.hpp"

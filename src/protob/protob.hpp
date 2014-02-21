@@ -188,13 +188,13 @@ private:
         CT_ASSERT(sizeof(int) == sizeof(int32_t));                      \
         int32_t size;                                                   \
         archive_result_t res = deserialize(s, &size);                   \
-        if (res) { return res; }                                        \
-        if (size < 0) { return ARCHIVE_RANGE_ERROR; }                   \
+        if (bad(res)) { return res; }                                        \
+        if (size < 0) { return archive_result_t::RANGE_ERROR; }                   \
         scoped_array_t<char> data(size);                                \
         int64_t read_res = force_read(s, data.data(), data.size());     \
-        if (read_res != size) { return ARCHIVE_SOCK_ERROR; }            \
+        if (read_res != size) { return archive_result_t::SOCK_ERROR; }            \
         p->ParseFromArray(data.data(), data.size());                    \
-        return ARCHIVE_SUCCESS;                                         \
+        return archive_result_t::SUCCESS;                                         \
     }
 
 #define RDB_MAKE_PROTOB_SERIALIZABLE(pb_t) RDB_MAKE_PROTOB_SERIALIZABLE_HELPER(pb_t, inline)

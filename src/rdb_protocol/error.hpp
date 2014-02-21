@@ -5,9 +5,7 @@
 #include <list>
 #include <string>
 
-#include "utils.hpp"
-
-#include "containers/archive/stl_types.hpp"
+#include "containers/archive/archive.hpp"
 #include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/ql2.pb.h"
 #include "rdb_protocol/ql2_extensions.pb.h"
@@ -220,13 +218,12 @@ public:
         std::string opt;
 
     public:
-        RDB_MAKE_ME_SERIALIZABLE_3(type, pos, opt);
+        RDB_DECLARE_ME_SERIALIZABLE;
     };
 
     void fill_bt(Backtrace *bt) const;
     // Write out the backtrace to return it to the user.
     void fill_error(Response *res, Response_ResponseType type, std::string msg) const;
-    RDB_MAKE_ME_SERIALIZABLE_1(frames);
 
     bool is_empty() { return frames.size() == 0; }
 
@@ -240,6 +237,7 @@ public:
         }
     }
 
+    RDB_DECLARE_ME_SERIALIZABLE;
 private:
     std::list<frame_t> frames;
 };
@@ -273,7 +271,7 @@ public:
     const char *what() const throw () { return exc_msg_.c_str(); }
     const backtrace_t &backtrace() const { return backtrace_; }
 
-    RDB_MAKE_ME_SERIALIZABLE_3(type_, backtrace_, exc_msg_);
+    RDB_DECLARE_ME_SERIALIZABLE;
 private:
     backtrace_t backtrace_;
     std::string exc_msg_;
@@ -291,11 +289,9 @@ public:
     virtual ~datum_exc_t() throw () { }
     const char *what() const throw () { return exc_msg.c_str(); }
 
+    RDB_DECLARE_ME_SERIALIZABLE;
 private:
     std::string exc_msg;
-
-public:
-    RDB_MAKE_ME_SERIALIZABLE_2(type_, exc_msg);
 };
 
 void fill_error(Response *res, Response_ResponseType type, std::string msg,

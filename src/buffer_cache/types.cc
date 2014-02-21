@@ -1,5 +1,7 @@
 #include "buffer_cache/types.hpp"
 
+#include "debug.hpp"
+
 void debug_print(printf_buffer_t *buf, block_magic_t magic) {
     buf->appendf("block_magic{");
     char *bytes = magic.bytes;

@@ -10,6 +10,7 @@
 #include "concurrency/pubsub.hpp"
 #include "concurrency/signal.hpp"
 #include "containers/clone_ptr.hpp"
+#include "utils.hpp"
 
 /* `watchable_t` represents a variable that you can get the value of and also
 subscribe to further changes to the value. To get the value of a `watchable_t`,

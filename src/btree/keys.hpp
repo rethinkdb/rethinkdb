@@ -9,6 +9,7 @@
 #include <string>
 
 #include "config/args.hpp"
+#include "containers/archive/archive.hpp"
 #include "rpc/serialize_macros.hpp"
 #include "utils.hpp"
 
@@ -138,17 +139,17 @@ public:
     archive_result_t rdb_deserialize(read_stream_t *s) {
         uint8_t sz;
         archive_result_t res = deserialize(s, &sz);
-        if (res) { return res; }
+        if (bad(res)) { return res; }
         int64_t num_read = force_read(s, contents(), sz);
         if (num_read == -1) {
-            return ARCHIVE_SOCK_ERROR;
+            return archive_result_t::SOCK_ERROR;
         }
         if (num_read < sz) {
-            return ARCHIVE_SOCK_EOF;
+            return archive_result_t::SOCK_EOF;
         }
         rassert(num_read == sz);
         set_size(sz);
-        return ARCHIVE_SUCCESS;
+        return archive_result_t::SUCCESS;
     }
 
 private:

@@ -76,8 +76,14 @@ static inline void serialize_grouped(write_message_t *msg, const datums_t &ds) {
 static inline archive_result_t deserialize_grouped(
     read_stream_t *s, counted_t<const datum_t> *d) {
     bool has;
-    if (auto res = deserialize(s, &has)) return res;
-    return has ? deserialize(s, d) : ARCHIVE_SUCCESS;
+    archive_result_t res = deserialize(s, &has);
+    if (bad(res)) { return res; }
+    if (has) {
+        return deserialize(s, d);
+    } else {
+        d->reset();
+        return archive_result_t::SUCCESS;
+    }
 }
 static inline archive_result_t deserialize_grouped(read_stream_t *s, uint64_t *sz) {
     return deserialize_varint_uint64(s, sz);
@@ -87,8 +93,8 @@ static inline archive_result_t deserialize_grouped(read_stream_t *s, double *d) 
 }
 static inline archive_result_t deserialize_grouped(read_stream_t *s,
                                                    std::pair<double, uint64_t> *p) {
-
-    if (auto res = deserialize(s, &p->first)) return res;
+    archive_result_t res = deserialize(s, &p->first);
+    if (bad(res)) { return res; }
     return deserialize_varint_uint64(s, &p->second);
 }
 static inline archive_result_t deserialize_grouped(read_stream_t *s, stream_t *sz) {
@@ -113,16 +119,21 @@ public:
     archive_result_t rdb_deserialize(read_stream_t *s) {
         uint64_t sz = m.size();
         guarantee(sz == 0);
-        if (auto res = deserialize_varint_uint64(s, &sz)) return res;
-        if (sz > std::numeric_limits<size_t>::max()) return ARCHIVE_RANGE_ERROR;
+        archive_result_t res = deserialize_varint_uint64(s, &sz);
+        if (bad(res)) { return res; }
+        if (sz > std::numeric_limits<size_t>::max()) {
+            return archive_result_t::RANGE_ERROR;
+        }
         auto pos = m.begin();
         for (uint64_t i = 0; i < sz; ++i) {
             std::pair<counted_t<const datum_t>, T> el;
-            if (auto res = deserialize_grouped(s, &el.first)) return res;
-            if (auto res = deserialize_grouped(s, &el.second)) return res;
+            res = deserialize_grouped(s, &el.first);
+            if (bad(res)) { return res; }
+            res = deserialize_grouped(s, &el.second);
+            if (bad(res)) { return res; }
             pos = m.insert(pos, std::move(el));
         }
-        return ARCHIVE_SUCCESS;
+        return archive_result_t::SUCCESS;
     }
 
 

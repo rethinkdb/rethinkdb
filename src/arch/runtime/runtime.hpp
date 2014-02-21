@@ -1,8 +1,8 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef ARCH_RUNTIME_RUNTIME_HPP_
 #define ARCH_RUNTIME_RUNTIME_HPP_
 
-#include "utils.hpp"
+#include "threading.hpp"
 
 class linux_thread_message_t;
 typedef linux_thread_message_t thread_message_t;

@@ -8,6 +8,7 @@
 #include "concurrency/signal.hpp"
 #include "concurrency/wait_any.hpp"
 #include "containers/printf_buffer.hpp"
+#include "debug.hpp"
 #include "mock/serializer_filestream.hpp"
 
 namespace mock {
@@ -223,11 +224,11 @@ dummy_protocol_t::store_t::store_t(serializer_t *_serializer, UNUSED const std::
     } else {
         serializer_file_read_stream_t stream(serializer);
         archive_result_t res = deserialize(&stream, &metainfo);
-        if (res) { throw fake_archive_exc_t(); }
+        if (bad(res)) { throw fake_archive_exc_t(); }
         res = deserialize(&stream, &values);
-        if (res) { throw fake_archive_exc_t(); }
+        if (bad(res)) { throw fake_archive_exc_t(); }
         res = deserialize(&stream, &timestamps);
-        if (res) { throw fake_archive_exc_t(); }
+        if (bad(res)) { throw fake_archive_exc_t(); }
     }
 }
 

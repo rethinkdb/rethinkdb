@@ -2,6 +2,8 @@
 #ifndef BUFFER_CACHE_ALT_CONFIG_HPP_
 #define BUFFER_CACHE_ALT_CONFIG_HPP_
 
+#include "config/args.hpp"
+#include "containers/archive/archive.hpp"
 #include "rpc/serialize_macros.hpp"
 
 // KSI: Maybe this config struct can just go away completely.  For now we have it to

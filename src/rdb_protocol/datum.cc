@@ -11,7 +11,7 @@
 #include "errors.hpp"
 #include <boost/detail/endian.hpp>
 
-#include "containers/archive/string_stream.hpp"
+#include "containers/archive/stl_types.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/pseudo_literal.hpp"
@@ -1187,7 +1187,7 @@ write_message_t &operator<<(write_message_t &wm,
 archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum) {
     datum_serialized_type_t type;
     archive_result_t res = deserialize(s, &type);
-    if (res) {
+    if (bad(res)) {
         return res;
     }
 
@@ -1195,25 +1195,25 @@ archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum) 
     case datum_serialized_type_t::R_ARRAY: {
         std::vector<counted_t<const datum_t> > value;
         res = deserialize(s, &value);
-        if (res) {
+        if (bad(res)) {
             return res;
         }
         try {
             datum->reset(new datum_t(std::move(value)));
         } catch (const base_exc_t &) {
-            return ARCHIVE_RANGE_ERROR;
+            return archive_result_t::RANGE_ERROR;
         }
     } break;
     case datum_serialized_type_t::R_BOOL: {
         bool value;
         res = deserialize(s, &value);
-        if (res) {
+        if (bad(res)) {
             return res;
         }
         try {
             datum->reset(new datum_t(datum_t::R_BOOL, value));
         } catch (const base_exc_t &) {
-            return ARCHIVE_RANGE_ERROR;
+            return archive_result_t::RANGE_ERROR;
         }
     } break;
     case datum_serialized_type_t::R_NULL: {
@@ -1222,24 +1222,24 @@ archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum) 
     case datum_serialized_type_t::DOUBLE: {
         double value;
         res = deserialize(s, &value);
-        if (res) {
+        if (bad(res)) {
             return res;
         }
         try {
             datum->reset(new datum_t(value));
         } catch (const base_exc_t &) {
-            return ARCHIVE_RANGE_ERROR;
+            return archive_result_t::RANGE_ERROR;
         }
     } break;
     case datum_serialized_type_t::INT_NEGATIVE:  // fall through
     case datum_serialized_type_t::INT_POSITIVE: {
         uint64_t unsigned_value;
         res = deserialize_varint_uint64(s, &unsigned_value);
-        if (res) {
+        if (bad(res)) {
             return res;
         }
         if (unsigned_value > max_dbl_int) {
-            return ARCHIVE_RANGE_ERROR;
+            return archive_result_t::RANGE_ERROR;
         }
         const double d = unsigned_value;
         double value;
@@ -1252,39 +1252,39 @@ archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum) 
         try {
             datum->reset(new datum_t(value));
         } catch (const base_exc_t &) {
-            return ARCHIVE_RANGE_ERROR;
+            return archive_result_t::RANGE_ERROR;
         }
     } break;
     case datum_serialized_type_t::R_OBJECT: {
         std::map<std::string, counted_t<const datum_t> > value;
         res = deserialize(s, &value);
-        if (res) {
+        if (bad(res)) {
             return res;
         }
         try {
             datum->reset(new datum_t(std::move(value)));
         } catch (const base_exc_t &) {
-            return ARCHIVE_RANGE_ERROR;
+            return archive_result_t::RANGE_ERROR;
         }
     } break;
     case datum_serialized_type_t::R_STR: {
         wire_string_t *value;
         res = deserialize(s, &value);
-        if (res) {
+        if (bad(res)) {
             guarantee(value == NULL);
             return res;
         }
         try {
             datum->reset(new datum_t(value));
         } catch (const base_exc_t &) {
-            return ARCHIVE_RANGE_ERROR;
+            return archive_result_t::RANGE_ERROR;
         }
     } break;
     default:
-        return ARCHIVE_RANGE_ERROR;
+        return archive_result_t::RANGE_ERROR;
     }
 
-    return ARCHIVE_SUCCESS;
+    return archive_result_t::SUCCESS;
 }
 
 write_message_t &operator<<(write_message_t &wm,
@@ -1301,7 +1301,7 @@ write_message_t &operator<<(write_message_t &wm,
 archive_result_t deserialize(read_stream_t *s, empty_ok_ref_t<counted_t<const datum_t> > datum) {
     bool has;
     archive_result_t res = deserialize(s, &has);
-    if (res) {
+    if (bad(res)) {
         return res;
     }
 
@@ -1309,7 +1309,7 @@ archive_result_t deserialize(read_stream_t *s, empty_ok_ref_t<counted_t<const da
 
     if (!has) {
         pointer->reset();
-        return ARCHIVE_SUCCESS;
+        return archive_result_t::SUCCESS;
     } else {
         return deserialize(s, pointer);
     }
@@ -1375,9 +1375,9 @@ void wire_datum_map_t::rdb_serialize(write_message_t &msg /* NOLINT */) const {
 
 archive_result_t wire_datum_map_t::rdb_deserialize(read_stream_t *s) {
     archive_result_t res = deserialize(s, &map_pb);
-    if (res) return res;
+    if (bad(res)) return res;
     state = SERIALIZABLE;
-    return ARCHIVE_SUCCESS;
+    return archive_result_t::SUCCESS;
 }
 
 // `key` is unused because this is passed to `datum_t::merge`, which takes a

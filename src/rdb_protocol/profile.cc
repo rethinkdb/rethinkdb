@@ -3,6 +3,7 @@
 #include "errors.hpp"
 #include <boost/variant/static_visitor.hpp>
 
+#include "containers/archive/stl_types.hpp"
 #include "logger.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/profile.hpp"

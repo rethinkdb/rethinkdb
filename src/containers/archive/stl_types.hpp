@@ -35,7 +35,7 @@ write_message_t &operator<<(write_message_t &msg, const std::pair<T, U> &p) {
 template <class T, class U>
 MUST_USE archive_result_t deserialize(read_stream_t *s, std::pair<T, U> *p) {
     archive_result_t res = deserialize(s, &p->first);
-    if (res) { return res; }
+    if (bad(res)) { return res; }
     res = deserialize(s, &p->second);
     return res;
 }
@@ -70,10 +70,10 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, std::map<K, V, C> *m) {
 
     uint64_t sz;
     archive_result_t res = deserialize_varint_uint64(s, &sz);
-    if (res) { return res; }
+    if (bad(res)) { return res; }
 
     if (sz > std::numeric_limits<size_t>::max()) {
-        return ARCHIVE_RANGE_ERROR;
+        return archive_result_t::RANGE_ERROR;
     }
 
     // Using position should make this function take linear time, not
@@ -83,11 +83,11 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, std::map<K, V, C> *m) {
     for (uint64_t i = 0; i < sz; ++i) {
         std::pair<K, V> p;
         res = deserialize(s, &p);
-        if (res) { return res; }
+        if (bad(res)) { return res; }
         position = m->insert(position, p);
     }
 
-    return ARCHIVE_SUCCESS;
+    return archive_result_t::SUCCESS;
 }
 
 template <class T>
@@ -106,10 +106,10 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, std::set<T> *out) {
 
     uint64_t sz;
     archive_result_t res = deserialize_varint_uint64(s, &sz);
-    if (res) { return res; }
+    if (bad(res)) { return res; }
 
     if (sz > std::numeric_limits<size_t>::max()) {
-        return ARCHIVE_RANGE_ERROR;
+        return archive_result_t::RANGE_ERROR;
     }
 
     typename std::set<T>::iterator position = out->begin();
@@ -117,11 +117,11 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, std::set<T> *out) {
     for (uint64_t i = 0; i < sz; ++i) {
         T value;
         res = deserialize(s, &value);
-        if (res) { return res; }
+        if (bad(res)) { return res; }
         position = out->insert(position, value);
     }
 
-    return ARCHIVE_SUCCESS;
+    return archive_result_t::SUCCESS;
 }
 
 size_t serialized_size(const std::string &s);
@@ -158,19 +158,19 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, std::vector<T> *v) {
 
     uint64_t sz;
     archive_result_t res = deserialize_varint_uint64(s, &sz);
-    if (res) { return res; }
+    if (bad(res)) { return res; }
 
     if (sz > std::numeric_limits<size_t>::max()) {
-        return ARCHIVE_RANGE_ERROR;
+        return archive_result_t::RANGE_ERROR;
     }
 
     v->resize(sz);
     for (uint64_t i = 0; i < sz; ++i) {
         res = deserialize(s, &(*v)[i]);
-        if (res) { return res; }
+        if (bad(res)) { return res; }
     }
 
-    return ARCHIVE_SUCCESS;
+    return archive_result_t::SUCCESS;
 }
 
 // TODO: Stop using std::list! What are you thinking?
@@ -190,20 +190,20 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, std::list<T> *v) {
 
     uint64_t sz;
     archive_result_t res = deserialize_varint_uint64(s, &sz);
-    if (res) { return res; }
+    if (bad(res)) { return res; }
 
     if (sz > std::numeric_limits<size_t>::max()) {
-        return ARCHIVE_RANGE_ERROR;
+        return archive_result_t::RANGE_ERROR;
     }
 
     for (uint64_t i = 0; i < sz; ++i) {
         // We avoid copying a non-empty value.
         v->push_back(T());
         res = deserialize(s, &v->back());
-        if (res) { return res; }
+        if (bad(res)) { return res; }
     }
 
-    return ARCHIVE_SUCCESS;
+    return archive_result_t::SUCCESS;
 }
 
 }  /* namespace std */

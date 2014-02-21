@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 #include "buffer_cache/alt/eviction_bag.hpp"
-#include "utils.hpp"
+#include "threading.hpp"
 
 class memory_tracker_t {
 public:

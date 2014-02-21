@@ -1,8 +1,6 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef CONCURRENCY_WAIT_ANY_HPP_
 #define CONCURRENCY_WAIT_ANY_HPP_
-
-#include <vector>
 
 #include "concurrency/signal.hpp"
 #include "containers/intrusive_list.hpp"
@@ -18,17 +16,7 @@ class wait_any_t : public signal_t {
 public:
     template <typename... Args>
     explicit wait_any_t(Args... args) {
-        // This function uses variadic templates.  The initializer list below expands to things like
-        // { (add(arg1), 1), (add(arg2), 1), (add(arg3), 1) } where arg1, arg2, and arg3 are the
-        // arguments to the function (in the case that there were three arguments passed to the
-        // function).  As a result, add() is called on all the arguments, and the array is
-        // initialized to { 1, 1, 1 } (because of the comma operator).
-        //
-        // Initializer lists, unlike function argument lists, have a defined evaluation order in
-        // that the first expression is evaluated first, the second expression is evaluated next,
-        // and so on.
-        //
-        // See also http://www.smbc-comics.com/index.php?db=comics&id=1169
+        // See http://www.smbc-comics.com/index.php?db=comics&id=1169
         UNUSED int boner[] = { (add(args), 1)... };
     }
 

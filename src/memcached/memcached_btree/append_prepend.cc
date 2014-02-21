@@ -3,6 +3,7 @@
 
 #include "buffer_cache/alt/alt.hpp"
 #include "buffer_cache/alt/blob.hpp"
+#include "math.hpp"
 #include "memcached/memcached_btree/modify_oper.hpp"
 #include "containers/buffer_group.hpp"
 #include "repli_timestamp.hpp"

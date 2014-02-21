@@ -35,8 +35,8 @@ private:
         explicit read_impl_t(dummy_mailbox_t *_parent) : parent(_parent) { }
         void read(read_stream_t *stream) {
             int i;
-            int res = deserialize(stream, &i);
-            if (res) { throw fake_archive_exc_t(); }
+            archive_result_t res = deserialize(stream, &i);
+            if (bad(res)) { throw fake_archive_exc_t(); }
             parent->inbox.insert(i);
         }
     private:
@@ -177,7 +177,7 @@ void run_typed_mailbox_test() {
     connectivity_cluster_t::run_t r(&c, get_unittest_addresses(), peer_address_t(), ANY_PORT, &m, 0, NULL);
 
     std::vector<std::string> inbox;
-    mailbox_t<void(std::string)> mbox(&m, boost::bind(&string_push_back, &inbox, _1));
+    mailbox_t<void(std::string)> mbox(&m, std::bind(&string_push_back, &inbox, ph::_1));
 
     mailbox_addr_t<void(std::string)> addr = mbox.get_address();
 
