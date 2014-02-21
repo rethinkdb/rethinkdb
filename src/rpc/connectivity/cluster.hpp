@@ -14,15 +14,14 @@
 #include "concurrency/semaphore.hpp"
 #include "containers/archive/tcp_conn_stream.hpp"
 #include "containers/map_sentries.hpp"
+#include "containers/uuid.hpp"
 #include "perfmon/perfmon.hpp"
 #include "rpc/connectivity/connectivity.hpp"
 #include "rpc/connectivity/messages.hpp"
-#include "containers/uuid.hpp"
+#include "utils.hpp"
 
 namespace boost {
 template <class> class optional;
-template <class> class scoped_ptr;
-template <class> class function;
 }
 
 class heartbeat_manager_t;
