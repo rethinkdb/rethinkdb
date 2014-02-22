@@ -439,11 +439,14 @@ static int linenoisePrompt(int fd, char *buf, size_t buflen, const char *prompt)
          * there was an error reading from fd. Otherwise it will return the
          * character that should be handled next. */
         if (c == 9 && completionCallback != NULL) {
-            c = completeLine(fd,prompt,buf,buflen,&len,&pos,cols);
+            int ret = completeLine(fd,prompt,buf,buflen,&len,&pos,cols);
+            c = static_cast<char>(ret);
+
             /* Return on errors */
-            if (c < 0) return len;
+            if (ret < 0) return len;
+
             /* Read next character when 0 */
-            if (c == 0) continue;
+            if (ret == 0) continue;
         }
 
         switch (c) {

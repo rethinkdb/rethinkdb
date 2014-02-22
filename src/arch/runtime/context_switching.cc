@@ -67,13 +67,14 @@ artificial_stack_t::artificial_stack_t(void (*initial_fun)(void), size_t _stack_
 
     // Currently sp is 16-byte aligned.
 
-    /* Set up the instruction pointer; this will be popped off the stack by ret
-    in swapcontext once all the other registers have been "restored". */
+    /* Set up the instruction pointer; this will be popped off the stack by ret (or popped
+    explicitly, for ARM) in swapcontext once all the other registers have been "restored". */
     sp--;
 
     /* This seems to prevent Valgrind from complaining about uninitialized value
     errors when throwing an uncaught exception. My assembly-fu isn't strong
     enough to explain why, though. */
+    /* Also, on ARM, this gets popped into `r12` */
     *sp = 0;
 
     sp--;
@@ -90,11 +91,14 @@ artificial_stack_t::artificial_stack_t(void (*initial_fun)(void), size_t _stack_
     the stack by swapcontext; they're callee-saved, so whatever happens to be in
     them will be ignored. */
     sp -= 6;
+#elif defined(__arm__)
+    /* We must preserve r4, r5, r6, r7, r8, r9, r10, and r11. Because we have to store the LR (r14) in swapcontext as well, we also store r12 in swapcontext to keep the stack double-word-aligned. However, we already accounted for both of those by decrementing sp twice above (once for r14 and once for r12, say). */
+    sp -= 8;
 #else
 #error "Unsupported architecture."
 #endif
 
-    // Subtracted (multiple of 2)*sizeof(uintptr_t), so sp is still double-word-size (16-byte for amd64, 8-byte for i386) aligned.
+    // Subtracted (multiple of 2)*sizeof(uintptr_t), so sp is still double-word-size (16-byte for amd64, 8-byte for i386 and ARM) aligned.
 
     /* Set up stack pointer. */
     context.pointer = sp;
@@ -187,8 +191,8 @@ void context_switch(artificial_stack_context_ref_t *current_context_out, artific
 }
 
 asm(
-#if defined(__i386__) || defined(__x86_64__)
-// We keep the i386 and x86_64 stuff interleaved in order to enforce commonality.
+#if defined(__i386__) || defined(__x86_64__) || defined(__arm__)
+// We keep the i386, x86_64, and ARM stuff interleaved in order to enforce commonality.
 #if defined(__x86_64__)
 #if defined(__LP64__) || defined(__LLP64__)
 // Pointers are of the right size
@@ -204,6 +208,8 @@ asm(
     /* `current_pointer_out` is in `4(%ebp)`. `dest_pointer` is in `8(%ebp)`. */
 #elif defined(__x86_64__)
     /* `current_pointer_out` is in `%rdi`. `dest_pointer` is in `%rsi`. */
+#elif defined(__arm__)
+    /* `current_pointer_out` is in `r0`. `dest_pointer` is in `r1` */
 #endif
 
     /* Save preserved registers (the return address is already on the stack). */
@@ -220,6 +226,11 @@ asm(
     "pushq %r15\n"
     "pushq %rbx\n"
     "pushq %rbp\n"
+#elif defined(__arm__)
+    /* Note that we push `LR` (`r14`) since that's not implicitly done at a call on ARM. We include `r12` just to keep the stack double-word-aligned. The order here is really important, as it must match the way we set up the stack in artificial_stack_t::artificial_stack_t. For consistency with the other architectures, we push `r12` first, then `r14`, then the rest. */
+    "push {r12}\n"
+    "push {r14}\n"
+    "push {r4-r11}\n"
 #endif
 
     /* Save old stack pointer. */
@@ -231,6 +242,9 @@ asm(
 #elif defined(__x86_64__)
     /* On amd64, the first argument comes from rdi. */
     "movq %rsp, (%rdi)\n"
+#elif defined(__arm__)
+    /* On ARM, the first argument is in `r0`. `r13` is the stack pointer. */
+    "str r13, [r0]\n"
 #endif
 
     /* Load the new stack pointer and the preserved registers. */
@@ -242,6 +256,9 @@ asm(
 #elif defined(__x86_64__)
     /* On amd64, the second argument comes from rsi. */
     "movq %rsi, %rsp\n"
+#elif defined(__arm__)
+    /* On ARM, the second argument is in `r1` */
+    "mov r13, r1\n"
 #endif
 
 #if defined(__i386__)
@@ -256,13 +273,24 @@ asm(
     "popq %r14\n"
     "popq %r13\n"
     "popq %r12\n"
+#elif defined(__arm__)
+    "pop {r4-r11}\n"
+    "pop {r14}\n"
+    "pop {r12}\n"
 #endif
 
+#if defined(__i386__) || defined(__x86_64__)
     /* The following ret should return to the address set with
     `artificial_stack_t()` or with the previous `lightweight_swapcontext`. The
     instruction pointer is saved on the stack from the previous call (or
     initialized with `artificial_stack_t()`). */
     "ret\n"
+#elif defined(__arm__)
+    /* Above, we popped `LR` (`r14`) off the stack, so the bx instruction will
+    jump to the correct return address. */
+    "bx r14\n"
+#endif
+
 #else
 #error "Unsupported architecture."
 #endif

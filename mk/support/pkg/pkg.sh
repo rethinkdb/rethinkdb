@@ -137,6 +137,18 @@ pkg_depends_env () {
     done
 }
 
+cross_build_env () {
+    # Unsetting these variables will pick up the toolchain from PATH.
+    # Assuming that cross-compilation is achieved by setting these variables,
+    # the toolchain in PATH will build executables that can be executed in the
+    # build environment.
+    unset CXX
+    unset AR
+    unset RANLIB
+    unset CC
+    unset LD
+}
+
 error () {
     echo "$0: ${pkg:-unknown}: $*" >&2
     exit 1
