@@ -343,6 +343,9 @@ class RqlQuery(object):
     def match(self, pattern):
         return Match(self, pattern)
 
+    def split(self, *args):
+        return Split(self, *args)
+
     def upcase(self):
         return Upcase(self)
 
@@ -1050,6 +1053,10 @@ class Nth(RqlBracketQuery):
 class Match(RqlMethodQuery):
     tt = p.Term.MATCH
     st = 'match'
+
+class Split(RqlMethodQuery):
+    tt = p.Term.SPLIT
+    st = 'split'
 
 class Upcase(RqlMethodQuery):
     tt = p.Term.UPCASE
