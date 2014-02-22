@@ -35,10 +35,13 @@ bool stream_cache2_t::serve(int64_t key, Response *res, signal_t *interruptor) {
         // a new env_t instead?  Why do we keep env_t's around anymore?)
         entry->env->interruptor = interruptor;
 
+        batch_type_t batch_type = entry->first_batch
+                                      ? batch_type_t::NORMAL_FIRST
+                                      : batch_type_t::NORMAL;
         std::vector<counted_t<const datum_t> > ds
             = entry->stream->next_batch(
                 entry->env.get(),
-                batchspec_t::user(batch_type_t::NORMAL, entry->env.get()));
+                batchspec_t::user(batch_type, entry->env.get()));
         for (auto d = ds.begin(); d != ds.end(); ++d) {
             (*d)->write_to_protobuf(res->add_response(), entry->use_json);
         }
@@ -72,7 +75,8 @@ stream_cache2_t::entry_t::entry_t(time_t _last_activity,
       use_json(_use_json),
       env(std::move(env_ptr)),
       stream(_stream),
-      max_age(DEFAULT_MAX_AGE) { }
+      max_age(DEFAULT_MAX_AGE),
+      first_batch(true) { }
 
 stream_cache2_t::entry_t::~entry_t() { }
 

@@ -45,6 +45,7 @@ private:
         scoped_ptr_t<env_t> env;
         counted_t<datum_stream_t> stream;
         time_t max_age;
+        bool first_batch;
     private:
         DISABLE_COPYING(entry_t);
     };

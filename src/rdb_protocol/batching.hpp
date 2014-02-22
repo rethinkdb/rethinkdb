@@ -16,14 +16,17 @@ class env_t;
 enum class batch_type_t {
     // A normal batch.
     NORMAL = 0,
+    // The first batch in a series of normal batches. We use size limits
+    // to reduce the latency until a user receives their first response.
+    NORMAL_FIRST = 1,
     // A batch fetched for a terminal or terminal-like term, e.g. a big batched
     // insert.  Ignores latency caps because the latency the user encounters is
     // determined by bandwidth instead.
-    TERMINAL = 1,
+    TERMINAL = 2,
     // If we're ordering by an sindex, get a batch with a constant value for
     // that sindex.  We sometimes need a batch with that invariant for sorting.
     // (This replaces that SORTING_HINT_NEXT stuff.)
-    SINDEX_CONSTANT = 2
+    SINDEX_CONSTANT = 3
 };
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
     batch_type_t, int8_t, batch_type_t::NORMAL, batch_type_t::SINDEX_CONSTANT);
@@ -69,16 +72,17 @@ public:
     batchspec_t with_at_most(uint64_t max_els) const;
     batchspec_t scale_down(int64_t divisor) const;
     batcher_t to_batcher() const;
-    RDB_MAKE_ME_SERIALIZABLE_5(batch_type, els_left, min_wanted_els_left, size_left, end_time);
+    RDB_MAKE_ME_SERIALIZABLE_6(batch_type, els_left, min_wanted_els_left, size_left, first_scaledown_factor, end_time);
 private:
     // I made this private and accessible through a static function because it
     // was being accidentally default-initialized.
     batchspec_t() { } // USE ONLY FOR SERIALIZATION
     batchspec_t(batch_type_t batch_type, int64_t els, int64_t min_wanted_els,
-                int64_t size, microtime_t end);
+                int64_t size, int32_t first_scaledown, microtime_t end);
 
     batch_type_t batch_type;
     int64_t els_left, min_wanted_els_left, size_left;
+    int32_t first_scaledown_factor;
     microtime_t end_time;
 };
 

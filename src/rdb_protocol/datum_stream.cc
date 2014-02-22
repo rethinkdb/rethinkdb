@@ -233,6 +233,7 @@ reader_t::next_batch(env_t *env, const batchspec_t &batchspec) {
     std::vector<counted_t<const datum_t> > res;
     switch (batchspec.get_batch_type()) {
     case batch_type_t::NORMAL: // fallthru
+    case batch_type_t::NORMAL_FIRST: // fallthru
     case batch_type_t::TERMINAL: {
         res.reserve(items.size() - items_index);
         for (; items_index < items.size(); ++items_index) {
