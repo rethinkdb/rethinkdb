@@ -6,27 +6,36 @@
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/error.hpp"
 
+#define DEFAULT_MIN_WANTED_ELS  8
+#define DEFAULT_MAX_SIZE        (MEGABYTE / 4)
+#define DEFAULT_MAX_TIME        (500 * 1000)
+
+
 namespace ql {
 
 batchspec_t::batchspec_t(
     batch_type_t _batch_type,
     int64_t els,
+    int64_t min_wanted_els,
     int64_t size,
     microtime_t _end_time)
     : batch_type(_batch_type),
       els_left(els),
+      min_wanted_els_left(min_wanted_els),
       size_left(size),
       end_time(_batch_type == batch_type_t::NORMAL
                ? _end_time
                : std::numeric_limits<decltype(batchspec_t().end_time)>::max()) {
     r_sanity_check(els_left >= 1);
+    r_sanity_check(min_wanted_els_left >= 0);
 }
 
 batchspec_t batchspec_t::user(batch_type_t batch_type,
                               const counted_t<const datum_t> &conf) {
-    counted_t<const datum_t> max_els_d, max_size_d, max_dur_d;
+    counted_t<const datum_t> max_els_d, min_els_d, max_size_d, max_dur_d;
     if (conf.has()) {
         max_els_d = conf->get("max_els", NOTHROW);
+        min_els_d = conf->get("min_els", NOTHROW);
         max_size_d = conf->get("max_size", NOTHROW);
         max_dur_d = conf->get("max_dur", NOTHROW);
     }
@@ -35,15 +44,19 @@ batchspec_t batchspec_t::user(batch_type_t batch_type,
         max_els_d.has()
             ? max_els_d->as_int()
             : std::numeric_limits<decltype(batchspec_t().els_left)>::max(),
-        max_size_d.has() ? max_size_d->as_int() : MEGABYTE / 4,
+        min_els_d.has() ? min_els_d->as_int() : DEFAULT_MIN_WANTED_ELS,
+        max_size_d.has() ? max_size_d->as_int() : DEFAULT_MAX_SIZE,
         (batch_type == batch_type_t::NORMAL)
-            ? current_microtime() + (max_dur_d.has() ? max_dur_d->as_int() : 500 * 1000)
+            ? current_microtime() + (max_dur_d.has()
+                                     ? max_dur_d->as_int()
+                                     : DEFAULT_MAX_TIME)
             : std::numeric_limits<decltype(batchspec_t().end_time)>::max());
 }
 
 batchspec_t batchspec_t::all() {
     return batchspec_t(batch_type_t::TERMINAL,
                        std::numeric_limits<decltype(batchspec_t().els_left)>::max(),
+                       DEFAULT_MIN_WANTED_ELS,
                        std::numeric_limits<decltype(batchspec_t().size_left)>::max(),
                        std::numeric_limits<decltype(batchspec_t().end_time)>::max());
 }
@@ -56,7 +69,8 @@ batchspec_t batchspec_t::user(batch_type_t batch_type, env_t *env) {
 }
 
 batchspec_t batchspec_t::with_new_batch_type(batch_type_t new_batch_type) const {
-    return batchspec_t(new_batch_type, els_left, size_left, end_time);
+    return batchspec_t(new_batch_type, els_left, min_wanted_els_left, size_left,
+                       end_time);
 }
 
 batchspec_t batchspec_t::with_at_most(uint64_t _max_els) const {
@@ -64,6 +78,7 @@ batchspec_t batchspec_t::with_at_most(uint64_t _max_els) const {
     return batchspec_t(
         batch_type,
         std::max<int64_t>(1, std::min(els_left, max_els)),
+        std::min<int64_t>(min_wanted_els_left, max_els),
         size_left,
         end_time);
 }
@@ -84,7 +99,8 @@ batchspec_t batchspec_t::scale_down(int64_t divisor) const {
         ? size_left
         : std::min(size_left, (size_left * 8 / (7 * divisor)) + 8);
 
-    return batchspec_t(batch_type, new_els_left, new_size_left, end_time);
+    return batchspec_t(batch_type, new_els_left, min_wanted_els_left, new_size_left,
+                       end_time);
 }
 
 batcher_t batchspec_t::to_batcher() const {
@@ -92,23 +108,27 @@ batcher_t batchspec_t::to_batcher() const {
         batch_type == batch_type_t::NORMAL && end_time > current_microtime()
             ? end_time
             : std::numeric_limits<decltype(batchspec_t().end_time)>::max();
-    return batcher_t(batch_type, els_left, size_left, real_end_time);
+    return batcher_t(batch_type, els_left, min_wanted_els_left, size_left, real_end_time);
 }
 
 bool batcher_t::should_send_batch() const {
+    // We ignore size_left as long as we have not got at least `min_wanted_els`
+    // documents.
     return els_left <= 0
-        || size_left <= 0
+        || (size_left <= 0 && min_wanted_els_left <= 0)
         || (current_microtime() >= end_time && seen_one_el);
 }
 
 batcher_t::batcher_t(
     batch_type_t _batch_type,
     int64_t els,
+    int64_t min_wanted_els,
     int64_t size,
     microtime_t _end_time)
     : batch_type(_batch_type),
       seen_one_el(false),
       els_left(els),
+      min_wanted_els_left(min_wanted_els),
       size_left(size),
       end_time(_end_time) { }
 
