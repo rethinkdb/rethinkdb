@@ -236,6 +236,7 @@ module 'NamespaceView', ->
         initialize: ->
             log_initial '(initializing) list view: namespace'
             super @template
+            directory.on 'all', @render
 
         json_for_template: =>
             json = _.extend super(), DataUtils.get_namespace_status(@model.get('id'))
@@ -246,6 +247,7 @@ module 'NamespaceView', ->
             return @
 
         destroy: =>
+            directory.off 'all', @render
             super
 
     class @AddDatabaseModal extends UIComponents.AbstractModal
