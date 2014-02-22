@@ -19,8 +19,8 @@ class env_t;
 enum class batch_type_t {
     // A normal batch.
     NORMAL = 0,
-    // The first batch in a series of normal batches. We use size limits
-    // to reduce the latency until a user receives their first response.
+    // The first batch in a series of normal batches. The size limit is reduced
+    // to help minimizing the latency until a user receives their first response.
     NORMAL_FIRST = 1,
     // A batch fetched for a terminal or terminal-like term, e.g. a big batched
     // insert.  Ignores latency caps because the latency the user encounters is
