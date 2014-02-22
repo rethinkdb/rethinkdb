@@ -33,7 +33,6 @@ batchspec_t::batchspec_t(
     r_sanity_check(first_scaledown_factor >= 1);
     r_sanity_check(els_left >= 1);
     r_sanity_check(min_wanted_els_left >= 0);
-    r_sanity_check(min_wanted_els_left <= els_left);
 }
 
 batchspec_t batchspec_t::user(batch_type_t batch_type,
