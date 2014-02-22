@@ -42,6 +42,7 @@ bool stream_cache2_t::serve(int64_t key, Response *res, signal_t *interruptor) {
             = entry->stream->next_batch(
                 entry->env.get(),
                 batchspec_t::user(batch_type, entry->env.get()));
+        entry->first_batch = false;
         for (auto d = ds.begin(); d != ds.end(); ++d) {
             (*d)->write_to_protobuf(res->add_response(), entry->use_json);
         }

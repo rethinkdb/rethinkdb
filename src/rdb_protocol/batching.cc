@@ -92,7 +92,7 @@ batchspec_t batchspec_t::with_at_most(uint64_t _max_els) const {
         std::max<int64_t>(1, std::min(els_left, max_els)),
         std::min<int64_t>(min_wanted_els_left, max_els),
         size_left,
-        1,
+        first_scaledown_factor,
         end_time);
 }
 
@@ -117,11 +117,6 @@ batchspec_t batchspec_t::scale_down(int64_t divisor) const {
 }
 
 batcher_t batchspec_t::to_batcher() const {
-    int64_t real_els_left =
-        els_left == std::numeric_limits<decltype(batchspec_t().els_left)>::max()
-        || batch_type != batch_type_t::NORMAL_FIRST
-            ? els_left
-            : std::max<int64_t>(1, els_left / first_scaledown_factor);
     int64_t real_size_left =
         els_left == std::numeric_limits<decltype(batchspec_t().size_left)>::max()
         || batch_type != batch_type_t::NORMAL_FIRST
@@ -132,7 +127,7 @@ batcher_t batchspec_t::to_batcher() const {
         && end_time > current_microtime()
             ? end_time
             : std::numeric_limits<decltype(batchspec_t().end_time)>::max();
-    return batcher_t(batch_type, real_els_left, min_wanted_els_left, real_size_left,
+    return batcher_t(batch_type, els_left, min_wanted_els_left, real_size_left,
                      real_end_time);
 }
 
