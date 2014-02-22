@@ -47,6 +47,7 @@ hasImplicit = (args) ->
 # AST classes
 
 class TermBase
+    showRunWarning: true
     constructor: ->
         self = (ar (field) -> self.getField(field))
         self.__proto__ = @.__proto__
@@ -68,6 +69,9 @@ class TermBase
                 options = {}
             # else we suppose that we have run(connection, options, callback)
         else if connection?.constructor is Object
+            if @showRunWarning is true
+                process?.stderr.write("This syntax is deprecated. Please use `run(connection[, options], callback)`.")
+                @showRunWarning = false
             # Handle run(connectionWithOptions, callback)
             callback = options
             options = connection
