@@ -17,10 +17,6 @@
 #include <sys/resource.h>
 #include <unistd.h>
 
-#ifdef __MACH__
-#include <mach/mach_time.h>
-#endif
-
 #include <google/protobuf/stubs/common.h>
 
 #include "arch/io/disk.hpp"
