@@ -118,7 +118,7 @@ batchspec_t batchspec_t::scale_down(int64_t divisor) const {
 
 batcher_t batchspec_t::to_batcher() const {
     int64_t real_size_left =
-        els_left == std::numeric_limits<decltype(batchspec_t().size_left)>::max()
+        size_left == std::numeric_limits<decltype(batchspec_t().size_left)>::max()
         || batch_type != batch_type_t::NORMAL_FIRST
             ? size_left
             : std::max<int64_t>(1, size_left / first_scaledown_factor);
