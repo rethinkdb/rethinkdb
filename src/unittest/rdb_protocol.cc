@@ -255,7 +255,11 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
         nsi->read(read, &response, osource->check_in("unittest::run_create_drop_sindex_test(rdb_protocol_t.cc-A"), &interruptor);
 
         if (rdb_protocol_t::rget_read_response_t *rget_resp = boost::get<rdb_protocol_t::rget_read_response_t>(&response.response)) {
-            ql::stream_t *stream = boost::get<ql::stream_t>(&rget_resp->result);
+            auto streams = boost::get<ql::grouped_t<ql::stream_t> >(
+                &rget_resp->result);
+            ASSERT_TRUE(streams != NULL);
+            ASSERT_EQ(1, streams->size());
+            auto stream = &streams->begin()->second;
             ASSERT_TRUE(stream != NULL);
             ASSERT_EQ(1u, stream->size());
             ASSERT_EQ(ql::datum_t(*data), *stream->at(0).data);
@@ -290,9 +294,10 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
         nsi->read(read, &response, osource->check_in("unittest::run_create_drop_sindex_test(rdb_protocol_t.cc-A"), &interruptor);
 
         if (rdb_protocol_t::rget_read_response_t *rget_resp = boost::get<rdb_protocol_t::rget_read_response_t>(&response.response)) {
-            ql::stream_t *stream = boost::get<ql::stream_t>(&rget_resp->result);
-            ASSERT_TRUE(stream != NULL);
-            ASSERT_EQ(0u, stream->size());
+            auto streams = boost::get<ql::grouped_t<ql::stream_t> >(
+                &rget_resp->result);
+            ASSERT_TRUE(streams != NULL);
+            ASSERT_EQ(0, streams->size());
         } else {
             ADD_FAILURE() << "got wrong type of result back";
         }
