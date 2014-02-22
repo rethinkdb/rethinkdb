@@ -9,7 +9,8 @@
 #include "arch/runtime/callable_action.hpp"
 #include "arch/runtime/context_switching.hpp"
 #include "arch/runtime/runtime_utils.hpp"
-#include "utils.hpp"
+#include "threading.hpp"
+#include "time.hpp"
 
 const size_t MAX_COROUTINE_STACK_SIZE = 8*1024*1024;
 

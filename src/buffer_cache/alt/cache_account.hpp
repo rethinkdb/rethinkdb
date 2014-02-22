@@ -1,7 +1,7 @@
 #ifndef BUFFER_CACHE_ALT_CACHE_ACCOUNT_HPP_
 #define BUFFER_CACHE_ALT_CACHE_ACCOUNT_HPP_
 
-#include "utils.hpp"
+#include "threading.hpp"
 
 class file_account_t;
 

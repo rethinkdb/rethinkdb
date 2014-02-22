@@ -1,5 +1,9 @@
 #include "arch/io/disk/stats_2.hpp"
 
+#include <inttypes.h>
+
+#include "containers/printf_buffer.hpp"
+
 void debug_print(printf_buffer_t *buf,
                  const stats_diskmgr_2_action_t &action) {
     buf->appendf("stats_diskmgr_2_action{start_time=%" PRIu64 "}<",

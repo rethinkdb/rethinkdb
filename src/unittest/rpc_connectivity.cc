@@ -61,8 +61,8 @@ public:
 private:
     void on_message(peer_id_t peer, read_stream_t *stream) {
         int i;
-        int res = deserialize(stream, &i);
-        if (res) { throw fake_archive_exc_t(); }
+        archive_result_t res = deserialize(stream, &i);
+        if (bad(res)) { throw fake_archive_exc_t(); }
         on_thread_t th(home_thread());
         inbox[i] = peer;
         timing[i] = sequence_number++;

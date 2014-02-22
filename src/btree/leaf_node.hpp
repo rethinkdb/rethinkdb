@@ -4,6 +4,7 @@
 
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "buffer_cache/types.hpp"
 #include "errors.hpp"

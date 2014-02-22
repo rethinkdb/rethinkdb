@@ -380,16 +380,19 @@ template<typename T>
 static bool deserialize_and_check(tcp_conn_stream_t *c, T *p, const char *peer) {
     archive_result_t res = deserialize(c, p);
     switch (res) {
-      case ARCHIVE_SUCCESS: return false; // no problem.
+    case archive_result_t::SUCCESS:
+        return false;
 
         // Network error. Report nothing.
-      case ARCHIVE_SOCK_ERROR: case ARCHIVE_SOCK_EOF: return true;
+    case archive_result_t::SOCK_ERROR:
+    case archive_result_t::SOCK_EOF:
+        return true;
 
-      case ARCHIVE_RANGE_ERROR:
+    case archive_result_t::RANGE_ERROR:
         logERR("could not deserialize data received from %s, closing connection", peer);
         return true;
 
-      default: case ARCHIVE_GENERIC_ERROR:
+    default:
         logERR("unknown error occurred on connection from %s, closing connection", peer);
         return true;
     }
@@ -417,7 +420,7 @@ static bool deserialize_compatible_string(tcp_conn_stream_t *conn,
                                           const char *peer) {
     uint64_t raw_size;
     archive_result_t res = deserialize(conn, &raw_size);
-    if (res != ARCHIVE_SUCCESS) {
+    if (res != archive_result_t::SUCCESS) {
         logWRN("Network error while receiving clustering header from %s, closing connection", peer);
         return false;
     }

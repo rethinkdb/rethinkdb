@@ -10,7 +10,7 @@
 
 #include "arch/runtime/event_queue.hpp"
 #include "logger.hpp"
-#include "utils.hpp"
+#include "time.hpp"
 
 timerfd_provider_t::timerfd_provider_t(linux_event_queue_t *_queue)
     : queue(_queue), timer_fd(-1), callback(NULL) {
