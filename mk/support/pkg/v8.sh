@@ -20,6 +20,15 @@ pkg_install () {
         export PATH=$pybin:$PATH
     fi
     mkdir -p "$install_dir/lib"
-    pkg_make native CXXFLAGS="${CXXFLAGS:-} -Wno-error"
-    find "$build_dir" -iname "*.o" | grep -v '\/preparser_lib\/' | xargs ar cqs "$install_dir/lib/libv8.a"
+    CXX=${CXX:-g++} # as defined by the v8 Makefile
+    host=$($CXX -dumpmachine)
+    makeflags=
+    case ${host%%-*} in
+        i?86)   arch=ia32 ;;
+        x86_64) arch=x64 ;;
+        arm*)   arch=arm ;;
+        *)      arch=native ;;
+    esac
+    pkg_make $arch.release CXX=$CXX LINK=$CXX LINK.target=$CXX werror=no $makeflags CXXFLAGS="${CXXFLAGS:-} -Wno-error"
+    find "$build_dir/out/$arch.release/obj.target" -iname "*.o" | grep -v '\/preparser_lib\/' | xargs ${AR:-ar} cqs "$install_dir/lib/libv8.a"
 }
