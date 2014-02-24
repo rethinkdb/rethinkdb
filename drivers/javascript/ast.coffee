@@ -1,5 +1,6 @@
 util = require('./util')
 err = require('./errors')
+net = require('./net')
 
 # Import some names to this namespace for convienience
 ar = util.ar
@@ -46,44 +47,60 @@ hasImplicit = (args) ->
 # AST classes
 
 class TermBase
+    showRunWarning: true
     constructor: ->
         self = (ar (field) -> self.getField(field))
         self.__proto__ = @.__proto__
         return self
 
-    run: (connOrOptions, cb) ->
-        useOutdated = undefined
+    run: (connection, options, callback) ->
+        # Valid syntaxes are
+        # connection, callback
+        # connection, options, callback
+        # connection, null, callback
+        # 
+        # Depreciated syntaxes are
+        # optionsWithConnection, callback
+        
+        if net.isConnection(connection) is true
+            # Handle run(connection, callback)
+            if typeof options is "function"
+                callback = options
+                options = {}
+            # else we suppose that we have run(connection, options, callback)
+        else if connection?.constructor is Object
+            if @showRunWarning is true
+                process?.stderr.write("RethinkDB warning: This syntax is deprecated. Please use `run(connection[, options], callback)`.")
+                @showRunWarning = false
+            # Handle run(connectionWithOptions, callback)
+            callback = options
+            options = connection
+            connection = connection.connection
+            delete options["connection"]
 
-        # Parse out run options from connOrOptions object
-        if connOrOptions? and connOrOptions.constructor is Object
-            for own key of connOrOptions
-                unless key in ['connection', 'useOutdated', 'noreply', 'timeFormat', 'groupFormat', 'profile', 'durability', 'batchConf']
-                    throw new err.RqlDriverError "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, groupFormat: <string>, profile: <bool>, durability: <string>}."
-            conn = connOrOptions.connection
-            opts = connOrOptions
-        else
-            conn = connOrOptions
-            opts = {}
+        options = {} if options is null
 
-        # This only checks that the argument is of the right type, connection
-        # closed errors will be handled elsewhere
-        if not conn? or not conn._start?
-            throw new err.RqlDriverError "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, groupFormat: <string>, profile: <bool>, durability: <string>}."
+        # Check if the arguments are valid types
+        for own key of options
+            unless key in ['useOutdated', 'noreply', 'timeFormat', 'profile', 'durability', 'groupFormat', 'batchConf']
+                throw new err.RqlDriverError "Found "+key+" which is not a valid option. valid options are {useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, groupFormat: <string>, profile: <bool>, durability: <string>}."
+        if net.isConnection(connection) is false
+            throw new err.RqlDriverError "First argument to `run` must be an open connection."
 
         # We only require a callback if noreply isn't set
-        if not opts.noreply and typeof(cb) isnt 'function'
-            throw new err.RqlDriverError "Second argument to `run` must be a callback to invoke "+
+        if not options.noreply and typeof(callback) isnt 'function'
+            throw new err.RqlDriverError "The last argument to `run` must be a callback to invoke "+
                                          "with either an error or the result of the query."
 
         try
-            conn._start @, cb, opts
+            connection._start @, callback, options
         catch e
             # It was decided that, if we can, we prefer to invoke the callback
             # with any errors rather than throw them as normal exceptions.
             # Thus we catch errors here and invoke the callback instead of
             # letting the error bubble up.
-            if typeof(cb) is 'function'
-                cb(e)
+            if typeof(callback) is 'function'
+                callback(e)
             else
                 throw e
 

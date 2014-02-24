@@ -103,7 +103,7 @@ describe('Javascript connection API', function(){
         it("empty run", function(done) {
           assert.throws(function(){ r.expr(1).run(); },
                         checkError("RqlDriverError",
-                                   "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, groupFormat: <string>, profile: <bool>, durability: <string>}."));
+                                   "First argument to `run` must be an open connection."));
           done();
         });
     });
@@ -184,7 +184,7 @@ describe('Javascript connection API', function(){
 
         it("noreplyWait waits", withConnection(function(done, c){
             var t = new Date().getTime();
-            r.js('while(true);', {timeout: 0.5}).run({connection: c, noreply: true});
+            r.js('while(true);', {timeout: 0.5}).run(c, {noreply: true});
             c.noreplyWait(function (err) {
                 assertNull(err);
                 var duration = new Date().getTime() - t;
@@ -195,7 +195,7 @@ describe('Javascript connection API', function(){
 
         it("close waits by default", withConnection(function(done, c){
             var t = new Date().getTime();
-            r.js('while(true);', {timeout: 0.5}).run({connection: c, noreply: true});
+            r.js('while(true);', {timeout: 0.5}).run(c, {noreply: true});
             c.close(function (err) {
                 assertNull(err);
                 var duration = new Date().getTime() - t;
@@ -206,7 +206,7 @@ describe('Javascript connection API', function(){
 
         it("reconnect waits by default", withConnection(function(done, c){
             var t = new Date().getTime();
-            r.js('while(true);', {timeout: 0.5}).run({connection: c, noreply: true});
+            r.js('while(true);', {timeout: 0.5}).run(c, {noreply: true});
             c.reconnect(function (err) {
                 assertNull(err);
                 var duration = new Date().getTime() - t;
@@ -217,7 +217,7 @@ describe('Javascript connection API', function(){
 
         it("close does not wait if we want it not to", withConnection(function(done, c){
             var t = new Date().getTime();
-            r.js('while(true);', {timeout: 0.5}).run({connection: c, noreply: true});
+            r.js('while(true);', {timeout: 0.5}).run(c, {noreply: true});
             c.close({'noreplyWait': false}, function (err) {
                 assertNull(err);
                 var duration = new Date().getTime() - t;
@@ -228,7 +228,7 @@ describe('Javascript connection API', function(){
 
         it("reconnect does not wait if we want it not to", withConnection(function(done, c){
             var t = new Date().getTime();
-            r.js('while(true);', {timeout: 0.5}).run({connection: c, noreply: true});
+            r.js('while(true);', {timeout: 0.5}).run(c, {noreply: true});
             c.reconnect({'noreplyWait': false}, function (err) {
                 assertNull(err);
                 var duration = new Date().getTime() - t;
@@ -238,7 +238,7 @@ describe('Javascript connection API', function(){
         }));
 
         it("close waits even without callback", withConnection(function(done, c){
-            r.js('while(true);', {timeout: 0.5}).run({connection: c, noreply: true});
+            r.js('while(true);', {timeout: 0.5}).run(c, {noreply: true});
             c.close();
             r(1).run(c, noError(done));
         }));
@@ -257,38 +257,38 @@ describe('Javascript connection API', function(){
         it("useOutdated", withConnection(function(done, c){
             r.db('test').tableCreate('t1').run(c, function(){
                 r.db('test').table('t1', {useOutdated:true}).run(c, function(){
-                    r.table('t1').run({connection: c, useOutdated: true}, done);});});
+                    r.table('t1').run(c, {useOutdated: true}, done);});});
         }));
 
         it("test default durability", withConnection(function(done, c){
             r.db('test').tableCreate('t1').run(c, function(){
-                r.db('test').table('t1').insert({data:"5"}).run({connection: c, durability: "default"},
+                r.db('test').table('t1').insert({data:"5"}).run(c, {durability: "default"},
                     givesError("RqlRuntimeError", "Durability option `default` unrecognized (options are \"hard\" and \"soft\").", done));
             });
         }));
 
         it("test wrong durability", withConnection(function(done, c){
             r.db('test').tableCreate('t1').run(c, function(){
-                r.db('test').table('t1').insert({data:"5"}).run({connection: c, durability: "wrong"},
+                r.db('test').table('t1').insert({data:"5"}).run(c, {durability: "wrong"},
                     givesError("RqlRuntimeError", "Durability option `wrong` unrecognized (options are \"hard\" and \"soft\").", done))
             });
         }));
 
         it("test soft durability", withConnection(function(done, c){
             r.db('test').tableCreate('t1').run(c, function(){
-                r.db('test').table('t1').insert({data:"5"}).run({connection: c, durability: "soft"}, noError(done));
+                r.db('test').table('t1').insert({data:"5"}).run(c, {durability: "soft"}, noError(done));
             });
         }));
 
         it("test hard durability", withConnection(function(done, c){
             r.db('test').tableCreate('t1').run(c, function(){
-                r.db('test').table('t1').insert({data:"5"}).run({connection: c, durability: "hard"}, noError(done));
+                r.db('test').table('t1').insert({data:"5"}).run(c, {durability: "hard"}, noError(done));
             });
         }));
 
         it("test non-deterministic durability", withConnection(function(done, c){
             r.db('test').tableCreate('t1').run(c, function(){
-                r.db('test').table('t1').insert({data:"5"}).run({connection: c, durability: r.js("'so' + 'ft'")}, noError(done));
+                r.db('test').table('t1').insert({data:"5"}).run(c, {durability: r.js("'so' + 'ft'")}, noError(done));
             });
         }));
 

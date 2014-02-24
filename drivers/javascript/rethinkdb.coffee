@@ -1,5 +1,5 @@
-rethinkdb = require('./ast')
 net = require('./net')
+rethinkdb = require('./ast')
 protobuf = require('./protobuf')
 error = require('./errors')
 
