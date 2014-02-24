@@ -83,11 +83,10 @@ private:
     // was being accidentally default-initialized.
     batchspec_t() { } // USE ONLY FOR SERIALIZATION
     batchspec_t(batch_type_t batch_type, int64_t min_els, int64_t max_els,
-                int64_t max_size, int32_t first_scaledown, microtime_t end);
+                int64_t max_size, int64_t first_scaledown, microtime_t end);
 
     batch_type_t batch_type;
-    int64_t min_els, max_els, max_size;
-    int32_t first_scaledown_factor;
+    int64_t min_els, max_els, max_size, first_scaledown_factor;
     microtime_t end_time;
 };
 

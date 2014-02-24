@@ -23,7 +23,7 @@ batchspec_t::batchspec_t(
     int64_t _min_els,
     int64_t _max_els,
     int64_t _max_size,
-    int32_t _first_scaledown,
+    int64_t _first_scaledown,
     microtime_t _end_time)
     : batch_type(_batch_type),
       min_els(_min_els),
