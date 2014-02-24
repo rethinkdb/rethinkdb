@@ -815,7 +815,8 @@ THROWS_ONLY(interrupted_exc_t) {
         ql::groups_t data = {{counted_t<const ql::datum_t>(), ql::datums_t{val}}};
 
         for (auto it = job.transformers.begin(); it != job.transformers.end(); ++it) {
-            (**it)(&data);
+            (**it)(&data, sindex_val);
+            //            ^^^^^^^^^^ NULL if no sindex
         }
         // We need lots of extra data for the accumulation because we might be
         // accumulating `rget_item_t`s for a batch.
