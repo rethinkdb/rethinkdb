@@ -40,7 +40,7 @@ public:
     bool note_el(const T &t) {
         seen_one_el = true;
         els_left -= 1;
-        min_wanted_els_left -= 1;
+        min_els_left -= 1;
         size_left -= serialized_size(t);
         return should_send_batch();
     }
@@ -48,18 +48,19 @@ public:
     batcher_t(batcher_t &&other) :
         batch_type(std::move(other.batch_type)),
         seen_one_el(std::move(other.seen_one_el)),
+        min_els_left(std::move(other.min_els_left)),
         els_left(std::move(other.els_left)),
-        min_wanted_els_left(std::move(other.min_wanted_els_left)),
         size_left(std::move(other.size_left)),
         end_time(std::move(other.end_time)) { }
 private:
     DISABLE_COPYING(batcher_t);
     friend class batchspec_t;
-    batcher_t(batch_type_t batch_type, int64_t els, int64_t min_wanted_els, int64_t size, microtime_t end_time);
+    batcher_t(batch_type_t batch_type, int64_t min_els, int64_t max_els,
+              int64_t max_size, microtime_t end_time);
 
     const batch_type_t batch_type;
     bool seen_one_el;
-    int64_t els_left, min_wanted_els_left, size_left;
+    int64_t min_els_left, els_left, size_left;
     const microtime_t end_time;
 };
 
@@ -75,16 +76,17 @@ public:
     batchspec_t with_at_most(uint64_t max_els) const;
     batchspec_t scale_down(int64_t divisor) const;
     batcher_t to_batcher() const;
-    RDB_MAKE_ME_SERIALIZABLE_6(batch_type, els_left, min_wanted_els_left, size_left, first_scaledown_factor, end_time);
+    RDB_MAKE_ME_SERIALIZABLE_6(batch_type, min_els, max_els, max_size, \
+                               first_scaledown_factor, end_time);
 private:
     // I made this private and accessible through a static function because it
     // was being accidentally default-initialized.
     batchspec_t() { } // USE ONLY FOR SERIALIZATION
-    batchspec_t(batch_type_t batch_type, int64_t els, int64_t min_wanted_els,
-                int64_t size, int32_t first_scaledown, microtime_t end);
+    batchspec_t(batch_type_t batch_type, int64_t min_els, int64_t max_els,
+                int64_t max_size, int32_t first_scaledown, microtime_t end);
 
     batch_type_t batch_type;
-    int64_t els_left, min_wanted_els_left, size_left;
+    int64_t min_els, max_els, max_size;
     int32_t first_scaledown_factor;
     microtime_t end_time;
 };
