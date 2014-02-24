@@ -131,10 +131,16 @@ private:
         bool append_index = false;
         bool is_arr = false;
         if (counted_t<val_t> index = optarg(env, "index")) {
+            std::string index_str = index->as_str().to_std();
             counted_t<table_t> tbl = arg(env, 0)->as_table();
-            tbl->add_sorting(index->as_str().to_std(), sorting_t::ASCENDING, this);
+            if (index_str == tbl->get_pkey()) {
+                auto field = make_counted<const datum_t>(std::move(index_str));
+                funcs.push_back(new_get_field_func(field, backtrace()));
+            } else {
+                tbl->add_sorting(index_str, sorting_t::ASCENDING, this);
+                append_index = true;
+            }
             seq = tbl->as_datum_stream(env->env, backtrace());
-            append_index = true;
         } else {
             seq = arg(env, 0)->as_seq(env->env);
             is_arr = seq->is_array();
