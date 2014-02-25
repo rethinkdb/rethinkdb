@@ -421,6 +421,13 @@ tests:
         group_format: '"raw"'
       ot: ({'$reql_type$':'GROUPED_DATA', 'data':[[[0, 0], 25], [[1, 1], 25], [[2, 2], 25], [[3, 3], 25]]})
 
+    - cd: tbl.group('a', lambda {|row| 'f'}, lambda {|row| []}, lambda {|row| [{}, [0], nil, 0]}, multi:true).count
+      py: tbl.group('a', lambda row:'f', lambda row:[], lambda row:[{}, [0], null, 0], multi=True).count()
+      js: tbl.group('a', function(row){return 'f';}, function(row){return [];}, function(row){return [{}, [0], null, 0];}, {multi:true}).count()
+      runopts:
+        group_format: '"raw"'
+      ot: ({'$reql_type$':'GROUPED_DATA', 'data':[[[0], 100], [null, 100], [0, 125], [1, 25], [2, 25], [3, 25], [{}, 100], ["f", 100]]})
+
     # proper test for seq.count()
     - cd: tbl.count()
       ot: 100
