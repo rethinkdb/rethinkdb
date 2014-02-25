@@ -29,6 +29,7 @@ NOINLINE void set_errno(int new_errno) {
 
 NORETURN void crash_oom() {
     fprintf(stderr, "Out of memory.\n");
+    BREAKPOINT;
     abort();
 }
 
