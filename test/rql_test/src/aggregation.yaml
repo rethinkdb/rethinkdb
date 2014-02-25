@@ -426,7 +426,7 @@ tests:
       js: tbl.group('a', function(row){return 'f';}, function(row){return [];}, function(row){return [{}, [0], null, 0];}, {multi:true}).count()
       runopts:
         group_format: '"raw"'
-      ot: ({'$reql_type$':'GROUPED_DATA', 'data':[[[0], 100], [null, 100], [0, 125], [1, 25], [2, 25], [3, 25], [{}, 100], ["f", 100]]})
+      ot: ({'$reql_type$':'GROUPED_DATA', 'data':[[[0, "f", null, [0]], 25], [[0, "f", null, null], 25], [[0, "f", null, 0], 25], [[0, "f", null, {}], 25], [[1, "f", null, [0]], 25], [[1, "f", null, null], 25], [[1, "f", null, 0], 25], [[1, "f", null, {}], 25], [[2, "f", null, [0]], 25], [[2, "f", null, null], 25], [[2, "f", null, 0], 25], [[2, "f", null, {}], 25], [[3, "f", null, [0]], 25], [[3, "f", null, null], 25], [[3, "f", null, 0], 25], [[3, "f", null, {}], 25]]})
 
     # proper test for seq.count()
     - cd: tbl.count()
