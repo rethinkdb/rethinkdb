@@ -7,6 +7,7 @@
 #include <utility>
 
 #include "errors.hpp"
+#include "utils.hpp"
 
 // Like boost::scoped_ptr only with release, init, no bool conversion, no boost headers!
 template <class T>
@@ -214,11 +215,11 @@ class scoped_malloc_t {
 public:
     scoped_malloc_t() : ptr_(NULL) { }
     explicit scoped_malloc_t(void *ptr) : ptr_(static_cast<T *>(ptr)) { }
-    explicit scoped_malloc_t(size_t n) : ptr_(static_cast<T *>(malloc(n))) { }
+    explicit scoped_malloc_t(size_t n) : ptr_(static_cast<T *>(rmalloc(n))) { }
     scoped_malloc_t(const char *beg, const char *end) {
         rassert(beg <= end);
         size_t n = end - beg;
-        ptr_ = static_cast<T *>(malloc(n));
+        ptr_ = static_cast<T *>(rmalloc(n));
         memcpy(ptr_, beg, n);
     }
     scoped_malloc_t(scoped_malloc_t &&movee)

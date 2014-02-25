@@ -110,7 +110,7 @@ public:
     are greater than or equal to 'min' and such that ((id - min) % mod_count) == mod_id. */
     translator_serializer_t(serializer_t *inner, int mod_count, int mod_id, config_block_id_t cfgid);
 
-    scoped_malloc_t<ser_buffer_t> malloc();
+    scoped_malloc_t<ser_buffer_t> allocate_buffer();
 
     /* Allocates a new io account for the underlying file */
     file_account_t *make_io_account(int priority, int outstanding_requests_limit);

@@ -27,6 +27,11 @@ NOINLINE void set_errno(int new_errno) {
     errno = new_errno;
 }
 
+NORETURN void crash_oom() {
+    fprintf(stderr, "Out of memory.\n");
+    abort();
+}
+
 void report_user_error(const char *msg, ...) {
     fprintf(stderr, "Version: %s\n", RETHINKDB_VERSION_STR);
     if (TLS_get_crashed()) {
@@ -139,6 +144,19 @@ void install_generic_crash_handler() {
     guarantee_err(res == 0, "Could not install PIPE handler");
 
     std::set_terminate(&terminate_handler);
+}
+
+/* If a call to `operator new()` or `operator new[]()` fails, we have to crash
+immediately.
+The default behavior of this handler is to throw an `std::bad_alloc` exception.
+However that is dangerous because it unwinds the stack and can cause side-effects
+including data corruption. */
+NORETURN void new_oom_handler() {
+    crash_oom();
+}
+
+void install_new_oom_handler() {
+    std::set_new_handler(&new_oom_handler);
 }
 
 

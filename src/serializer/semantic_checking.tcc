@@ -62,8 +62,8 @@ semantic_checking_serializer_t<inner_serializer_t>::~semantic_checking_serialize
 
 template<class inner_serializer_t>
 scoped_malloc_t<ser_buffer_t>
-semantic_checking_serializer_t<inner_serializer_t>::malloc() {
-    return inner_serializer.malloc();
+semantic_checking_serializer_t<inner_serializer_t>::allocate_buffer() {
+    return inner_serializer.allocate_buffer();
 }
 
 template<class inner_serializer_t>

@@ -639,7 +639,7 @@ public:
                     continue;
                 }
 
-                scoped_malloc_t<ser_buffer_t> data = parent->serializer->malloc();
+                scoped_malloc_t<ser_buffer_t> data = parent->serializer->allocate_buffer();
                 memcpy(data.get(), current_buf, info.ser_block_size);
                 guarantee(info.ser_block_size <= *(lower_it + 1) - *lower_it);
 

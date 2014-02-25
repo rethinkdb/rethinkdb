@@ -400,7 +400,7 @@ log_serializer_t::~log_serializer_t() {
     rassert(active_write_count == 0);
 }
 
-scoped_malloc_t<ser_buffer_t> log_serializer_t::malloc() {
+scoped_malloc_t<ser_buffer_t> log_serializer_t::allocate_buffer() {
     scoped_malloc_t<ser_buffer_t> buf(
         malloc_aligned(static_config.block_size().ser_value(),
                        DEVICE_BLOCK_SIZE));

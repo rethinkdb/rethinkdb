@@ -281,7 +281,7 @@ current_page_t *page_cache_t::internal_page_for_new_chosen(block_id_t block_id) 
     rassert(recency_for_block_id(block_id) == repli_timestamp_t::invalid,
             "expected chosen block %" PR_BLOCK_ID "to be deleted", block_id);
 
-    scoped_malloc_t<ser_buffer_t> buf = serializer_->malloc();
+    scoped_malloc_t<ser_buffer_t> buf = serializer_->allocate_buffer();
 
 #if !defined(NDEBUG) || defined(VALGRIND)
     // KSI: This should actually _not_ exist -- we are ignoring legitimate errors
@@ -714,7 +714,7 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq,
                     // TODO: We should consider whether we really want this behavior.
 
                     scoped_malloc_t<ser_buffer_t> buf
-                        = help.page_cache->serializer()->malloc();
+                        = help.page_cache->serializer()->allocate_buffer();
 
 #if !defined(NDEBUG) || defined(VALGRIND)
                     // KSI: This should actually _not_ exist -- we are ignoring
