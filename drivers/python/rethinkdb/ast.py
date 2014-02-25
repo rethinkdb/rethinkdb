@@ -424,8 +424,8 @@ class RqlQuery(object):
     def zip(self):
         return Zip(self)
 
-    def group(self, *args):
-        return Group(self, *[func_wrap(arg) for arg in args])
+    def group(self, *args, **kwargs):
+        return Group(self, *[func_wrap(arg) for arg in args], **kwargs)
 
     def for_each(self, mapping):
         return ForEach(self, func_wrap(mapping))
