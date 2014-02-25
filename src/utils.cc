@@ -33,13 +33,11 @@
 #include "debug.hpp"
 #include "logger.hpp"
 #include "rdb_protocol/ql2.pb.h"
-#include "safe_malloc.hpp"
 #include "thread_local.hpp"
 
 void run_generic_global_startup_behavior() {
     install_generic_crash_handler();
     install_new_oom_handler();
-    init_safe_malloc();
 
     // Set the locale to C, because some ReQL terms may produce different
     // results in different locales, and we need to avoid data divergence when

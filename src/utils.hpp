@@ -15,8 +15,6 @@
 #include "errors.hpp"
 #include "config/args.hpp"
 
-// TODO: This header file contains too many different things. Split it up.
-
 // Using `malloc()` is dangerous. Use `rmalloc()` instead to make sure
 // that the return value of `malloc()` is checked correctly.
 #define DANGEROUS_MALLOC malloc
@@ -66,6 +64,7 @@ void *malloc_aligned(size_t size, size_t alignment);
 void *rmalloc(size_t size);
 /* Calls `realloc()` and checks its return value to crash if the allocation fails. */
 void *rrealloc(void *ptr, size_t size);
+
 
 
 
