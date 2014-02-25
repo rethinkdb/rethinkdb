@@ -118,7 +118,7 @@ private:
 class group_term_t : public op_term_t {
 public:
     group_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(2, -1)) { }
+        : op_term_t(env, term, argspec_t(1, -1), optargspec_t({"index"})) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         std::vector<counted_t<func_t> > funcs;
@@ -126,10 +126,31 @@ private:
         for (size_t i = 1; i < num_args(); ++i) {
             funcs.push_back(arg(env, i)->as_func(GET_FIELD_SHORTCUT));
         }
-        counted_t<datum_stream_t> seq = arg(env, 0)->as_seq(env->env);
-        bool is_arr = seq->is_array();
+
+        counted_t<datum_stream_t> seq;
+        bool append_index = false;
+        bool is_arr = false;
+        if (counted_t<val_t> index = optarg(env, "index")) {
+            std::string index_str = index->as_str().to_std();
+            counted_t<table_t> tbl = arg(env, 0)->as_table();
+            if (index_str == tbl->get_pkey()) {
+                auto field = make_counted<const datum_t>(std::move(index_str));
+                funcs.push_back(new_get_field_func(field, backtrace()));
+            } else {
+                tbl->add_sorting(index_str, sorting_t::ASCENDING, this);
+                append_index = true;
+            }
+            seq = tbl->as_datum_stream(env->env, backtrace());
+        } else {
+            seq = arg(env, 0)->as_seq(env->env);
+            is_arr = seq->is_array();
+        }
+
+        rcheck((funcs.size() + append_index) != 0, base_exc_t::GENERIC,
+               "Cannot group by nothing.");
+
         seq = seq->add_grouping(
-            env->env, group_wire_func_t(std::move(funcs)), backtrace());
+            env->env, group_wire_func_t(std::move(funcs), append_index), backtrace());
 
         return is_arr ? seq->to_array(env->env) : new_val(env->env, seq);
     }
@@ -211,8 +232,9 @@ private:
         std::string sid = (sindex.has() ? sindex->as_str().to_std() : tbl->get_pkey());
 
         tbl->add_bounds(
-            datum_range_t(lb, left_open(env) ? key_range_t::open : key_range_t::closed,
-                          rb, right_open(env) ? key_range_t::open : key_range_t::closed),
+            datum_range_t(
+                lb, left_open(env) ? key_range_t::open : key_range_t::closed,
+                rb, right_open(env) ? key_range_t::open : key_range_t::closed),
             sid, this);
         return new_val(tbl);
     }
