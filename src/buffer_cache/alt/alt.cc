@@ -6,6 +6,7 @@
 #include "arch/runtime/coroutines.hpp"
 #include "buffer_cache/alt/stats.hpp"
 #include "concurrency/auto_drainer.hpp"
+#include "utils.hpp"
 
 #define ALT_DEBUG 0
 

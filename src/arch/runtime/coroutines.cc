@@ -6,6 +6,8 @@
 
 #include <functional>
 #ifndef NDEBUG
+#include <map>
+#include <set>
 #include <stack>
 #endif
 

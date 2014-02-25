@@ -3,8 +3,8 @@
 #define ARCH_TIMING_HPP_
 
 #include "arch/timer.hpp"
+#include "concurrency/interruptor.hpp"
 #include "concurrency/signal.hpp"
-#include "utils.hpp"
 
 /* Coroutine function that delays for some number of milliseconds. */
 

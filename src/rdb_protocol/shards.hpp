@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_SHARDS_HPP_
 #define RDB_PROTOCOL_SHARDS_HPP_
 
@@ -6,8 +6,6 @@
 #include <limits>
 #include <utility>
 #include <vector>
-
-#include "utils.hpp"
 
 #include "btree/concurrent_traversal.hpp"
 #include "btree/keys.hpp"

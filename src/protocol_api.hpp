@@ -11,12 +11,15 @@
 #include "buffer_cache/types.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/fifo_enforcer.hpp"
+#include "concurrency/interruptor.hpp"
 #include "concurrency/signal.hpp"
 #include "containers/binary_blob.hpp"
 #include "containers/scoped.hpp"
 #include "containers/object_buffer.hpp"
 #include "rpc/serialize_macros.hpp"
 #include "timestamps.hpp"
+
+enum region_join_result_t { REGION_JOIN_OK, REGION_JOIN_BAD_JOIN, REGION_JOIN_BAD_REGION };
 
 class traversal_progress_combiner_t;
 

@@ -4,6 +4,7 @@
 
 #include "containers/scoped.hpp"
 #include "containers/intrusive_list.hpp"
+#include "concurrency/interruptor.hpp"
 #include "concurrency/promise.hpp"
 #include "arch/io/concurrency.hpp"
 #include "arch/runtime/runtime.hpp"

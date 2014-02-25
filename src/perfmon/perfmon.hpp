@@ -15,6 +15,7 @@
 #include <memory>
 
 #include "concurrency/cache_line_padded.hpp"
+#include "config/args.hpp"
 #include "perfmon/types.hpp"
 #include "perfmon/core.hpp"
 #include "time.hpp"
