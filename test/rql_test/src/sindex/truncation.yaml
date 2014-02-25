@@ -63,6 +63,6 @@ tests:
   - def:
       rb: runner = tbl
   - def:
-      rb: subrunner = class << runner; def run(*args); args[-1] = {batch_conf:{max_els:100, max_size:1000000000000, max_dur:10000000000}}; self.orderby('a', index:'idi').run(*args).to_a.count; end; end
+      rb: subrunner = class << runner; def run(*args); args[-1] = {batch_conf:{max_els:100, first_scaledown:1, max_size:1000000000000, max_dur:10000000000}}; self.orderby('a', index:'idi').run(*args).to_a.count; end; end
   - rb: runner
     ot: 303
