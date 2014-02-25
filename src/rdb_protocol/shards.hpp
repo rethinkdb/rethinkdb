@@ -190,7 +190,9 @@ class op_t {
 public:
     op_t() { }
     virtual ~op_t() { }
-    virtual void operator()(groups_t *groups) = 0;
+    virtual void operator()(groups_t *groups,
+                            // sindex_val may be NULL
+                            const counted_t<const datum_t> &sindex_val) = 0;
 };
 
 class accumulator_t {

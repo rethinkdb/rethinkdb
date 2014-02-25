@@ -2,7 +2,10 @@
 #include "clustering/administration/cli/admin_command_parser.hpp"
 
 #include <stdarg.h>
+
+#ifdef HAS_TERMCAP
 #include <termcap.h>
+#endif
 
 #include <map>
 #include <stdexcept>
@@ -314,6 +317,15 @@ admin_command_parser_t::param_options_t *admin_command_parser_t::command_info_t:
 }
 
 admin_command_parser_t::admin_term_cap_t::admin_term_cap_t(fd_t fd) {
+
+#ifndef HAS_TERMCAP
+
+    (void) fd; // UNUSED
+
+    return;
+
+#else
+
     bool is_a_tty = isatty(fd);
 
     // If the end-point is not a tty, no control characters
@@ -356,6 +368,9 @@ admin_command_parser_t::admin_term_cap_t::admin_term_cap_t(fd_t fd) {
     if (underline_cstr != NULL) {
         underline_str.assign(underline_cstr);
     }
+
+#endif /* HAS_TERMCAP */
+
 }
 
 // TODO: these may need padding on some terminals (though that seems unlikely)

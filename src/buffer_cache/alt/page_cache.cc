@@ -1315,8 +1315,11 @@ void page_cache_t::im_waiting_for_flush(std::set<page_txn_t *> queue) {
         }
 
         rassert(txn->began_waiting_for_flush_);
-        rassert(!txn->spawned_flush_);
         rassert(txn->live_acqs_.empty());
+
+        if (txn->spawned_flush_) {
+            continue;
+        }
 
         // We have a new node that's waiting for flush.  Before this node is flushed, we
         // will have started to flush all preceders (recursively) of this node (that are

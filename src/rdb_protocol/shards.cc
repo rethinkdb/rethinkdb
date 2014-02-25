@@ -467,7 +467,7 @@ eager_acc_t *make_eager_terminal(env_t *env, const terminal_variant_t &t) {
 class ungrouped_op_t : public op_t {
 protected:
 private:
-    virtual void operator()(groups_t *groups) {
+    virtual void operator()(groups_t *groups, const counted_t<const datum_t> &) {
         for (auto it = groups->begin(); it != groups->end(); ++it) {
             lst_transform(&it->second);
             if (it->second.size() == 0) {
@@ -481,17 +481,18 @@ private:
 class group_trans_t : public op_t {
 public:
     group_trans_t(env_t *_env, const group_wire_func_t &f)
-        : env(_env), funcs(f.compile_funcs()) {
-        r_sanity_check(funcs.size() != 0);
+        : env(_env), funcs(f.compile_funcs()), append_index(f.should_append_index()) {
+        r_sanity_check((funcs.size() + append_index) != 0);
     }
 private:
-    virtual void operator()(groups_t *groups) {
+    virtual void operator()(groups_t *groups,
+                            const counted_t<const datum_t> &sindex_val) {
         if (groups->size() == 0) return;
         r_sanity_check(groups->size() == 1 && !groups->begin()->first.has());
         datums_t *ds = &groups->begin()->second;
         for (auto el = ds->begin(); el != ds->end(); ++el) {
             std::vector<counted_t<const datum_t> > arr;
-            arr.reserve(funcs.size());
+            arr.reserve(funcs.size() + append_index);
             for (auto f = funcs.begin(); f != funcs.end(); ++f) {
                 try {
                     try {
@@ -508,7 +509,11 @@ private:
                     throw exc_t(e, (*f)->backtrace().get(), 1);
                 }
             }
-            r_sanity_check(arr.size() == funcs.size());
+            if (append_index) {
+                r_sanity_check(sindex_val.has());
+                arr.push_back(sindex_val);
+            }
+            r_sanity_check(arr.size() == (funcs.size() + append_index));
             counted_t<const datum_t> group = arr.size() == 1
                 ? std::move(arr[0])
                 : make_counted<const datum_t>(std::move(arr));
@@ -524,6 +529,7 @@ private:
     }
     env_t *env;
     std::vector<counted_t<func_t> > funcs;
+    bool append_index;
 };
 
 class map_trans_t : public ungrouped_op_t {

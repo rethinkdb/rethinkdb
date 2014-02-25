@@ -48,11 +48,13 @@ private:
 class group_wire_func_t {
 public:
     group_wire_func_t() { }
-    explicit group_wire_func_t(std::vector<counted_t<func_t> > &&_funcs);
+    group_wire_func_t(std::vector<counted_t<func_t> > &&_funcs, bool _append_index);
     std::vector<counted_t<func_t> > compile_funcs() const;
+    bool should_append_index() const;
     RDB_DECLARE_ME_SERIALIZABLE;
 private:
     std::vector<wire_func_t> funcs;
+    bool append_index;
 };
 
 class map_wire_func_t : public wire_func_t {

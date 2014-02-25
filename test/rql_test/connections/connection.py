@@ -6,6 +6,7 @@ import random
 import socket
 import threading
 import SocketServer
+import datetime
 from sys import argv
 from subprocess import Popen
 from time import sleep, time
@@ -372,7 +373,30 @@ class TestBatching(TestWithConnection):
         self.assertGreaterEqual(len(cursor.responses), 1)
         self.assertGreaterEqual(len(cursor.responses[0].response), 1)
 
-# # TODO: test cursors, streaming large values
+class TestGroupWithTimeKey(TestWithConnection):
+    def runTest(self):
+        c = r.connect(port=self.port)
+
+        r.db('test').table_create('times').run(c)
+
+        time1 = 1375115782.24
+        rt1 = r.epoch_time(time1).in_timezone('+00:00')
+        dt1 = datetime.datetime.fromtimestamp(time1, r.ast.RqlTzinfo('+00:00'))
+        time2 = 1375147296.68
+        rt2 = r.epoch_time(time2).in_timezone('+00:00')
+        dt2 = datetime.datetime.fromtimestamp(time2, r.ast.RqlTzinfo('+00:00'))
+
+        res = r.table('times').insert({'id':0,'time':rt1}).run(c)
+        self.assertEqual(res['inserted'], 1)
+        res = r.table('times').insert({'id':1,'time':rt2}).run(c)
+        self.assertEqual(res['inserted'], 1)
+
+        expected_row1 = {'id':0,'time':dt1}
+        expected_row2 = {'id':1,'time':dt2}
+
+        groups = r.table('times').group('time').coerce_to('array').run(c)
+        self.assertEqual(groups, {dt1:[expected_row1],dt2:[expected_row2]})
+
 
 if __name__ == '__main__':
     print "Running py connection tests"
@@ -387,6 +411,7 @@ if __name__ == '__main__':
     suite.addTest(loader.loadTestsFromTestCase(TestShutdown))
     suite.addTest(TestPrinting())
     suite.addTest(TestBatching())
+    suite.addTest(TestGroupWithTimeKey())
 
     res = unittest.TextTestRunner(verbosity=2).run(suite)
 

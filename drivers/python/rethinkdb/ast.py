@@ -343,6 +343,9 @@ class RqlQuery(object):
     def match(self, pattern):
         return Match(self, pattern)
 
+    def split(self, *args):
+        return Split(self, *args)
+
     def upcase(self):
         return Upcase(self)
 
@@ -401,7 +404,7 @@ class RqlQuery(object):
     # NB: Can't overload __len__ because Python doesn't
     #     allow us to return a non-integer
     def count(self, filter=()):
-        if filter == ():
+        if filter is ():
             return Count(self)
         else:
             return Count(self, func_wrap(filter))
@@ -421,8 +424,8 @@ class RqlQuery(object):
     def zip(self):
         return Zip(self)
 
-    def group(self, *args):
-        return Group(self, *[func_wrap(arg) for arg in args])
+    def group(self, *args, **kwargs):
+        return Group(self, *[func_wrap(arg) for arg in args], **kwargs)
 
     def for_each(self, mapping):
         return ForEach(self, func_wrap(mapping))
@@ -1050,6 +1053,10 @@ class Nth(RqlBracketQuery):
 class Match(RqlMethodQuery):
     tt = p.Term.MATCH
     st = 'match'
+
+class Split(RqlMethodQuery):
+    tt = p.Term.SPLIT
+    st = 'split'
 
 class Upcase(RqlMethodQuery):
     tt = p.Term.UPCASE

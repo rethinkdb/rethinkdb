@@ -29,7 +29,7 @@ const std::string connectivity_cluster_t::cluster_version(RETHINKDB_CODE_VERSION
 
 #if defined (__x86_64__)
 const std::string connectivity_cluster_t::cluster_arch_bitsize("64bit");
-#elif defined (__i386__)
+#elif defined (__i386__) || defined(__arm__)
 const std::string connectivity_cluster_t::cluster_arch_bitsize("32bit");
 #else
 #error "Could not determine architecture"
