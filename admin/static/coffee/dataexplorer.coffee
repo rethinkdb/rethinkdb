@@ -3483,6 +3483,10 @@ module 'DataExplorerView', ->
 
             @set_scrollbar()
             @delegateEvents()
+            @$('.execution_time').tooltip
+                for_dataexplorer: true
+                trigger: 'hover'
+                placement: 'bottom'
             return @
  
            
