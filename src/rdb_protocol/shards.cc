@@ -481,7 +481,11 @@ private:
 class group_trans_t : public op_t {
 public:
     group_trans_t(env_t *_env, const group_wire_func_t &f)
-        : env(_env), funcs(f.compile_funcs()), append_index(f.should_append_index()) {
+        : env(_env),
+          funcs(f.compile_funcs()),
+          append_index(f.should_append_index()),
+          multi(f.is_multi()),
+          bt(f.get_bt()) {
         r_sanity_check((funcs.size() + append_index) != 0);
     }
 private:
@@ -514,13 +518,30 @@ private:
                 arr.push_back(sindex_val);
             }
             r_sanity_check(arr.size() == (funcs.size() + append_index));
-            counted_t<const datum_t> group = arr.size() == 1
-                ? std::move(arr[0])
-                : make_counted<const datum_t>(std::move(arr));
-            r_sanity_check(group.has());
-            (*groups)[group].push_back(*el);
-            rcheck_target(
-                funcs[0], base_exc_t::GENERIC,
+
+            if (!multi) {
+                counted_t<const datum_t> group = arr.size() == 1
+                    ? std::move(arr[0])
+                    : make_counted<const datum_t>(std::move(arr));
+                r_sanity_check(group.has());
+                (*groups)[group].push_back(*el);
+            } else {
+                for (auto group = arr.begin(); group != arr.end(); ++group) {
+                    r_sanity_check(group->has());
+                    if ((*group)->get_type() == datum_t::R_ARRAY) {
+                        auto subarr = (*group)->as_array();
+                        for (auto g = subarr.begin(); g != subarr.end(); ++g) {
+                            r_sanity_check(g->has());
+                            (*groups)[*g].push_back(*el);
+                        }
+                    } else {
+                        (*groups)[*group].push_back(*el);
+                    }
+                }
+            }
+
+            rcheck_src(
+                bt.get(), base_exc_t::GENERIC,
                 groups->size() <= array_size_limit(),
                 strprintf("Too many groups (> %zu).", array_size_limit()));
         }
@@ -529,7 +550,8 @@ private:
     }
     env_t *env;
     std::vector<counted_t<func_t> > funcs;
-    bool append_index;
+    bool append_index, multi;
+    protob_t<const Backtrace> bt;
 };
 
 class map_trans_t : public ungrouped_op_t {
