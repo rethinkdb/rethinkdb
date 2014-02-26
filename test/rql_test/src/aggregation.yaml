@@ -428,6 +428,9 @@ tests:
         group_format: '"raw"'
       ot: ({'$reql_type$':'GROUPED_DATA', 'data':[[[0, "f", null, [0]], 25], [[0, "f", null, null], 25], [[0, "f", null, 0], 25], [[0, "f", null, {}], 25], [[1, "f", null, [0]], 25], [[1, "f", null, null], 25], [[1, "f", null, 0], 25], [[1, "f", null, {}], 25], [[2, "f", null, [0]], 25], [[2, "f", null, null], 25], [[2, "f", null, 0], 25], [[2, "f", null, {}], 25], [[3, "f", null, [0]], 25], [[3, "f", null, null], 25], [[3, "f", null, 0], 25], [[3, "f", null, {}], 25]]})
 
+    - cd: tbl.group('a').count().groups_to_array()
+      ot: ([{'group':0, 'reduction':25}, {'group':1, 'reduction':25}, {'group':2, 'reduction':25}, {'group':3, 'reduction':25}])
+
     # proper test for seq.count()
     - cd: tbl.count()
       ot: 100

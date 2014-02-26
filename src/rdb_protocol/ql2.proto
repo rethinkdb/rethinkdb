@@ -612,6 +612,8 @@ message Term {
         // `str.split(" ", 5)` splits on spaces with at most 5 results
         // `str.split(nil, 5)` splits on whitespace with at most 5 results
         SPLIT = 149; // STRING -> ARRAY | STRING, STRING -> ARRAY | STRING, STRING, NUMBER -> ARRAY | STRING, NULL, NUMBER -> ARRAY
+
+        GROUPS_TO_ARRAY = 150; // GROUPED_DATA -> ARRAY
     }
     optional TermType type = 1;
 
