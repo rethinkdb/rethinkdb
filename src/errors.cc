@@ -7,7 +7,7 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
+#include <stdio.h>
 
 #include <typeinfo>
 
@@ -28,7 +28,9 @@ NOINLINE void set_errno(int new_errno) {
 }
 
 NORETURN void crash_oom() {
-    fprintf(stderr, "Out of memory.\n");
+    const char *message = "rethinkdb: Memory allocation failed. This usually means "
+                          "that we have run out of RAM. Aborting.\n";
+    fwrite(message, 1, strlen(message), stderr);
     abort();
 }
 
