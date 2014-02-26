@@ -70,6 +70,8 @@ module 'NamespaceView', ->
             @universe_replicas = new NamespaceView.DatacenterReplicas universe_datacenter.get('id'), @model
             @primary_datacenter = new NamespaceView.PrimaryDatacenter model: @model
 
+            @render_status() # Render the status
+
         # A method that is going to call multiple methods (triggered when replica_affinities are changed
         global_trigger_for_replica: =>
             @render_acks_greater_than_replicas()
@@ -178,6 +180,12 @@ module 'NamespaceView', ->
                     @.$('.replica-status').html @progress_bar.render(0, @expected_num_replicas, {}).$el
             else
                 # Blueprint was regenerated, so we can display the bar
+
+                # If a replica is not ready, we must display a progress bar.
+                # In case we don't, se skip to processing (we do not show the "Started stage"
+                if num_replicas_not_ready > 0 and @progress_bar.stage is 'none'
+                    @progress_bar.skip_to_processing() # We set the state to processing
+
                 if num_replicas_ready+num_replicas_not_ready is @expected_num_replicas
                     @.$('.replica-status').html @progress_bar.render(num_replicas_ready, num_replicas_ready+num_replicas_not_ready, progress_bar_info).$el
                 else # The blueprint was not regenerated, so we can consider that no replica is up to date

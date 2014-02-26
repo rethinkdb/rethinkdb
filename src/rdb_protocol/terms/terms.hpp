@@ -115,6 +115,8 @@ counted_t<term_t> make_json_term(
 // match.cc
 counted_t<term_t> make_match_term(
     compile_env_t *env, const protob_t<const Term> &term);
+counted_t<term_t> make_split_term(
+    compile_env_t *env, const protob_t<const Term> &term);
 
 // case.cc
 counted_t<term_t> make_upcase_term(
@@ -245,6 +247,8 @@ counted_t<term_t> make_portion_term(
 
 // type_manip.cc
 counted_t<term_t> make_coerce_term(
+    compile_env_t *env, const protob_t<const Term> &term);
+counted_t<term_t> make_groups_to_array_term(
     compile_env_t *env, const protob_t<const Term> &term);
 counted_t<term_t> make_typeof_term(
     compile_env_t *env, const protob_t<const Term> &term);

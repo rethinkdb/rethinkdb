@@ -214,7 +214,7 @@ module 'NamespaceView', ->
             'click .reconnect_link': 'init_connection'
             'click .close_hide': 'hide_alert'
         error_interval: 5*1000 # In case of an error, we try to retrieve the secondary index in 5 seconds
-        normal_interval: 60*1000 # Retrieve secondary indexes every minute
+        normal_interval: 10*1000 # Retrieve secondary indexes every 10 seconds
         short_interval: 1000 # Interval when an index is being created
 
         initialize: (args) =>
@@ -246,21 +246,40 @@ module 'NamespaceView', ->
 
             @loading = true
             @driver_handler = new DataExplorerView.DriverHandler
-                on_success: =>
-                    @get_indexes
-                        timer: true
-                on_fail: @on_fail_to_connect
-                dont_timeout_connection: true
+                container: @
+            @get_indexes()
 
-        get_indexes: (args) =>
-            if args?.timer is true
-                r.db(@db_name).table(@table).indexStatus().private_run @driver_handler.connection, @on_index_list_repeat
-            else
-                r.db(@db_name).table(@table).indexStatus().private_run @driver_handler.connection, @on_index_list
+        # Callback if an error occurred when opening a connection (or if connection emits an error)
+        error_on_connect: (error) =>
+            @render_error
+                index_list_fail: true
+            @get_indexes_with_delay @error_interval
 
-        on_index_list_repeat: (err, result) =>
-            @on_index_list err, result, true
+        # Retrieve the indexes after `interval`
+        # `interval` is the time (in seconds) we wait before executing get_indexes
+        get_indexes_with_delay: (interval) =>
+            if @timeout?
+                clearTimeout @timeout
+            @timeout = setTimeout @get_indexes, interval
 
+        # Retrieve all the indexes of this table
+        get_indexes: =>
+            @driver_handler.create_connection (error, connection) =>
+                if (error)
+                    # There was an error when we opened the connection
+                    @error_on_connect error
+                else
+                    r.db(@db_name).table(@table).indexStatus().private_run connection, (err, result) =>
+                        @on_index_list err, result
+
+                        # We have a setTimeout here to give the driver some time to release the connection before we close it.
+                        setTimeout ->
+                            connection.close()
+                        , 0
+            , 0, @error_on_connect # @error_on_connect is the last argument of create_connection, and is executed if the connection emits an error
+
+
+        # Callback executed when we retrieve the list of indexes
         on_index_list: (err, result, timer) =>
             if @loading is true
                 @loading = false
@@ -268,7 +287,7 @@ module 'NamespaceView', ->
             if err?
                 @render_error
                     index_list_fail: true
-                @timeout = setTimeout @get_indexes, @error_interval
+                @get_indexes_with_delay @error_interval
             else
                 index_hash = {}
                 indexes_not_ready = 0
@@ -293,20 +312,12 @@ module 'NamespaceView', ->
                         else
                             @$('.index_container').eq(position_new_index).after @indexes[index.index].render().$el
 
-                if timer
-                    if @timeout?
-                        clearTimeout @timeout
-                    if indexes_not_ready > 0
-                        @timeout = setTimeout =>
-                            @get_indexes
-                                timer: true
-                        , @short_interval
-                    else
-                        @timeout = setTimeout =>
-                            @get_indexes
-                                timer: true
-                        , @normal_interval
-
+                # If some indexes are not ready, we want a more responsive progress bar
+                # so we refresh with a smaller interval (@short_interval)
+                if indexes_not_ready > 0
+                    @get_indexes_with_delay @short_interval
+                else
+                    @get_indexes_with_delay @normal_interval
 
                 count = 0
                 for name, index of @indexes
@@ -332,8 +343,20 @@ module 'NamespaceView', ->
 
         # Delete a secondary index
         delete_index: (index) =>
-            r.db(@db_name).table(@table).indexDrop(index).private_run @driver_handler.connection, (err, result) =>
-                @on_drop err, result, index
+            #@driver_handler.close_connection()
+            @driver_handler.create_connection (error, connection) =>
+                if (error)
+                    @error_on_connect error
+                else
+                    r.db(@db_name).table(@table).indexDrop(index).private_run connection, (err, result) =>
+                        @on_drop err, result, index
+                        setTimeout ->
+                            connection.close()
+                        , 0
+
+
+            , @id_execution, @error_on_connect
+
 
         remove_index: (index) =>
             @$('.index_container[data-name="'+index+'"]').slideUp 200, ->
@@ -402,8 +425,20 @@ module 'NamespaceView', ->
             @$('.cancel_btn').prop 'disabled', 'disabled'
 
             index_name = $('.new_index_name').val()
-            r.db(@db_name).table(@table).indexCreate(index_name).private_run @driver_handler.connection, (err, result) =>
-                @on_create err, result, index_name
+            #@driver_handler.close_connection()
+            @driver_handler.create_connection (error, connection) =>
+                if (error)
+                    @error_on_connect error
+                else
+                    r.db(@db_name).table(@table).indexCreate(index_name).private_run connection, (err, result) =>
+                        @on_create err, result, index_name, index_name
+                        # We need a setimeout to avoid running two queries on the same connection
+                        setTimeout ->
+                            connection.close()
+                        , 0
+
+            , 0, @error_on_connect
+
 
         # Callback on indexCreate()
         on_create: (err, result, index_name) =>
@@ -436,12 +471,8 @@ module 'NamespaceView', ->
                         @$('.index_container').eq(position_new_index).after @indexes[index_name].render().$el
 
 
-                if @timeout?
-                    clearTimeout @timeout
-                @timeout = setTimeout =>
-                    @get_indexes
-                        timer: true
-                , 1000 # We delay the call of 1 second to retrieve a better estimate of the total number of blocks
+                # We delay the call of 1 second to retrieve a better estimate of the total number of blocks
+                @get_indexes_with_delay @short_interval
 
                 @render_feedback
                     create_ok: true

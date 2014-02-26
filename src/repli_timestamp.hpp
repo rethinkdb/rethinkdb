@@ -4,9 +4,8 @@
 
 #include <stdint.h>
 
-enum class archive_result_t;
-class read_stream_t;
-class write_message_t;
+#include "containers/archive/archive.hpp"
+
 class printf_buffer_t;
 
 

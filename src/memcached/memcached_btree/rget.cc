@@ -77,10 +77,12 @@ public:
                                                       mc_value->mcflags(),
                                                       data));
         cumulative_size += estimate_rget_result_pair_size(result.pairs.back());
-        return static_cast<int64_t>(result.pairs.size()) < maximum
-            && cumulative_size < rget_max_chunk_size
-            ? done_traversing_t::NO
-            : done_traversing_t::YES;
+        if ((static_cast<int64_t>(result.pairs.size()) < maximum)
+            && (cumulative_size < rget_max_chunk_size)) {
+            return done_traversing_t::NO;
+        } else {
+            return done_traversing_t::YES;
+        }
     }
     buf_parent_t parent;
     int maximum;

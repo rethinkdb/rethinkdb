@@ -279,6 +279,9 @@ class RqlQuery(object):
     def coerce_to(self, other_type):
         return CoerceTo(self, other_type)
 
+    def groups_to_array(self):
+        return GroupsToArray(self)
+
     def type_of(self):
         return TypeOf(self)
 
@@ -343,6 +346,9 @@ class RqlQuery(object):
     def match(self, pattern):
         return Match(self, pattern)
 
+    def split(self, *args):
+        return Split(self, *args)
+
     def upcase(self):
         return Upcase(self)
 
@@ -401,7 +407,7 @@ class RqlQuery(object):
     # NB: Can't overload __len__ because Python doesn't
     #     allow us to return a non-integer
     def count(self, filter=()):
-        if filter == ():
+        if filter is ():
             return Count(self)
         else:
             return Count(self, func_wrap(filter))
@@ -421,8 +427,8 @@ class RqlQuery(object):
     def zip(self):
         return Zip(self)
 
-    def group(self, *args):
-        return Group(self, *[func_wrap(arg) for arg in args])
+    def group(self, *args, **kwargs):
+        return Group(self, *[func_wrap(arg) for arg in args], **kwargs)
 
     def for_each(self, mapping):
         return ForEach(self, func_wrap(mapping))
@@ -1051,6 +1057,10 @@ class Match(RqlMethodQuery):
     tt = p.Term.MATCH
     st = 'match'
 
+class Split(RqlMethodQuery):
+    tt = p.Term.SPLIT
+    st = 'split'
+
 class Upcase(RqlMethodQuery):
     tt = p.Term.UPCASE
     st = 'upcase'
@@ -1090,6 +1100,10 @@ class Zip(RqlMethodQuery):
 class CoerceTo(RqlMethodQuery):
     tt = p.Term.COERCE_TO
     st = 'coerce_to'
+
+class GroupsToArray(RqlMethodQuery):
+    tt = p.Term.GROUPS_TO_ARRAY
+    st = 'groups_to_array'
 
 class TypeOf(RqlMethodQuery):
     tt = p.Term.TYPEOF

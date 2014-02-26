@@ -65,7 +65,9 @@ convertPseudotype = (obj, opts) ->
             switch opts.groupFormat
                 when 'native', undefined
                     # Don't convert the data into a map, because the keys could be objects which doesn't work in JS
-                    obj['data']
+                    # Instead, we have the following format:
+                    # [ { 'group': <group>, 'reduction': <value(s)> } }, ... ]
+                    { group: i[0], reduction: i[1] } for i in obj['data']
                 when 'raw'
                     obj
                 else
