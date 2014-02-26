@@ -377,8 +377,8 @@ module 'NamespaceView', ->
             @model.off 'change:primary_uuid', @render_primary_not_found
             @model.off 'change:replica_affinities', @render_acks_greater_than_replicas
             @model.off 'change:ack_expectations', @render_acks_greater_than_replicas
-            @model.on 'change:shards', @render_progress_server_update
-            progress_list.on 'all', @render_progress
+            @model.off 'change:shards', @render_progress_server_update
+            progress_list.off 'all', @render_progress
             directory.off 'all', @render_status
 
     class @DatacenterReplicas extends Backbone.View
