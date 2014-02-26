@@ -40,7 +40,6 @@ module 'NamespaceView', ->
 
             # Listeners for the progress bar
             @model.on 'change:shards', @global_trigger_for_shards  #This one contains render_data_repartition too
-            @model.on 'change:ack_expectations', @render_status_server_update
             directory.on 'all', @render_status
 
             @progress_bar = new UIComponents.OperationProgressBar @shard_status_template
@@ -530,7 +529,6 @@ module 'NamespaceView', ->
             issues.off 'all', @check_can_change_shards
             @model.off 'change:key_distr', @render_data_repartition
             @model.off 'change:shards', @global_trigger_for_shards
-            @model.off 'change:ack_expectations', @render_status_server_update
             directory.off 'all', @render_status
 
     # Modify replica counts and ack counts in each datacenter
