@@ -2564,7 +2564,7 @@ module 'DataExplorerView', ->
             "use strict"
             return eval(query)
 
-        # In a string \n becomes \\\\n, outside a string we just remove \n, so
+        # In a string \n becomes \\n, outside a string we just remove \n, so
         #   r
         #   .expr('hello
         #   world')
