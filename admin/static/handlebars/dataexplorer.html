@@ -205,7 +205,7 @@ Sorry, the data explorer does not support your browser. Please upgrade it. See t
         </ul>
         <p class="metadata">
             {{#if show_query_warning}}Results from the previous query:{{/if}}
-            {{#if execution_time_pretty}}Executed in <span title="This includes the HTTP traffic overhead" class="execution_time">{{execution_time_pretty}}</span>.{{/if}}
+            {{#if execution_time_pretty}}Executed in <span title="Queries originating from the web UI incur additional HTTP round-trip latency." class="execution_time">{{execution_time_pretty}}</span>.{{/if}}
             {{#if no_results}}No results returned.{{/if}}
             {{#if num_results}}{{num_results}} {{pluralize_noun 'row' num_results}} returned
                 {{#if limit_value}}, {{limit_value}} displayed{{/if}}{{#if skip_value}}, {{skip_value}} skipped{{/if}},
