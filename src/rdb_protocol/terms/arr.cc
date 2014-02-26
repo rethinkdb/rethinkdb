@@ -4,6 +4,7 @@
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/op.hpp"
+#include "stl_utils.hpp"
 
 namespace ql {
 

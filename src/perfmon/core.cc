@@ -1,9 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include <stdarg.h>
 
-#include "errors.hpp"
-#include <boost/tokenizer.hpp>
-
 #include "arch/runtime/coroutines.hpp"
 #include "containers/scoped.hpp"
 #include "containers/scoped_regex.hpp"

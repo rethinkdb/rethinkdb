@@ -2,6 +2,7 @@
 #ifndef BUFFER_CACHE_ALT_PAGE_CACHE_HPP_
 #define BUFFER_CACHE_ALT_PAGE_CACHE_HPP_
 
+#include <functional>
 #include <map>
 #include <utility>
 #include <vector>
