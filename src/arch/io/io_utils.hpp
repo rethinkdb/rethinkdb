@@ -2,6 +2,8 @@
 #ifndef ARCH_IO_IO_UTILS_HPP_
 #define ARCH_IO_IO_UTILS_HPP_
 
+#include <utility>
+
 #include "arch/runtime/runtime_utils.hpp"
 
 struct iovec;

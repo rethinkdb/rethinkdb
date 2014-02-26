@@ -2,9 +2,10 @@
 #include "unittest/gtest.hpp"
 
 #include "http/json.hpp"
-#include "rdb_protocol/rdb_protocol_json.hpp"
-#include "utils.hpp"
 #include "http/json/json_adapter.hpp"
+#include "rdb_protocol/rdb_protocol_json.hpp"
+#include "stl_utils.hpp"
+#include "utils.hpp"
 
 using query_language::json_cmp;
 

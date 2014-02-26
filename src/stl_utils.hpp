@@ -29,10 +29,6 @@ void debug_print(printf_buffer_t *buf, const std::vector<T> &vec);
 template <class T, class U>
 void debug_print(printf_buffer_t *buf, const std::pair<T, U> &p);
 
-template<class A, class B>
-std::map<B, A> invert_bijection_map(const std::map<A, B> &bijection);
-
-// We can't use C++11 stdlib on OS X yet.
 // We pass the first argument explicitly so that the compiler can infer the template parameters.
 template <class T, class... Args>
 std::vector<T> make_vector(const T &arg, Args... args) {
