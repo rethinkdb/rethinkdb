@@ -2583,7 +2583,7 @@ module 'DataExplorerView', ->
 
                 if is_parsing_string is true
                     if char is string_delimiter and query[i-1]? and query[i-1] isnt '\\'
-                        result_query += query.slice(start, i+1).replace(/\n/g, '\\\\n')
+                        result_query += query.slice(start, i+1).replace(/\n/g, '\\n')
                         start = i+1
                         is_parsing_string = false
                         continue
