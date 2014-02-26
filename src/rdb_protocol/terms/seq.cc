@@ -118,7 +118,7 @@ private:
 class group_term_t : public op_term_t {
 public:
     group_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(1, -1), optargspec_t({"index"})) { }
+        : op_term_t(env, term, argspec_t(1, -1), optargspec_t({"index", "multi"})) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         std::vector<counted_t<func_t> > funcs;
@@ -149,8 +149,14 @@ private:
         rcheck((funcs.size() + append_index) != 0, base_exc_t::GENERIC,
                "Cannot group by nothing.");
 
+        bool multi = false;
+        if (counted_t<val_t> multi_val = optarg(env, "multi")) {
+            multi = multi_val->as_bool();
+        }
+
         seq = seq->add_grouping(
-            env->env, group_wire_func_t(std::move(funcs), append_index), backtrace());
+            env->env,
+            group_wire_func_t(std::move(funcs), append_index, multi), backtrace());
 
         return is_arr ? seq->to_array(env->env) : new_val(env->env, seq);
     }
