@@ -530,7 +530,7 @@ private:
                         auto subarr = arr[i]->as_array();
                         perms[i].reserve(subarr.size());
                         for (auto it = subarr.begin(); it != subarr.end(); ++it) {
-                            perms[i].push_back(std::move(*it));
+                            perms[i].push_back(*it);
                         }
                     }
                 }
