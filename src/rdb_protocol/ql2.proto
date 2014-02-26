@@ -606,6 +606,12 @@ message Term {
         AVG = 146;
         MIN = 147;
         MAX = 148;
+
+        // `str.split()` splits on whitespace
+        // `str.split(" ")` splits on spaces only
+        // `str.split(" ", 5)` splits on spaces with at most 5 results
+        // `str.split(nil, 5)` splits on whitespace with at most 5 results
+        SPLIT = 149; // STRING -> ARRAY | STRING, STRING -> ARRAY | STRING, STRING, NUMBER -> ARRAY | STRING, NULL, NUMBER -> ARRAY
     }
     optional TermType type = 1;
 

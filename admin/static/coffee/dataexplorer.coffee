@@ -2433,7 +2433,7 @@ module 'DataExplorerView', ->
                         if (error)
                             @error_on_connect error
                         else
-                            rdb_query.private_run {connection: connection, timeFormat: "raw", profile: @state.options.profiler}, rdb_global_callback # @rdb_global_callback can be fired more than once
+                            rdb_query.private_run connection, {timeFormat: "raw", profile: @state.options.profiler}, rdb_global_callback # @rdb_global_callback can be fired more than once
                     , @id_execution, @error_on_connect
 
                     return true

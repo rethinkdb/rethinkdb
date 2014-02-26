@@ -233,6 +233,7 @@ reader_t::next_batch(env_t *env, const batchspec_t &batchspec) {
     std::vector<counted_t<const datum_t> > res;
     switch (batchspec.get_batch_type()) {
     case batch_type_t::NORMAL: // fallthru
+    case batch_type_t::NORMAL_FIRST: // fallthru
     case batch_type_t::TERMINAL: {
         res.reserve(items.size() - items_index);
         for (; items_index < items.size(); ++items_index) {
@@ -599,7 +600,7 @@ done_traversing_t eager_datum_stream_t::next_grouped_batch(
         if (v.size() == 0) return done_traversing_t::YES;
         (*out)[counted_t<const datum_t>()] = std::move(v);
         for (auto it = ops.begin(); it != ops.end(); ++it) {
-            (**it)(out);
+            (**it)(out, counted_t<const datum_t>());
         }
     }
     return done_traversing_t::NO;
