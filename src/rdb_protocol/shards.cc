@@ -481,7 +481,11 @@ private:
 class group_trans_t : public op_t {
 public:
     group_trans_t(env_t *_env, const group_wire_func_t &f)
-        : env(_env), funcs(f.compile_funcs()), append_index(f.should_append_index()) {
+        : env(_env),
+          funcs(f.compile_funcs()),
+          append_index(f.should_append_index()),
+          multi(f.is_multi()),
+          bt(f.get_bt()) {
         r_sanity_check((funcs.size() + append_index) != 0);
     }
 private:
@@ -514,22 +518,76 @@ private:
                 arr.push_back(sindex_val);
             }
             r_sanity_check(arr.size() == (funcs.size() + append_index));
-            counted_t<const datum_t> group = arr.size() == 1
-                ? std::move(arr[0])
-                : make_counted<const datum_t>(std::move(arr));
-            r_sanity_check(group.has());
-            (*groups)[group].push_back(*el);
-            rcheck_target(
-                funcs[0], base_exc_t::GENERIC,
+
+            if (!multi) {
+                add(groups, std::move(arr), *el);
+            } else {
+                std::vector<std::vector<counted_t<const datum_t> > > perms(arr.size());
+                for (size_t i = 0; i < arr.size(); ++i) {
+                    if (arr[i]->get_type() != datum_t::R_ARRAY) {
+                        perms[i].push_back(arr[i]);
+                    } else {
+                        auto subarr = arr[i]->as_array();
+                        perms[i].reserve(subarr.size());
+                        for (auto it = subarr.begin(); it != subarr.end(); ++it) {
+                            perms[i].push_back(*it);
+                        }
+                    }
+                }
+                std::vector<counted_t<const datum_t> > instance;
+                instance.reserve(perms.size());
+                add_perms(groups, &instance, &perms, 0, *el);
+                r_sanity_check(instance.size() == 0);
+            }
+
+            rcheck_src(
+                bt.get(), base_exc_t::GENERIC,
                 groups->size() <= array_size_limit(),
                 strprintf("Too many groups (> %zu).", array_size_limit()));
         }
         size_t erased = groups->erase(counted_t<const datum_t>());
         r_sanity_check(erased == 1);
     }
+
+    void add(groups_t *groups,
+             std::vector<counted_t<const datum_t> > &&arr,
+             const counted_t<const datum_t> &el) {
+        counted_t<const datum_t> group = arr.size() == 1
+            ? std::move(arr[0])
+            : make_counted<const datum_t>(std::move(arr));
+        r_sanity_check(group.has());
+        (*groups)[group].push_back(el);
+    }
+
+    void add_perms(groups_t *groups,
+                   std::vector<counted_t<const datum_t> > *instance,
+                   std::vector<std::vector<counted_t<const datum_t> > > *arr,
+                   size_t index,
+                   const counted_t<const datum_t> &el) {
+        r_sanity_check(index == instance->size());
+        if (index >= arr->size()) {
+            r_sanity_check(instance->size() == arr->size());
+            add(groups, std::vector<counted_t<const datum_t> >(*instance), el);
+        } else {
+            auto vec = (*arr)[index];
+            if (vec.size() != 0) {
+                for (auto it = vec.begin(); it != vec.end(); ++it) {
+                    instance->push_back(std::move(*it));
+                    add_perms(groups, instance, arr, index + 1, el);
+                    instance->pop_back();
+                }
+            } else {
+                instance->push_back(make_counted<const datum_t>(datum_t::R_NULL));
+                add_perms(groups, instance, arr, index + 1, el);
+                instance->pop_back();
+            }
+        }
+    }
+
     env_t *env;
     std::vector<counted_t<func_t> > funcs;
-    bool append_index;
+    bool append_index, multi;
+    protob_t<const Backtrace> bt;
 };
 
 class map_trans_t : public ungrouped_op_t {
