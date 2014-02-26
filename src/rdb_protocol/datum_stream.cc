@@ -592,37 +592,39 @@ counted_t<datum_stream_t> eager_datum_stream_t::add_transformation(
     return counted_from_this();
 }
 
-done_traversing_t eager_datum_stream_t::next_grouped_batch(
+eager_datum_stream_t::done_t eager_datum_stream_t::next_grouped_batch(
     env_t *env, const batchspec_t &bs, groups_t *out) {
     r_sanity_check(out->size() == 0);
     while (out->size() == 0) {
         std::vector<counted_t<const datum_t> > v = next_raw_batch(env, bs);
-        if (v.size() == 0) return done_traversing_t::YES;
+        if (v.size() == 0) {
+            return done_t::YES;
+        }
         (*out)[counted_t<const datum_t>()] = std::move(v);
         for (auto it = ops.begin(); it != ops.end(); ++it) {
             (**it)(out, counted_t<const datum_t>());
         }
     }
-    return done_traversing_t::NO;
+    return done_t::NO;
 }
 
 void eager_datum_stream_t::accumulate(
     env_t *env, eager_acc_t *acc, const terminal_variant_t &) {
     batchspec_t bs = batchspec_t::user(batch_type_t::TERMINAL, env);
     groups_t data;
-    while (next_grouped_batch(env, bs, &data) == done_traversing_t::NO) {
+    while (next_grouped_batch(env, bs, &data) == done_t::NO) {
         (*acc)(&data);
     }
 }
 
 void eager_datum_stream_t::accumulate_all(env_t *env, eager_acc_t *acc) {
     groups_t data;
-    done_traversing_t done = next_grouped_batch(env, batchspec_t::all(), &data);
+    done_t done = next_grouped_batch(env, batchspec_t::all(), &data);
     (*acc)(&data);
-    if (done == done_traversing_t::NO) {
-        done_traversing_t must_be_yes = next_grouped_batch(env, batchspec_t::all(), &data);
+    if (done == done_t::NO) {
+        done_t must_be_yes = next_grouped_batch(env, batchspec_t::all(), &data);
         r_sanity_check(data.size() == 0);
-        r_sanity_check(must_be_yes == done_traversing_t::YES);
+        r_sanity_check(must_be_yes == done_t::YES);
     }
 }
 

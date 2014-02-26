@@ -139,6 +139,8 @@ protected:
     bool ops_to_do() { return ops.size() != 0; }
 
 private:
+    enum class done_t { YES, NO };
+
     virtual bool is_array() = 0;
 
     virtual counted_t<datum_stream_t> add_transformation(
@@ -146,7 +148,7 @@ private:
     virtual void accumulate(env_t *env, eager_acc_t *acc, const terminal_variant_t &tv);
     virtual void accumulate_all(env_t *env, eager_acc_t *acc);
 
-    done_traversing_t next_grouped_batch(env_t *env, const batchspec_t &bs, groups_t *out);
+    done_t next_grouped_batch(env_t *env, const batchspec_t &bs, groups_t *out);
     virtual std::vector<counted_t<const datum_t> >
     next_batch_impl(env_t *env, const batchspec_t &bs);
     virtual std::vector<counted_t<const datum_t> >
