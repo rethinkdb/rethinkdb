@@ -150,12 +150,18 @@ module 'NamespaceView', ->
                 @.$('.replica-status').html @progress_bar.render(0, expected_num_replicas, progress_bar_info).$el
                 @expected_num_replicas = progress_bar_info.new_value # Let's cache this value for the case when the blueprint was not regenerated (yet)
 
+                # Reset the number of replicated blocks
+                @total_blocks = undefined
+                @replicated_blocks = undefined
             # The server did valid the changes the user just made
             else if progress_bar_info?.got_response is true
                 expected_num_replicas = progress_bar_info.replicas_length*progress_bar_info.shards_length
                 @.$('.replica-status').html @progress_bar.render(0, expected_num_replicas, progress_bar_info).$el
 
+                # Reset the number of replicated blocks
                 @expected_num_replicas = expected_num_replicas # Let's cache this value for the case when the blueprint was not regenerated (yet)
+                @total_blocks = undefined
+                @replicated_blocks = undefined
 
             # If we got an update from progress_list
             else if progress_bar_info?.backfilling_updated is true
@@ -164,16 +170,23 @@ module 'NamespaceView', ->
                     backfilling_info = DataUtils.get_backfill_progress_agg @model.get('id')
 
                     if backfilling_info is null or backfilling_info.total_blocks is -1 # If there is no backfilling
+                        # Backfilling sent back non valid info, so we reset the values for replication
+                        @total_blocks = undefined
+                        @replicated_blocks = undefined
+
                         # We don't know if the backfilling hasn't started yet or is completed, so let's check the directory status
                         if num_replicas_not_ready is 0 # Well, everything is up to date
                             @.$('.replica-status').html @progress_bar.render(num_replicas_ready, num_replicas_ready, progress_bar_info).$el
                         else # We are going to backfill
                             @.$('.replica-status').html @progress_bar.render(num_replicas_ready, num_replicas_ready+num_replicas_not_ready, progress_bar_info).$el
                     else
+                        # Cache replicated blocks values
+                        @total_blocks = backfilling_info.total_blocks
+                        @replicated_blocks = if backfilling_info.replicated_blocks>backfilling_info.replicated_blocks then backfilling_info.total_blocks else backfilling_info.replicated_blocks
                         # We can have replicated_blocks > total_blocks sometimes. Need a back end fix.
                         progress_bar_info = _.extend progress_bar_info,
-                            total_blocks: backfilling_info.total_blocks
-                            replicated_blocks: if backfilling_info.replicated_blocks>backfilling_info.replicated_blocks then backfilling_info.total_blocks else backfilling_info.replicated_blocks
+                            total_blocks: @total_blocks
+                            replicated_blocks: @replicated_blocks
                     
                         @.$('.replica-status').html @progress_bar.render(num_replicas_ready, num_replicas_ready+num_replicas_not_ready, progress_bar_info).$el
                 else # The blueprint was not regenerated, so we can consider that no replica is up to date
@@ -185,6 +198,12 @@ module 'NamespaceView', ->
                 # In case we don't, se skip to processing (we do not show the "Started stage"
                 if num_replicas_not_ready > 0 and @progress_bar.stage is 'none'
                     @progress_bar.skip_to_processing() # We set the state to processing
+
+                if @total_blocks? and @replicated_blocks?
+                    # @render_status was called by a change in the directory
+                    progress_bar_info = _.extend progress_bar_info,
+                        total_blocks: @total_blocks
+                        replicated_blocks: @replicated_blocks
 
                 if num_replicas_ready+num_replicas_not_ready is @expected_num_replicas
                     @.$('.replica-status').html @progress_bar.render(num_replicas_ready, num_replicas_ready+num_replicas_not_ready, progress_bar_info).$el
@@ -360,7 +379,7 @@ module 'NamespaceView', ->
             @model.off 'change:ack_expectations', @render_acks_greater_than_replicas
             @model.on 'change:shards', @render_progress_server_update
             progress_list.on 'all', @render_progress
-            directory.on 'all', @render_status
+            directory.off 'all', @render_status
 
     class @DatacenterReplicas extends Backbone.View
         className: 'datacenter_view'
