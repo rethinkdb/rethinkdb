@@ -9,13 +9,14 @@
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "rdb_protocol/btree.hpp"
+#include "rdb_protocol/minidriver.hpp"
 #include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/sym.hpp"
+#include "stl_utils.hpp"
 #include "serializer/config.hpp"
 #include "unittest/gtest.hpp"
 #include "unittest/unittest_utils.hpp"
-#include "rdb_protocol/minidriver.hpp"
 
 #define TOTAL_KEYS_TO_INSERT 1000
 #define MAX_RETRIES_FOR_SINDEX_POSTCONSTRUCT 5

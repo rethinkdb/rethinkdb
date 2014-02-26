@@ -1,6 +1,8 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "clustering/administration/perfmon_collection_repo.hpp"
 
+#include "stl_utils.hpp"
+
 perfmon_collection_repo_t::collections_t::collections_t(perfmon_collection_t *_parent, namespace_id_t id)
     : namespace_collection(), serializers_collection(),
       parent_membership(_parent, &namespace_collection, uuid_to_str(id)),

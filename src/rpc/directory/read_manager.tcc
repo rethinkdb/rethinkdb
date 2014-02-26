@@ -10,6 +10,7 @@
 #include "concurrency/wait_any.hpp"
 #include "config/args.hpp"
 #include "containers/archive/archive.hpp"
+#include "stl_utils.hpp"
 
 template<class metadata_t>
 directory_read_manager_t<metadata_t>::directory_read_manager_t(connectivity_service_t *conn_serv) THROWS_NOTHING :
