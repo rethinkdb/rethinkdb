@@ -10,7 +10,7 @@
 #include "serializer/config.hpp"
 #include "unittest/gtest.hpp"
 #include "unittest/mock_file.hpp"
-#include "unittest/unittest_utils.hpp"
+#include "unittest/tptest.hpp"
 
 using alt::current_page_acq_t;
 using alt::page_acq_t;
@@ -122,13 +122,8 @@ test_txn_t::test_txn_t(test_cache_t *cache)
                  NULL) { }
 
 
-
-void run_Control() {
+TPTEST(PageTest, Control, 4) {
     mock_ser_t ser;
-}
-
-TEST(PageTest, Control) {
-    run_in_thread_pool(run_Control, 4);
 }
 
 void run_CreateDestroy() {
