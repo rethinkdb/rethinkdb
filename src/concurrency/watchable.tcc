@@ -130,7 +130,7 @@ private:
 template<class outer_type, class callable_type>
 class non_incremental_lens_wrapper_t {
 public:
-    typedef typename boost::result_of<callable_type(outer_type)>::type result_type;
+    typedef typename std::result_of<callable_type(outer_type)>::type result_type;
 
     explicit non_incremental_lens_wrapper_t(const callable_type &_inner) :
         inner(_inner) {
@@ -164,7 +164,7 @@ clone_ptr_t<watchable_t<result_type> > watchable_t<value_type>::incremental_subv
 
 template<class value_type>
 template<class callable_type>
-clone_ptr_t<watchable_t<typename boost::result_of<callable_type(value_type)>::type> > watchable_t<value_type>::subview(const callable_type &lens) {
+clone_ptr_t<watchable_t<typename std::result_of<callable_type(value_type)>::type> > watchable_t<value_type>::subview(const callable_type &lens) {
     assert_thread();
     typedef non_incremental_lens_wrapper_t<value_type, callable_type> wrapped_callable_type;
     wrapped_callable_type wrapped_lens(lens);
