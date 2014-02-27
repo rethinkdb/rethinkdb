@@ -76,7 +76,7 @@ Styx""".splitlines()
 parser = OptionParser()
 parser.add_option("--cores", dest="cores", metavar="THREAD_COUNT", default=0, type="int")
 parser.add_option("--keep", dest="keep_data", action="store_true", default=False)
-parser.add_option("--dir", dest="build_dir", metavar="DIRNAME", default="debug_clang")
+parser.add_option("--dir", dest="build_dir", metavar="DIRNAME", default="debug")
 (options, args) = parser.parse_args()
 
 def usage():
@@ -86,7 +86,7 @@ def usage():
     N is the number of machines you want in the cluster
     data_root_directory is the directory where RethinkDB will store each server data
     --keep preserve the data directories between runs (by default, they are deleted)
-    --dir tells which build directory to use (by default, debug_clang)
+    --dir tells which build directory to use (by default, 'debug')
     --cores will be passed through to rethinkdb
     if --dir contains 'valgrind', the cluster will be run under valgrind. """
 
