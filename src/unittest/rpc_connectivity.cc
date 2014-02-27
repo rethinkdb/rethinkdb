@@ -86,7 +86,7 @@ public:
 
 /* `StartStop` starts a cluster of three nodes, then shuts it down again. */
 
-void run_start_stop_test() {
+TPTEST_MULTITHREAD(RPCConnectivityTest, StartStop, 3) {
     dummy_message_handler_t mh;
     connectivity_cluster_t c1, c2, c3;
     connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), peer_address_t(), ANY_PORT, &mh, 0, NULL);
@@ -95,13 +95,6 @@ void run_start_stop_test() {
     cr2.join(c1.get_peer_address(c1.get_me()));
     cr3.join(c1.get_peer_address(c1.get_me()));
     let_stuff_happen();
-}
-TEST(RPCConnectivityTest, StartStop) {
-    unittest::run_in_thread_pool(&run_start_stop_test);
-}
-
-TEST(RPCConnectivityTest, StartStopMultiThread) {
-    unittest::run_in_thread_pool(&run_start_stop_test, 3);
 }
 
 

@@ -46,5 +46,11 @@ rdb_protocol_t::read_t make_sindex_read(
     }                                                                   \
     void run_##group##_##name()
 
+#define TPTEST_MULTITHREAD(group, name, j) void run_##group##_##name(); \
+    TEST(group, name##MultiThread) {                                    \
+        ::unittest::run_in_thread_pool(run_##group##_##name, j);        \
+    }                                                                   \
+    TPTEST(group, name)
+
 
 #endif /* UNITTEST_UNITTEST_UTILS_HPP_ */
