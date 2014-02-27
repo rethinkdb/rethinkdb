@@ -42,7 +42,7 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<dum
 }
 
 void run_in_thread_pool_with_namespace_interface(boost::function<void(namespace_interface_t<dummy_protocol_t> *, order_source_t *)> fun) {
-    run_in_thread_pool(boost::bind(&run_with_namespace_interface, fun));
+    run_in_thread_pool(std::bind(&run_with_namespace_interface, fun));
 }
 
 }   /* anonymous namespace */
