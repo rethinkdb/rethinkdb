@@ -75,7 +75,8 @@ private:
 
 class test_txn_t : public page_txn_t {
 public:
-    explicit test_txn_t(test_cache_t *cache);
+    explicit test_txn_t(test_cache_t *cache,
+                        repli_timestamp_t recency = repli_timestamp_t::distant_past);
 };
 
 class current_test_acq_t : public current_page_acq_t {
@@ -115,9 +116,10 @@ public:
 };
 
 
-test_txn_t::test_txn_t(test_cache_t *cache)
+test_txn_t::test_txn_t(test_cache_t *cache,
+                       repli_timestamp_t recency)
     : page_txn_t(cache,
-                 repli_timestamp_t::distant_past,
+                 recency,
                  cache->make_tracker_acq(),
                  NULL) { }
 
