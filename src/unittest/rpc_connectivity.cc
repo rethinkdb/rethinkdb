@@ -1,6 +1,5 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
-#include "errors.hpp"
-#include <boost/bind.hpp>
+// Copyright 2010-2014 RethinkDB, all rights reserved.
+#include <functional>
 
 #include "arch/runtime/thread_pool.hpp"
 #include "arch/timing.hpp"
@@ -286,7 +285,8 @@ struct watcher_t : private peers_list_callback_t {
         /* Make sure messages sent from connection events are delivered
         properly. We must use `coro_t::spawn_now_dangerously()` because `send_message()`
         may block. */
-        coro_t::spawn_now_dangerously(boost::bind(&recording_test_application_t::send, application, 89765, p));
+        coro_t::spawn_now_dangerously(
+                std::bind(&recording_test_application_t::send, application, 89765, p));
     }
 
     void on_disconnect(peer_id_t p) {
