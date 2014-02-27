@@ -12,6 +12,13 @@
 #include "rpc/serialize_macros.hpp"
 #include "unittest/gtest.hpp"
 
+#define SPAWNER_TEST(group, name) void run_##group##_##name();  \
+    TEST(group, name) {                                         \
+        extproc_spawner_t extproc_spawner;                      \
+        ::unittest::run_in_thread_pool(run_##group##_##name);   \
+    }                                                           \
+    void run_##group##_##name()
+
 uint64_t fib(size_t iterations) {
     uint64_t a = 0, b = 1;
     if (iterations == 0) return 0;
@@ -145,19 +152,14 @@ private:
     uint64_t last_value;
 };
 
-void run_simple_job_test() {
+SPAWNER_TEST(ExtProc, SimpleJob) {
     extproc_pool_t pool(2);
     fib_job_t job(10, &pool, NULL);
     uint64_t result = job.run();
     ASSERT_EQ(fib(10), result);
 }
 
-TEST(ExtProc, SimpleJob) {
-    extproc_spawner_t extproc_spawner;
-    unittest::run_in_thread_pool(boost::bind(&run_simple_job_test));
-}
-
-void run_talkative_job_test() {
+SPAWNER_TEST(ExtProc, TalkativeJob) {
     extproc_pool_t pool(2);
 
     uint64_t n = 78;
@@ -168,11 +170,6 @@ void run_talkative_job_test() {
         uint64_t result = job.step();
         ASSERT_EQ(n, result);
     } while (n != 1);
-}
-
-TEST(ExtProc, TalkativeJob) {
-    extproc_spawner_t extproc_spawner;
-    unittest::run_in_thread_pool(boost::bind(&run_talkative_job_test));
 }
 
 void run_single_job(extproc_pool_t *pool, size_t *counter, cond_t *done) {
@@ -293,7 +290,7 @@ private:
     }
 };
 
-void run_crashed_job_test() {
+SPAWNER_TEST(ExtProc, CrashedJob) {
     extproc_pool_t pool(1);
 
     // Crash the worker, then make sure it recovers and we can still run more jobs
@@ -359,11 +356,6 @@ void run_crashed_job_test() {
     }
 }
 
-TEST(ExtProc, CrashedJob) {
-    extproc_spawner_t extproc_spawner;
-    unittest::run_in_thread_pool(boost::bind(run_crashed_job_test));
-}
-
 class hang_job_t {
 public:
     hang_job_t(extproc_pool_t *pool, signal_t *interruptor) :
@@ -382,7 +374,7 @@ private:
     extproc_job_t extproc_job;
 };
 
-void run_hanging_job_test() {
+SPAWNER_TEST(ExtProc, HangingJob) {
     extproc_pool_t pool(1);
 
     // Run a job that never returns, then make sure it recovers and we can still run more jobs
@@ -396,11 +388,6 @@ void run_hanging_job_test() {
         uint64_t expected = fib(10);
         ASSERT_EQ(res, expected);
     }
-}
-
-TEST(ExtProc, HangingJob) {
-    extproc_spawner_t extproc_spawner;
-    unittest::run_in_thread_pool(boost::bind(run_hanging_job_test));
 }
 
 class corrupt_job_t {
@@ -442,7 +429,7 @@ private:
     extproc_job_t extproc_job;
 };
 
-void run_corrupt_job_test() {
+SPAWNER_TEST(ExtProc, CorruptJob) {
     extproc_pool_t pool(1);
 
     // Run a job that leaves the stream in a bad state, then make sure it recovers
@@ -473,22 +460,12 @@ void run_corrupt_job_test() {
     }
 }
 
-TEST(ExtProc, CorruptJob) {
-    extproc_spawner_t extproc_spawner;
-    unittest::run_in_thread_pool(boost::bind(run_corrupt_job_test));
-}
-
-void run_interrupt_job_by_user_test() {
+SPAWNER_TEST(ExtProc, InterruptJobByUser) {
     extproc_pool_t pool(2);
     cond_t interruptor;
     fib_job_t job(10, &pool, &interruptor);
     interruptor.pulse();
     ASSERT_THROW(job.run(), interrupted_exc_t);
-}
-
-TEST(ExtProc, InterruptJobByUser) {
-    extproc_spawner_t extproc_spawner;
-    unittest::run_in_thread_pool(boost::bind(&run_interrupt_job_by_user_test));
 }
 
 void interrupt_job_by_pool_internal(object_buffer_t<extproc_pool_t> *pool,
@@ -498,7 +475,7 @@ void interrupt_job_by_pool_internal(object_buffer_t<extproc_pool_t> *pool,
 }
 
 // Destruct the pool while a job is still running, which is tricky
-void run_interrupt_job_by_pool_test() {
+SPAWNER_TEST(ExtProc, InterruptJobByPool) {
     object_buffer_t<extproc_pool_t> pool;
     cond_t done;
     pool.create(2);
@@ -513,9 +490,4 @@ void run_interrupt_job_by_pool_test() {
     }
 
     done.wait();
-}
-
-TEST(ExtProc, InterruptJobByPool) {
-    extproc_spawner_t extproc_spawner;
-    unittest::run_in_thread_pool(boost::bind(&run_interrupt_job_by_pool_test));
 }
