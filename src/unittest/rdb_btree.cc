@@ -326,7 +326,7 @@ void check_keys_are_NOT_present(btree_store_t<rdb_protocol_t> *store,
     }
 }
 
-void run_sindex_post_construction() {
+TPTEST(RDBBtree, SindexPostConstruct) {
     recreate_temporary_directory(base_path_t("."));
     temp_file_t temp_file;
 
@@ -366,11 +366,7 @@ void run_sindex_post_construction() {
     check_keys_are_present(&store, sindex_id);
 }
 
-TEST(RDBBtree, SindexPostConstruct) {
-    run_in_thread_pool(&run_sindex_post_construction);
-}
-
-void run_erase_range_test() {
+TPTEST(RDBBtree, SindexEraseRange) {
     recreate_temporary_directory(base_path_t("."));
     temp_file_t temp_file;
 
@@ -439,11 +435,7 @@ void run_erase_range_test() {
     check_keys_are_NOT_present(&store, sindex_id);
 }
 
-TEST(RDBBtree, SindexEraseRange) {
-    run_in_thread_pool(&run_erase_range_test);
-}
-
-void run_sindex_interruption_via_drop_test() {
+TPTEST(RDBBtree, SindexInterruptionViaDrop) {
     recreate_temporary_directory(base_path_t("."));
     temp_file_t temp_file;
 
@@ -483,11 +475,7 @@ void run_sindex_interruption_via_drop_test() {
     background_inserts_done.wait();
 }
 
-TEST(RDBBtree, SindexInterruptionViaDrop) {
-    run_in_thread_pool(&run_sindex_interruption_via_drop_test);
-}
-
-void run_sindex_interruption_via_store_delete() {
+TPTEST(RDBBtree, SindexInterruptionViaStoreDelete) {
     recreate_temporary_directory(base_path_t("."));
     temp_file_t temp_file;
 
@@ -523,10 +511,6 @@ void run_sindex_interruption_via_store_delete() {
     bring_sindexes_up_to_date(store.get(), sindex_id);
 
     store.reset();
-}
-
-TEST(RDBBtree, SindexInterruptionViaStoreDelete) {
-    run_in_thread_pool(&run_sindex_interruption_via_store_delete);
 }
 
 } //namespace unittest

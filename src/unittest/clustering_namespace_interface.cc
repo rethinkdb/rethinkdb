@@ -17,7 +17,7 @@ using mock::dummy_protocol_t;
 
 namespace unittest {
 
-static void run_missing_master_test() {
+TPTEST(ClusteringNamespaceInterface, MissingMaster) {
     /* Set up a cluster so mailboxes can be created */
     simple_mailbox_cluster_t cluster;
 
@@ -57,11 +57,7 @@ static void run_missing_master_test() {
     }
 }
 
-TEST(ClusteringNamespaceInterface, MissingMaster) {
-    unittest::run_in_thread_pool(&run_missing_master_test);
-}
-
-static void run_read_outdated_test() {
+TPTEST(ClusteringNamespaceInterface, ReadOutdated) {
     test_cluster_group_t<dummy_protocol_t> cluster_group(2);
 
     cluster_group.construct_all_reactors(cluster_group.compile_blueprint("p,s"));
@@ -77,10 +73,6 @@ static void run_read_outdated_test() {
     cond_t non_interruptor;
     namespace_if->read_outdated(r, &rr, &non_interruptor);
     EXPECT_EQ("", rr.values["a"]);
-}
-
-TEST(ClusteringNamespaceInterface, ReadOutdated) {
-    unittest::run_in_thread_pool(&run_read_outdated_test);
 }
 
 }   /* namespace unittest */
