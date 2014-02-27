@@ -41,4 +41,12 @@ rdb_protocol_t::read_t make_sindex_read(
 
 }  // namespace unittest
 
+
+#define TPTEST(group, name, ...) void run_##group##_##name();           \
+    TEST(group, name) {                                                 \
+        ::unittest::run_in_thread_pool(run_##group##_##name, ##__VA_ARGS__);      \
+    }                                                                   \
+    void run_##group##_##name()
+
+
 #endif /* UNITTEST_UNITTEST_UTILS_HPP_ */
