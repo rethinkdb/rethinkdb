@@ -2,11 +2,9 @@
 #ifndef UNITTEST_UNITTEST_UTILS_HPP_
 #define UNITTEST_UNITTEST_UTILS_HPP_
 
+#include <functional>
 #include <set>
 #include <string>
-
-#include "errors.hpp"
-#include <boost/function.hpp>
 
 #include "arch/address.hpp"
 #include "containers/scoped.hpp"
@@ -34,7 +32,7 @@ void let_stuff_happen();
 
 std::set<ip_address_t> get_unittest_addresses();
 
-void run_in_thread_pool(const boost::function<void()>& fun, int num_workers = 1);
+void run_in_thread_pool(const std::function<void()> &fun, int num_workers = 1);
 
 rdb_protocol_t::read_t make_sindex_read(
     counted_t<const ql::datum_t> key, const std::string &id);

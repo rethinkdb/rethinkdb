@@ -95,7 +95,7 @@ std::set<ip_address_t> get_unittest_addresses() {
     return get_local_ips(std::set<ip_address_t>(), false);
 }
 
-void run_in_thread_pool(const boost::function<void()>& fun, int num_workers) {
+void run_in_thread_pool(const std::function<void()> &fun, int num_workers) {
     ::run_in_thread_pool(fun, num_workers);
 }
 
