@@ -7,6 +7,8 @@
 #include <pthread.h>
 #include <stdlib.h>
 
+#include <algorithm>
+
 #include "arch/runtime/coroutines.hpp"
 #include "arch/runtime/context_switching.hpp"
 
