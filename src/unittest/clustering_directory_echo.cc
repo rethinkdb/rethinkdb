@@ -58,7 +58,7 @@ public:
 
 }   /* anonymous namespace */
 
-void run_directory_echo_test() {
+TPTEST(ClusteringDirectoryEcho, DirectoryEcho) {
     directory_echo_cluster_t<std::string> cluster1("hello", ANY_PORT), cluster2("world", ANY_PORT);
     cluster1.connectivity_cluster_run.join(cluster2.connectivity_cluster.get_peer_address(cluster2.connectivity_cluster.get_me()));
 
@@ -72,9 +72,6 @@ void run_directory_echo_test() {
     waiter.wait_lazily_unordered();
     std::string cluster2_sees_cluster1_directory_as = cluster2.echo_mirror.get_internal()->get().get_inner().find(cluster1.connectivity_cluster.get_me())->second;
     EXPECT_EQ("Hello", cluster2_sees_cluster1_directory_as);
-}
-TEST(ClusteringDirectoryEcho, DirectoryEcho) {
-    unittest::run_in_thread_pool(&run_directory_echo_test);
 }
 
 }   /* namespace unittest */
