@@ -11,18 +11,18 @@
 #if defined __i386 || defined __x86_64
 #define BREAKPOINT __asm__ volatile ("int3")
 #else   /* not x86/amd64 */
-#define BREAKPOINT raise(SIGTRAP)
+#define BREAKPOINT (raise(SIGTRAP))
 #endif  /* x86/amd64 */
 #endif /* __linux__ */
 
 #ifdef __MACH__
-#define BREAKPOINT raise(SIGTRAP)
+#define BREAKPOINT (raise(SIGTRAP))
 #endif
 #else /* Breakpoints Disabled */
 #define BREAKPOINT
 #endif /* DISABLE_BREAKPOINTS */
 
-#define CT_ASSERT(e) {enum { compile_time_assert_error = 1/(!!(e)) };}
+#define CT_ASSERT(e) do { enum { compile_time_assert_error = 1/(!!(e)) }; } while (0)
 
 #ifndef NDEBUG
 #define DEBUG_ONLY(...) __VA_ARGS__
@@ -30,19 +30,6 @@
 #else
 #define DEBUG_ONLY(...)
 #define DEBUG_ONLY_CODE(expr) ((void)(0))
-#endif
-
-/* This macro needs to exist because gcc and icc disagree on how to number the
- * attributes to methods. ICC does different number for methods and functions
- * and it's too unwieldy to make programs use these macros so we're just going
- * to disable them in icc.
- * With this macro attribute number starts at 1. If it is a nonstatic method
- * then "1" refers to the class pointer ("this").
- * */
-#ifdef __ICC
-#define NON_NULL_ATTR(arg)
-#else
-#define NON_NULL_ATTR(arg) __attribute__((nonnull(arg)))
 #endif
 
 #define NORETURN __attribute__((__noreturn__))
@@ -212,5 +199,31 @@ release mode. */
 #include <boost/config.hpp> // NOLINT(build/include_order)
 #undef BOOST_HAS_RVALUE_REFS
 #endif
+
+
+/** RVALUE_THIS
+ *
+ * This macro is used to annotate methods that treat *this as an
+ * rvalue reference. On compilers that support it, it expands to &&
+ * and all uses of the method on non-rvlaue *this are reported as
+ * errors.
+ *
+ * The supported compilers are clang >= 2.9 and gcc >= 4.8.1
+ *
+ **/
+#if defined(__clang__)
+#if __has_extension(cxx_rvalue_references)
+#define RVALUE_THIS &&
+#else
+#define RVALUE_THIS
+#endif
+#elif __GNUC__ > 4 || (__GNUC__ == 4 && \
+    (__GNUC_MINOR__ > 8 || (__GNUC_MINOR__ == 8 && \
+                            __GNUC_PATCHLEVEL__ > 1)))
+#define RVALUE_THIS &&
+#else
+#define RVALUE_THIS
+#endif
+
 
 #endif /* ERRORS_HPP_ */

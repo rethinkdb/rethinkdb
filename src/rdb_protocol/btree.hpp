@@ -10,13 +10,12 @@
 
 #include "backfill_progress.hpp"
 #include "btree/btree_store.hpp"
-#include "btree/depth_first_traversal.hpp"
-#include "concurrency/promise.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/protocol.hpp"
 
 class key_tester_t;
 class parallel_traversal_progress_t;
+template <class> class promise_t;
 struct rdb_value_t;
 
 typedef rdb_protocol_t::read_t read_t;

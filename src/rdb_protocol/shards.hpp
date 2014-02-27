@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_SHARDS_HPP_
 #define RDB_PROTOCOL_SHARDS_HPP_
 
@@ -6,8 +6,6 @@
 #include <limits>
 #include <utility>
 #include <vector>
-
-#include "utils.hpp"
 
 #include "btree/concurrent_traversal.hpp"
 #include "btree/keys.hpp"
@@ -192,7 +190,9 @@ class op_t {
 public:
     op_t() { }
     virtual ~op_t() { }
-    virtual void operator()(groups_t *groups) = 0;
+    virtual void operator()(groups_t *groups,
+                            // sindex_val may be NULL
+                            const counted_t<const datum_t> &sindex_val) = 0;
 };
 
 class accumulator_t {
@@ -202,7 +202,7 @@ public:
     // May be overridden as an optimization (currently is for `count`).
     virtual bool uses_val() { return true; }
     virtual bool should_send_batch() = 0;
-    virtual done_t operator()(groups_t *groups,
+    virtual done_traversing_t operator()(groups_t *groups,
                               store_key_t &&key,
                               // sindex_val may be NULL
                               counted_t<const datum_t> &&sindex_val) = 0;

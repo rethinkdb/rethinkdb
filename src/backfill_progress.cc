@@ -5,11 +5,13 @@
 
 #include "concurrency/pmap.hpp"
 #include "containers/scoped.hpp"
+#include "utils.hpp"
 
 traversal_progress_combiner_t::~traversal_progress_combiner_t() {
     guarantee(!is_destructing);
     is_destructing = true;
-    pmap(constituents.size(), std::bind(&traversal_progress_combiner_t::destroy_constituent, this, ph::_1));
+    pmap(constituents.size(),
+         std::bind(&traversal_progress_combiner_t::destroy_constituent, this, ph::_1));
 }
 
 void traversal_progress_combiner_t::destroy_constituent(int i) {

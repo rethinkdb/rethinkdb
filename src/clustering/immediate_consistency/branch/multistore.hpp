@@ -8,6 +8,7 @@
 #include <boost/function.hpp>
 
 #include "concurrency/fifo_enforcer.hpp"
+#include "concurrency/interruptor.hpp"
 #include "concurrency/one_per_thread.hpp"
 #include "containers/scoped.hpp"
 

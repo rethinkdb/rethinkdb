@@ -8,6 +8,7 @@
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/term_walker.hpp"
+#include "stl_utils.hpp"
 
 namespace ql {
 
@@ -132,7 +133,9 @@ archive_result_t wire_func_t::rdb_deserialize(read_stream_t *s) {
     }
 }
 
-group_wire_func_t::group_wire_func_t(std::vector<counted_t<func_t> > &&_funcs) {
+group_wire_func_t::group_wire_func_t(std::vector<counted_t<func_t> > &&_funcs,
+                                     bool _append_index, bool _multi)
+    : append_index(_append_index), multi(_multi) {
     funcs.reserve(_funcs.size());
     for (size_t i = 0; i < _funcs.size(); ++i) {
         funcs.push_back(wire_func_t(std::move(_funcs[i])));
@@ -148,7 +151,19 @@ std::vector<counted_t<func_t> > group_wire_func_t::compile_funcs() const {
     return std::move(ret);
 }
 
-RDB_IMPL_ME_SERIALIZABLE_1(group_wire_func_t, funcs);
+bool group_wire_func_t::should_append_index() const {
+    return append_index;
+}
+
+bool group_wire_func_t::is_multi() const {
+    return multi;
+}
+
+protob_t<const Backtrace> group_wire_func_t::get_bt() const {
+    return bt.get_bt();
+}
+
+RDB_IMPL_ME_SERIALIZABLE_4(group_wire_func_t, funcs, append_index, multi, bt);
 
 RDB_IMPL_ME_SERIALIZABLE_0(count_wire_func_t);
 

@@ -2,10 +2,12 @@
 #ifndef BUFFER_CACHE_ALT_PAGE_CACHE_HPP_
 #define BUFFER_CACHE_ALT_PAGE_CACHE_HPP_
 
+#include <functional>
 #include <map>
 #include <utility>
 #include <vector>
 #include <set>
+#include <functional>
 
 #include "buffer_cache/alt/block_version.hpp"
 #include "buffer_cache/alt/cache_account.hpp"

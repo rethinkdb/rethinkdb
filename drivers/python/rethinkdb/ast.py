@@ -279,6 +279,9 @@ class RqlQuery(object):
     def coerce_to(self, other_type):
         return CoerceTo(self, other_type)
 
+    def groups_to_array(self):
+        return GroupsToArray(self)
+
     def type_of(self):
         return TypeOf(self)
 
@@ -424,8 +427,8 @@ class RqlQuery(object):
     def zip(self):
         return Zip(self)
 
-    def group(self, *args):
-        return Group(self, *[func_wrap(arg) for arg in args])
+    def group(self, *args, **kwargs):
+        return Group(self, *[func_wrap(arg) for arg in args], **kwargs)
 
     def for_each(self, mapping):
         return ForEach(self, func_wrap(mapping))
@@ -1097,6 +1100,10 @@ class Zip(RqlMethodQuery):
 class CoerceTo(RqlMethodQuery):
     tt = p.Term.COERCE_TO
     st = 'coerce_to'
+
+class GroupsToArray(RqlMethodQuery):
+    tt = p.Term.GROUPS_TO_ARRAY
+    st = 'groups_to_array'
 
 class TypeOf(RqlMethodQuery):
     tt = p.Term.TYPEOF

@@ -4,10 +4,11 @@
 
 #include <map>
 #include <string>
+#include <vector>
 
 #include "buffer_cache/types.hpp"
 #include "containers/uuid.hpp"
-#include "utils.hpp"
+#include "concurrency/interruptor.hpp"
 
 // Implementations of agnostic_backfill_callback_t::on_pairs() should use
 // this limit to split up large chunks of key/value pairs into smaller chunks,

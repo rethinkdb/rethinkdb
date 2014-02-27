@@ -3,6 +3,7 @@
 
 #include "arch/runtime/coroutines.hpp"
 #include "concurrency/cond_var.hpp"
+#include "concurrency/interruptor.hpp"
 
 void static_semaphore_t::lock(semaphore_available_callback_t *cb, int64_t count) {
     rassert(!in_callback);

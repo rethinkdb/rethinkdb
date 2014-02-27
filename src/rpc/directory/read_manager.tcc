@@ -10,6 +10,7 @@
 #include "concurrency/wait_any.hpp"
 #include "config/args.hpp"
 #include "containers/archive/archive.hpp"
+#include "stl_utils.hpp"
 
 template<class metadata_t>
 directory_read_manager_t<metadata_t>::directory_read_manager_t(connectivity_service_t *conn_serv) THROWS_NOTHING :
@@ -203,13 +204,8 @@ void directory_read_manager_t<metadata_t>::propagate_update(peer_id_t peer, uuid
 
     try {
         /* Wait until we got an initialization message from this peer */
-        {
-            wait_any_t waiter(&session->got_initial_message, session_keepalive.get_drain_signal());
-            waiter.wait_lazily_unordered();
-            if (session_keepalive.get_drain_signal()->is_pulsed()) {
-                throw interrupted_exc_t();
-            }
-        }
+        wait_interruptible(&session->got_initial_message,
+                           session_keepalive.get_drain_signal());
 
         /* Exit this peer's `metadata_fifo_sink` so that we perform the updates
         in the same order as they were performed at the source. */

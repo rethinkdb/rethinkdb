@@ -6,6 +6,7 @@
 #include "extproc/extproc_pool.hpp"
 #include "extproc/extproc_spawner.hpp"
 #include "memcached/protocol.hpp"
+#include "memcached/protocol_json_adapter.hpp"
 #include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rpc/directory/read_manager.hpp"
@@ -15,8 +16,7 @@
 #include "unittest/dummy_namespace_interface.hpp"
 #include "unittest/gtest.hpp"
 #include "rdb_protocol/minidriver.hpp"
-
-#include "memcached/protocol_json_adapter.hpp"
+#include "stl_utils.hpp"
 
 namespace unittest {
 namespace {

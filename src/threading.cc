@@ -50,7 +50,9 @@ on_thread_t::~on_thread_t() {
 // utils) get placed on an event queue with the db code, the latency for these utils
 // can increase significantly. In particular, it causes timeout bugs in clients that
 // expect the acceptor to work faster.
-// RSI: ^^ Is this comment up to date?
+
+// TODO: ^^ This comment is way outdated, and this function (and the practice of
+// adding 1 to the thread count) is, too.
 int get_num_db_threads() {
     return get_num_threads() - 1;
 }

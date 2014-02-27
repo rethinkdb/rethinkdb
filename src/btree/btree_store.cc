@@ -6,6 +6,7 @@
 #include "buffer_cache/alt/alt.hpp"
 #include "concurrency/wait_any.hpp"
 #include "containers/archive/vector_stream.hpp"
+#include "containers/disk_backed_queue.hpp"
 #include "serializer/config.hpp"
 #include "stl_utils.hpp"
 

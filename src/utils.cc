@@ -17,10 +17,6 @@
 #include <sys/resource.h>
 #include <unistd.h>
 
-#ifdef __MACH__
-#include <mach/mach_time.h>
-#endif
-
 #include <google/protobuf/stubs/common.h>
 
 #include "arch/io/disk.hpp"
@@ -81,16 +77,6 @@ startup_shutdown_t::~startup_shutdown_t() {
     google::protobuf::ShutdownProtobufLibrary();
 }
 
-
-// fast-ish non-null terminated string comparison
-int sized_strcmp(const uint8_t *str1, int len1, const uint8_t *str2, int len2) {
-    int min_len = std::min(len1, len2);
-    int res = memcmp(str1, str2, min_len);
-    if (res == 0) {
-        res = len1 - len2;
-    }
-    return res;
-}
 
 void print_hd(const void *vbuf, size_t offset, size_t ulength) {
     flockfile(stderr);

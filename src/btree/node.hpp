@@ -12,7 +12,6 @@
 #include "btree/keys.hpp"
 #include "buffer_cache/types.hpp"
 #include "config/args.hpp"
-#include "utils.hpp"
 
 template <class Value>
 class value_sizer_t;

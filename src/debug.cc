@@ -1,5 +1,7 @@
 #include "debug.hpp"
 
+#include <inttypes.h>
+
 #include "arch/runtime/runtime.hpp"
 #include "rdb_protocol/ql2.pb.h"
 #include "time.hpp"

@@ -13,6 +13,13 @@
 #include "arch/io/network.hpp"
 #include "arch/runtime/thread_pool.hpp"
 
+host_lookup_exc_t::host_lookup_exc_t(const std::string &_host, int _errno_val)
+    : host(_host),
+      errno_val(_errno_val),
+      error_string(strprintf("getaddrinfo() failed for hostname: %s, errno: %d",
+                             host.c_str(), errno_val)) { }
+
+
 /* Get our hostname as an std::string. */
 std::string str_gethostname() {
     const int namelen = _POSIX_HOST_NAME_MAX;

@@ -167,6 +167,7 @@ class RDBVal extends TermBase
     eqJoin: aropt (left_attr, right, opts) -> new EqJoin opts, @, funcWrap(left_attr), right
     zip: ar () -> new Zip {}, @
     coerceTo: ar (type) -> new CoerceTo {}, @, type
+    groupsToArray: ar () -> new GroupsToArray {}, @
     typeOf: ar () -> new TypeOf {}, @
     update: aropt (func, opts) -> new Update opts, @, funcWrap(func)
     delete: aropt (opts) -> new Delete opts, @
@@ -179,7 +180,6 @@ class RDBVal extends TermBase
 
     forEach: ar (func) -> new ForEach {}, @, funcWrap(func)
 
-    group: varar(1, null, (fields...) -> new Group {}, @, fields.map(funcWrap)...)
     sum: varar(0, null, (fields...) -> new Sum {}, @, fields.map(funcWrap)...)
     avg: varar(0, null, (fields...) -> new Avg {}, @, fields.map(funcWrap)...)
     min: varar(0, null, (fields...) -> new Min {}, @, fields.map(funcWrap)...)
@@ -187,6 +187,21 @@ class RDBVal extends TermBase
 
     info: ar () -> new Info {}, @
     sample: ar (count) -> new Sample {}, @, count
+
+    group: (fieldsAndOpts...) ->
+        # Default if no opts dict provided
+        opts = {}
+        fields = fieldsAndOpts
+
+        # Look for opts dict
+        perhapsOptDict = fieldsAndOpts[fieldsAndOpts.length - 1]
+        if perhapsOptDict and
+                (Object::toString.call(perhapsOptDict) is '[object Object]') and
+                not (perhapsOptDict instanceof TermBase)
+            opts = perhapsOptDict
+            fields = fieldsAndOpts[0...(fieldsAndOpts.length - 1)]
+
+        new Group opts, @, fields.map(funcWrap)...
 
     orderBy: (attrsAndOpts...) ->
         # Default if no opts dict provided
@@ -717,6 +732,10 @@ class Zip extends RDBOp
 class CoerceTo extends RDBOp
     tt: "COERCE_TO"
     mt: 'coerceTo'
+
+class GroupsToArray extends RDBOp
+    tt: "GROUPS_TO_ARRAY"
+    mt: 'groupsToArray'
 
 class TypeOf extends RDBOp
     tt: "TYPEOF"

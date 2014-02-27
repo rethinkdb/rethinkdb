@@ -7,6 +7,7 @@
 
 #include "btree/node.hpp"
 #include "repli_timestamp.hpp"
+#include "utils.hpp"
 
 namespace leaf {
 

@@ -10,7 +10,6 @@
 #include "buffer_cache/types.hpp"
 #include "containers/two_level_array.hpp"
 #include "repli_timestamp.hpp"
-#include "utils.hpp"
 
 class serializer_t;
 

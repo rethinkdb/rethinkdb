@@ -1,6 +1,7 @@
 #ifndef MATH_HPP_
 #define MATH_HPP_
 
+#include <math.h>
 #include <stdint.h>
 
 template <class T1, class T2>
@@ -29,5 +30,14 @@ inline bool divides(int64_t x, int64_t y) {
 }
 
 int64_t round_up_to_power_of_two(int64_t x);
+
+template <class T>
+double safe_to_double(T val) {
+    double res = static_cast<double>(val);
+    if (val != static_cast<T>(res)) {
+        return NAN;
+    }
+    return res;
+}
 
 #endif  // MATH_HPP_

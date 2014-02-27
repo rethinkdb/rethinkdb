@@ -8,6 +8,7 @@
 #include "arch/types.hpp"
 #include "errors.hpp"
 #include "serializer/types.hpp"
+#include "utils.hpp"
 
 namespace unittest {
 

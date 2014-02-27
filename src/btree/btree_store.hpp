@@ -13,22 +13,26 @@
 #include <boost/ptr_container/ptr_vector.hpp>
 
 #include "btree/erase_range.hpp"
+#include "btree/parallel_traversal.hpp"
 #include "btree/secondary_operations.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/auto_drainer.hpp"
-#include "containers/disk_backed_queue.hpp"
+#include "concurrency/mutex.hpp"
 #include "containers/map_sentries.hpp"
 #include "perfmon/perfmon.hpp"
 #include "protocol_api.hpp"
-#include "btree/parallel_traversal.hpp"
+#include "utils.hpp"
 
 struct rdb_protocol_t;
 template <class T> class btree_store_t;
-
 class btree_slice_t;
+class cache_conn_t;
+class cache_t;
+class internal_disk_backed_queue_t;
 class io_backender_t;
-class superblock_t;
 class real_superblock_t;
+class superblock_t;
+class txn_t;
 
 class sindex_not_post_constructed_exc_t : public std::exception {
 public:

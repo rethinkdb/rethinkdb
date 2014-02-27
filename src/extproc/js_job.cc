@@ -108,7 +108,8 @@ js_result_t js_job_t::eval(const std::string &source) {
     js_result_t result;
     archive_result_t res = deserialize(extproc_job.read_stream(), &result);
     if (bad(res)) {
-        throw js_worker_exc_t("failed to deserialize result from worker");
+        throw js_worker_exc_t(strprintf("failed to deserialize result from worker (%s)",
+                                        archive_result_as_str(res)));
     }
     return result;
 }
@@ -127,7 +128,8 @@ js_result_t js_job_t::call(js_id_t id, const std::vector<counted_t<const ql::dat
     js_result_t result;
     archive_result_t res = deserialize(extproc_job.read_stream(), &result);
     if (bad(res)) {
-        throw js_worker_exc_t("failed to deserialize result from worker");
+        throw js_worker_exc_t(strprintf("failed to deserialize result from worker (%s)",
+                                        archive_result_as_str(res)));
     }
     return result;
 }

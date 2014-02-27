@@ -7,7 +7,6 @@
 #include <type_traits>
 #include <utility>
 #include <vector>
-#include <set>
 
 #include "concurrency/cross_thread_mutex.hpp"
 #include "containers/intrusive_list.hpp"
@@ -50,7 +49,6 @@ public:
 class perfmon_membership_t;
 
 /* A perfmon collection allows you to add hierarchy to stats. */
-// RSI: home_thread_mixin_t?  Used?
 class perfmon_collection_t : public perfmon_t, public home_thread_mixin_t {
 public:
     perfmon_collection_t();
@@ -145,19 +143,6 @@ private:
     std::vector<perfmon_membership_t *> memberships;
 
     DISABLE_COPYING(perfmon_multi_membership_t);
-};
-
-class perfmon_filter_t {
-public:
-    explicit perfmon_filter_t(const std::set<std::string> &paths);
-    ~perfmon_filter_t();
-    // This takes a const scoped_ptr_t because subfilter needs one to sanely work.
-    void filter(const scoped_ptr_t<perfmon_result_t> *target) const;
-private:
-    void subfilter(scoped_ptr_t<perfmon_result_t> *target,
-                   size_t depth, std::vector<bool> active) const;
-    std::vector<std::vector<scoped_regex_t *> > regexps; //regexps[PATH][DEPTH]
-    DISABLE_COPYING(perfmon_filter_t);
 };
 
 class perfmon_result_t {

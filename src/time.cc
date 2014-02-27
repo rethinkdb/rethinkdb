@@ -2,10 +2,15 @@
 
 #include <sys/time.h>
 
+#ifdef __MACH__
+#include <mach/mach_time.h>
+#include "thread_local.hpp"
+#include "utils.hpp"
+#endif
+
 #include "config/args.hpp"
 #include "errors.hpp"
 
-// RSI: Does anybody seriously use this.
 microtime_t current_microtime() {
     // This could be done more efficiently, surely.
     struct timeval t;

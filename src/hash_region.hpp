@@ -8,8 +8,8 @@
 #include <vector>
 
 #include "containers/archive/archive.hpp"
+#include "protocol_api.hpp"
 #include "rpc/serialize_macros.hpp"
-#include "utils.hpp"
 
 struct key_range_t;
 struct store_key_t;

@@ -1,6 +1,8 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "activity_logger.hpp"
 
+#include <inttypes.h>
+
 #include "debug.hpp"
 #include "utils.hpp"
 

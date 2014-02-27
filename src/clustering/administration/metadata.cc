@@ -5,6 +5,7 @@
 #include "clustering/administration/datacenter_metadata.hpp"
 #include "clustering/administration/machine_metadata.hpp"
 #include "debug.hpp"
+#include "stl_utils.hpp"
 
 RDB_IMPL_ME_SERIALIZABLE_2(ack_expectation_t, expectation_, hard_durability_);
 

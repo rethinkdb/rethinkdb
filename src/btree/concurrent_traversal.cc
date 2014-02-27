@@ -1,4 +1,9 @@
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "btree/concurrent_traversal.hpp"
+
+#include <functional>
+
+#include <stdint.h>
 
 #include "arch/runtime/coroutines.hpp"
 #include "concurrency/auto_drainer.hpp"
@@ -8,7 +13,7 @@
 class incr_decr_t {
 public:
     explicit incr_decr_t(size_t *ptr) : ptr_(ptr) {
-        guarantee(*ptr_ < INT_MAX);
+        guarantee(*ptr_ < SIZE_MAX);
         ++*ptr_;
     }
     ~incr_decr_t() {
@@ -50,21 +55,21 @@ public:
 
         fifo_enforcer_sink_t::exit_write_t exit_write(&sink_, token);
 
-        done_t done;
+        done_traversing_t done;
         try {
             done = cb_->handle_pair(
                 std::move(keyvalue),
                 concurrent_traversal_fifo_enforcer_signal_t(&exit_write, this));
         } catch (const interrupted_exc_t &) {
-            done = done_t::YES;
+            done = done_traversing_t::YES;
         }
 
-        if (done == done_t::YES) {
+        if (done == done_traversing_t::YES) {
             failure_cond_->pulse_if_not_already_pulsed();
         }
     }
 
-    virtual bool handle_pair(scoped_key_value_t &&keyvalue) {
+    virtual done_traversing_t handle_pair(scoped_key_value_t &&keyvalue) {
         // First thing first: Get in line with the token enforcer.
 
         fifo_enforcer_write_token_t token = source_.enter_write();
@@ -77,7 +82,7 @@ public:
                       this, &keyvalue, &acq, token, auto_drainer_t::lock_t(&drainer_)));
 
         // Report if we've failed by the time this handle_pair call is called.
-        return !failure_cond_->is_pulsed();
+        return failure_cond_->is_pulsed() ? done_traversing_t::YES : done_traversing_t::NO;
     }
 
     virtual profile::trace_t *get_trace() THROWS_NOTHING {
@@ -137,15 +142,14 @@ void concurrent_traversal_fifo_enforcer_signal_t::wait_interruptible()
     ::wait_interruptible(eval_exclusivity_signal_, parent_->failure_cond_);
 }
 
-bool btree_concurrent_traversal(btree_slice_t *slice,
-                                superblock_t *superblock, const key_range_t &range,
+bool btree_concurrent_traversal(superblock_t *superblock, const key_range_t &range,
                                 concurrent_traversal_callback_t *cb,
                                 direction_t direction) {
     cond_t failure_cond;
     bool failure_seen;
     {
         concurrent_traversal_adapter_t adapter(cb, &failure_cond);
-        failure_seen = !btree_depth_first_traversal(slice, superblock,
+        failure_seen = !btree_depth_first_traversal(superblock,
                                                     range, &adapter, direction);
     }
     // Now that adapter is destroyed, the operations that might have failed have all

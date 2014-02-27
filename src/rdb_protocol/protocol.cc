@@ -4,9 +4,6 @@
 #include <algorithm>
 #include <functional>
 
-#include "errors.hpp"
-#include <boost/bind.hpp>
-
 #include "arch/io/disk.hpp"
 #include "btree/erase_range.hpp"
 #include "btree/parallel_traversal.hpp"
@@ -20,6 +17,7 @@
 #include "concurrency/wait_any.hpp"
 #include "containers/archive/archive.hpp"
 #include "containers/archive/vector_stream.hpp"
+#include "containers/disk_backed_queue.hpp"
 #include "protob/protob.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/env.hpp"
@@ -30,6 +28,7 @@
 #include "rpc/semilattice/view/field.hpp"
 #include "rpc/semilattice/watchable.hpp"
 #include "serializer/config.hpp"
+#include "stl_utils.hpp"
 
 typedef rdb_protocol_details::backfill_atom_t rdb_backfill_atom_t;
 typedef rdb_protocol_details::range_key_tester_t range_key_tester_t;

@@ -45,16 +45,6 @@ private:
     counted_t<func_t> func;
 };
 
-class group_wire_func_t {
-public:
-    group_wire_func_t() { }
-    explicit group_wire_func_t(std::vector<counted_t<func_t> > &&_funcs);
-    std::vector<counted_t<func_t> > compile_funcs() const;
-    RDB_DECLARE_ME_SERIALIZABLE;
-private:
-    std::vector<wire_func_t> funcs;
-};
-
 class map_wire_func_t : public wire_func_t {
 public:
     template <class... Args>
@@ -104,15 +94,32 @@ struct count_wire_func_t {
 
 class bt_wire_func_t {
 public:
+    bt_wire_func_t() : bt(make_counted_backtrace()) { }
+    explicit bt_wire_func_t(const protob_t<const Backtrace> &_bt) : bt(_bt) { }
+
     void rdb_serialize(write_message_t &msg) const; // NOLINT(runtime/references)
     archive_result_t rdb_deserialize(read_stream_t *s);
     protob_t<const Backtrace> get_bt() const { return bt; }
-protected:
-    bt_wire_func_t() : bt(make_counted_backtrace()) { }
-    explicit bt_wire_func_t(const protob_t<const Backtrace> &_bt) : bt(_bt) { }
 private:
     protob_t<const Backtrace> bt;
 };
+
+class group_wire_func_t {
+public:
+    group_wire_func_t() : bt(make_counted_backtrace()) { }
+    group_wire_func_t(std::vector<counted_t<func_t> > &&_funcs,
+                      bool _append_index, bool _multi);
+    std::vector<counted_t<func_t> > compile_funcs() const;
+    bool should_append_index() const;
+    bool is_multi() const;
+    protob_t<const Backtrace> get_bt() const;
+    RDB_DECLARE_ME_SERIALIZABLE;
+private:
+    std::vector<wire_func_t> funcs;
+    bool append_index, multi;
+    bt_wire_func_t bt;
+};
+
 class sum_wire_func_t : public bt_wire_func_t {
 public:
     template<class... Args>

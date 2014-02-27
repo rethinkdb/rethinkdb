@@ -18,6 +18,7 @@
 #include <boost/function.hpp>
 
 #include "config/args.hpp"
+#include "concurrency/interruptor.hpp"
 #include "containers/scoped.hpp"
 #include "arch/address.hpp"
 #include "arch/io/event_watcher.hpp"

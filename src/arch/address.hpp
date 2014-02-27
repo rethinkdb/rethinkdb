@@ -14,7 +14,6 @@
 #include "containers/archive/archive.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "errors.hpp"
-#include "utils.hpp"
 #include "rpc/serialize_macros.hpp"
 
 #define MAX_PORT 65535
@@ -23,10 +22,7 @@ class printf_buffer_t;
 
 class host_lookup_exc_t : public std::exception {
 public:
-    host_lookup_exc_t(const std::string& _host, int _errno_val) :
-        host(_host),
-        errno_val(_errno_val),
-        error_string(strprintf("getaddrinfo() failed for hostname: %s, errno: %d", host.c_str(), errno_val)) { }
+    host_lookup_exc_t(const std::string &_host, int _errno_val);
     ~host_lookup_exc_t() throw () { }
     const char *what() const throw () {
         return error_string.c_str();
@@ -126,7 +122,7 @@ private:
 class host_and_port_t {
 public:
     host_and_port_t();
-    host_and_port_t(const std::string& _host, port_t _port);
+    host_and_port_t(const std::string &_host, port_t _port);
 
     bool operator < (const host_and_port_t &other) const;
     bool operator == (const host_and_port_t &other) const;

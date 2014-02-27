@@ -9,9 +9,7 @@
 #include "concurrency/signal.hpp"
 #include "containers/intrusive_priority_queue.hpp"
 #include "rpc/serialize_macros.hpp"
-#include "stl_utils.hpp"
 #include "timestamps.hpp"
-#include "utils.hpp"
 
 class cond_t;
 class signal_t;

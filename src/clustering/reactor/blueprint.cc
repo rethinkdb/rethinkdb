@@ -2,6 +2,8 @@
 #include "clustering/reactor/blueprint.hpp"
 
 #include "debug.hpp"
+#include "protocol_api.hpp"
+#include "stl_utils.hpp"
 
 template <class protocol_t>
 void blueprint_t<protocol_t>::guarantee_valid() const THROWS_NOTHING {
