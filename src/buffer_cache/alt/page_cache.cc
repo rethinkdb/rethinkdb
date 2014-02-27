@@ -605,11 +605,8 @@ void current_page_t::add_acquirer(current_page_acq_t *acq,
         acq->recency_ = prev_recency;
     } else {
         rassert(acq->the_txn_ != NULL);
-        // KSI: We pass invalid timestamps for some set_metainfo calls and such.
-        // Shouldn't we never pass invalid timestamps?  It would be simpler.
-
-        // KSI: We do this (for now) to play nice with the current stats block
-        // code.  But ideally there would never be an out-of-order recency.
+        // Out of order recencies can happen when acquiring the stats block, or when
+        // two shards share the same B-tree.
         acq->recency_ = superceding_recency(prev_recency,
                                             acq->the_txn_->this_txn_recency_);
     }
