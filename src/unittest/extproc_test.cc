@@ -7,15 +7,8 @@
 #include "extproc/extproc_spawner.hpp"
 #include "extproc/extproc_job.hpp"
 #include "rpc/serialize_macros.hpp"
+#include "unittest/extproc_test.hpp"
 #include "unittest/gtest.hpp"
-#include "unittest/unittest_utils.hpp"
-
-#define SPAWNER_TEST(group, name) void run_##group##_##name();  \
-    TEST(group, name) {                                         \
-        extproc_spawner_t extproc_spawner;                      \
-        ::unittest::run_in_thread_pool(run_##group##_##name);   \
-    }                                                           \
-    void run_##group##_##name()
 
 uint64_t fib(size_t iterations) {
     uint64_t a = 0, b = 1;
