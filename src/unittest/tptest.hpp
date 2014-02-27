@@ -6,7 +6,7 @@
 
 #define TPTEST(group, name, ...) void run_##name();                     \
     TEST(group, name) {                                                 \
-        ::unittest::run_in_thread_pool(run_##name, __VA_ARGS__);        \
+        ::unittest::run_in_thread_pool(run_##name, ##__VA_ARGS__);      \
     }                                                                   \
     void run_##name()
 

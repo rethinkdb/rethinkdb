@@ -126,27 +126,19 @@ TPTEST(PageTest, Control, 4) {
     mock_ser_t ser;
 }
 
-void run_CreateDestroy() {
+TPTEST(PageTest, CreateDestroy, 4) {
     mock_ser_t mock;
     test_cache_t page_cache(mock.ser.get(), mock.tracker.get());
 }
 
-TEST(PageTest, CreateDestroy) {
-    run_in_thread_pool(run_CreateDestroy, 4);
-}
-
-void run_OneTxn() {
+TPTEST(PageTest, OneTxn, 4) {
     mock_ser_t mock;
     test_cache_t page_cache(mock.ser.get(), mock.tracker.get());
     auto txn = make_scoped<test_txn_t>(&page_cache);
     page_cache.flush(std::move(txn));
 }
 
-TEST(PageTest, OneTxn) {
-    run_in_thread_pool(run_OneTxn, 4);
-}
-
-void run_TwoIndependentTxn() {
+TPTEST(PageTest, TwoIndependentTxn, 4) {
     mock_ser_t mock;
     test_cache_t page_cache(mock.ser.get(), mock.tracker.get());
     auto txn1 = make_scoped<test_txn_t>(&page_cache);
@@ -155,11 +147,7 @@ void run_TwoIndependentTxn() {
     page_cache.flush(std::move(txn1));
 }
 
-TEST(PageTest, TwoIndependentTxn) {
-    run_in_thread_pool(run_TwoIndependentTxn, 4);
-}
-
-void run_TwoIndependentTxnSwitch() {
+TPTEST(PageTest, TwoIndependentTxnSwitch, 4) {
     mock_ser_t mock;
     test_cache_t page_cache(mock.ser.get(), mock.tracker.get());
     auto txn1 = make_scoped<test_txn_t>(&page_cache);
@@ -168,11 +156,7 @@ void run_TwoIndependentTxnSwitch() {
     page_cache.flush(std::move(txn2));
 }
 
-TEST(PageTest, TwoIndependentTxnSwitch) {
-    run_in_thread_pool(run_TwoIndependentTxnSwitch, 4);
-}
-
-void run_TwoSequentialTxnSwitch() {
+TPTEST(PageTest, TwoSequentialTxnSwitch, 4) {
     mock_ser_t mock;
     test_cache_t page_cache(mock.ser.get(), mock.tracker.get());
     auto txn1 = make_scoped<test_txn_t>(&page_cache);
@@ -181,11 +165,7 @@ void run_TwoSequentialTxnSwitch() {
     page_cache.flush(std::move(txn2));
 }
 
-TEST(PageTest, TwoSequentialTxnSwitch) {
-    run_in_thread_pool(run_TwoSequentialTxnSwitch, 4);
-}
-
-void run_OneWriteAcq() {
+TPTEST(PageTest, OneWriteAcq, 4) {
     mock_ser_t mock;
     test_cache_t page_cache(mock.ser.get(), mock.tracker.get());
     auto txn = make_scoped<test_txn_t>(&page_cache);
@@ -196,12 +176,7 @@ void run_OneWriteAcq() {
     page_cache.flush(std::move(txn));
 }
 
-TEST(PageTest, OneWriteAcq) {
-    run_in_thread_pool(run_OneWriteAcq, 4);
-}
-
-
-void run_OneWriteAcqOneReadAcq() {
+TPTEST(PageTest, OneWriteAcqOneReadAcq, 4) {
     mock_ser_t mock;
     test_cache_t page_cache(mock.ser.get(), mock.tracker.get());
     auto txn1 = make_scoped<test_txn_t>(&page_cache);
@@ -219,11 +194,7 @@ void run_OneWriteAcqOneReadAcq() {
     page_cache.flush(std::move(txn2));
 }
 
-TEST(PageTest, OneWriteAcqOneReadAcq) {
-    run_in_thread_pool(run_OneWriteAcqOneReadAcq, 4);
-}
-
-void run_OneWriteAcqWait() {
+TPTEST(PageTest, OneWriteAcqWait, 4) {
     mock_ser_t mock;
     test_cache_t page_cache(mock.ser.get(), mock.tracker.get());
     auto txn = make_scoped<test_txn_t>(&page_cache);
@@ -237,10 +208,6 @@ void run_OneWriteAcqWait() {
         ASSERT_TRUE(buf != NULL);
     }
     page_cache.flush(std::move(txn));
-}
-
-TEST(PageTest, OneWriteAcqWait) {
-    run_in_thread_pool(run_OneWriteAcqWait, 4);
 }
 
 struct ReadAfterWrite_state_t {
@@ -285,15 +252,11 @@ void ReadAfterWrite_cases(ReadAfterWrite_state_t *s, test_cache_t *cache, int i)
     }
 }
 
-void run_ReadAfterWrite() {
+TPTEST(PageTest, ReadAfterWrite, 4) {
     mock_ser_t mock;
     test_cache_t page_cache(mock.ser.get(), mock.tracker.get());
     ReadAfterWrite_state_t s;
     pmap(2, std::bind(&ReadAfterWrite_cases, &s, &page_cache, ph::_1));
-}
-
-TEST(PageTest, ReadAfterWrite) {
-    run_in_thread_pool(run_ReadAfterWrite, 4);
 }
 
 struct WriteWaitForFlush_state_t {
@@ -334,15 +297,11 @@ void WriteWaitForFlush_cases(WriteWaitForFlush_state_t *s, test_cache_t *cache, 
     }
 }
 
-void run_WriteWaitForFlush() {
+TPTEST(PageTest, WriteWaitForFlush, 4) {
     mock_ser_t mock;
     test_cache_t page_cache(mock.ser.get(), mock.tracker.get());
     WriteWaitForFlush_state_t s;
     pmap(2, std::bind(&WriteWaitForFlush_cases, &s, &page_cache, ph::_1));
-}
-
-TEST(PageTest, WriteWaitForFlush) {
-    run_in_thread_pool(run_WriteWaitForFlush, 4);
 }
 
 class bigger_test_t {
@@ -1191,40 +1150,24 @@ private:
     page_txn_t *txn2_ptr;
 };
 
-void run_BiggerTest() {
+TPTEST(PageTest, BiggerTest, 4) {
     bigger_test_t test(GIGABYTE);
     test.run();
 }
 
-TEST(PageTest, BiggerTest) {
-    run_in_thread_pool(run_BiggerTest, 4);
-}
-
-void run_BiggerTestTightMemory() {
+TPTEST(PageTest, BiggerTestTightMemory, 4) {
     bigger_test_t test(8192);
     test.run();
 }
 
-TEST(PageTest, BiggerTestTightMemory) {
-    run_in_thread_pool(run_BiggerTestTightMemory, 4);
-}
-
-void run_BiggerTestSuperTightMemory() {
+TPTEST(PageTest, BiggerTestSuperTightMemory, 4) {
     bigger_test_t test(4096);
     test.run();
 }
 
-TEST(PageTest, BiggerTestSuperTightMemory) {
-    run_in_thread_pool(run_BiggerTestSuperTightMemory, 4);
-}
-
-void run_BiggerTestNoMemory() {
+TPTEST(PageTest, BiggerTestNoMemory, 4) {
     bigger_test_t test(0);
     test.run();
-}
-
-TEST(PageTest, BiggerTestNoMemory) {
-    run_in_thread_pool(run_BiggerTestNoMemory, 4);
 }
 
 }  // namespace unittest
