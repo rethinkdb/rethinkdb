@@ -1,8 +1,5 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
-#include "errors.hpp"
-#include <boost/bind.hpp>
-
-#include "unittest/unittest_utils.hpp"
+// Copyright 2010-2014 RethinkDB, all rights reserved.
+#include <functional>
 
 #include "arch/runtime/coroutines.hpp"
 #include "containers/archive/archive.hpp"
@@ -11,6 +8,7 @@
 #include "extproc/extproc_job.hpp"
 #include "rpc/serialize_macros.hpp"
 #include "unittest/gtest.hpp"
+#include "unittest/unittest_utils.hpp"
 
 #define SPAWNER_TEST(group, name) void run_##group##_##name();  \
     TEST(group, name) {                                         \
@@ -199,8 +197,8 @@ void run_multi_job_test() {
 
     // Spawn enough jobs that some have to wait for previous jobs to complete
     for (size_t i = 0; i < num_jobs; ++i) {
-        coro_t::spawn_sometime(boost::bind(&run_single_job,
-                                           &pool, &working, &done_cond));
+        coro_t::spawn_sometime(std::bind(&run_single_job,
+                                         &pool, &working, &done_cond));
     }
 
     // Wait for all jobs to complete
@@ -210,7 +208,7 @@ void run_multi_job_test() {
 TEST(ExtProc, MultiJob) {
     for (size_t i = 0; i < 100; ++i) {
         extproc_spawner_t extproc_spawner;
-        unittest::run_in_thread_pool(boost::bind(run_multi_job_test));
+        unittest::run_in_thread_pool(std::bind(run_multi_job_test));
     }
 }
 
@@ -483,8 +481,8 @@ SPAWNER_TEST(ExtProc, InterruptJobByPool) {
     {
         fib_job_t job(10, pool.get(), NULL);
 
-        coro_t::spawn_now_dangerously(boost::bind(&interrupt_job_by_pool_internal,
-                                                  &pool, &done));
+        coro_t::spawn_now_dangerously(std::bind(&interrupt_job_by_pool_internal,
+                                                &pool, &done));
 
         EXPECT_THROW(job.run(), interrupted_exc_t);
     }
