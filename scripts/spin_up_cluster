@@ -80,14 +80,15 @@ parser.add_option("--dir", dest="build_dir", metavar="DIRNAME", default="debug_c
 (options, args) = parser.parse_args()
 
 def usage():
-    print os.sys.argv[0], "p N [data_root_directory] [--keep] [--valgrind] [--cores <thread_count>]"
+    print os.sys.argv[0], "p N [data_root_directory] [--keep] [--dir <build_dir>] [--cores <thread_count>]"
     print """Where:
     p is the port you want the cluster to use
     N is the number of machines you want in the cluster
     data_root_directory is the directory where RethinkDB will store each server data
-    --keep preserve the data directories between runs (by default they are deleted)
-    --valgrind will run the rethinkdb server processes under valgrind
-    --cores will be passed through to rethinkdb"""
+    --keep preserve the data directories between runs (by default, they are deleted)
+    --dir tells which build directory to use (by default, debug_clang)
+    --cores will be passed through to rethinkdb
+    if --dir contains 'valgrind', the cluster will be run under valgrind. """
 
 
 if len(args) < 2 or len(args) > 3:
