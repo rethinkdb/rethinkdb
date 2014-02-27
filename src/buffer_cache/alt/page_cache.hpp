@@ -589,6 +589,7 @@ private:
     std::vector<page_txn_t *> subseqers_;
 
     // Pages for which this page_txn_t is the last_modifier_ of that page.
+    // RSI: Check page modified last updated properly when txn reacquires the same block.
     std::vector<current_page_t *> pages_modified_last_;
 
     // acqs that are currently alive.
@@ -596,9 +597,11 @@ private:
     std::vector<current_page_acq_t *> live_acqs_;
 
     // Saved pages (by block id).
+    // RSP: Right now we put multiple dirtied_page_t's if we reacquire the same block and modify it again.
     segmented_vector_t<dirtied_page_t, 8> snapshotted_dirtied_pages_;
 
     // Touched pages (by block id).
+    // RSP: Right now we put multiple touched_page_t's if we reacquire the same block and modify it again.
     segmented_vector_t<touched_page_t, 8> touched_pages_;
 
     // KSI: We could probably turn began_waiting_for_flush_ and spawned_flush_ into a

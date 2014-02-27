@@ -607,6 +607,7 @@ void current_page_t::add_acquirer(current_page_acq_t *acq,
         rassert(acq->the_txn_ != NULL);
         // Out of order recencies can happen when acquiring the stats block, or when
         // two shards share the same B-tree.
+        // RSI: This doesn't guarantee that flushes get the recencies in increasincg order, suppose W acq 1 writes the block, W acq 2 deletes it, and W acq 3 creates and writes the block.
         acq->recency_ = superceding_recency(prev_recency,
                                             acq->the_txn_->this_txn_recency_);
     }
@@ -720,6 +721,7 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq,
                            help.page_cache->serializer()->max_block_size().value());
 #endif
 
+                    // RSI: Dedup with make_non_deleted.
                     page_.init(new page_t(help.page_cache->serializer()->max_block_size(),
                                           std::move(buf),
                                           help.page_cache),
@@ -728,7 +730,7 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq,
                 }
                 block_version_ = cur->block_version_;
                 help.page_cache->set_recency_for_block_id(acq->block_id(),
-                                                            cur->recency_);
+                                                          cur->recency_);
                 cur->pulse_write_available();
             }
             break;
@@ -911,6 +913,7 @@ void page_txn_t::remove_acquirer(current_page_acq_t *acq) {
                                                                 acq->recency()));
             // If you keep writing and reacquiring the same page, though, the count
             // might be off and you could excessively throttle new operations.
+            // RSI: We could reacquire the same block and update the dirty page count with a _correct_ value indicating that we're holding redundant dirty pages for the same block id.
             tracker_acq_.update_dirty_page_count(snapshotted_dirtied_pages_.size());
         } else {
             // It's okay to have two dirtied_page_t's or touched_page_t's for the
