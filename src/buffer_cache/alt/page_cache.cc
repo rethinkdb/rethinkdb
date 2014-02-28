@@ -909,7 +909,10 @@ void page_txn_t::remove_acquirer(current_page_acq_t *acq) {
                                                                 acq->recency()));
             // If you keep writing and reacquiring the same page, though, the count
             // might be off and you could excessively throttle new operations.
-            // RSI: We could reacquire the same block and update the dirty page count with a _correct_ value indicating that we're holding redundant dirty pages for the same block id.
+
+            // LSI: We could reacquire the same block and update the dirty page count
+            // with a _correct_ value indicating that we're holding redundant dirty
+            // pages for the same block id.
             tracker_acq_.update_dirty_page_count(snapshotted_dirtied_pages_.size());
         } else {
             // It's okay to have two dirtied_page_t's or touched_page_t's for the
@@ -1029,8 +1032,17 @@ page_cache_t::remove_txn_set_from_graph(page_cache_t *page_cache,
              ++jt) {
             current_page_t *current_page = *jt;
             rassert(current_page->last_write_acquirer_ == txn);
-            // RSI: Assert here that all the existing acquirers of current_page are
-            // read acquirers.
+
+#ifndef NDEBUG
+            // All existing acquirers should be read acquirers, since this txn _was_
+            // the last write acquirer.
+            for (current_page_acq_t *acq = current_page->acquirers_.head();
+                 acq != NULL;
+                 acq = current_page->acquirers_.next(acq)) {
+                rassert(acq->access_ == access_t::read);
+            }
+#endif
+
             current_page->last_write_acquirer_ = NULL;
         }
         txn->pages_write_acquired_last_.clear();
