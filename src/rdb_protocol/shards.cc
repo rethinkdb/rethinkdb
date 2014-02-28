@@ -252,8 +252,12 @@ private:
         const T *default_val = grouped_acc_t<T>::get_default_val();
         for (auto it = groups->begin(); it != groups->end(); ++it) {
             auto t_it = acc->insert(std::make_pair(it->first, *default_val)).first;
+            bool updated = false;
             for (auto el = it->second.begin(); el != it->second.end(); ++el) {
-                accumulate(*el, &t_it->second);
+                updated |= accumulate(*el, &t_it->second);
+            }
+            if (!updated) {
+                acc->erase(t_it);
             }
         }
         groups->clear();

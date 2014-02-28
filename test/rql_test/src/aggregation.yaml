@@ -447,6 +447,24 @@ tests:
     - cd: tbl.count()
       ot: 100
 
+    - rb: tbl.filter{|row| row['a'].ne(1).and(row['id'].gt(10))}.update{|row| {b:row['a'] * 10}}['replaced']
+      ot: 67
+
+    - rb: tbl.group('b').count
+      ot: ({nil=>33, 0=>22, 20=>22, 30=>23})
+
+    - rb: tbl.group('a').sum('b')
+      ot: ({0=>0, 2=>440, 3=>690})
+
+    - rb: tbl.group('a').avg('b')
+      ot: ({0=>0, 2=>20, 3=>30})
+
+    - rb: tbl.order_by('id').group('a').min('b')
+      ot: ({0=>{"a"=>0, "b"=>0, "id"=>20}, 2=>{"a"=>2, "b"=>20, "id"=>30}, 3=>{"a"=>3, "b"=>30, "id"=>35}})
+
+    - rb: tbl.order_by('id').group('a').max('b')
+      ot: ({0=>{"a"=>0, "b"=>0, "id"=>96}, 2=>{"a"=>2, "b"=>20, "id"=>74}, 3=>{"a"=>3, "b"=>30, "id"=>43}})
+
     # Clean up
     - cd: r.db('test').table_drop('test1')
       ot: ({'dropped':1})
