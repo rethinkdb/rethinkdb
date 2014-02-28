@@ -1,7 +1,4 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#include "errors.hpp"
-#include <boost/make_shared.hpp>
-
 #include "memcached/protocol.hpp"
 #include "serializer/config.hpp"
 #include "serializer/translator.hpp"
@@ -68,7 +65,7 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<mem
 }
 
 void run_in_thread_pool_with_namespace_interface(boost::function<void(namespace_interface_t<memcached_protocol_t> *, order_source_t *)> fun) {
-    unittest::run_in_thread_pool(boost::bind(&run_with_namespace_interface, fun));
+    unittest::run_in_thread_pool(std::bind(&run_with_namespace_interface, fun));
 }
 
 /* `SetupTeardown` makes sure that it can start and stop without anything going

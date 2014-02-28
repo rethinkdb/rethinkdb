@@ -1,9 +1,6 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include <ctime>
-
-#include <boost/bind.hpp>
-
-#include "unittest/unittest_utils.hpp"
+#include <functional>
 
 #include "containers/object_buffer.hpp"
 #include "concurrency/wait_any.hpp"
@@ -14,6 +11,7 @@
 #include "unittest/gtest.hpp"
 #include "http/http.hpp"
 #include "http/routing_app.hpp"
+#include "unittest/unittest_utils.hpp"
 
 namespace unittest {
 
@@ -126,11 +124,11 @@ public:
         server.create(ip_addresses, 0, app);
 
         // Start an http request
-        coro_t::spawn_sometime(boost::bind(&http_interrupt_test_t::http_get, this));
+        coro_t::spawn_sometime(std::bind(&http_interrupt_test_t::http_get, this));
         wait_for_connect();
 
         // Interrupt the request by destroying the server
-        coro_t::spawn_sometime(boost::bind(&http_interrupt_test_t::destruct_server, this));
+        coro_t::spawn_sometime(std::bind(&http_interrupt_test_t::destruct_server, this));
 
         // Make sure the get had no reply
         wait_any_t success_fail(&http_get_timed_out, &http_get_succeeded);
@@ -205,7 +203,7 @@ private:
     }
 };
 
-void run_routing_app_test() {
+TPTEST(Http, InterruptRoutingApp) {
     {
         routing_app_interrupt_test_t router_test("/");
         EXPECT_TRUE(router_test.run());
@@ -215,10 +213,6 @@ void run_routing_app_test() {
         routing_app_interrupt_test_t router_test("/b");
         EXPECT_TRUE(router_test.run());
     }
-}
-
-TEST(Http, InterruptRoutingApp) {
-    run_in_thread_pool(boost::bind(&run_routing_app_test));
 }
 
 }
