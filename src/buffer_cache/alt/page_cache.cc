@@ -581,7 +581,6 @@ void current_page_t::make_non_deleted(block_size_t block_size,
                                       scoped_malloc_t<ser_buffer_t> buf,
                                       page_cache_t *page_cache) {
     rassert(is_deleted_);
-    rassert(!page_.has());
     is_deleted_ = false;
     page_.init(new page_t(block_size, std::move(buf), page_cache), page_cache);
 }
@@ -746,12 +745,9 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq,
                            help.page_cache->serializer()->max_block_size().value());
 #endif
 
-                    // RSI: Dedup with make_non_deleted.
-                    page_.init(new page_t(help.page_cache->serializer()->max_block_size(),
-                                          std::move(buf),
-                                          help.page_cache),
-                               help.page_cache);
-                    is_deleted_ = false;
+                    make_non_deleted(help.page_cache->max_block_size(),
+                                     std::move(buf),
+                                     help.page_cache);
                 }
                 cur->pulse_write_available();
             }
