@@ -606,8 +606,6 @@ void current_page_t::add_acquirer(current_page_acq_t *acq,
         acq->recency_ = r;
 
         last_write_acquirer_version_ = v;
-        // RSI: There should be no other callers to set_recency_for_block_id, besides
-        // this, and maybe when we delete a block?
         acq->page_cache()->set_recency_for_block_id(acq->block_id(), r);
 
         if (last_write_acquirer_ != acq_txn) {
