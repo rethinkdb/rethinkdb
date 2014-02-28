@@ -222,6 +222,8 @@ module 'LogView', ->
         log_datacenter_value_small_template: Handlebars.templates['log-datacenter_value-small_template']
         log_database_value_small_template: Handlebars.templates['log-database_value-small_template']
 
+        escape_template: Handlebars.templates['escape-template']
+
         events:
             'click .more-details-link': 'display_details'
 
@@ -281,6 +283,8 @@ module 'LogView', ->
 
         pattern_applying_data: /^(Applying data {)/
 
+        # Return a more user friendly log message
+        # The returned message **must** be escaped
         format_msg: (model) =>
             msg = model.get('message')
             
@@ -483,7 +487,7 @@ module 'LogView', ->
                 }
             else
                 return {
-                    msg: msg
+                    msg: @escape_template msg
                 }
 
         # TODO this should be merged with the format_msg function and simplified / commented. This code is incomprehensible
@@ -609,6 +613,6 @@ module 'LogView', ->
                 }
             else
                 return {
-                    msg: msg
+                    msg: @escape_template msg
                     timeago_timestamp: @model.get_iso_8601_timestamp()
                 }
