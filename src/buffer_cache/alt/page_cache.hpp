@@ -589,7 +589,6 @@ private:
     std::vector<page_txn_t *> subseqers_;
 
     // Pages for which this page_txn_t is the last_modifier_ of that page.
-    // RSI: Check page modified last updated properly when txn reacquires the same block.
     std::vector<current_page_t *> pages_modified_last_;
 
     // acqs that are currently alive.
