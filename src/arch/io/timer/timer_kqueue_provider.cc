@@ -7,6 +7,7 @@
 #include <sys/event.h>
 #include <sys/time.h>
 #include <unistd.h>
+#include <inttypes.h>
 
 #include "config/args.hpp"
 #include "logger.hpp"
