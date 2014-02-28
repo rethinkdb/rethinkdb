@@ -544,8 +544,7 @@ void current_page_acq_t::pulse_write_available() {
 
 current_page_t::current_page_t()
     : is_deleted_(false),
-      last_write_acquirer_(NULL),
-      last_modifier_(NULL) {
+      last_write_acquirer_(NULL) {
     // Increment the block version so that we can distinguish between unassigned
     // current_page_acq_t::block_version_ values (which are 0) and assigned ones.
     rassert(last_write_acquirer_version_.debug_value() == 0);
@@ -557,8 +556,7 @@ current_page_t::current_page_t(block_size_t block_size,
                                page_cache_t *page_cache)
     : page_(new page_t(block_size, std::move(buf), page_cache), page_cache),
       is_deleted_(false),
-      last_write_acquirer_(NULL),
-      last_modifier_(NULL) {
+      last_write_acquirer_(NULL) {
     // Increment the block version so that we can distinguish between unassigned
     // current_page_acq_t::block_version_ values (which are 0) and assigned ones.
     rassert(last_write_acquirer_version_.debug_value() == 0);
@@ -570,8 +568,7 @@ current_page_t::current_page_t(scoped_malloc_t<ser_buffer_t> buf,
                                page_cache_t *page_cache)
     : page_(new page_t(std::move(buf), token, page_cache), page_cache),
       is_deleted_(false),
-      last_write_acquirer_(NULL),
-      last_modifier_(NULL) {
+      last_write_acquirer_(NULL) {
     // Increment the block version so that we can distinguish between unassigned
     // current_page_acq_t::block_version_ values (which are 0) and assigned ones.
     rassert(last_write_acquirer_version_.debug_value() == 0);
@@ -580,7 +577,7 @@ current_page_t::current_page_t(scoped_malloc_t<ser_buffer_t> buf,
 
 current_page_t::~current_page_t() {
     rassert(acquirers_.empty());
-    rassert(last_modifier_ == NULL);
+    rassert(last_write_acquirer_ == NULL);
 }
 
 void current_page_t::make_non_deleted(block_size_t block_size,
@@ -809,13 +806,6 @@ page_t *current_page_t::the_page_for_write(current_page_help_t help,
     return page_.get_page_for_write(help.page_cache, account);
 }
 
-page_txn_t *current_page_t::change_last_modifier(page_txn_t *new_last_modifier) {
-    rassert(new_last_modifier != NULL);
-    page_txn_t *ret = last_modifier_;
-    last_modifier_ = new_last_modifier;
-    return ret;
-}
-
 page_txn_t::page_txn_t(page_cache_t *page_cache,
                        repli_timestamp_t txn_recency,
                        tracker_acq_t tracker_acq,
@@ -902,31 +892,6 @@ void page_txn_t::remove_acquirer(current_page_acq_t *acq) {
         if (acq->dirtied_page()) {
             // We know we hold an exclusive lock.
             rassert(acq->write_cond_.is_pulsed());
-
-            // Set the last modifier while current_page_ is non-null (and while we're the
-            // exclusive holder).
-            page_txn_t *const previous_modifier
-                = acq->current_page_->change_last_modifier(this);
-
-            if (previous_modifier != this) {
-                // RSP: Performance (in the assertion).
-                rassert(pages_modified_last_.end()
-                        == std::find(pages_modified_last_.begin(),
-                                     pages_modified_last_.end(),
-                                     acq->current_page_));
-                pages_modified_last_.push_back(acq->current_page_);
-
-                if (previous_modifier != NULL) {
-                    // RSP: Performance.
-                    auto it = std::find(previous_modifier->pages_modified_last_.begin(),
-                                        previous_modifier->pages_modified_last_.end(),
-                                        acq->current_page_);
-                    rassert(it != previous_modifier->pages_modified_last_.end());
-                    previous_modifier->pages_modified_last_.erase(it);
-
-                    connect_preceder(previous_modifier);
-                }
-            }
 
             // Declare readonly (so that we may declare acq snapshotted).
             acq->declare_readonly();
@@ -1056,17 +1021,6 @@ page_cache_t::remove_txn_set_from_graph(page_cache_t *page_cache,
             (*jt)->remove_subseqer(txn);
         }
         txn->preceders_.clear();
-
-        // KSI: Maybe we could remove pages_modified_last_ earlier?  Like when we
-        // begin the index write? (but that's the wrong thread) Or earlier?
-        for (auto jt = txn->pages_modified_last_.begin();
-             jt != txn->pages_modified_last_.end();
-             ++jt) {
-            current_page_t *current_page = *jt;
-            rassert(current_page->last_modifier_ == txn);
-            current_page->last_modifier_ = NULL;
-        }
-        txn->pages_modified_last_.clear();
 
         // KSI: Maybe we could remove pages_write_acquired_last_ earlier?  Like when
         // we begin the index write? (but that's on the wrong thread) Or earlier?

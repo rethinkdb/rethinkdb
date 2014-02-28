@@ -105,9 +105,6 @@ private:
 
     // page_txn_t should not access our fields directly.
     friend class page_txn_t;
-    // Returns the previous last modifier (or NULL, if there's no active
-    // last-modifying previous txn).
-    page_txn_t *change_last_modifier(page_txn_t *new_last_modifier);
 
     // Returns NULL if the page was deleted.
     page_t *the_page_for_read_or_deleted(current_page_help_t help,
@@ -136,11 +133,6 @@ private:
 
     // The version of the page, that the last write acquirer had.
     block_version_t last_write_acquirer_version_;
-
-    // RSI: Remove last_modifier_ and block_version_.
-
-    // The last txn that modified the page, or marked it deleted.
-    page_txn_t *last_modifier_;
 
     // Instead of storing the recency here, we store it page_cache_t::recencies_.
 
@@ -591,10 +583,6 @@ private:
     // txn's that we precede.
     // RSP: Performance?
     std::vector<page_txn_t *> subseqers_;
-
-    // RSI: Remove pages_modified_last_.
-    // Pages for which this page_txn_t is the last_modifier_ of that page.
-    std::vector<current_page_t *> pages_modified_last_;
 
     // Pages for which this page_txn_t is the last_write_acquirer_ of that page.
     std::vector<current_page_t *> pages_write_acquired_last_;
