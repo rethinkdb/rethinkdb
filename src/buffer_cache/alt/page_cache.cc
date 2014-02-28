@@ -280,6 +280,9 @@ current_page_t *page_cache_t::internal_page_for_new_chosen(block_id_t block_id) 
     assert_thread();
     rassert(recency_for_block_id(block_id) == repli_timestamp_t::invalid,
             "expected chosen block %" PR_BLOCK_ID "to be deleted", block_id);
+    // RSI: Should this even exist?  Would we not pull the recency off the write
+    // acquirer's transaction anyway?
+    set_recency_for_block_id(block_id, repli_timestamp_t::distant_past);
 
     scoped_malloc_t<ser_buffer_t> buf = serializer_->malloc();
 
@@ -289,7 +292,6 @@ current_page_t *page_cache_t::internal_page_for_new_chosen(block_id_t block_id) 
     memset(buf.get()->cache_data, 0xCD, serializer_->max_block_size().value());
 #endif
 
-    set_recency_for_block_id(block_id, repli_timestamp_t::distant_past);
     resize_current_pages_to_id(block_id);
     if (current_pages_[block_id] == NULL) {
         current_pages_[block_id] =
@@ -769,8 +771,6 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq,
                     is_deleted_ = false;
                 }
                 cp_block_version_ = cur->block_version_;
-                help.page_cache->set_recency_for_block_id(acq->block_id(),
-                                                          cur->recency_);
                 cur->pulse_write_available();
             }
             break;
@@ -781,6 +781,7 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq,
 void current_page_t::mark_deleted(current_page_help_t help) {
     rassert(!is_deleted_);
     is_deleted_ = true;
+    // RSI: Assert there are no subsequent acquirers.
     help.page_cache->set_recency_for_block_id(help.block_id,
                                               repli_timestamp_t::invalid);
     page_.reset();
