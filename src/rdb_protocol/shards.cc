@@ -1,6 +1,7 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "rdb_protocol/shards.hpp"
 
+#include "debug.hpp"
 #include "errors.hpp"
 #include <boost/variant.hpp>
 
@@ -28,12 +29,29 @@ void accumulator_t::finish(result_t *out) {
     }
 }
 
+#ifndef NDEBUG
+// These are really useful if datum terminals aren't doing what they're supposed to.
 template<class T>
-class grouped_accumulator_t : public accumulator_t {
+void dprint(const char *s, const T &) {
+    debugf("%s -> ???\n", s);
+}
+
+template<>
+void dprint(const char *s, const counted_t<const datum_t> &t) {
+    if (t.has()) {
+        debugf("%s -> %s\n", s, t->print().c_str());
+    } else {
+        debugf("%s -> NULL\n", s);
+    }
+}
+#endif // NDEBUG
+
+template<class T>
+class grouped_acc_t : public accumulator_t {
 protected:
-    explicit grouped_accumulator_t(T &&_default_val)
+    explicit grouped_acc_t(T &&_default_val)
         : default_val(std::move(_default_val)) { }
-    virtual ~grouped_accumulator_t() { }
+    virtual ~grouped_acc_t() { }
 private:
     virtual done_t operator()(groups_t *groups,
                               store_key_t &&key,
@@ -41,13 +59,18 @@ private:
         for (auto it = groups->begin(); it != groups->end(); ++it) {
             // If there's already an entry, this insert won't do anything.
             auto t_it = acc.insert(std::make_pair(it->first, default_val)).first;
+            bool updated = false;
             for (auto el = it->second.begin(); el != it->second.end(); ++el) {
-                accumulate(*el, &t_it->second, std::move(key), std::move(sindex_val));
+                updated |= accumulate(
+                    *el, &t_it->second, std::move(key), std::move(sindex_val));
+            }
+            if (!updated) {
+                acc.erase(t_it);
             }
         }
         return should_send_batch() ? done_t::YES : done_t::NO;
     }
-    virtual void accumulate(const counted_t<const datum_t> &el,
+    virtual bool accumulate(const counted_t<const datum_t> &el,
                             T *t,
                             store_key_t &&key,
                             // sindex_val may be NULL
@@ -90,16 +113,16 @@ private:
     grouped_t<T> acc;
 };
 
-class append_t : public grouped_accumulator_t<stream_t> {
+class append_t : public grouped_acc_t<stream_t> {
 public:
     append_t(sorting_t _sorting, batcher_t *_batcher)
-        : grouped_accumulator_t<stream_t>(stream_t()),
+        : grouped_acc_t<stream_t>(stream_t()),
           sorting(_sorting), key_le(sorting), batcher(_batcher) { }
 private:
     virtual bool should_send_batch() {
         return batcher != NULL && batcher->should_send_batch();
     }
-    virtual void accumulate(const counted_t<const datum_t> &el,
+    virtual bool accumulate(const counted_t<const datum_t> &el,
                             stream_t *stream,
                             store_key_t &&key,
                             // sindex_val may be NULL
@@ -111,6 +134,7 @@ private:
             ? counted_t<const datum_t>()
             : std::move(sindex_val);
         stream->push_back(rget_item_t(std::move(key), rget_sindex_val, el));
+        return true;
     }
 
     virtual counted_t<const datum_t> unpack(stream_t *) {
@@ -219,13 +243,13 @@ eager_acc_t *make_to_array() {
 }
 
 template<class T>
-class terminal_t : public grouped_accumulator_t<T>, public eager_acc_t {
+class terminal_t : public grouped_acc_t<T>, public eager_acc_t {
 protected:
-    explicit terminal_t(T &&t) : grouped_accumulator_t<T>(std::move(t)) { }
+    explicit terminal_t(T &&t) : grouped_acc_t<T>(std::move(t)) { }
 private:
     virtual void operator()(groups_t *groups) {
-        grouped_t<T> *acc = grouped_accumulator_t<T>::get_acc();
-        const T *default_val = grouped_accumulator_t<T>::get_default_val();
+        grouped_t<T> *acc = grouped_acc_t<T>::get_acc();
+        const T *default_val = grouped_acc_t<T>::get_default_val();
         for (auto it = groups->begin(); it != groups->end(); ++it) {
             auto t_it = acc->insert(std::make_pair(it->first, *default_val)).first;
             for (auto el = it->second.begin(); el != it->second.end(); ++el) {
@@ -238,8 +262,8 @@ private:
     virtual counted_t<val_t> finish_eager(protob_t<const Backtrace> bt,
                                           bool is_grouped) {
         accumulator_t::mark_finished();
-        grouped_t<T> *acc = grouped_accumulator_t<T>::get_acc();
-        const T *default_val = grouped_accumulator_t<T>::get_default_val();
+        grouped_t<T> *acc = grouped_acc_t<T>::get_acc();
+        const T *default_val = grouped_acc_t<T>::get_default_val();
         counted_t<val_t> retval;
         if (is_grouped) {
             counted_t<grouped_data_t> ret(new grouped_data_t());
@@ -260,8 +284,8 @@ private:
     virtual counted_t<const datum_t> unpack(T *t) = 0;
 
     virtual void add_res(result_t *res) {
-        grouped_t<T> *acc = grouped_accumulator_t<T>::get_acc();
-        const T *default_val = grouped_accumulator_t<T>::get_default_val();
+        grouped_t<T> *acc = grouped_acc_t<T>::get_acc();
+        const T *default_val = grouped_acc_t<T>::get_default_val();
         if (auto e = boost::get<exc_t>(res)) {
             throw *e;
         }
@@ -277,12 +301,12 @@ private:
         }
     }
 
-    virtual void accumulate(
+    virtual bool accumulate(
         const counted_t<const datum_t> &el, T *t,
         store_key_t &&, counted_t<const datum_t> &&) {
-        accumulate(el, t);
+        return accumulate(el, t);
     }
-    virtual void accumulate(const counted_t<const datum_t> &el, T *t) = 0;
+    virtual bool accumulate(const counted_t<const datum_t> &el, T *t) = 0;
 
     virtual void unshard_impl(T *out, const store_key_t &, const std::vector<T *> &ts) {
         for (auto it = ts.begin(); it != ts.end(); ++it) {
@@ -299,8 +323,9 @@ public:
         : terminal_t<uint64_t>(0) { }
 private:
     virtual bool uses_val() { return false; }
-    virtual void accumulate(const counted_t<const datum_t> &, uint64_t *out) {
+    virtual bool accumulate(const counted_t<const datum_t> &, uint64_t *out) {
         *out += 1;
+        return true;
     }
     virtual counted_t<const datum_t> unpack(uint64_t *sz) {
         return make_counted<const datum_t>(static_cast<double>(*sz));
@@ -310,17 +335,55 @@ private:
     }
 };
 
-class sum_terminal_t : public terminal_t<double> {
+class acc_func_t {
 public:
-    sum_terminal_t(env_t *, const sum_wire_func_t &f)
-        : terminal_t<double>(0.0L), bt(f.get_bt()) { }
+    acc_func_t(const counted_t<func_t> &_f, env_t *_env) : f(_f), env(_env) { }
+    counted_t<const datum_t> operator()(const counted_t<const datum_t> &el) const {
+        return f.has() ? f->call(env, el)->as_datum() : el;
+    }
 private:
-    virtual void accumulate(const counted_t<const datum_t> &el, double *out) {
+    counted_t<func_t> f;
+    env_t *env;
+};
+
+template<class T>
+class skip_terminal_t : public terminal_t<T> {
+protected:
+    skip_terminal_t(env_t *env, const skip_wire_func_t &wf, T &&t)
+        : terminal_t<T>(std::move(t)),
+          f(wf.compile_wire_func(), env),
+          bt(wf.bt.get_bt()) { }
+    virtual bool accumulate(const counted_t<const datum_t> &el, T *out) {
         try {
-            *out += el->as_num();
+            maybe_acc(el, out, f);
+            return true;
         } catch (const datum_exc_t &e) {
-            throw exc_t(e, bt.get());
+            if (e.get_type() != base_exc_t::NON_EXISTENCE) {
+                throw exc_t(e, bt.get());
+            }
+        } catch (const exc_t &e2) {
+            if (e2.get_type() != base_exc_t::NON_EXISTENCE) {
+                throw e2;
+            }
         }
+        return false;
+    }
+private:
+    virtual void maybe_acc(
+        const counted_t<const datum_t> &el, T *out, const acc_func_t &f) = 0;
+
+    acc_func_t f;
+    protob_t<const Backtrace> bt;
+};
+
+class sum_terminal_t : public skip_terminal_t<double> {
+public:
+    sum_terminal_t(env_t *env, const sum_wire_func_t &f)
+        : skip_terminal_t<double>(env, f, 0.0L) { }
+private:
+    virtual void maybe_acc(
+        const counted_t<const datum_t> &el, double *out, const acc_func_t &f) {
+        *out += f(el)->as_num();
     }
     virtual counted_t<const datum_t> unpack(double *d) {
         return make_counted<const datum_t>(*d);
@@ -328,23 +391,18 @@ private:
     virtual void unshard_impl(double *out, double *el) {
         *out += *el;
     }
-    protob_t<const Backtrace> bt;
 };
 
-class avg_terminal_t : public terminal_t<std::pair<double, uint64_t> > {
+class avg_terminal_t : public skip_terminal_t<std::pair<double, uint64_t> > {
 public:
-    avg_terminal_t(env_t *, const avg_wire_func_t &f)
-        : terminal_t<std::pair<double, uint64_t> >(
-            std::make_pair(0.0L, 0ULL)), bt(f.get_bt()) { }
+    avg_terminal_t(env_t *env, const avg_wire_func_t &f)
+        : skip_terminal_t<std::pair<double, uint64_t> >(
+            env, f, std::make_pair(0.0L, 0ULL)) { }
 private:
-    virtual void accumulate(const counted_t<const datum_t> &el,
-                            std::pair<double, uint64_t> *out) {
-        try {
-            out->first += el->as_num();
-            out->second += 1;
-        } catch (const datum_exc_t &e) {
-            throw exc_t(e, bt.get());
-        }
+    virtual void maybe_acc(const counted_t<const datum_t> &el,
+                           std::pair<double, uint64_t> *out, const acc_func_t &f) {
+        out->first += f(el)->as_num();
+        out->second += 1;
     }
     virtual counted_t<const datum_t> unpack(
         std::pair<double, uint64_t> *p) {
@@ -357,47 +415,67 @@ private:
         out->first += el->first;
         out->second += el->second;
     }
-    protob_t<const Backtrace> bt;
 };
 
-class min_terminal_t : public terminal_t<counted_t<const datum_t> > {
-public:
-    min_terminal_t(env_t *, const min_wire_func_t &)
-        : terminal_t<counted_t<const datum_t> >(counted_t<const datum_t>()) { }
-private:
-    virtual void accumulate(const counted_t<const datum_t> &el,
-                            counted_t<const datum_t> *out) {
-        *out = !out->has() ? el : std::min(el, *out);
+optimizer_t::optimizer_t() { }
+optimizer_t::optimizer_t(const counted_t<const datum_t> &_row,
+                         const counted_t<const datum_t> &_val)
+    : row(_row), val(_val) { }
+void optimizer_t::swap_if_other_better(
+    optimizer_t &other, // NOLINT
+    bool (*beats)(const counted_t<const datum_t> &val1,
+                  const counted_t<const datum_t> &val2)) {
+    r_sanity_check(val.has() == row.has());
+    r_sanity_check(other.val.has() == other.row.has());
+    if (other.val.has()) {
+        if (!val.has() || beats(other.val, val)) {
+            row.swap(other.row);
+            val.swap(other.val);
+        }
     }
-    virtual counted_t<const datum_t> unpack(counted_t<const datum_t> *el) {
-        rcheck_datum(el->has(), base_exc_t::NON_EXISTENCE,
-                     "Cannot take the minimum of an empty stream.");
-        return std::move(*el);
-    }
-    virtual void unshard_impl(counted_t<const datum_t> *out,
-                              counted_t<const datum_t> *el) {
-        if (el->has()) accumulate(*el, out);
-    }
-};
+}
+counted_t<const datum_t> optimizer_t::unpack(const char *name) {
+    r_sanity_check(val.has() == row.has());
+    rcheck_datum(row.has(), base_exc_t::NON_EXISTENCE,
+                 strprintf("Cannot take %s of empty stream.", name));
+    return row;
+}
 
-class max_terminal_t : public terminal_t<counted_t<const datum_t> > {
+bool datum_lt(const counted_t<const datum_t> &val1,
+              const counted_t<const datum_t> &val2) {
+    r_sanity_check(val1.has() && val2.has());
+    return *val1 < *val2;
+}
+
+bool datum_gt(const counted_t<const datum_t> &val1,
+              const counted_t<const datum_t> &val2) {
+    r_sanity_check(val1.has() && val2.has());
+    return *val1 > *val2;
+}
+
+class optimizing_terminal_t : public skip_terminal_t<optimizer_t> {
 public:
-    max_terminal_t(env_t *, const max_wire_func_t &)
-        : terminal_t<counted_t<const datum_t> >(counted_t<const datum_t>()) { }
+    optimizing_terminal_t(env_t *env, const skip_wire_func_t &f,
+                          const char *_name,
+                          bool (*_cmp)(const counted_t<const datum_t> &val1,
+                                       const counted_t<const datum_t> &val2))
+        : skip_terminal_t<optimizer_t>(env, f, optimizer_t()),
+          name(_name), cmp(_cmp) { }
 private:
-    virtual void accumulate(const counted_t<const datum_t> &el,
-                            counted_t<const datum_t> *out) {
-        *out = !out->has() ? el : std::max(el, *out);
+    virtual void maybe_acc(
+        const counted_t<const datum_t> &el, optimizer_t *out, const acc_func_t &f) {
+        optimizer_t other(el, f(el));
+        out->swap_if_other_better(other, cmp);
     }
-    virtual counted_t<const datum_t> unpack(counted_t<const datum_t> *el) {
-        rcheck_datum(el->has(), base_exc_t::NON_EXISTENCE,
-                     "Cannot take the maximum of an empty stream.");
-        return std::move(*el);
+    virtual counted_t<const datum_t> unpack(optimizer_t *el) {
+        return el->unpack(name);
     }
-    virtual void unshard_impl(counted_t<const datum_t> *out,
-                              counted_t<const datum_t> *el) {
-        if (el->has()) accumulate(*el, out);
+    virtual void unshard_impl(optimizer_t *out, optimizer_t *el) {
+        out->swap_if_other_better(*el, cmp);
     }
+    const char *name;
+    bool (*cmp)(const counted_t<const datum_t> &val1,
+                const counted_t<const datum_t> &val2);
 };
 
 const char *const empty_stream_msg =
@@ -410,10 +488,11 @@ public:
           env(_env),
           f(_f.compile_wire_func()) { }
 private:
-    virtual void accumulate(const counted_t<const datum_t> &el,
+    virtual bool accumulate(const counted_t<const datum_t> &el,
                             counted_t<const datum_t> *out) {
         try {
             *out = out->has() ? f->call(env, *out, el)->as_datum() : el;
+            return true;
         } catch (const datum_exc_t &e) {
             throw exc_t(e, f->backtrace().get(), 1);
         }
@@ -445,10 +524,10 @@ public:
         return new avg_terminal_t(env, f);
     }
     T *operator()(const min_wire_func_t &f) const {
-        return new min_terminal_t(env, f);
+        return new optimizing_terminal_t(env, f, "min", datum_lt);
     }
     T *operator()(const max_wire_func_t &f) const {
-        return new max_terminal_t(env, f);
+        return new optimizing_terminal_t(env, f, "max", datum_gt);
     }
     T *operator()(const reduce_wire_func_t &f) const {
         return new reduce_terminal_t(env, f);

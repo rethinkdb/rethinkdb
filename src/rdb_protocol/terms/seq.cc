@@ -18,15 +18,10 @@ protected:
         : op_term_t(env, term, argspec_t(1, 2)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) {
-        if (num_args() == 1) {
-            return arg(env, 0)->as_seq(env->env)->run_terminal(
-                env->env, T(backtrace()));
-        } else {
-            auto f = arg(env, 1)->as_func(GET_FIELD_SHORTCUT);
-            return arg(env, 0)->as_seq(env->env)
-                ->add_transformation(env->env, map_wire_func_t(f), backtrace())
-                ->run_terminal(env->env, T(backtrace()));
-        }
+        return num_args() == 1
+            ? arg(env, 0)->as_seq(env->env)->run_terminal(env->env, T(backtrace()))
+            : arg(env, 0)->as_seq(env->env)->run_terminal(
+                env->env, T(backtrace(), arg(env, 1)->as_func(GET_FIELD_SHORTCUT)));
     }
 };
 

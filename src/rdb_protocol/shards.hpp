@@ -45,6 +45,38 @@ struct rget_item_t {
 };
 typedef std::vector<rget_item_t> stream_t;
 
+class optimizer_t {
+public:
+    optimizer_t();
+    optimizer_t(const counted_t<const datum_t> &_row,
+                const counted_t<const datum_t> &_val);
+
+    void swap_if_other_better(optimizer_t &other, // NOLINT
+                              bool (*beats)(const counted_t<const datum_t> &val1,
+                                            const counted_t<const datum_t> &val2));
+    counted_t<const datum_t> unpack(const char *name);
+    counted_t<const datum_t> row, val;
+};
+static inline void serialize_grouped(
+    write_message_t *msg, const optimizer_t &o) { // NOLINT
+    *msg << o.row.has();
+    if (o.row.has()) {
+        r_sanity_check(o.val.has());
+        *msg << o.row;
+        *msg << o.val;
+    }
+}
+static inline archive_result_t deserialize_grouped(read_stream_t *s, optimizer_t *o) {
+    archive_result_t res;
+    bool has;
+    if (bad(res = deserialize(s, &has))) return res;
+    if (has) {
+        if (bad(res = deserialize(s, &o->row))) return res;
+        if (bad(res = deserialize(s, &o->val))) return res;
+    }
+    return archive_result_t::SUCCESS;
+}
+
 // We write all of these serializations and deserializations explicitly because:
 // * It stops people from inadvertently using a new `grouped_t<T>` without thinking.
 // * Some grouped elements need specialized serialization.
@@ -146,6 +178,10 @@ public:
     insert(std::pair<counted_t<const datum_t>, T> &&val) {
         return m.insert(std::move(val));
     }
+    typename std::map<counted_t<const datum_t>, T>::iterator
+    erase(typename std::map<counted_t<const datum_t>, T>::const_iterator pos) {
+        return m.erase(pos);
+    }
 
     size_t size() { return m.size(); }
     void clear() { return m.clear(); }
@@ -167,7 +203,8 @@ typedef boost::variant<
     grouped_t<uint64_t>, // Count.
     grouped_t<double>, // Sum.
     grouped_t<std::pair<double, uint64_t> >, // Avg.
-    grouped_t<counted_t<const ql::datum_t> >, // Reduce (may be NULL), min, max.
+    grouped_t<counted_t<const ql::datum_t> >, // Reduce (may be NULL)
+    grouped_t<optimizer_t>, // min, max
     grouped_t<stream_t>, // No terminal.,
     exc_t // Don't re-order (we don't want this to initialize to an error.)
     > result_t;

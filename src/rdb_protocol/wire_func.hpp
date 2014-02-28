@@ -26,7 +26,7 @@ class wire_func_t {
 public:
     wire_func_t();
     explicit wire_func_t(const counted_t<func_t> &f);
-    ~wire_func_t();
+    virtual ~wire_func_t();
     wire_func_t(const wire_func_t &copyee);
     wire_func_t &operator=(const wire_func_t &assignee);
 
@@ -42,7 +42,16 @@ public:
     archive_result_t rdb_deserialize(read_stream_t *s);
 
 private:
+    virtual bool func_can_be_null() const { return false; }
     counted_t<func_t> func;
+};
+
+class maybe_wire_func_t : public wire_func_t {
+protected:
+    template<class... Args>
+    explicit maybe_wire_func_t(Args... args) : wire_func_t(args...) { }
+private:
+    virtual bool func_can_be_null() const { return true; }
 };
 
 class map_wire_func_t : public wire_func_t {
@@ -88,6 +97,7 @@ public:
 };
 
 // These are fake functions because we don't need to send anything.
+// TODO: make `count` behave lik `sum`, `avg`, etc.
 struct count_wire_func_t {
     RDB_DECLARE_ME_SERIALIZABLE;
 };
@@ -120,26 +130,40 @@ private:
     bt_wire_func_t bt;
 };
 
-class sum_wire_func_t : public bt_wire_func_t {
-public:
+template<class T>
+class skip_terminal_t;
+
+class skip_wire_func_t : public maybe_wire_func_t {
+protected:
+    skip_wire_func_t() { }
     template<class... Args>
-    explicit sum_wire_func_t(Args... args) : bt_wire_func_t(args...) { }
-};
-class avg_wire_func_t : public bt_wire_func_t {
-public:
-    template<class... Args>
-    explicit avg_wire_func_t(Args... args) : bt_wire_func_t(args...) { }
+    explicit skip_wire_func_t(protob_t<const Backtrace> &_bt, Args... args)
+        : maybe_wire_func_t(args...), bt(_bt) { }
+private:
+    template<class T>
+    friend class skip_terminal_t;
+    bt_wire_func_t bt;
 };
 
-struct min_wire_func_t {
-    min_wire_func_t() { }
-    explicit min_wire_func_t(const protob_t<const Backtrace> &) { }
-    RDB_DECLARE_ME_SERIALIZABLE;
+class sum_wire_func_t : public skip_wire_func_t {
+public:
+    template<class... Args>
+    explicit sum_wire_func_t(Args... args) : skip_wire_func_t(args...) { }
 };
-struct max_wire_func_t {
-    max_wire_func_t() { }
-    explicit max_wire_func_t(const protob_t<const Backtrace> &) { }
-    RDB_DECLARE_ME_SERIALIZABLE;
+class avg_wire_func_t : public skip_wire_func_t {
+public:
+    template<class... Args>
+    explicit avg_wire_func_t(Args... args) : skip_wire_func_t(args...) { }
+};
+class min_wire_func_t : public skip_wire_func_t {
+public:
+    template<class... Args>
+    explicit min_wire_func_t(Args... args) : skip_wire_func_t(args...) { }
+};
+class max_wire_func_t : public skip_wire_func_t {
+public:
+    template<class... Args>
+    explicit max_wire_func_t(Args... args) : skip_wire_func_t(args...) { }
 };
 
 }  // namespace ql

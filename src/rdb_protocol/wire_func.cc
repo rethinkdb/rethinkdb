@@ -33,12 +33,13 @@ wire_func_t &wire_func_t::operator=(const wire_func_t &assignee) {
 
 wire_func_t::~wire_func_t() { }
 
-
 counted_t<func_t> wire_func_t::compile_wire_func() const {
+    r_sanity_check(func.has() || func_can_be_null());
     return func;
 }
 
 protob_t<const Backtrace> wire_func_t::get_bt() const {
+    r_sanity_check(func.has());
     return func->backtrace();
 }
 
@@ -79,13 +80,27 @@ private:
 
 
 void wire_func_t::rdb_serialize(write_message_t &msg) const { // NOLINT
+    if (func_can_be_null()) {
+        msg << func.has();
+        if (!func.has()) return;
+    }
+    r_sanity_check(func.has());
     wire_func_serialization_visitor_t v(&msg);
     func->visit(&v);
 }
 
 archive_result_t wire_func_t::rdb_deserialize(read_stream_t *s) {
+    archive_result_t res;
+
+    if (func_can_be_null()) {
+        bool has;
+        res = deserialize(s, &has);
+        if (bad(res)) return res;
+        if (!has) return archive_result_t::SUCCESS;
+    }
+
     wire_func_type_t type;
-    archive_result_t res = deserialize(s, &type);
+    res = deserialize(s, &type);
     if (bad(res)) { return res; }
     switch (type) {
     case wire_func_type_t::REQL: {
@@ -165,11 +180,6 @@ protob_t<const Backtrace> group_wire_func_t::get_bt() const {
 RDB_IMPL_ME_SERIALIZABLE_4(group_wire_func_t, funcs, append_index, multi, bt);
 
 RDB_IMPL_ME_SERIALIZABLE_0(count_wire_func_t);
-
-RDB_IMPL_ME_SERIALIZABLE_0(min_wire_func_t);
-RDB_IMPL_ME_SERIALIZABLE_0(max_wire_func_t);
-
-
 
 map_wire_func_t map_wire_func_t::make_safely(
     pb::dummy_var_t dummy_var,
