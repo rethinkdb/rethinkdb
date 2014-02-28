@@ -765,7 +765,12 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq,
 void current_page_t::mark_deleted(current_page_help_t help) {
     rassert(!is_deleted_);
     is_deleted_ = true;
-    // RSI: Assert there are no subsequent acquirers.
+
+    // Only the last acquirer (the current write-acquirer) of a block may mark it
+    // deleted, because subsequent acquirers should not be trying to create a block
+    // whose block id hasn't been released to the free list yet.
+    rassert(acquirers_.size() == 1);
+
     help.page_cache->set_recency_for_block_id(help.block_id,
                                               repli_timestamp_t::invalid);
     page_.reset();
