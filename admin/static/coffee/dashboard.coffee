@@ -226,6 +226,7 @@ module 'DashboardView', ->
 
 
         compute_data: =>
+            console.log 'computing data'
             num_replicas = 0
             num_replicas_down = 0
             namespaces_down = {}
@@ -243,10 +244,15 @@ module 'DashboardView', ->
                     for shard of blueprint[machine_id]
                         value = blueprint[machine_id][shard]
                         if value isnt "role_nothing"
+                            console.log '-----'
+                            console.log machine_id
+                            console.log shard
+                            console.log value
                             num_replicas++
 
                             # Check if directory matches
                             if !(directory_by_namespaces?) or !(directory_by_namespaces[namespace_id]?) or !(directory_by_namespaces[namespace_id][machine_id]?)
+                                console.log 'not found'
                                 num_replicas_down++
                                 if not namespaces_down[namespace.get('id')]?
                                     namespaces_down[namespace.get('id')] = []
@@ -260,6 +266,8 @@ module 'DashboardView', ->
                                     blueprint_status: value
                                     directory_status: 'Not found'
                             else if directory_by_namespaces[namespace_id][machine_id][shard] != @convert_activity(value)
+                                console.log(value)
+                                console.log(directory_by_namespaces[namespace_id][machine_id][shard])
                                 num_replicas_down++
                                 if not namespaces_down[namespace.get('id')]?
                                     namespaces_down[namespace.get('id')] = []
@@ -298,6 +306,7 @@ module 'DashboardView', ->
                         namespace_name: namespaces.get(issue.get('namespace_id')).get('name')
                         datacenters_with_issues: datacenters_with_issues
                         
+            console.log num_replicas_down
             # Compute data for template
             if num_replicas_down > 0
                 namespaces_down_array = []

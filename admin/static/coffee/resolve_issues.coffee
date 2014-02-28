@@ -84,6 +84,7 @@ module 'ResolveIssuesView', ->
 
             # We clean data now to have data fresher than if we were waiting for the next call to ajax/
             # remove from bluprints
+            #TODO We have no guarantee that the blueprints will be generated. We shouldn't do that.
             for namespace in namespaces.models
                 blueprint = namespace.get('blueprint')
                 if @machine_to_kill.get("id") of blueprint.peers_roles

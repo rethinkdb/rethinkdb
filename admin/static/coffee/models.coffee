@@ -689,6 +689,8 @@ module 'DataUtils', ->
         return activities
 
     @get_directory_activities_by_namespaces = ->
+        #TODO We should report the status of ALL internal hash shards
+        #Reporting the last one works most of the time, but there is no guarantee about that.
         activities = {}
         for machine in directory.models
             bcards = machine.get('rdb_namespaces')['reactor_bcards']
