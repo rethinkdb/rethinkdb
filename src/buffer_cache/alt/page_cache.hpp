@@ -142,10 +142,6 @@ private:
     // The last txn that modified the page, or marked it deleted.
     page_txn_t *last_modifier_;
 
-    // An in-cache value that increments whenever the value is changed, so that
-    // different page_txn_t's can know which was the last to modify the block.
-    block_version_t cp_block_version_;
-
     // Instead of storing the recency here, we store it page_cache_t::recencies_.
 
     // All list elements have current_page_ != NULL, snapshotted_page_ == NULL.

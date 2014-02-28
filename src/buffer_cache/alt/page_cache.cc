@@ -550,9 +550,6 @@ current_page_t::current_page_t()
     // current_page_acq_t::block_version_ values (which are 0) and assigned ones.
     rassert(last_write_acquirer_version_.debug_value() == 0);
     last_write_acquirer_version_ = last_write_acquirer_version_.subsequent();
-
-    rassert(cp_block_version_.debug_value() == 0);
-    cp_block_version_ = cp_block_version_.subsequent();
 }
 
 current_page_t::current_page_t(block_size_t block_size,
@@ -566,9 +563,6 @@ current_page_t::current_page_t(block_size_t block_size,
     // current_page_acq_t::block_version_ values (which are 0) and assigned ones.
     rassert(last_write_acquirer_version_.debug_value() == 0);
     last_write_acquirer_version_ = last_write_acquirer_version_.subsequent();
-
-    rassert(cp_block_version_.debug_value() == 0);
-    cp_block_version_ = cp_block_version_.subsequent();
 }
 
 current_page_t::current_page_t(scoped_malloc_t<ser_buffer_t> buf,
@@ -582,9 +576,6 @@ current_page_t::current_page_t(scoped_malloc_t<ser_buffer_t> buf,
     // current_page_acq_t::block_version_ values (which are 0) and assigned ones.
     rassert(last_write_acquirer_version_.debug_value() == 0);
     last_write_acquirer_version_ = last_write_acquirer_version_.subsequent();
-
-    rassert(cp_block_version_.debug_value() == 0);
-    cp_block_version_ = cp_block_version_.subsequent();
 }
 
 current_page_t::~current_page_t() {
@@ -770,7 +761,6 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq,
                                help.page_cache);
                     is_deleted_ = false;
                 }
-                cp_block_version_ = cur->block_version_;
                 cur->pulse_write_available();
             }
             break;
