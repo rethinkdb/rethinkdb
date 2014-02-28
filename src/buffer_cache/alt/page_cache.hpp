@@ -131,12 +131,20 @@ private:
     // True if the block is in a deleted state.  page_ will be null.
     bool is_deleted_;
 
+    // The last write acquirer for this page.
+    page_txn_t *last_write_acquirer_;
+
+    // The version of the page, that the last write acquirer had.
+    block_version_t last_write_acquirer_version_;
+
+    // RSI: Remove last_modifier_ and block_version_.
+
     // The last txn that modified the page, or marked it deleted.
     page_txn_t *last_modifier_;
 
     // An in-cache value that increments whenever the value is changed, so that
     // different page_txn_t's can know which was the last to modify the block.
-    block_version_t block_version_;
+    block_version_t cp_block_version_;
 
     // Instead of storing the recency here, we store it page_cache_t::recencies_.
 
@@ -588,8 +596,12 @@ private:
     // RSP: Performance?
     std::vector<page_txn_t *> subseqers_;
 
+    // RSI: Remove pages_modified_last_.
     // Pages for which this page_txn_t is the last_modifier_ of that page.
     std::vector<current_page_t *> pages_modified_last_;
+
+    // Pages for which this page_txn_t is the last_write_acquirer_ of that page.
+    std::vector<current_page_t *> pages_write_acquired_last_;
 
     // acqs that are currently alive.
     // RSP: Performance?  remove_acquirer takes linear time.

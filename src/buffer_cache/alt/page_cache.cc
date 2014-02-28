@@ -542,11 +542,15 @@ void current_page_acq_t::pulse_write_available() {
 
 current_page_t::current_page_t()
     : is_deleted_(false),
+      last_write_acquirer_(NULL),
       last_modifier_(NULL) {
     // Increment the block version so that we can distinguish between unassigned
     // current_page_acq_t::block_version_ values (which are 0) and assigned ones.
-    rassert(block_version_.debug_value() == 0);
-    block_version_ = block_version_.subsequent();
+    rassert(last_write_acquirer_version_.debug_value() == 0);
+    last_write_acquirer_version_ = last_write_acquirer_version_.subsequent();
+
+    rassert(cp_block_version_.debug_value() == 0);
+    cp_block_version_ = cp_block_version_.subsequent();
 }
 
 current_page_t::current_page_t(block_size_t block_size,
@@ -554,11 +558,15 @@ current_page_t::current_page_t(block_size_t block_size,
                                page_cache_t *page_cache)
     : page_(new page_t(block_size, std::move(buf), page_cache), page_cache),
       is_deleted_(false),
+      last_write_acquirer_(NULL),
       last_modifier_(NULL) {
     // Increment the block version so that we can distinguish between unassigned
     // current_page_acq_t::block_version_ values (which are 0) and assigned ones.
-    rassert(block_version_.debug_value() == 0);
-    block_version_ = block_version_.subsequent();
+    rassert(last_write_acquirer_version_.debug_value() == 0);
+    last_write_acquirer_version_ = last_write_acquirer_version_.subsequent();
+
+    rassert(cp_block_version_.debug_value() == 0);
+    cp_block_version_ = cp_block_version_.subsequent();
 }
 
 current_page_t::current_page_t(scoped_malloc_t<ser_buffer_t> buf,
@@ -566,11 +574,15 @@ current_page_t::current_page_t(scoped_malloc_t<ser_buffer_t> buf,
                                page_cache_t *page_cache)
     : page_(new page_t(std::move(buf), token, page_cache), page_cache),
       is_deleted_(false),
+      last_write_acquirer_(NULL),
       last_modifier_(NULL) {
     // Increment the block version so that we can distinguish between unassigned
     // current_page_acq_t::block_version_ values (which are 0) and assigned ones.
-    rassert(block_version_.debug_value() == 0);
-    block_version_ = block_version_.subsequent();
+    rassert(last_write_acquirer_version_.debug_value() == 0);
+    last_write_acquirer_version_ = last_write_acquirer_version_.subsequent();
+
+    rassert(cp_block_version_.debug_value() == 0);
+    cp_block_version_ = cp_block_version_.subsequent();
 }
 
 current_page_t::~current_page_t() {
@@ -589,27 +601,55 @@ void current_page_t::make_non_deleted(block_size_t block_size,
 
 void current_page_t::add_acquirer(current_page_acq_t *acq,
                                   cache_account_t *account) {
-    current_page_acq_t *back = acquirers_.tail();
-    const block_version_t prev_version
-        = (back == NULL ? block_version_ : back->block_version_);
+    const block_version_t prev_version = last_write_acquirer_version_;
     const repli_timestamp_t prev_recency
-        = (back == NULL
-           ? acq->page_cache()->recency_for_block_id(acq->block_id())
-           : back->recency_);
+        = acq->page_cache()->recency_for_block_id(acq->block_id());
 
-    acq->block_version_ = acq->access_ == access_t::write ?
-        prev_version.subsequent() : prev_version;
+    if (acq->access_ == access_t::write) {
+        block_version_t v = prev_version.subsequent();
+        acq->block_version_ = v;
 
-    if (acq->access_ == access_t::read) {
-        rassert(acq->the_txn_ == NULL);
-        acq->recency_ = prev_recency;
-    } else {
         rassert(acq->the_txn_ != NULL);
+        page_txn_t *const acq_txn = acq->the_txn_;
+
         // Out of order recencies can happen when acquiring the stats block, or when
         // two shards share the same B-tree.
-        // RSI: This doesn't guarantee that flushes get the recencies in increasincg order, suppose W acq 1 writes the block, W acq 2 deletes it, and W acq 3 creates and writes the block.
-        acq->recency_ = superceding_recency(prev_recency,
-                                            acq->the_txn_->this_txn_recency_);
+        repli_timestamp_t r = superceding_recency(prev_recency,
+                                                  acq_txn->this_txn_recency_);
+        acq->recency_ = r;
+
+        last_write_acquirer_version_ = v;
+        // RSI: There should be no other callers to set_recency_for_block_id, besides
+        // this, and maybe when we delete a block?
+        acq->page_cache()->set_recency_for_block_id(acq->block_id(), r);
+
+        if (last_write_acquirer_ != acq_txn) {
+            // RSP: Performance (in the assertion).
+            rassert(acq_txn->pages_write_acquired_last_.end()
+                    == std::find(acq_txn->pages_write_acquired_last_.begin(),
+                                 acq_txn->pages_write_acquired_last_.end(),
+                                 this));
+
+            if (last_write_acquirer_ != NULL) {
+                page_txn_t *prec = last_write_acquirer_;
+
+                // RSP: Performance.
+                auto it = std::find(prec->pages_write_acquired_last_.begin(),
+                                    prec->pages_write_acquired_last_.end(),
+                                    this);
+                rassert(it != prec->pages_write_acquired_last_.end());
+                prec->pages_write_acquired_last_.erase(it);
+
+                acq_txn->connect_preceder(prec);
+            }
+
+            acq_txn->pages_write_acquired_last_.push_back(this);
+            last_write_acquirer_ = acq_txn;
+        }
+    } else {
+        rassert(acq->the_txn_ == NULL);
+        acq->block_version_ = prev_version;
+        acq->recency_ = prev_recency;
     }
 
     acquirers_.push_back(acq);
@@ -728,7 +768,7 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq,
                                help.page_cache);
                     is_deleted_ = false;
                 }
-                block_version_ = cur->block_version_;
+                cp_block_version_ = cur->block_version_;
                 help.page_cache->set_recency_for_block_id(acq->block_id(),
                                                           cur->recency_);
                 cur->pulse_write_available();
@@ -1036,6 +1076,19 @@ page_cache_t::remove_txn_set_from_graph(page_cache_t *page_cache,
             current_page->last_modifier_ = NULL;
         }
         txn->pages_modified_last_.clear();
+
+        // KSI: Maybe we could remove pages_write_acquired_last_ earlier?  Like when
+        // we begin the index write? (but that's on the wrong thread) Or earlier?
+        for (auto jt = txn->pages_write_acquired_last_.begin();
+             jt != txn->pages_write_acquired_last_.end();
+             ++jt) {
+            current_page_t *current_page = *jt;
+            rassert(current_page->last_write_acquirer_ == txn);
+            // RSI: Assert here that all the existing acquirers of current_page are
+            // read acquirers.
+            current_page->last_write_acquirer_ = NULL;
+        }
+        txn->pages_write_acquired_last_.clear();
 
         if (txn->cache_conn_ != NULL) {
             rassert(txn->cache_conn_->newest_txn_ == txn);
