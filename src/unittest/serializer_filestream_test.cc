@@ -6,8 +6,7 @@
 
 namespace unittest {
 
-
-void run_Boundaries() {
+TPTEST(SerializerFilestreamTest, Boundaries) {
     mock_file_opener_t file_opener;
     standard_serializer_t::create(&file_opener,
                                   standard_serializer_t::static_config_t());
@@ -33,7 +32,8 @@ void run_Boundaries() {
     {
         mock::serializer_file_read_stream_t stream(&ser);
         // 13 is small, prime and a multiple of 13 * 4 isn't ever going to equal some
-        // 4KB block size, with or without block magic.
+        // 4KB block size, with or without block magic, or other future block headers
+        // of small size.
         const size_t count = 13 * 4;
         char buf[count];
         int64_t lenread;
@@ -45,10 +45,6 @@ void run_Boundaries() {
     }
 
     ASSERT_EQ(text1 + text2, builder);
-}
-
-TEST(SerializerFilestreamTest, Boundaries) {
-    run_in_thread_pool(&run_Boundaries);
 }
 
 }  // namespace unittest

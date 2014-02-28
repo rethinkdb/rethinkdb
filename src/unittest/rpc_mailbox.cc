@@ -64,8 +64,7 @@ void send(mailbox_manager_t *c, raw_mailbox_t::address_t dest, int message) {
 }   /* anonymous namespace */
 
 /* `MailboxStartStop` creates and destroys some mailboxes. */
-
-void run_mailbox_start_stop_test() {
+TPTEST(RPCMailboxTest, MailboxStartStop, 2) {
     connectivity_cluster_t c;
     mailbox_manager_t m(&c);
     connectivity_cluster_t::run_t r(&c, get_unittest_addresses(), peer_address_t(), ANY_PORT, &m, 0, NULL);
@@ -77,13 +76,9 @@ void run_mailbox_start_stop_test() {
     on_thread_t thread_switcher(threadnum_t(1));
     dummy_mailbox_t mbox2(&m);
 }
-TEST(RPCMailboxTest, MailboxStartStop) {
-    unittest::run_in_thread_pool(&run_mailbox_start_stop_test, 2);
-}
 
 /* `MailboxMessage` sends messages to some mailboxes */
-
-void run_mailbox_message_test() {
+TPTEST_MULTITHREAD(RPCMailboxTest, MailboxMessage, 3) {
     connectivity_cluster_t c1, c2;
     mailbox_manager_t m1(&c1), m2(&c2);
     connectivity_cluster_t::run_t r1(&c1, get_unittest_addresses(), peer_address_t(), ANY_PORT, &m1, 0, NULL);
@@ -105,18 +100,10 @@ void run_mailbox_message_test() {
     mbox.expect(3131);
     mbox.expect(7);
 }
-TEST(RPCMailboxTest, MailboxMessage) {
-    unittest::run_in_thread_pool(&run_mailbox_message_test);
-}
-
-TEST(RPCMailboxTest, MailboxMessageMultiThread) {
-    unittest::run_in_thread_pool(&run_mailbox_message_test, 3);
-}
 
 /* `DeadMailbox` sends a message to a defunct mailbox. The expected behavior is
 for the message to be silently ignored. */
-
-void run_dead_mailbox_test() {
+TPTEST_MULTITHREAD(RPCMailboxTest, DeadMailbox, 3) {
     connectivity_cluster_t c1, c2;
     mailbox_manager_t m1(&c1), m2(&c2);
     connectivity_cluster_t::run_t r1(&c1, get_unittest_addresses(), peer_address_t(), ANY_PORT, &m1, 0, NULL);
@@ -134,17 +121,9 @@ void run_dead_mailbox_test() {
 
     let_stuff_happen();
 }
-TEST(RPCMailboxTest, DeadMailbox) {
-    unittest::run_in_thread_pool(&run_dead_mailbox_test);
-}
-TEST(RPCMailboxTest, DeadMailboxMultiThread) {
-    unittest::run_in_thread_pool(&run_dead_mailbox_test, 3);
-}
 /* `MailboxAddressSemantics` makes sure that `raw_mailbox_t::address_t` behaves as
 expected. */
-
-void run_mailbox_address_semantics_test() {
-
+TPTEST_MULTITHREAD(RPCMailboxTest, MailboxAddressSemantics, 3) {
     raw_mailbox_t::address_t nil_addr;
     EXPECT_TRUE(nil_addr.is_nil());
 
@@ -157,12 +136,6 @@ void run_mailbox_address_semantics_test() {
     EXPECT_FALSE(mbox_addr.is_nil());
     EXPECT_TRUE(mbox_addr.get_peer() == c.get_me());
 }
-TEST(RPCMailboxTest, MailboxAddressSemantics) {
-    unittest::run_in_thread_pool(&run_mailbox_address_semantics_test);
-}
-TEST(RPCMailboxTest, MailboxAddressSemanticsMultiThread) {
-    unittest::run_in_thread_pool(&run_mailbox_address_semantics_test, 3);
-}
 
 /* `TypedMailbox` makes sure that `mailbox_t<>` works. */
 
@@ -170,8 +143,7 @@ void string_push_back(std::vector<std::string> *v, const std::string &pushee) {
     v->push_back(pushee);
 }
 
-void run_typed_mailbox_test() {
-
+TPTEST_MULTITHREAD(RPCMailboxTest, TypedMailbox, 3) {
     connectivity_cluster_t c;
     mailbox_manager_t m(&c);
     connectivity_cluster_t::run_t r(&c, get_unittest_addresses(), peer_address_t(), ANY_PORT, &m, 0, NULL);
@@ -193,12 +165,6 @@ void run_typed_mailbox_test() {
         EXPECT_EQ(inbox[1], "bar");
         EXPECT_EQ(inbox[2], "baz");
     }
-}
-TEST(RPCMailboxTest, TypedMailbox) {
-    unittest::run_in_thread_pool(&run_typed_mailbox_test);
-}
-TEST(RPCMailboxTest, TypedMailboxMultiThread) {
-    unittest::run_in_thread_pool(&run_typed_mailbox_test, 3);
 }
 
 }   /* namespace unittest */
