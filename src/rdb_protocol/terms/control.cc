@@ -104,8 +104,9 @@ private:
                 args.push_back(arg(env, i, flags)->as_datum());
             }
             r_sanity_check(!args[0].has());
-            if (arg1->get_type().is_convertible(val_t::type_t::GROUPED_DATA)) {
-                counted_t<grouped_data_t> gd = arg1->as_grouped_data();
+            counted_t<grouped_data_t> gd
+                = arg1->maybe_as_promiscuous_grouped_data(env->env);
+            if (gd.has()) {
                 counted_t<grouped_data_t> out(new grouped_data_t());
                 for (auto kv = gd->begin(); kv != gd->end(); ++kv) {
                     args[0] = kv->second;

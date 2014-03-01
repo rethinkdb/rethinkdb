@@ -234,6 +234,15 @@ void run(protob_t<Query> q,
                     env->trace->as_datum()->write_to_protobuf(
                         res->mutable_profile(), use_json);
                 }
+            } else if (counted_t<grouped_data_t> gd
+                       = val->maybe_as_promiscuous_grouped_data(scope_env.env)) {
+                res->set_type(Response::SUCCESS_ATOM);
+                datum_t d(std::move(*gd));
+                d.write_to_protobuf(res->add_response(), use_json);
+                if (env->trace.has()) {
+                    env->trace->as_datum()->write_to_protobuf(
+                        res->mutable_profile(), use_json);
+                }
             } else if (val->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
                 counted_t<datum_stream_t> seq = val->as_seq(env.get());
                 if (counted_t<const datum_t> arr = seq->as_array(env.get())) {
@@ -247,15 +256,6 @@ void run(protob_t<Query> q,
                     stream_cache2->insert(token, use_json, std::move(env), seq);
                     bool b = stream_cache2->serve(token, res, interruptor);
                     r_sanity_check(b);
-                }
-            } else if (val->get_type().is_convertible(val_t::type_t::GROUPED_DATA)) {
-                res->set_type(Response::SUCCESS_ATOM);
-                counted_t<grouped_data_t> gd = val->as_grouped_data();
-                datum_t d(std::move(*gd));
-                d.write_to_protobuf(res->add_response(), use_json);
-                if (env->trace.has()) {
-                    env->trace->as_datum()->write_to_protobuf(
-                        res->mutable_profile(), use_json);
                 }
             } else {
                 rfail_toplevel(base_exc_t::GENERIC,

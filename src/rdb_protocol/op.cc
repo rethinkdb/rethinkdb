@@ -132,8 +132,10 @@ counted_t<val_t> op_term_t::term_eval(scope_env_t *env, eval_flags_t eval_flags)
     counted_t<val_t> ret;
     if (num_args() != 0 && can_be_grouped()) {
         arg0 = arg_verifier->consume(0)->eval(env, eval_flags);
-        if (arg0->get_type().is_convertible(val_t::type_t::GROUPED_DATA)) {
-            counted_t<grouped_data_t> gd = arg0->as_grouped_data();
+        counted_t<grouped_data_t> gd = is_grouped_seq_op()
+            ? arg0->maybe_as_grouped_data()
+            : arg0->maybe_as_promiscuous_grouped_data(env->env);
+        if (gd.has()) {
             counted_t<grouped_data_t> out(new grouped_data_t());
             for (auto kv = gd->begin(); kv != gd->end(); ++kv) {
                 arg0 = make_counted<val_t>(kv->second, backtrace());
@@ -146,6 +148,9 @@ counted_t<val_t> op_term_t::term_eval(scope_env_t *env, eval_flags_t eval_flags)
     }
     return eval_impl(env, eval_flags);
 }
+
+bool op_term_t::can_be_grouped() { return true; }
+bool op_term_t::is_grouped_seq_op() { return false; }
 
 counted_t<val_t> op_term_t::optarg(scope_env_t *env, const std::string &key) {
     std::map<std::string, counted_t<term_t> >::iterator it = optargs.find(key);

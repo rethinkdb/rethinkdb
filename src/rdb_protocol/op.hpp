@@ -86,7 +86,8 @@ private:
     // `term_eval` doesn't have to be on this object.)
     virtual counted_t<val_t> term_eval(scope_env_t *env, eval_flags_t eval_flags);
     virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t eval_flags) = 0;
-    virtual bool can_be_grouped() { return true; }
+    virtual bool can_be_grouped();
+    virtual bool is_grouped_seq_op();
 
     virtual bool is_deterministic() const;
 

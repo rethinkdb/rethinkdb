@@ -11,11 +11,19 @@
 
 namespace ql {
 
+class grouped_seq_op_term_t : public op_term_t {
+public:
+    template<class... Args>
+    grouped_seq_op_term_t(Args... args) : op_term_t(std::forward<Args>(args)...) { }
+private:
+    virtual bool is_grouped_seq_op() { return true; }
+};
+
 template<class T>
-class map_acc_term_t : public op_term_t {
+class map_acc_term_t : public grouped_seq_op_term_t {
 protected:
     map_acc_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(1, 2)) { }
+        : grouped_seq_op_term_t(env, term, argspec_t(1, 2)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) {
         return num_args() == 1
@@ -54,10 +62,10 @@ private:
     virtual const char *name() const { return "max"; }
 };
 
-class count_term_t : public op_term_t {
+class count_term_t : public grouped_seq_op_term_t {
 public:
     count_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(1, 2)) { }
+        : grouped_seq_op_term_t(env, term, argspec_t(1, 2)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         counted_t<val_t> v0 = arg(env, 0);
@@ -86,10 +94,10 @@ private:
     virtual const char *name() const { return "count"; }
 };
 
-class map_term_t : public op_term_t {
+class map_term_t : public grouped_seq_op_term_t {
 public:
     map_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(2)) { }
+        : grouped_seq_op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         return new_val(env->env, arg(env, 0)->as_seq(env->env)->add_transformation(
@@ -98,10 +106,10 @@ private:
     virtual const char *name() const { return "map"; }
 };
 
-class concatmap_term_t : public op_term_t {
+class concatmap_term_t : public grouped_seq_op_term_t {
 public:
     concatmap_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(2)) { }
+        : grouped_seq_op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         return new_val(env->env, arg(env, 0)->as_seq(env->env)->add_transformation(
@@ -110,10 +118,10 @@ private:
     virtual const char *name() const { return "concatmap"; }
 };
 
-class group_term_t : public op_term_t {
+class group_term_t : public grouped_seq_op_term_t {
 public:
     group_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(1, -1), optargspec_t({"index", "multi"})) { }
+        : grouped_seq_op_term_t(env, term, argspec_t(1, -1), optargspec_t({"index", "multi"})) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         std::vector<counted_t<func_t> > funcs;
@@ -124,7 +132,6 @@ private:
 
         counted_t<datum_stream_t> seq;
         bool append_index = false;
-        bool is_arr = false;
         if (counted_t<val_t> index = optarg(env, "index")) {
             std::string index_str = index->as_str().to_std();
             counted_t<table_t> tbl = arg(env, 0)->as_table();
@@ -138,7 +145,6 @@ private:
             seq = tbl->as_datum_stream(env->env, backtrace());
         } else {
             seq = arg(env, 0)->as_seq(env->env);
-            is_arr = seq->is_array();
         }
 
         rcheck((funcs.size() + append_index) != 0, base_exc_t::GENERIC,
@@ -153,15 +159,15 @@ private:
             env->env,
             group_wire_func_t(std::move(funcs), append_index, multi), backtrace());
 
-        return is_arr ? seq->to_array(env->env) : new_val(env->env, seq);
+        return new_val(env->env, seq);
     }
     virtual const char *name() const { return "group"; }
 };
 
-class filter_term_t : public op_term_t {
+class filter_term_t : public grouped_seq_op_term_t {
 public:
     filter_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(2), optargspec_t({"default"})),
+        : grouped_seq_op_term_t(env, term, argspec_t(2), optargspec_t({"default"})),
           default_filter_term(lazy_literal_optarg(env, "default")) { }
 
 private:
@@ -191,10 +197,10 @@ private:
     counted_t<func_term_t> default_filter_term;
 };
 
-class reduce_term_t : public op_term_t {
+class reduce_term_t : public grouped_seq_op_term_t {
 public:
     reduce_term_t(compile_env_t *env, const protob_t<const Term> &term) :
-        op_term_t(env, term, argspec_t(2), optargspec_t({ "base" })) { }
+        grouped_seq_op_term_t(env, term, argspec_t(2), optargspec_t({ "base" })) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         return arg(env, 0)->as_seq(env->env)->run_terminal(
