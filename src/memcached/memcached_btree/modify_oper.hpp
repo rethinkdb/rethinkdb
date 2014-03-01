@@ -2,6 +2,7 @@
 #ifndef MEMCACHED_MEMCACHED_BTREE_MODIFY_OPER_HPP_
 #define MEMCACHED_MEMCACHED_BTREE_MODIFY_OPER_HPP_
 
+#include "concurrency/promise.hpp"
 #include "containers/scoped.hpp"
 #include "memcached/memcached_btree/node.hpp"
 
@@ -37,6 +38,7 @@ class superblock_t;
 void run_memcached_modify_oper(memcached_modify_oper_t *oper, btree_slice_t *slice,
                                const store_key_t &key, cas_t proposed_cas,
                                exptime_t effective_time, repli_timestamp_t timestamp,
-                               superblock_t *superblock);
+                               superblock_t *superblock,
+                               promise_t<superblock_t *> *pass_back_superblock = NULL);
 
 #endif // MEMCACHED_MEMCACHED_BTREE_MODIFY_OPER_HPP_

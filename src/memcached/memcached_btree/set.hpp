@@ -3,6 +3,7 @@
 #define MEMCACHED_MEMCACHED_BTREE_SET_HPP_
 
 #include "btree/node.hpp"
+#include "concurrency/promise.hpp"
 #include "memcached/queries.hpp"
 
 class btree_slice_t;
@@ -19,6 +20,7 @@ set_result_t memcached_set(const store_key_t &key,
                            cas_t proposed_cas,
                            exptime_t effective_time,
                            repli_timestamp_t timestamp,
-                           superblock_t *superblock);
+                           superblock_t *superblock,
+                           promise_t<superblock_t *> *pass_back_superblock = NULL);
 
 #endif // MEMCACHED_MEMCACHED_BTREE_SET_HPP_

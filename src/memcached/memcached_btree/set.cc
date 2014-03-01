@@ -133,11 +133,12 @@ set_result_t memcached_set(const store_key_t &key,
                            cas_t proposed_cas,
                            exptime_t effective_time,
                            repli_timestamp_t timestamp,
-                           superblock_t *superblock) {
+                           superblock_t *superblock,
+                           promise_t<superblock_t *> *pass_back_superblock) {
     memcached_set_oper_t oper(data, mcflags, exptime, add_policy, replace_policy,
                               req_cas);
     run_memcached_modify_oper(&oper, slice, key, proposed_cas, effective_time,
-                              timestamp, superblock);
+                              timestamp, superblock, pass_back_superblock);
     return oper.result;
 }
 
