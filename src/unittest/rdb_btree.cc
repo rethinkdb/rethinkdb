@@ -288,7 +288,7 @@ void _check_keys_are_NOT_present(btree_store_t<rdb_protocol_t> *store,
         rdb_protocol_t::rget_read_response_t res;
         double ii = i * i;
         /* The only thing this does is have a NULL scoped_ptr_t<trace_t> in it
-         * which prevents to profiling code from crashing. */
+         * which prevents the profiling code from crashing. */
         ql::env_t dummy_env(NULL, NULL);
         rdb_rget_slice(
             store->get_sindex_slice(sindex_id),
@@ -306,10 +306,7 @@ void _check_keys_are_NOT_present(btree_store_t<rdb_protocol_t> *store,
 
         auto groups = boost::get<ql::grouped_t<ql::stream_t> >(&res.result);
         ASSERT_TRUE(groups != NULL);
-        ASSERT_EQ(1, groups->size());
-        auto stream = &groups->begin()->second;
-        ASSERT_TRUE(stream != NULL);
-        ASSERT_EQ(0ul, stream->size());
+        ASSERT_EQ(0, groups->size());
     }
 }
 
