@@ -250,7 +250,7 @@ current_page_t *page_cache_t::page_for_block_id(block_id_t block_id) {
     resize_current_pages_to_id(block_id);
     if (current_pages_[block_id] == NULL) {
         rassert(recency_for_block_id(block_id) != repli_timestamp_t::invalid,
-                "Expected block %" PR_BLOCK_ID "not to be deleted "
+                "Expected block %" PR_BLOCK_ID " not to be deleted "
                 "(should you have used alt_create_t::create?).",
                 block_id);
         current_pages_[block_id] = new current_page_t();

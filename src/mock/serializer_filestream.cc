@@ -92,7 +92,7 @@ serializer_file_write_stream_t::serializer_file_write_stream_t(serializer_t *ser
     cache_conn_.init(new cache_conn_t(cache_.get()));
 
     txn_t txn(cache_conn_.get(), write_durability_t::HARD,
-              repli_timestamp_t::invalid, 1);
+              repli_timestamp_t::distant_past, 1);
 
     buf_lock_t z(&txn, 0, alt_create_t::create);
     buf_write_t z_write(&z);
@@ -106,7 +106,8 @@ MUST_USE int64_t serializer_file_write_stream_t::write(const void *p, int64_t n)
     const char *const chp = static_cast<const char *>(p);
     const int block_size = cache_->get_block_size().value();
 
-    txn_t txn(cache_conn_.get(), write_durability_t::HARD, repli_timestamp_t::invalid,
+    txn_t txn(cache_conn_.get(), write_durability_t::HARD,
+              repli_timestamp_t::distant_past,
               2 + n / block_size);
     // Hold the size block during writes, to lock out other writers.
     buf_lock_t z(buf_parent_t(&txn), 0, access_t::write);
