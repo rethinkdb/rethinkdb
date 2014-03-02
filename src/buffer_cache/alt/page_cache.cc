@@ -873,49 +873,43 @@ void page_txn_t::remove_acquirer(current_page_acq_t *acq) {
         live_acqs_.erase(it);
     }
 
-    // We check if acq->read_cond_.is_pulsed() so that if we delete the acquirer
-    // before we got any kind of access to the block, then we can't have dirtied the
-    // page or touched the page.
+    // It's not snapshotted because you can't snapshot write acqs.  (We
+    // rely on this fact solely because we need to grab the block_id_t
+    // and current_page_acq_t currently doesn't know it.)
+    rassert(acq->current_page_ != NULL);
 
-    if (acq->read_cond_.is_pulsed()) {
-        // It's not snapshotted because you can't snapshot write acqs.  (We
-        // rely on this fact solely because we need to grab the block_id_t
-        // and current_page_acq_t currently doesn't know it.)
-        rassert(acq->current_page_ != NULL);
+    const block_version_t block_version = acq->block_version();
 
-        const block_version_t block_version = acq->block_version();
+    if (acq->dirtied_page()) {
+        // We know we hold an exclusive lock.
+        rassert(acq->write_cond_.is_pulsed());
 
-        if (acq->dirtied_page()) {
-            // We know we hold an exclusive lock.
-            rassert(acq->write_cond_.is_pulsed());
+        // Declare readonly (so that we may declare acq snapshotted).
+        acq->declare_readonly();
+        acq->declare_snapshotted();
 
-            // Declare readonly (so that we may declare acq snapshotted).
-            acq->declare_readonly();
-            acq->declare_snapshotted();
+        // Since we snapshotted the lead acquirer, it gets detached.
+        rassert(acq->current_page_ == NULL);
+        // Steal the snapshotted page_ptr_t.
+        page_ptr_t local = std::move(acq->snapshotted_page_);
+        // It's okay to have two dirtied_page_t's or touched_page_t's for the
+        // same block id -- compute_changes handles this.
+        snapshotted_dirtied_pages_.push_back(dirtied_page_t(block_version,
+                                                            acq->block_id(),
+                                                            std::move(local),
+                                                            acq->recency()));
+        // If you keep writing and reacquiring the same page, though, the count
+        // might be off and you could excessively throttle new operations.
 
-            // Since we snapshotted the lead acquirer, it gets detached.
-            rassert(acq->current_page_ == NULL);
-            // Steal the snapshotted page_ptr_t.
-            page_ptr_t local = std::move(acq->snapshotted_page_);
-            // It's okay to have two dirtied_page_t's or touched_page_t's for the
-            // same block id -- compute_changes handles this.
-            snapshotted_dirtied_pages_.push_back(dirtied_page_t(block_version,
-                                                                acq->block_id(),
-                                                                std::move(local),
-                                                                acq->recency()));
-            // If you keep writing and reacquiring the same page, though, the count
-            // might be off and you could excessively throttle new operations.
-
-            // LSI: We could reacquire the same block and update the dirty page count
-            // with a _correct_ value indicating that we're holding redundant dirty
-            // pages for the same block id.
-            tracker_acq_.update_dirty_page_count(snapshotted_dirtied_pages_.size());
-        } else {
-            // It's okay to have two dirtied_page_t's or touched_page_t's for the
-            // same block id -- compute_changes handles this.
-            touched_pages_.push_back(touched_page_t(block_version, acq->block_id(),
-                                                    acq->recency()));
-        }
+        // LSI: We could reacquire the same block and update the dirty page count
+        // with a _correct_ value indicating that we're holding redundant dirty
+        // pages for the same block id.
+        tracker_acq_.update_dirty_page_count(snapshotted_dirtied_pages_.size());
+    } else {
+        // It's okay to have two dirtied_page_t's or touched_page_t's for the
+        // same block id -- compute_changes handles this.
+        touched_pages_.push_back(touched_page_t(block_version, acq->block_id(),
+                                                acq->recency()));
     }
 }
 
@@ -1035,7 +1029,7 @@ page_cache_t::remove_txn_set_from_graph(page_cache_t *page_cache,
             for (current_page_acq_t *acq = current_page->acquirers_.head();
                  acq != NULL;
                  acq = current_page->acquirers_.next(acq)) {
-                rassert(acq->access_ == access_t::read);
+                rassert(acq->access() == access_t::read);
             }
 #endif
 
