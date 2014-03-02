@@ -106,6 +106,10 @@ void set_errno(int new_errno);
 void report_fatal_error(const char*, int, const char*, ...) __attribute__((format (printf, 3, 4)));
 void report_user_error(const char*, ...) __attribute__((format (printf, 1, 2)));
 
+// Our usual crash() method does not work well in out-of-memory conditions, because
+// it performs heap-allocations itself. Use `crash_oom()` instead for these cases.
+void crash_oom();
+
 // Possibly using buf to store characters, returns a pointer to a strerror-style error string.  This
 // has the same contract as the GNU (char *)-returning strerror_r.  The return value is a pointer to
 // a nul-terminated string, either equal to buf or pointing at a statically allocated string.
@@ -162,6 +166,7 @@ MUST_USE const char *errno_string_maybe_using_buffer(int errsv, char *buf, size_
 
 
 void install_generic_crash_handler();
+void install_new_oom_handler();
 
 // If you include errors.hpp before including a Boost library, then Boost assertion
 // failures will be forwarded to the RethinkDB error mechanism.

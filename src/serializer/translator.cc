@@ -56,7 +56,7 @@ void prep_serializer(
     on_thread_t thread_switcher(ser->home_thread());
 
     /* Write the initial configuration block */
-    scoped_malloc_t<ser_buffer_t> buf = ser->malloc();
+    scoped_malloc_t<ser_buffer_t> buf = ser->allocate_buffer();
     multiplexer_config_block_t *c
         = reinterpret_cast<multiplexer_config_block_t *>(buf->cache_data);
 
@@ -100,7 +100,7 @@ void create_proxies(const std::vector<serializer_t *>& underlying,
     on_thread_t thread_switcher(ser->home_thread());
 
     /* Load config block */
-    scoped_malloc_t<ser_buffer_t> buf = ser->malloc();
+    scoped_malloc_t<ser_buffer_t> buf = ser->allocate_buffer();
     ser->block_read(ser->index_read(CONFIG_BLOCK_ID.ser_id), buf.get(), DEFAULT_DISK_ACCOUNT);
     multiplexer_config_block_t *c
         = reinterpret_cast<multiplexer_config_block_t *>(buf->cache_data);
@@ -151,7 +151,7 @@ serializer_multiplexer_t::serializer_multiplexer_t(const std::vector<serializer_
         on_thread_t thread_switcher(underlying[0]->home_thread());
 
         /* Load config block */
-        scoped_malloc_t<ser_buffer_t> buf = underlying[0]->malloc();
+        scoped_malloc_t<ser_buffer_t> buf = underlying[0]->allocate_buffer();
         underlying[0]->block_read(underlying[0]->index_read(CONFIG_BLOCK_ID.ser_id), buf.get(), DEFAULT_DISK_ACCOUNT);
 
         multiplexer_config_block_t *c
@@ -212,8 +212,8 @@ translator_serializer_t::translator_serializer_t(serializer_t *_inner, int _mod_
     rassert(mod_id < mod_count);
 }
 
-scoped_malloc_t<ser_buffer_t> translator_serializer_t::malloc() {
-    return inner->malloc();
+scoped_malloc_t<ser_buffer_t> translator_serializer_t::allocate_buffer() {
+    return inner->allocate_buffer();
 }
 
 file_account_t *translator_serializer_t::make_io_account(int priority, int outstanding_requests_limit) {

@@ -11,13 +11,16 @@
 void run_memcached_modify_oper(memcached_modify_oper_t *oper, btree_slice_t *slice,
                                const store_key_t &store_key, cas_t proposed_cas,
                                exptime_t effective_time, repli_timestamp_t timestamp,
-                               superblock_t *superblock) {
+                               superblock_t *superblock,
+                               promise_t<superblock_t *> *pass_back_superblock) {
 
     block_size_t block_size = slice->cache()->get_block_size();
 
     keyvalue_location_t<memcached_value_t> kv_location;
     find_keyvalue_location_for_write(superblock, store_key.btree_key(),
-                                     &kv_location, &slice->stats, NULL);
+                                     &kv_location, &slice->stats,
+                                     static_cast<profile::trace_t *>(NULL),
+                                     pass_back_superblock);
     scoped_malloc_t<memcached_value_t> the_value(std::move(kv_location.value));
 
     bool expired = the_value.has() && the_value->expired(effective_time);

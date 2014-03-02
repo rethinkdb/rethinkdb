@@ -33,6 +33,7 @@
 
 void run_generic_global_startup_behavior() {
     install_generic_crash_handler();
+    install_new_oom_handler();
 
     // Set the locale to C, because some ReQL terms may produce different
     // results in different locales, and we need to avoid data divergence when
@@ -193,18 +194,35 @@ with_priority_t::~with_priority_t() {
 
 void *malloc_aligned(size_t size, size_t alignment) {
     void *ptr = NULL;
-    int res = posix_memalign(&ptr, alignment, size);
+    int res = DANGEROUS_POSIX_MEMALIGN(&ptr, alignment, size);
     if (res != 0) {
         if (res == EINVAL) {
             crash_or_trap("posix_memalign with bad alignment: %zu.", alignment);
         } else if (res == ENOMEM) {
-            crash_or_trap("Out of memory.");
+            crash_oom();
         } else {
             crash_or_trap("posix_memalign failed with unknown result: %d.", res);
         }
     }
     return ptr;
 }
+
+void *rmalloc(size_t size) {
+    void *res = DANGEROUS_MALLOC(size);
+    if (res == NULL) {
+        crash_oom();
+    }
+    return res;
+}
+
+void *rrealloc(void *ptr, size_t size) {
+    void *res = DANGEROUS_REALLOC(ptr, size);
+    if (res == NULL) {
+        crash_oom();
+    }
+    return res;
+}
+
 rng_t::rng_t(int seed) {
 #ifndef NDEBUG
     if (seed == -1) {

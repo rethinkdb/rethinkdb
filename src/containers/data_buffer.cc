@@ -23,7 +23,7 @@ counted_t<data_buffer_t> data_buffer_t::create(int64_t size) {
                   "data_buffer_t is not a packed struct type");
 
     rassert(size >= 0 && static_cast<uint64_t>(size) <= SIZE_MAX - sizeof(data_buffer_t));
-    data_buffer_t *b = static_cast<data_buffer_t *>(malloc(sizeof(data_buffer_t) + size));
+    data_buffer_t *b = static_cast<data_buffer_t *>(rmalloc(sizeof(data_buffer_t) + size));
     b->ref_count_ = 0;
     b->size_ = size;
     return counted_t<data_buffer_t>(b);

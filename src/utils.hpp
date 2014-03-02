@@ -12,6 +12,19 @@
 #include "errors.hpp"
 #include "config/args.hpp"
 
+// Using `malloc()` is dangerous. Use `rmalloc()` instead to make sure
+// that the return value of `malloc()` is checked correctly.
+#define DANGEROUS_MALLOC malloc
+#define DANGEROUS_CALLOC calloc
+#define DANGEROUS_REALLOC realloc
+#define DANGEROUS_POSIX_MEMALIGN posix_memalign
+#pragma GCC poison malloc
+#pragma GCC poison calloc
+#pragma GCC poison realloc
+#pragma GCC poison valloc
+#pragma GCC poison memalign
+#pragma GCC poison posix_memalign
+
 class printf_buffer_t;
 
 namespace ph = std::placeholders;
@@ -34,6 +47,11 @@ struct const_charslice {
 #define NOINLINE __attribute__ ((noinline))
 
 void *malloc_aligned(size_t size, size_t alignment);
+
+/* Calls `malloc()` and checks its return value to crash if the allocation fails. */
+void *rmalloc(size_t size);
+/* Calls `realloc()` and checks its return value to crash if the allocation fails. */
+void *rrealloc(void *ptr, size_t size);
 
 
 

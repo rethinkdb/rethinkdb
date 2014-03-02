@@ -12,8 +12,7 @@
 wire_string_t *wire_string_t::create(size_t _size) {
     // This allocates _size + 1 bytes for the data_ field (which is declared as char[1])
     size_t memory_size = sizeof(wire_string_t) + _size;
-    void *raw_result = ::malloc(memory_size);
-    guarantee(raw_result != NULL, "Unable to allocate memory.");
+    void *raw_result = ::rmalloc(memory_size);
     wire_string_t *result = reinterpret_cast<wire_string_t *>(raw_result);
     result->size_ = _size;
     // Append a 0 character to allow for an efficient `c_str()`
