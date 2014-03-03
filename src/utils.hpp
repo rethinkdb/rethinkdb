@@ -12,13 +12,6 @@
 #include "errors.hpp"
 #include "config/args.hpp"
 
-// Using `malloc()` is dangerous. Use `rmalloc()` instead to make sure
-// that the return value of `malloc()` is checked correctly.
-#define DANGEROUS_MALLOC malloc
-#define DANGEROUS_CALLOC calloc
-#define DANGEROUS_REALLOC realloc
-#define DANGEROUS_POSIX_MEMALIGN posix_memalign
-
 class printf_buffer_t;
 
 namespace ph = std::placeholders;
