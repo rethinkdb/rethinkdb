@@ -20,11 +20,6 @@ progress_short_interval = 1000
 apply_to_collection = (collection, collection_data) ->
     for id, data of collection_data
         if data isnt null
-            if data.protocol? and data.protocol is 'rdb'  # We check that the machines in the blueprint do exist
-                if collection_data[id].blueprint? and collection_data[id].blueprint.peers_roles?
-                    for machine_uuid of collection_data[id].blueprint.peers_roles
-                        if !machines.get(machine_uuid)?
-                            delete collection_data[id].blueprint.peers_roles[machine_uuid]
             if collection.get(id)
                 collection.get(id).set(data)
             else

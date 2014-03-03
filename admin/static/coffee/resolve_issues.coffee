@@ -66,7 +66,7 @@ module 'ResolveIssuesView', ->
             @reset_buttons()
 
 
-        on_success: (response) ->
+        on_success: (response) =>
             if (response)
                 @on_success_with_error()
                 return
@@ -76,26 +76,14 @@ module 'ResolveIssuesView', ->
                 machine_dead:
                     machine_name: @machine_to_kill.get("name")
 
-            #TODO Remove this synchronous request and use proper callbacks.
             # Grab the new set of issues (so we don't have to wait)
             $.ajax
                 url: 'ajax/issues'
                 contentType: 'application/json'
-                success: set_issues
-                async: false
+                success: =>
+                    set_issues()
+                    super
 
-            super
-
-            # We clean data now to have data fresher than if we were waiting for the next call to ajax/
-            # remove from bluprints
-            for namespace in namespaces.models
-                blueprint = namespace.get('blueprint')
-                if @machine_to_kill.get("id") of blueprint.peers_roles
-                    delete blueprint.peers_roles[@machine_to_kill.get('id')]
-                    namespace.set('blueprint', blueprint)
-
-            # remove the dead machine from the models (this must be last)
-            machines.remove(@machine_to_kill.id)
 
     class @ResolveNameConflictModal extends Backbone.View
         alert_tmpl_: Handlebars.templates['resolve_issues-resolved-template']
@@ -117,7 +105,6 @@ module 'ResolveIssuesView', ->
                 url: 'ajax/issues'
                 contentType: 'application/json'
                 success: set_issues
-                async: false
 
             return @
 
@@ -159,10 +146,9 @@ module 'ResolveIssuesView', ->
             $.ajax
                 url: 'ajax/issues'
                 contentType: 'application/json'
-                success: set_issues
-                async: false
-            super
-
+                success: =>
+                    set_issues()
+                    super
 
     class @ResolveUnsatisfiableGoal extends UIComponents.AbstractModal
         template: Handlebars.templates['resolve_unsatisfiable_goals_modal-template']
@@ -222,10 +208,9 @@ module 'ResolveIssuesView', ->
             $.ajax
                 url: 'ajax/issues'
                 contentType: 'application/json'
-                success: set_issues
-                async: false
-
-            super
+                success: =>
+                    set_issues()
+                    super
 
     # ResolveIssuesView.Issue
     class @Issue extends Backbone.View
