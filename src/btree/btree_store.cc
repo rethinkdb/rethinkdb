@@ -223,20 +223,13 @@ void btree_store_t<protocol_t>::reset_data(
     // TOnDO that's not reasonable; reset_data() is sometimes used to wipe out
     // entire databases.
     const int expected_change_count = 2;
-    // We use distant_past here because we're here to wipe out a shard, and have no
-    // desire to falsely increase the update times of other shards.
-    acquire_superblock_for_write(repli_timestamp_t::distant_past,
+    acquire_superblock_for_write(repli_timestamp_t::invalid,
                                  expected_change_count,
                                  durability,
                                  token_pair,
                                  &txn,
                                  &superblock,
                                  interruptor);
-
-    // LSI: The way we update timestamps when performing leveling operations and
-    // merge operations, in write transactions, is probably wrong, because we don't
-    // update the timestamps to include the max of the new children -- we update it
-    // to include the max of the current write transaction.
 
     region_map_t<protocol_t, binary_blob_t> old_metainfo;
     get_metainfo_internal(superblock->get(), &old_metainfo);
