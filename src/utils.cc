@@ -216,8 +216,8 @@ void *rmalloc(size_t size) {
 }
 
 void *rrealloc(void *ptr, size_t size) {
-    void *res = realloc(ptr, size);
-    if (res == NULL) {
+    void *res = realloc(ptr, size);  // NOLINT(rethinkdb/malloc)
+    if (res == NULL && size != 0) {
         crash_oom();
     }
     return res;
