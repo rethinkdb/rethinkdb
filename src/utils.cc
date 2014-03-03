@@ -208,8 +208,8 @@ void *malloc_aligned(size_t size, size_t alignment) {
 }
 
 void *rmalloc(size_t size) {
-    void *res = malloc(size);
-    if (res == NULL) {
+    void *res = malloc(size);  // NOLINT(rethinkdb/malloc)
+    if (res == NULL && size != 0) {
         crash_oom();
     }
     return res;
