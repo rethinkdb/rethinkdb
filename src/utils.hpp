@@ -241,8 +241,6 @@ bool range_inside_of_byte_range(const void *p, size_t n_bytes, const void *range
 #define RETHINKDB_VERSION_STR "rethinkdb " RETHINKDB_VERSION " (" COMPILER ")"
 #endif
 
-#define NULLPTR (static_cast<void *>(0))
-
 #define DBLPRI "%.20g"
 
 #define ANY_PORT 0
