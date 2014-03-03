@@ -18,12 +18,6 @@
 #define DANGEROUS_CALLOC calloc
 #define DANGEROUS_REALLOC realloc
 #define DANGEROUS_POSIX_MEMALIGN posix_memalign
-#pragma GCC poison malloc
-#pragma GCC poison calloc
-#pragma GCC poison realloc
-#pragma GCC poison valloc
-#pragma GCC poison memalign
-#pragma GCC poison posix_memalign
 
 class printf_buffer_t;
 
