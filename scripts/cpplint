@@ -1286,7 +1286,8 @@ rethinkdb_wrap_list = (
     ('realloc(', 'rrealloc('),
     ('valloc(', 'malloc_aligned('),
     ('memalign(', 'malloc_aligned('),
-    ('posix_memalign(', 'malloc_aligned(')
+    ('posix_memalign(', 'malloc_aligned('),
+    ('assert(', 'rassert('),
     )
 
 def CheckRethinkdbWrapped(filename, clean_lines, linenum, error):
@@ -1309,7 +1310,7 @@ def CheckRethinkdbWrapped(filename, clean_lines, linenum, error):
       error(filename, linenum, 'runtime/rethinkdb_fn', 2,
             'Consider using ' + rethinkdb_wrapped_function +
             '...) instead of ' + unwrapped_function +
-            '...) for improved safety.')
+            '...) for reasons.')
 
 
 
