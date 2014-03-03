@@ -975,6 +975,7 @@ page_cache_t::compute_changes(const std::set<page_txn_t *> &txns) {
                     rassert(t.tstamp ==
                             superceding_recency(jt->second.tstamp, t.tstamp));
                     jt->second.tstamp = t.tstamp;
+                    jt->second.version = t.block_version;
                 }
             }
         }
