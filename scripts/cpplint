@@ -185,6 +185,7 @@ _ERROR_CATEGORIES = [
   'readability/streams',
   'readability/todo',
   'readability/utf8',
+  'rethinkdb/malloc',  # To silence "Unknown NOLINT error category" complaints.
   'runtime/arrays',
   'runtime/casting',
   'runtime/explicit',
