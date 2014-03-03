@@ -4,10 +4,9 @@
 
 #include <functional>
 #include <map>
+#include <set>
 #include <utility>
 #include <vector>
-#include <set>
-#include <functional>
 
 #include "buffer_cache/alt/block_version.hpp"
 #include "buffer_cache/alt/cache_account.hpp"
