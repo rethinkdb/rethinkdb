@@ -828,10 +828,10 @@ void btree_store_t<protocol_t>::set_metainfo(const metainfo_t &new_metainfo,
                                              signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
 
-    // KSI: Are there other places where we give up and use repli_timestamp_t::invalid?
+    // KSI: Are there other places where we give up and use repli_timestamp_t::distant_psat?
     scoped_ptr_t<txn_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
-    acquire_superblock_for_write(repli_timestamp_t::invalid,
+    acquire_superblock_for_write(repli_timestamp_t::distant_past,
                                  1,
                                  write_durability_t::HARD,
                                  token,
