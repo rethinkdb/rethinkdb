@@ -106,9 +106,6 @@ module 'ResolveIssuesView', ->
                 contentType: 'application/json'
                 success: set_issues
 
-            return @
-
-
     class @ResolveVClockModal extends UIComponents.AbstractModal
         template: Handlebars.templates['resolve_vclock-modal-template']
         alert_tmpl: Handlebars.templates['resolve_issues-resolved-template']
