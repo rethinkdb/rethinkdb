@@ -64,18 +64,6 @@ static char* cJSON_strdup(const char* str)
       return copy;
 }
 
-//void cJSON_InitHooks(cJSON_Hooks* hooks)
-//{
-//    if (!hooks) { /* Reset hooks */
-//        cJSON_malloc = malloc;
-//        cJSON_free = free;
-//        return;
-//    }
-//
-//        cJSON_malloc = (hooks->malloc_fn)?hooks->malloc_fn:malloc;
-//        cJSON_free         = (hooks->free_fn)?hooks->free_fn:free;
-//}
-
 /* Internal constructor. */
 static cJSON *cJSON_New_Item()
 {
@@ -352,7 +340,7 @@ static char *print_array(cJSON *item,int depth,int fmt)
                 node=node->next;
         }
 
-        /* If we didn't fail, try to malloc the output string */
+        /* If we didn't fail, try to rmalloc the output string */
         if (!fail) out=(char*)cJSON_malloc(len);
         /* If that fails, we fail. */
         if (!out) fail=1;

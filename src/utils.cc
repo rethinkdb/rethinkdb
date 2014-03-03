@@ -194,7 +194,7 @@ with_priority_t::~with_priority_t() {
 
 void *malloc_aligned(size_t size, size_t alignment) {
     void *ptr = NULL;
-    int res = DANGEROUS_POSIX_MEMALIGN(&ptr, alignment, size);
+    int res = posix_memalign(&ptr, alignment, size);  // NOLINT(runtime/rethinkdb_fn)
     if (res != 0) {
         if (res == EINVAL) {
             crash_or_trap("posix_memalign with bad alignment: %zu.", alignment);
@@ -208,16 +208,16 @@ void *malloc_aligned(size_t size, size_t alignment) {
 }
 
 void *rmalloc(size_t size) {
-    void *res = DANGEROUS_MALLOC(size);
-    if (res == NULL) {
+    void *res = malloc(size);  // NOLINT(runtime/rethinkdb_fn)
+    if (res == NULL && size != 0) {
         crash_oom();
     }
     return res;
 }
 
 void *rrealloc(void *ptr, size_t size) {
-    void *res = DANGEROUS_REALLOC(ptr, size);
-    if (res == NULL) {
+    void *res = realloc(ptr, size);  // NOLINT(runtime/rethinkdb_fn)
+    if (res == NULL && size != 0) {
         crash_oom();
     }
     return res;

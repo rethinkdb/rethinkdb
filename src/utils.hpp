@@ -12,19 +12,6 @@
 #include "errors.hpp"
 #include "config/args.hpp"
 
-// Using `malloc()` is dangerous. Use `rmalloc()` instead to make sure
-// that the return value of `malloc()` is checked correctly.
-#define DANGEROUS_MALLOC malloc
-#define DANGEROUS_CALLOC calloc
-#define DANGEROUS_REALLOC realloc
-#define DANGEROUS_POSIX_MEMALIGN posix_memalign
-#pragma GCC poison malloc
-#pragma GCC poison calloc
-#pragma GCC poison realloc
-#pragma GCC poison valloc
-#pragma GCC poison memalign
-#pragma GCC poison posix_memalign
-
 class printf_buffer_t;
 
 namespace ph = std::placeholders;
@@ -253,8 +240,6 @@ bool range_inside_of_byte_range(const void *p, size_t n_bytes, const void *range
 #else
 #define RETHINKDB_VERSION_STR "rethinkdb " RETHINKDB_VERSION " (" COMPILER ")"
 #endif
-
-#define NULLPTR (static_cast<void *>(0))
 
 #define DBLPRI "%.20g"
 

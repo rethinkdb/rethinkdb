@@ -1,9 +1,9 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "btree/concurrent_traversal.hpp"
 
-#include <functional>
-
 #include <stdint.h>
+
+#include <functional>
 
 #include "arch/runtime/coroutines.hpp"
 #include "concurrency/auto_drainer.hpp"
