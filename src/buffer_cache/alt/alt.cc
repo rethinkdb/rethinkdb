@@ -178,7 +178,14 @@ txn_t::txn_t(cache_conn_t *cache_conn,
       durability_(durability) {
     // Write transactions need to specify a timestamp, even if it's
     // repli_timestamp_t::distant_past.
-    guarantee(txn_timestamp != repli_timestamp_t::invalid);
+
+    // Treat an invalid timestamp like distant_past since that's how we really want
+    // it to behave.
+    // KSI: Callers should not be specifying invalid timestamps, but maybe they
+    // shouldn't be passing a timestamp at all....
+    if (txn_timestamp == repli_timestamp_t::invalid) {
+        txn_timestamp = repli_timestamp_t::distant_past;
+    }
 
     help_construct(txn_timestamp, expected_change_count, cache_conn);
 }
