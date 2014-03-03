@@ -197,11 +197,11 @@ void *malloc_aligned(size_t size, size_t alignment) {
     int res = posix_memalign(&ptr, alignment, size);  // NOLINT(runtime/rethinkdb_fn)
     if (res != 0) {
         if (res == EINVAL) {
-            crash_or_trap("posix_memalign with bad alignment: %zu.", alignment);  // NOLINT(runtime/rethinkdb_fn)
+            crash_or_trap("posix_memalign with bad alignment: %zu.", alignment);
         } else if (res == ENOMEM) {
             crash_oom();
         } else {
-            crash_or_trap("posix_memalign failed with unknown result: %d.", res);  // NOLINT(runtime/rethinkdb_fn)
+            crash_or_trap("posix_memalign failed with unknown result: %d.", res);
         }
     }
     return ptr;
