@@ -2,7 +2,7 @@
 
 #include "utils.hpp"
 
-tcp_socket_exc_t::tcp_socket_exc_t(int errsv) throw () {
+tcp_socket_exc_t::tcp_socket_exc_t(int errsv) {
     info = strprintf("TCP socket creation failed: %s", errno_string(errsv).c_str());
 }
 
