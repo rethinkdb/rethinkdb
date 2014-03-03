@@ -194,14 +194,14 @@ with_priority_t::~with_priority_t() {
 
 void *malloc_aligned(size_t size, size_t alignment) {
     void *ptr = NULL;
-    int res = posix_memalign(&ptr, alignment, size);
+    int res = posix_memalign(&ptr, alignment, size);  // NOLINT(rethinkdb/malloc)
     if (res != 0) {
         if (res == EINVAL) {
-            crash_or_trap("posix_memalign with bad alignment: %zu.", alignment);
+            crash_or_trap("posix_memalign with bad alignment: %zu.", alignment);  // NOLINT(rethinkdb/malloc)
         } else if (res == ENOMEM) {
             crash_oom();
         } else {
-            crash_or_trap("posix_memalign failed with unknown result: %d.", res);
+            crash_or_trap("posix_memalign failed with unknown result: %d.", res);  // NOLINT(rethinkdb/malloc)
         }
     }
     return ptr;
