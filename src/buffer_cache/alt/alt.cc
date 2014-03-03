@@ -176,6 +176,10 @@ txn_t::txn_t(cache_conn_t *cache_conn,
       cache_account_(cache_->page_cache_.default_reads_account()),
       access_(access_t::write),
       durability_(durability) {
+    // Write transactions need to specify a timestamp, even if it's
+    // repli_timestamp_t::distant_past.
+    guarantee(txn_timestamp != repli_timestamp_t::invalid);
+
     help_construct(txn_timestamp, expected_change_count, cache_conn);
 }
 
