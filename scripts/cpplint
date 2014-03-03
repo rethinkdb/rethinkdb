@@ -185,7 +185,6 @@ _ERROR_CATEGORIES = [
   'readability/streams',
   'readability/todo',
   'readability/utf8',
-  'rethinkdb/malloc',  # To silence "Unknown NOLINT error category" complaints.
   'runtime/arrays',
   'runtime/casting',
   'runtime/explicit',
@@ -202,6 +201,7 @@ _ERROR_CATEGORIES = [
   'runtime/sizeof',
   'runtime/string',
   'runtime/threadsafe_fn',
+  'runtime/rethinkdb_fn',
   'runtime/virtual',
   'whitespace/blank_line',
   'whitespace/braces',
@@ -1306,7 +1306,7 @@ def CheckRethinkdbWrapped(filename, clean_lines, linenum, error):
     # Comparisons made explicit for clarity -- pylint: disable-msg=C6403
     if ix >= 0 and (ix == 0 or (not line[ix - 1].isalnum() and
                                 line[ix - 1] not in ('_', '.', '>'))):
-      error(filename, linenum, 'rethinkdb/malloc', 2,
+      error(filename, linenum, 'runtime/rethinkdb_fn', 2,
             'Consider using ' + rethinkdb_wrapped_function +
             '...) instead of ' + unwrapped_function +
             '...) for improved safety.')

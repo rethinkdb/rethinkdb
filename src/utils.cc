@@ -194,21 +194,21 @@ with_priority_t::~with_priority_t() {
 
 void *malloc_aligned(size_t size, size_t alignment) {
     void *ptr = NULL;
-    int res = posix_memalign(&ptr, alignment, size);  // NOLINT(rethinkdb/malloc)
+    int res = posix_memalign(&ptr, alignment, size);  // NOLINT(runtime/rethinkdb_fn)
     if (res != 0) {
         if (res == EINVAL) {
-            crash_or_trap("posix_memalign with bad alignment: %zu.", alignment);  // NOLINT(rethinkdb/malloc)
+            crash_or_trap("posix_memalign with bad alignment: %zu.", alignment);  // NOLINT(runtime/rethinkdb_fn)
         } else if (res == ENOMEM) {
             crash_oom();
         } else {
-            crash_or_trap("posix_memalign failed with unknown result: %d.", res);  // NOLINT(rethinkdb/malloc)
+            crash_or_trap("posix_memalign failed with unknown result: %d.", res);  // NOLINT(runtime/rethinkdb_fn)
         }
     }
     return ptr;
 }
 
 void *rmalloc(size_t size) {
-    void *res = malloc(size);  // NOLINT(rethinkdb/malloc)
+    void *res = malloc(size);  // NOLINT(runtime/rethinkdb_fn)
     if (res == NULL && size != 0) {
         crash_oom();
     }
@@ -216,7 +216,7 @@ void *rmalloc(size_t size) {
 }
 
 void *rrealloc(void *ptr, size_t size) {
-    void *res = realloc(ptr, size);  // NOLINT(rethinkdb/malloc)
+    void *res = realloc(ptr, size);  // NOLINT(runtime/rethinkdb_fn)
     if (res == NULL && size != 0) {
         crash_oom();
     }
