@@ -116,7 +116,6 @@ void *linux_thread_pool_t::start_thread(void *arg) {
 #ifndef VALGRIND
         stack_t segv_stack;
         segv_stack.ss_sp = malloc_aligned(SEGV_STACK_SIZE, getpagesize());
-        guarantee_err(segv_stack.ss_sp != 0, "malloc failed");
         segv_stack.ss_flags = 0;
         segv_stack.ss_size = SEGV_STACK_SIZE;
         int res = sigaltstack(&segv_stack, NULL);
