@@ -74,16 +74,16 @@ There were complaints that print_backtrace() was smashing memory. Shachaf observ
 pieces of the backtrace seemed to be ending up overwriting other structs, and filed
 issue #100.
 
-Daniel Mewes suspected that the memory smashing was related to calling malloc().  [NOLINT(rethinkdb/malloc)]
+Daniel Mewes suspected that the memory smashing was related to calling malloc().
 In December 2010, he changed demangle_cpp_name() to take a static buffer, and fill
 this static buffer with the demangled name. See 284246bd.
 
-abi::__cxa_demangle expects a malloc()ed buffer, and if the buffer is too small it [NOLINT(rethinkdb/malloc)]
-will call realloc() on it. So the static-buffer approach worked except when the name [NOLINT(rethinkdb/malloc)]
+abi::__cxa_demangle expects a malloc()ed buffer, and if the buffer is too small it
+will call realloc() on it. So the static-buffer approach worked except when the name
 to be demangled was too large.
 
 In March 2011, Tim and Ivan got tired of the memory allocator complaining that someone
-was trying to realloc() an unallocated buffer, and changed demangle_cpp_name() back [NOLINT(rethinkdb/malloc)]
+was trying to realloc() an unallocated buffer, and changed demangle_cpp_name() back
 to the way it was originally.
 
 Please don't change this function without talking to the people who have already
