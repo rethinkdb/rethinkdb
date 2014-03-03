@@ -1280,6 +1280,39 @@ def CheckPosixThreading(filename, clean_lines, linenum, error):
             '...) instead of ' + single_thread_function +
             '...) for improved thread safety.')
 
+rethinkdb_wrap_list = (
+    ('malloc(', 'rmalloc('),
+    ('calloc(', 'rmalloc(...) and memset('),
+    ('realloc(', 'rrealloc('),
+    ('valloc(', 'malloc_aligned('),
+    ('memalign(', 'malloc_aligned('),
+    ('posix_memalign(', 'malloc_aligned(')
+    )
+
+def CheckRethinkdbWrapped(filename, clean_lines, linenum, error):
+  """Checks for calls to rethinkdb-wrapped functions.
+
+  Safer wrappers should be used.
+
+  Args:
+    filename: The name of the current file.
+    clean_lines: A CleansedLines instance containing the file.
+    linenum: The number of the line to check.
+    error: The function to call with any errors found.
+  """
+  line = clean_lines.elided[linenum]
+  for unwrapped_function, rethinkdb_wrapped_function in rethinkdb_wrap_list:
+    ix = line.find(unwrapped_function)
+    # Comparisons made explicit for clarity -- pylint: disable-msg=C6403
+    if ix >= 0 and (ix == 0 or (not line[ix - 1].isalnum() and
+                                line[ix - 1] not in ('_', '.', '>'))):
+      error(filename, linenum, 'rethinkdb/malloc', 2,
+            'Consider using ' + rethinkdb_wrapped_function +
+            '...) instead of ' + unwrapped_function +
+            '...) for improved safety.')
+
+
+
 
 # Matches invalid increment: *count++, which moves pointer instead of
 # incrementing a value.
@@ -3211,6 +3244,7 @@ def ProcessLine(filename, file_extension,
   CheckForNonStandardConstructs(filename, clean_lines, line,
                                 class_state, error)
   CheckPosixThreading(filename, clean_lines, line, error)
+  CheckRethinkdbWrapped(filename, clean_lines, line, error)
   CheckInvalidIncrement(filename, clean_lines, line, error)
   CheckMakePairUsesDeduction(filename, clean_lines, line, error)
   for check_fn in extra_check_functions:
