@@ -1250,6 +1250,7 @@ threading_list = (
     ('readdir(', 'readdir_r('),
     ('strtok(', 'strtok_r('),
     ('ttyname(', 'ttyname_r('),
+    ('strerror(', 'strerror_r('),
     )
 
 
