@@ -177,7 +177,7 @@ private:
         case Term::CHANGE_AT:
         case Term::SPLICE_AT:
         case Term::COERCE_TO:
-        case Term::GROUPS_TO_ARRAY:
+        case Term::UNGROUP:
         case Term::TYPEOF:
         case Term::FUNCALL:
         case Term::BRANCH:
@@ -333,7 +333,7 @@ private:
         case Term::CHANGE_AT:
         case Term::SPLICE_AT:
         case Term::COERCE_TO:
-        case Term::GROUPS_TO_ARRAY:
+        case Term::UNGROUP:
         case Term::TYPEOF:
         case Term::DB_CREATE:
         case Term::DB_DROP:

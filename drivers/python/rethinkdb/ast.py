@@ -279,8 +279,8 @@ class RqlQuery(object):
     def coerce_to(self, other_type):
         return CoerceTo(self, other_type)
 
-    def groups_to_array(self):
-        return GroupsToArray(self)
+    def ungroup(self):
+        return Ungroup(self)
 
     def type_of(self):
         return TypeOf(self)
@@ -1101,9 +1101,9 @@ class CoerceTo(RqlMethodQuery):
     tt = p.Term.COERCE_TO
     st = 'coerce_to'
 
-class GroupsToArray(RqlMethodQuery):
-    tt = p.Term.GROUPS_TO_ARRAY
-    st = 'groups_to_array'
+class Ungroup(RqlMethodQuery):
+    tt = p.Term.UNGROUP
+    st = 'ungroup'
 
 class TypeOf(RqlMethodQuery):
     tt = p.Term.TYPEOF

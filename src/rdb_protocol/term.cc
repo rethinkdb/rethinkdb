@@ -86,7 +86,7 @@ counted_t<term_t> compile_term(compile_env_t *env, protob_t<const Term> t) {
     case Term::CHANGE_AT:          return make_change_at_term(env, t);
     case Term::SPLICE_AT:          return make_splice_at_term(env, t);
     case Term::COERCE_TO:          return make_coerce_term(env, t);
-    case Term::GROUPS_TO_ARRAY:    return make_groups_to_array_term(env, t);
+    case Term::UNGROUP:            return make_ungroup_term(env, t);
     case Term::TYPEOF:             return make_typeof_term(env, t);
     case Term::UPDATE:             return make_update_term(env, t);
     case Term::DELETE:             return make_delete_term(env, t);

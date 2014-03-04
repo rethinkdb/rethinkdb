@@ -247,13 +247,13 @@ private:
     virtual const char *name() const { return "coerce_to"; }
 };
 
-class groups_to_array_term_t : public op_term_t {
+class ungroup_term_t : public op_term_t {
 public:
-    groups_to_array_term_t(compile_env_t *env, const protob_t<const Term> &term)
+    ungroup_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) {
-        auto groups = arg(env, 0)->as_grouped_data();
+        auto groups = arg(env, 0)->as_promiscuous_grouped_data(env->env);
         std::vector<counted_t<const datum_t> > v;
         v.reserve(groups->size());
         for (auto it = groups->begin(); it != groups->end(); ++it) {
@@ -264,7 +264,7 @@ private:
         }
         return new_val(make_counted<const datum_t>(std::move(v)));
     }
-    virtual const char *name() const { return "groups_to_array"; }
+    virtual const char *name() const { return "ungroup"; }
     virtual bool can_be_grouped() { return false; }
 };
 
@@ -373,9 +373,9 @@ counted_t<term_t> make_coerce_term(
     compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<coerce_term_t>(env, term);
 }
-counted_t<term_t> make_groups_to_array_term(
+counted_t<term_t> make_ungroup_term(
     compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<groups_to_array_term_t>(env, term);
+    return make_counted<ungroup_term_t>(env, term);
 }
 counted_t<term_t> make_typeof_term(
     compile_env_t *env, const protob_t<const Term> &term) {

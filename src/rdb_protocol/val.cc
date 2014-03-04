@@ -535,6 +535,12 @@ counted_t<grouped_data_t> val_t::as_grouped_data() {
     return boost::get<counted_t<grouped_data_t> >(u);
 }
 
+counted_t<grouped_data_t> val_t::as_promiscuous_grouped_data(env_t *env) {
+    return ((type.raw_type == type_t::SEQUENCE) && sequence()->is_grouped())
+        ? sequence()->to_array(env)->as_grouped_data()
+        : as_grouped_data();
+}
+
 counted_t<grouped_data_t> val_t::maybe_as_grouped_data() {
     return (type.raw_type == type_t::GROUPED_DATA)
         ? as_grouped_data()
@@ -547,7 +553,8 @@ counted_t<grouped_data_t> val_t::maybe_as_promiscuous_grouped_data(env_t *env) {
         : maybe_as_grouped_data();
 }
 
-std::pair<counted_t<table_t>, counted_t<datum_stream_t> > val_t::as_selection(env_t *env) {
+std::pair<counted_t<table_t>, counted_t<datum_stream_t> >
+val_t::as_selection(env_t *env) {
     if (type.raw_type != type_t::TABLE && type.raw_type != type_t::SELECTION) {
         rcheck_literal_type(type_t::SELECTION);
     }

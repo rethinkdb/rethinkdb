@@ -186,6 +186,7 @@ public:
     // `is_convertible` interface because the type information is actually a
     // property of the stream, because I'm a terrible programmer.)
     counted_t<grouped_data_t> as_grouped_data();
+    counted_t<grouped_data_t> as_promiscuous_grouped_data(env_t *env);
     counted_t<grouped_data_t> maybe_as_grouped_data();
     counted_t<grouped_data_t> maybe_as_promiscuous_grouped_data(env_t *env);
 

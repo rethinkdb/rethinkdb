@@ -167,7 +167,7 @@ class RDBVal extends TermBase
     eqJoin: aropt (left_attr, right, opts) -> new EqJoin opts, @, funcWrap(left_attr), right
     zip: ar () -> new Zip {}, @
     coerceTo: ar (type) -> new CoerceTo {}, @, type
-    groupsToArray: ar () -> new GroupsToArray {}, @
+    ungroup: ar () -> new Ungroup {}, @
     typeOf: ar () -> new TypeOf {}, @
     update: aropt (func, opts) -> new Update opts, @, funcWrap(func)
     delete: aropt (opts) -> new Delete opts, @
@@ -733,9 +733,9 @@ class CoerceTo extends RDBOp
     tt: "COERCE_TO"
     mt: 'coerceTo'
 
-class GroupsToArray extends RDBOp
-    tt: "GROUPS_TO_ARRAY"
-    mt: 'groupsToArray'
+class Ungroup extends RDBOp
+    tt: "UNGROUP"
+    mt: 'ungroup'
 
 class TypeOf extends RDBOp
     tt: "TYPEOF"
