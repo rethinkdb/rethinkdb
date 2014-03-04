@@ -53,7 +53,7 @@ protected:
         : default_val(std::move(_default_val)) { }
     virtual ~grouped_acc_t() { }
 private:
-    virtual done_t operator()(groups_t *groups,
+    virtual done_traversing_t operator()(groups_t *groups,
                               store_key_t &&key,
                               counted_t<const datum_t> &&sindex_val) {
         for (auto it = groups->begin(); it != groups->end(); ++it) {
@@ -68,7 +68,7 @@ private:
                 acc.erase(t_it);
             }
         }
-        return should_send_batch() ? done_t::YES : done_t::NO;
+        return should_send_batch() ? done_traversing_t::YES : done_traversing_t::NO;
     }
     virtual bool accumulate(const counted_t<const datum_t> &el,
                             T *t,

@@ -139,6 +139,8 @@ protected:
     bool ops_to_do() { return ops.size() != 0; }
 
 private:
+    enum class done_t { YES, NO };
+
     virtual bool is_array() = 0;
 
     virtual counted_t<datum_stream_t> add_transformation(

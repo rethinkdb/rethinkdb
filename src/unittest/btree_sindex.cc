@@ -13,7 +13,7 @@
 
 namespace unittest {
 
-void run_sindex_low_level_operations_test() {
+TPTEST(BTreeSindex, LowLevelOps) {
     temp_file_t temp_file;
 
     io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
@@ -101,11 +101,7 @@ void run_sindex_low_level_operations_test() {
     }
 }
 
-TEST(BTreeSindex, LowLevelOps) {
-    run_in_thread_pool(&run_sindex_low_level_operations_test);
-}
-
-void run_sindex_btree_store_api_test() {
+TPTEST(BTreeSindex, BtreeStoreAPI) {
     temp_file_t temp_file;
 
     io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
@@ -261,10 +257,6 @@ void run_sindex_btree_store_api_test() {
         store.drop_sindex(
                 *it, &sindex_block, &sizer, &deleter, &dummy_interruptor);
     }
-}
-
-TEST(BTreeSindex, BtreeStoreAPI) {
-    run_in_thread_pool(&run_sindex_btree_store_api_test);
 }
 
 } // namespace unittest

@@ -38,7 +38,7 @@ std::string vector_to_string(const std::vector<char> &v) {
     return std::string(v.data(), v.size());
 }
 
-void run_metainfo_test() {
+TPTEST(BtreeMetainfo, MetainfoTest) {
     temp_file_t temp_file;
 
     io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
@@ -183,10 +183,6 @@ void run_metainfo_test() {
             EXPECT_EQ(0u, mirror_copy.size()) << "missing key(s)";
         }
     }
-}
-
-TEST(BtreeMetainfo, MetainfoTest) {
-    unittest::run_in_thread_pool(&run_metainfo_test);
 }
 
 }   /* namespace unittest */

@@ -97,6 +97,7 @@
 #include <unistd.h>
 #include "clustering/administration/cli/linenoise.hpp"
 #include "containers/scoped.hpp"
+#include "utils.hpp"
 
 #define LINENOISE_DEFAULT_HISTORY_MAX_LEN 100
 #define LINENOISE_MAX_LINE 4096
@@ -674,9 +675,9 @@ void linenoiseSetCompletionCallback(linenoiseCompletionCallback *fn) {
 
 void linenoiseAddCompletion(linenoiseCompletions *lc, const char *str) {
     size_t len = strlen(str);
-    char *copy = (char*)malloc(len+1);
+    char *copy = (char*)rmalloc(len+1);
     memcpy(copy,str,len+1);
-    lc->cvec = (char**)realloc(lc->cvec,sizeof(char*)*(lc->len+1));
+    lc->cvec = (char**)rrealloc(lc->cvec,sizeof(char*)*(lc->len+1));
     lc->cvec[lc->len++] = copy;
 }
 
@@ -686,7 +687,7 @@ int linenoiseHistoryAdd(const char *line) {
 
     if (history_max_len == 0) return 0;
     if (history == NULL) {
-        history = (char**)malloc(sizeof(char*)*history_max_len);
+        history = (char**)rmalloc(sizeof(char*)*history_max_len);
         if (history == NULL) return 0;
         memset(history,0,(sizeof(char*)*history_max_len));
     }
@@ -709,7 +710,7 @@ int linenoiseHistorySetMaxLen(int len) {
     if (history) {
         int tocopy = history_len;
 
-        new_history = (char**)malloc(sizeof(char*)*len);
+        new_history = (char**)rmalloc(sizeof(char*)*len);
         if (new_history == NULL) return 0;
         if (len < tocopy) tocopy = len;
         memcpy(new_history,history+(history_max_len-tocopy), sizeof(char*)*tocopy);

@@ -29,7 +29,7 @@ public:
 
     /* serializer_t interface */
 
-    scoped_malloc_t<ser_buffer_t> malloc() { return inner->malloc(); }
+    scoped_malloc_t<ser_buffer_t> allocate_buffer() { return inner->allocate_buffer(); }
 
     /* Allocates a new io account for the underlying file.
     Use delete to free it. */

@@ -2,11 +2,11 @@
 #ifndef BUFFER_CACHE_ALT_PAGE_CACHE_HPP_
 #define BUFFER_CACHE_ALT_PAGE_CACHE_HPP_
 
+#include <functional>
 #include <map>
+#include <set>
 #include <utility>
 #include <vector>
-#include <set>
-#include <functional>
 
 #include "buffer_cache/alt/block_version.hpp"
 #include "buffer_cache/alt/cache_account.hpp"
@@ -104,9 +104,6 @@ private:
 
     // page_txn_t should not access our fields directly.
     friend class page_txn_t;
-    // Returns the previous last modifier (or NULL, if there's no active
-    // last-modifying previous txn).
-    page_txn_t *change_last_modifier(page_txn_t *new_last_modifier);
 
     // Returns NULL if the page was deleted.
     page_t *the_page_for_read_or_deleted(current_page_help_t help,
@@ -130,12 +127,11 @@ private:
     // True if the block is in a deleted state.  page_ will be null.
     bool is_deleted_;
 
-    // The last txn that modified the page, or marked it deleted.
-    page_txn_t *last_modifier_;
+    // The last write acquirer for this page.
+    page_txn_t *last_write_acquirer_;
 
-    // An in-cache value that increments whenever the value is changed, so that
-    // different page_txn_t's can know which was the last to modify the block.
-    block_version_t block_version_;
+    // The version of the page, that the last write acquirer had.
+    block_version_t last_write_acquirer_version_;
 
     // Instead of storing the recency here, we store it page_cache_t::recencies_.
 
@@ -587,17 +583,19 @@ private:
     // RSP: Performance?
     std::vector<page_txn_t *> subseqers_;
 
-    // Pages for which this page_txn_t is the last_modifier_ of that page.
-    std::vector<current_page_t *> pages_modified_last_;
+    // Pages for which this page_txn_t is the last_write_acquirer_ of that page.
+    std::vector<current_page_t *> pages_write_acquired_last_;
 
     // acqs that are currently alive.
     // RSP: Performance?  remove_acquirer takes linear time.
     std::vector<current_page_acq_t *> live_acqs_;
 
     // Saved pages (by block id).
+    // RSP: Right now we put multiple dirtied_page_t's if we reacquire the same block and modify it again.
     segmented_vector_t<dirtied_page_t, 8> snapshotted_dirtied_pages_;
 
     // Touched pages (by block id).
+    // RSP: Right now we put multiple touched_page_t's if we reacquire the same block and modify it again.
     segmented_vector_t<touched_page_t, 8> touched_pages_;
 
     // KSI: We could probably turn began_waiting_for_flush_ and spawned_flush_ into a

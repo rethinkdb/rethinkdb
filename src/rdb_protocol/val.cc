@@ -7,6 +7,7 @@
 #include "rdb_protocol/meta_utils.hpp"
 #include "rdb_protocol/minidriver.hpp"
 #include "rdb_protocol/term.hpp"
+#include "stl_utils.hpp"
 
 namespace ql {
 

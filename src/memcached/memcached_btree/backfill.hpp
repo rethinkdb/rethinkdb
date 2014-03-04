@@ -2,6 +2,8 @@
 #ifndef MEMCACHED_MEMCACHED_BTREE_BACKFILL_HPP_
 #define MEMCACHED_MEMCACHED_BTREE_BACKFILL_HPP_
 
+#include <vector>
+
 #include "btree/keys.hpp"
 #include "containers/data_buffer.hpp"
 #include "repli_timestamp.hpp"

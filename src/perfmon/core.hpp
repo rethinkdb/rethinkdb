@@ -49,7 +49,6 @@ public:
 class perfmon_membership_t;
 
 /* A perfmon collection allows you to add hierarchy to stats. */
-// RSI: home_thread_mixin_t?  Used?
 class perfmon_collection_t : public perfmon_t, public home_thread_mixin_t {
 public:
     perfmon_collection_t();

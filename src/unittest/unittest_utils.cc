@@ -1,12 +1,9 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "unittest/unittest_utils.hpp"
 
 #include <stdlib.h>
 
-#include "errors.hpp"
-#include <boost/bind.hpp>
-
-// These unit tests need to access some private methods.
+#include <functional>
 
 #include "arch/timing.hpp"
 #include "arch/runtime/starter.hpp"
@@ -95,7 +92,7 @@ std::set<ip_address_t> get_unittest_addresses() {
     return get_local_ips(std::set<ip_address_t>(), false);
 }
 
-void run_in_thread_pool(const boost::function<void()>& fun, int num_workers) {
+void run_in_thread_pool(const std::function<void()> &fun, int num_workers) {
     ::run_in_thread_pool(fun, num_workers);
 }
 

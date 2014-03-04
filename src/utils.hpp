@@ -35,6 +35,11 @@ struct const_charslice {
 
 void *malloc_aligned(size_t size, size_t alignment);
 
+/* Calls `malloc()` and checks its return value to crash if the allocation fails. */
+void *rmalloc(size_t size);
+/* Calls `realloc()` and checks its return value to crash if the allocation fails. */
+void *rrealloc(void *ptr, size_t size);
+
 
 
 
@@ -235,8 +240,6 @@ bool range_inside_of_byte_range(const void *p, size_t n_bytes, const void *range
 #else
 #define RETHINKDB_VERSION_STR "rethinkdb " RETHINKDB_VERSION " (" COMPILER ")"
 #endif
-
-#define NULLPTR (static_cast<void *>(0))
 
 #define DBLPRI "%.20g"
 

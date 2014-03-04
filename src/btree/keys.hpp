@@ -31,7 +31,7 @@ struct btree_key_t {
     bool fits(int space) const {
         return space > 0 && space > size;
     }
-};
+} __attribute__((__packed__));
 
 inline int btree_key_cmp(const btree_key_t *left, const btree_key_t *right) {
     return sized_strcmp(left->contents, left->size, right->contents, right->size);

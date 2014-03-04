@@ -9,13 +9,14 @@
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "rdb_protocol/btree.hpp"
+#include "rdb_protocol/minidriver.hpp"
 #include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/sym.hpp"
+#include "stl_utils.hpp"
 #include "serializer/config.hpp"
 #include "unittest/gtest.hpp"
 #include "unittest/unittest_utils.hpp"
-#include "rdb_protocol/minidriver.hpp"
 
 #define TOTAL_KEYS_TO_INSERT 1000
 #define MAX_RETRIES_FOR_SINDEX_POSTCONSTRUCT 5
@@ -287,7 +288,7 @@ void _check_keys_are_NOT_present(btree_store_t<rdb_protocol_t> *store,
         rdb_protocol_t::rget_read_response_t res;
         double ii = i * i;
         /* The only thing this does is have a NULL scoped_ptr_t<trace_t> in it
-         * which prevents to profiling code from crashing. */
+         * which prevents the profiling code from crashing. */
         ql::env_t dummy_env(NULL, NULL);
         rdb_rget_slice(
             store->get_sindex_slice(sindex_id),
@@ -305,10 +306,7 @@ void _check_keys_are_NOT_present(btree_store_t<rdb_protocol_t> *store,
 
         auto groups = boost::get<ql::grouped_t<ql::stream_t> >(&res.result);
         ASSERT_TRUE(groups != NULL);
-        ASSERT_EQ(1, groups->size());
-        auto stream = &groups->begin()->second;
-        ASSERT_TRUE(stream != NULL);
-        ASSERT_EQ(0ul, stream->size());
+        ASSERT_EQ(0, groups->size());
     }
 }
 
@@ -325,7 +323,7 @@ void check_keys_are_NOT_present(btree_store_t<rdb_protocol_t> *store,
     }
 }
 
-void run_sindex_post_construction() {
+TPTEST(RDBBtree, SindexPostConstruct) {
     recreate_temporary_directory(base_path_t("."));
     temp_file_t temp_file;
 
@@ -365,11 +363,7 @@ void run_sindex_post_construction() {
     check_keys_are_present(&store, sindex_id);
 }
 
-TEST(RDBBtree, SindexPostConstruct) {
-    run_in_thread_pool(&run_sindex_post_construction);
-}
-
-void run_erase_range_test() {
+TPTEST(RDBBtree, SindexEraseRange) {
     recreate_temporary_directory(base_path_t("."));
     temp_file_t temp_file;
 
@@ -438,11 +432,7 @@ void run_erase_range_test() {
     check_keys_are_NOT_present(&store, sindex_id);
 }
 
-TEST(RDBBtree, SindexEraseRange) {
-    run_in_thread_pool(&run_erase_range_test);
-}
-
-void run_sindex_interruption_via_drop_test() {
+TPTEST(RDBBtree, SindexInterruptionViaDrop) {
     recreate_temporary_directory(base_path_t("."));
     temp_file_t temp_file;
 
@@ -482,11 +472,7 @@ void run_sindex_interruption_via_drop_test() {
     background_inserts_done.wait();
 }
 
-TEST(RDBBtree, SindexInterruptionViaDrop) {
-    run_in_thread_pool(&run_sindex_interruption_via_drop_test);
-}
-
-void run_sindex_interruption_via_store_delete() {
+TPTEST(RDBBtree, SindexInterruptionViaStoreDelete) {
     recreate_temporary_directory(base_path_t("."));
     temp_file_t temp_file;
 
@@ -522,10 +508,6 @@ void run_sindex_interruption_via_store_delete() {
     bring_sindexes_up_to_date(store.get(), sindex_id);
 
     store.reset();
-}
-
-TEST(RDBBtree, SindexInterruptionViaStoreDelete) {
-    run_in_thread_pool(&run_sindex_interruption_via_store_delete);
 }
 
 } //namespace unittest

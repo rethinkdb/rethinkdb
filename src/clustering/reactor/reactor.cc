@@ -8,6 +8,7 @@
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
 #include "config/args.hpp"
+#include "stl_utils.hpp"
 
 template<class key_t, class value_t>
 bool collapse_optionals_in_map(const change_tracking_map_t<key_t, boost::optional<value_t> > &map, change_tracking_map_t<key_t, value_t> *current_out) {

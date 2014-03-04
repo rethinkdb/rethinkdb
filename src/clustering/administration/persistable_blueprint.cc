@@ -6,6 +6,7 @@
 #include "debug.hpp"
 #include "http/json.hpp"
 #include "http/json/json_adapter.hpp"
+#include "stl_utils.hpp"
 
 template <class protocol_t>
 void debug_print(printf_buffer_t *buf, const persistable_blueprint_t<protocol_t> &x) {

@@ -97,7 +97,7 @@ void page_t::load_from_copyee(page_t *page, page_t *copyee,
 
             uint32_t ser_buf_size = copyee->ser_buf_size_;
             rassert(copyee->buf_.has());
-            scoped_malloc_t<ser_buffer_t> buf = page_cache->serializer_->malloc();
+            scoped_malloc_t<ser_buffer_t> buf = page_cache->serializer_->allocate_buffer();
 
             memcpy(buf.get(), copyee->buf_.get(), ser_buf_size);
 
@@ -128,7 +128,7 @@ void page_t::load_with_block_id(page_t *page, block_id_t block_id,
     counted_t<standard_block_token_t> block_token;
     {
         serializer_t *const serializer = page_cache->serializer_;
-        buf = serializer->malloc();  // Call malloc() on our home thread because
+        buf = serializer->allocate_buffer();  // Call rmalloc() on our home thread because
                                      // we'll destroy it on our home thread and
                                      // tcmalloc likes that.
         on_thread_t th(serializer->home_thread());
@@ -234,7 +234,7 @@ void page_t::load_using_block_token(page_t *page, page_cache_t *page_cache,
     scoped_malloc_t<ser_buffer_t> buf;
     {
         serializer_t *const serializer = page_cache->serializer_;
-        buf = serializer->malloc();  // Call malloc() on our home thread because
+        buf = serializer->allocate_buffer();  // Call rmalloc() on our home thread because
                                      // we'll destroy it on our home thread and
                                      // tcmalloc likes that.
         on_thread_t th(serializer->home_thread());

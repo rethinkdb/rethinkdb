@@ -66,18 +66,23 @@ public:
     rget_depth_first_traversal_callback_t(buf_parent_t par,
                                           int max, exptime_t et) :
         parent(par), maximum(max), effective_time(et), cumulative_size(0) { }
-    bool handle_pair(scoped_key_value_t &&keyvalue) {
+    done_traversing_t handle_pair(scoped_key_value_t &&keyvalue) {
         const memcached_value_t *mc_value
             = static_cast<const memcached_value_t *>(keyvalue.value());
         if (mc_value->expired(effective_time)) {
-            return true;
+            return done_traversing_t::NO;
         }
         counted_t<data_buffer_t> data(value_to_data_buffer(mc_value, parent));
         result.pairs.push_back(key_with_data_buffer_t(store_key_t(keyvalue.key()),
                                                       mc_value->mcflags(),
                                                       data));
         cumulative_size += estimate_rget_result_pair_size(result.pairs.back());
-        return static_cast<int64_t>(result.pairs.size()) < maximum && cumulative_size < rget_max_chunk_size;
+        if ((static_cast<int64_t>(result.pairs.size()) < maximum)
+            && (cumulative_size < rget_max_chunk_size)) {
+            return done_traversing_t::NO;
+        } else {
+            return done_traversing_t::YES;
+        }
     }
     buf_parent_t parent;
     int maximum;
@@ -86,13 +91,13 @@ public:
     size_t cumulative_size;
 };
 
-rget_result_t memcached_rget_slice(btree_slice_t *slice, const key_range_t &range,
+rget_result_t memcached_rget_slice(const key_range_t &range,
                                    int maximum, exptime_t effective_time,
                                    superblock_t *superblock) {
 
     rget_depth_first_traversal_callback_t callback(superblock->expose_buf(),
                                                    maximum, effective_time);
-    btree_depth_first_traversal(slice, superblock, range, &callback, FORWARD);
+    btree_depth_first_traversal(superblock, range, &callback, FORWARD);
     if (callback.cumulative_size >= rget_max_chunk_size) {
         callback.result.truncated = true;
     } else {

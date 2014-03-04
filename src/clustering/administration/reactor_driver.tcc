@@ -19,6 +19,7 @@
 #include "containers/incremental_lenses.hpp"
 #include "rpc/semilattice/view/field.hpp"
 #include "rpc/semilattice/watchable.hpp"
+#include "stl_utils.hpp"
 #include "utils.hpp"
 
 /* This files contains the class reactor driver whose job is to create and

@@ -433,7 +433,7 @@ tests:
         group_format: '"raw"'
       ot: ({'$reql_type$':'GROUPED_DATA', 'data':[[[0, 0], 25], [[1, 1], 25], [[2, 2], 25], [[3, 3], 25]]})
 
-    - cd: tbl.group('a', lambda {|row| 'f'}, lambda {|row| []}, lambda {|row| [{}, [0], nil, 0]}, multi:true).count
+    - rb: tbl.group('a', lambda {|row| 'f'}, lambda {|row| []}, lambda {|row| [{}, [0], nil, 0]}, multi:true).count
       py: tbl.group('a', lambda row:'f', lambda row:[], lambda row:[{}, [0], null, 0], multi=True).count()
       js: tbl.group('a', function(row){return 'f';}, function(row){return [];}, function(row){return [{}, [0], null, 0];}, {multi:true}).count()
       runopts:
@@ -446,6 +446,19 @@ tests:
     - cd: tbl.group('a').ungroup()['group']
       js: tbl.group('a').ungroup()('group')
       ot: ([0, 1, 2, 3])
+
+    - py: tbl.order_by(index='id').limit(16).group('a','a').map(r.row['id']).sum().groups_to_array()
+      js: tbl.order_by({index:'id'}).limit(16).group('a','a').map(r.row('id')).sum().groups_to_array()
+      rb: tbl.order_by(index:'id').limit(16).group('a','a').map{|row| row['id']}.sum().groups_to_array()
+      ot: ([{'group':[0,0],'reduction':24},{'group':[1,1],'reduction':28},{'group':[2,2],'reduction':32},{'group':[3,3],'reduction':36}])
+
+    - cd: tbl.group('a', null).count().groups_to_array()
+      ot: ([{'group':[0,null],'reduction':25},{'group':[1,null],'reduction':25},{'group':[2,null],'reduction':25},{'group':[3,null],'reduction':25}])
+
+    - py: tbl.group('a', lambda row:[1,'two'], multi=True).count().groups_to_array()
+      js: tbl.group('a', function(row){return [1,'two']},{multi:true}).count().groups_to_array()
+      rb: tbl.group('a', lambda {|row| [1,'two']}, multi:true).count().groups_to_array()
+      ot: ([{'group':[0,1],'reduction':25},{'group':[0,'two'],'reduction':25},{'group':[1,1],'reduction':25},{'group':[1,'two'],'reduction':25},{'group':[2,1],'reduction':25},{'group':[2,'two'],'reduction':25},{'group':[3,1],'reduction':25},{'group':[3,'two'],'reduction':25}])
 
     # proper test for seq.count()
     - cd: tbl.count()
