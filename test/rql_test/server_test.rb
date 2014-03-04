@@ -155,10 +155,20 @@ Query: #{PP.pp(query, "")}\nBatch Conf: #{bc}
       eq(seq.group('a').sum('c'), {})
       eq(seq.group('a').sum('id'), {0=>18, 1=>12, 2=>15})
 
+      eq(seq.group('a')['a'].sum, {0 => 0, 1 => 3, 2 => 6})
+      eq(seq.group('a')['b'].sum, {1 => 2, 2 => 6})
+      eq(seq.group('a')['c'].sum, {})
+      eq(seq.group('a')['id'].sum, {0=>18, 1=>12, 2=>15})
+
       eq(seq.group('a').avg('a'), {0 => 0, 1 => 1, 2 => 2})
       eq(seq.group('a').avg('b'), {1 => 1, 2 => 2})
       eq(seq.group('a').avg('c'), {})
       eq(seq.group('a').avg('id'), {0=>4.5, 1=>4, 2=>5})
+
+      eq(seq.group('a')['a'].avg, {0 => 0, 1 => 1, 2 => 2})
+      eq(seq.group('a')['b'].avg, {1 => 1, 2 => 2})
+      eq(seq.group('a')['c'].avg, {})
+      eq(seq.group('a')['id'].avg, {0=>4.5, 1=>4, 2=>5})
 
       eq(seq.group('a').min('a'), {0 => 0, 1 => 1, 2 => 2}) {|x|
         Hash[x.map{|k,v| [k, v['a']]}]

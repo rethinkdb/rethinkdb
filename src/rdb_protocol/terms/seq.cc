@@ -11,14 +11,6 @@
 
 namespace ql {
 
-class grouped_seq_op_term_t : public op_term_t {
-public:
-    template<class... Args>
-    grouped_seq_op_term_t(Args... args) : op_term_t(std::forward<Args>(args)...) { }
-private:
-    virtual bool is_grouped_seq_op() { return true; }
-};
-
 template<class T>
 class map_acc_term_t : public grouped_seq_op_term_t {
 protected:

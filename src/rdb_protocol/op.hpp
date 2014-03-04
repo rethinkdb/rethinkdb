@@ -101,6 +101,14 @@ private:
     std::map<std::string, counted_t<term_t> > optargs;
 };
 
+class grouped_seq_op_term_t : public op_term_t {
+public:
+    template<class... Args>
+    grouped_seq_op_term_t(Args... args) : op_term_t(std::forward<Args>(args)...) { }
+private:
+    virtual bool is_grouped_seq_op() { return true; }
+};
+
 class bounded_op_term_t : public op_term_t {
 public:
     bounded_op_term_t(compile_env_t *env, protob_t<const Term> term,

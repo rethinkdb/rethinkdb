@@ -16,7 +16,7 @@ namespace ql {
 // This term is used for functions that are polymorphic on objects and
 // sequences, like `pluck`.  It will handle the polymorphism; terms inheriting
 // from it just need to implement evaluation on objects (`obj_eval`).
-class obj_or_seq_op_term_t : public op_term_t {
+class obj_or_seq_op_term_t : public grouped_seq_op_term_t {
 public:
     enum poly_type_t {
         MAP = 0,
@@ -25,7 +25,7 @@ public:
     };
     obj_or_seq_op_term_t(compile_env_t *env, protob_t<const Term> term,
                          poly_type_t _poly_type, argspec_t argspec)
-        : op_term_t(env, term, argspec, optargspec_t({"_NO_RECURSE_"})),
+        : grouped_seq_op_term_t(env, term, argspec, optargspec_t({"_NO_RECURSE_"})),
           poly_type(_poly_type), func(make_counted_term()) {
 
         auto varnum = pb::dummy_var_t::OBJORSEQ_VARNUM;
@@ -45,7 +45,8 @@ public:
             func->Swap(&r::fun(varnum, std::move(body)).get());
         } break;
         case SKIP_MAP: {
-            func->Swap(&r::fun(varnum, r::array(std::move(body)).default_(r::array())).get());
+            func->Swap(&r::fun(varnum,
+                               r::array(std::move(body)).default_(r::array())).get());
         } break;
         default: unreachable();
         }
