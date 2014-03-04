@@ -97,7 +97,7 @@ public:
 };
 
 // These are fake functions because we don't need to send anything.
-// TODO: make `count` behave lik `sum`, `avg`, etc.
+// TODO: make `count` behave like `sum`, `avg`, etc.
 struct count_wire_func_t {
     RDB_DECLARE_ME_SERIALIZABLE;
 };
