@@ -57,14 +57,14 @@ private:
                               store_key_t &&key,
                               counted_t<const datum_t> &&sindex_val) {
         for (auto it = groups->begin(); it != groups->end(); ++it) {
-            // If there's already an entry, this insert won't do anything.
-            auto t_it = acc.insert(std::make_pair(it->first, default_val)).first;
-            bool updated = false;
+            auto pair = acc.insert(std::make_pair(it->first, default_val));
+            auto t_it = pair.first;
+            bool keep = !pair.second;
             for (auto el = it->second.begin(); el != it->second.end(); ++el) {
-                updated |= accumulate(
+                keep |= accumulate(
                     *el, &t_it->second, std::move(key), std::move(sindex_val));
             }
-            if (!updated) {
+            if (!keep) {
                 acc.erase(t_it);
             }
         }
@@ -251,12 +251,13 @@ private:
         grouped_t<T> *acc = grouped_acc_t<T>::get_acc();
         const T *default_val = grouped_acc_t<T>::get_default_val();
         for (auto it = groups->begin(); it != groups->end(); ++it) {
-            auto t_it = acc->insert(std::make_pair(it->first, *default_val)).first;
-            bool updated = false;
+            auto pair = acc->insert(std::make_pair(it->first, *default_val));
+            auto t_it = pair.first;
+            bool keep = !pair.second;
             for (auto el = it->second.begin(); el != it->second.end(); ++el) {
-                updated |= accumulate(*el, &t_it->second);
+                keep |= accumulate(*el, &t_it->second);
             }
-            if (!updated) {
+            if (!keep) {
                 acc->erase(t_it);
             }
         }

@@ -149,47 +149,49 @@ Query: #{PP.pp(query, "")}\nBatch Conf: #{bc}
   end
 
   def test_group_ops
-    eq($tbl.group('a').sum('a'), {0 => 0, 1 => 3, 2 => 6})
-    eq($tbl.group('a').sum('b'), {1 => 2, 2 => 6})
-    eq($tbl.group('a').sum('c'), {})
-    eq($tbl.group('a').sum('id'), {0=>18, 1=>12, 2=>15})
+    [$tbl, $tbl.orderby(index:'arr'), $tbl.orderby('a'), r($gmrdata)].each {|seq|
+      eq(seq.group('a').sum('a'), {0 => 0, 1 => 3, 2 => 6})
+      eq(seq.group('a').sum('b'), {1 => 2, 2 => 6})
+      eq(seq.group('a').sum('c'), {})
+      eq(seq.group('a').sum('id'), {0=>18, 1=>12, 2=>15})
 
-    eq($tbl.group('a').avg('a'), {0 => 0, 1 => 1, 2 => 2})
-    eq($tbl.group('a').avg('b'), {1 => 1, 2 => 2})
-    eq($tbl.group('a').avg('c'), {})
-    eq($tbl.group('a').avg('id'), {0=>4.5, 1=>4, 2=>5})
+      eq(seq.group('a').avg('a'), {0 => 0, 1 => 1, 2 => 2})
+      eq(seq.group('a').avg('b'), {1 => 1, 2 => 2})
+      eq(seq.group('a').avg('c'), {})
+      eq(seq.group('a').avg('id'), {0=>4.5, 1=>4, 2=>5})
 
-    eq($tbl.group('a').min('a'), {0 => 0, 1 => 1, 2 => 2}) {|x|
-      Hash[x.map{|k,v| [k, v['a']]}]
-    }
-    eq($tbl.group('a').min('b'), {1 => 1, 2 => 2}) {|x|
-      Hash[x.map{|k,v| [k, v['a']]}]
-    }
-    eq($tbl.group('a').min('c'), {})
-    eq($tbl.group('a').min('arr'),
-       { 0=>{"a"=>0, "arr"=>[0, 0], "id"=>0},
-         1=>{"a"=>1, "arr"=>[0, 4], "id"=>4},
-         2=>{"a"=>2, "arr"=>[0, 2], "b"=>2, "id"=>2}})
-    eq($tbl.group('a').min('id'),
-       { 0=>{"a"=>0, "arr"=>[0, 0], "id"=>0},
-         1=>{"a"=>1, "arr"=>[1, 1], "b"=>1, "id"=>1},
-         2=>{"a"=>2, "arr"=>[0, 2], "b"=>2, "id"=>2}})
+      eq(seq.group('a').min('a'), {0 => 0, 1 => 1, 2 => 2}) {|x|
+        Hash[x.map{|k,v| [k, v['a']]}]
+      }
+      eq(seq.group('a').min('b'), {1 => 1, 2 => 2}) {|x|
+        Hash[x.map{|k,v| [k, v['a']]}]
+      }
+      eq(seq.group('a').min('c'), {})
+      eq(seq.group('a').min('arr'),
+         { 0=>{"a"=>0, "arr"=>[0, 0], "id"=>0},
+           1=>{"a"=>1, "arr"=>[0, 4], "id"=>4},
+           2=>{"a"=>2, "arr"=>[0, 2], "b"=>2, "id"=>2}})
+      eq(seq.group('a').min('id'),
+         { 0=>{"a"=>0, "arr"=>[0, 0], "id"=>0},
+           1=>{"a"=>1, "arr"=>[1, 1], "b"=>1, "id"=>1},
+           2=>{"a"=>2, "arr"=>[0, 2], "b"=>2, "id"=>2}})
 
-    eq($tbl.group('a').max('a'), {0 => 0, 1 => 1, 2 => 2}) {|x|
-      Hash[x.map{|k,v| [k, v['a']]}]
+      eq(seq.group('a').max('a'), {0 => 0, 1 => 1, 2 => 2}) {|x|
+        Hash[x.map{|k,v| [k, v['a']]}]
+      }
+      eq(seq.group('a').max('b'), {1 => 1, 2 => 2}) {|x|
+        Hash[x.map{|k,v| [k, v['a']]}]
+      }
+      eq(seq.group('a').max('c'), {})
+      eq(seq.group('a').max('arr'),
+         { 0=>{"a"=>0, "arr"=>[1, 4], "id"=>9},
+           1=>{"a"=>1, "arr"=>[1, 2], "b"=>1, "id"=>7},
+           2=>{"a"=>2, "arr"=>[1, 0], "b"=>2, "id"=>5}})
+      eq(seq.group('a').max('id'),
+         { 0=>{"a"=>0, "arr"=>[1, 4], "id"=>9},
+           1=>{"a"=>1, "arr"=>[1, 2], "b"=>1, "id"=>7},
+           2=>{"a"=>2, "arr"=>[0, 3], "b"=>2, "id"=>8}})
     }
-    eq($tbl.group('a').max('b'), {1 => 1, 2 => 2}) {|x|
-      Hash[x.map{|k,v| [k, v['a']]}]
-    }
-    eq($tbl.group('a').max('c'), {})
-    eq($tbl.group('a').max('arr'),
-       { 0=>{"a"=>0, "arr"=>[1, 4], "id"=>9},
-         1=>{"a"=>1, "arr"=>[1, 2], "b"=>1, "id"=>7},
-         2=>{"a"=>2, "arr"=>[1, 0], "b"=>2, "id"=>5}})
-    eq($tbl.group('a').max('id'),
-       { 0=>{"a"=>0, "arr"=>[1, 4], "id"=>9},
-         1=>{"a"=>1, "arr"=>[1, 2], "b"=>1, "id"=>7},
-         2=>{"a"=>2, "arr"=>[0, 3], "b"=>2, "id"=>8}})
   end
 end
 
