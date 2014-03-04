@@ -43,6 +43,11 @@ $sources = empties.map{|e|
 
 $batch_confs = [{}, {batch_conf: {max_els: 3}}]
 
+$slow = nil
+
+$gmrdata = [{"a"=>0, "arr"=>[0, 0], "id"=>0}, {"a"=>1, "arr"=>[1, 1], "b"=>1, "id"=>1}, {"a"=>2, "arr"=>[0, 2], "b"=>2, "id"=>2}, {"a"=>0, "arr"=>[1, 3], "id"=>3}, {"a"=>1, "arr"=>[0, 4], "id"=>4}, {"a"=>2, "arr"=>[1, 0], "b"=>2, "id"=>5}, {"a"=>0, "arr"=>[0, 1], "id"=>6}, {"a"=>1, "arr"=>[1, 2], "b"=>1, "id"=>7}, {"a"=>2, "arr"=>[0, 3], "b"=>2, "id"=>8}, {"a"=>0, "arr"=>[1, 4], "id"=>9}]
+$tbl = r.table('gmrdata')
+
 require 'test/unit'
 class ClientTest < Test::Unit::TestCase
   def setup
@@ -52,16 +57,27 @@ class ClientTest < Test::Unit::TestCase
     r.table_create('2').run rescue nil
     r.table_create('12').run rescue nil
     r.table_create('empty').run rescue nil
+    r.table_create('gmrdata').run rescue nil
     r.table_list.foreach{|x| r.table(x).delete}.run
     $tbl1.insert($s1).run
     $tbl2.insert($s2).run
     $tbl12.insert($s12).run
+    $tbl.insert($gmrdata).run
+    $tbl.index_create('a').run rescue nil
+    $tbl.index_create('b').run rescue nil
+    $tbl.index_create('arr').run rescue nil
+    $tbl.index_wait.run
   end
 
-  def eq(query, res)
+  def eq(query, res, &b)
     $batch_confs.map {|bc|
-      assert_equal(res, query.run(bc),
-                   "Query: #{PP.pp(query, "")}\nBatch Conf: #{bc}\n")
+      qres = query.run(bc)
+      qres = qres.to_a if qres.class == RethinkDB::Cursor
+      qres = b.call(qres) if b
+      assert_equal(res, qres, "
+...............................................................................
+Query: #{PP.pp(query, "")}\nBatch Conf: #{bc}
+..............................................................................")
     }
   end
 
@@ -84,21 +100,96 @@ class ClientTest < Test::Unit::TestCase
     }
   end
 
-  def test_gmr
-    eq(r([]).group('a').count, {})
-    eq($tbl_empty.group('a').count, {})
-    iter_sources {|s|
-      s.orderby('a').group('b', 'c').map{|x| x['a']}.reduce{|a,b| a+b}
+  def test_gmr_slow
+    if $slow
+      eq(r([]).group('a').count, {})
+      eq($tbl_empty.group('a').count, {})
+      iter_sources {|s|
+        s.orderby('a').group('b', 'c').map{|x| x['a']}.reduce{|a,b| a+b}
+      }
+      iter_sources {|s| s.group('b', 'c').min('a')}
+      iter_sources {|s| s.group('b', 'c').max('a')}
+      iter_sources {|s| s.group('b', 'c').sum('a')}
+      iter_sources {|s| s.group('b', 'c').avg('a')}
+      iter_sources {|s| s.group('b', 'c').count}
+      iter_sources {|s| s.group('b', 'c').count{|x| x['a'].eq(0)}}
+      iter_sources {|s|
+        s.group('b', 'c').map{|x| [x]}.reduce{|a,b| a+b}
+      }
+    end
+  end
+
+  def test_group_coercion
+    eq($tbl.orderby(index:'id'), $gmrdata)
+    gmrdata_grouped = {
+      0 => [{"a"=>0, "arr"=>[0, 0], "id"=>0},
+            {"a"=>0, "arr"=>[1, 3], "id"=>3},
+            {"a"=>0, "arr"=>[0, 1], "id"=>6},
+            {"a"=>0, "arr"=>[1, 4], "id"=>9}],
+      1 => [{"a"=>1, "arr"=>[1, 1], "b"=>1, "id"=>1},
+            {"a"=>1, "arr"=>[0, 4], "id"=>4},
+            {"a"=>1, "arr"=>[1, 2], "b"=>1, "id"=>7}],
+      2 => [{"a"=>2, "arr"=>[0, 2], "b"=>2, "id"=>2},
+            {"a"=>2, "arr"=>[1, 0], "b"=>2, "id"=>5},
+            {"a"=>2, "arr"=>[0, 3], "b"=>2, "id"=>8}]}
+    [$tbl, $tbl.orderby(index:'arr'), $tbl.orderby('a'), r($gmrdata)].each {|seq|
+      eq(seq.group('a'), gmrdata_grouped) {|x|
+        Hash[x.map{|k,v| [k, v.sort{|a,b| a['id'] <=> b['id']}]}]
+      }
+      eq(seq.group('a').typeof, "GROUPED_STREAM")
+      eq(seq.group('a').do{|x| x}, gmrdata_grouped) {|x|
+        Hash[x.map{|k,v| [k, v.sort{|a,b| a['id'] <=> b['id']}]}]
+      }
+      eq(seq.group('a').do{|x| x}.typeof, "GROUPED_DATA")
+      eq(seq.group('a').orderby('id'), gmrdata_grouped)
+      eq(seq.group('a').orderby('id').typeof, "GROUPED_DATA")
     }
-    iter_sources {|s| s.group('b', 'c').min('a')}
-    iter_sources {|s| s.group('b', 'c').max('a')}
-    iter_sources {|s| s.group('b', 'c').sum('a')}
-    iter_sources {|s| s.group('b', 'c').avg('a')}
-    iter_sources {|s| s.group('b', 'c').count}
-    iter_sources {|s| s.group('b', 'c').count{|x| x['a'].eq(0)}}
-    iter_sources {|s|
-      s.group('b', 'c').map{|x| [x]}.reduce{|a,b| a+b}
+    eq($tbl.orderby('id').group('a'), gmrdata_grouped)
+    eq($tbl.orderby(index:'id').group('a'), gmrdata_grouped)
+  end
+
+  def test_group_ops
+    eq($tbl.group('a').sum('a'), {0 => 0, 1 => 3, 2 => 6})
+    eq($tbl.group('a').sum('b'), {1 => 2, 2 => 6})
+    eq($tbl.group('a').sum('c'), {})
+    eq($tbl.group('a').sum('id'), {0=>18, 1=>12, 2=>15})
+
+    eq($tbl.group('a').avg('a'), {0 => 0, 1 => 1, 2 => 2})
+    eq($tbl.group('a').avg('b'), {1 => 1, 2 => 2})
+    eq($tbl.group('a').avg('c'), {})
+    eq($tbl.group('a').avg('id'), {0=>4.5, 1=>4, 2=>5})
+
+    eq($tbl.group('a').min('a'), {0 => 0, 1 => 1, 2 => 2}) {|x|
+      Hash[x.map{|k,v| [k, v['a']]}]
     }
+    eq($tbl.group('a').min('b'), {1 => 1, 2 => 2}) {|x|
+      Hash[x.map{|k,v| [k, v['a']]}]
+    }
+    eq($tbl.group('a').min('c'), {})
+    eq($tbl.group('a').min('arr'),
+       { 0=>{"a"=>0, "arr"=>[0, 0], "id"=>0},
+         1=>{"a"=>1, "arr"=>[0, 4], "id"=>4},
+         2=>{"a"=>2, "arr"=>[0, 2], "b"=>2, "id"=>2}})
+    eq($tbl.group('a').min('id'),
+       { 0=>{"a"=>0, "arr"=>[0, 0], "id"=>0},
+         1=>{"a"=>1, "arr"=>[1, 1], "b"=>1, "id"=>1},
+         2=>{"a"=>2, "arr"=>[0, 2], "b"=>2, "id"=>2}})
+
+    eq($tbl.group('a').max('a'), {0 => 0, 1 => 1, 2 => 2}) {|x|
+      Hash[x.map{|k,v| [k, v['a']]}]
+    }
+    eq($tbl.group('a').max('b'), {1 => 1, 2 => 2}) {|x|
+      Hash[x.map{|k,v| [k, v['a']]}]
+    }
+    eq($tbl.group('a').max('c'), {})
+    eq($tbl.group('a').max('arr'),
+       { 0=>{"a"=>0, "arr"=>[1, 4], "id"=>9},
+         1=>{"a"=>1, "arr"=>[1, 2], "b"=>1, "id"=>7},
+         2=>{"a"=>2, "arr"=>[1, 0], "b"=>2, "id"=>5}})
+    eq($tbl.group('a').max('id'),
+       { 0=>{"a"=>0, "arr"=>[1, 4], "id"=>9},
+         1=>{"a"=>1, "arr"=>[1, 2], "b"=>1, "id"=>7},
+         2=>{"a"=>2, "arr"=>[0, 3], "b"=>2, "id"=>8}})
   end
 end
 
