@@ -163,6 +163,9 @@ Query: #{PP.pp(query, "")}\nBatch Conf: #{bc}
       eq(seq.group('a').min('a'), {0 => 0, 1 => 1, 2 => 2}) {|x|
         Hash[x.map{|k,v| [k, v['a']]}]
       }
+      eq(seq.group('a').min(), {0 => 0, 1 => 1, 2 => 2}) {|x|
+        Hash[x.map{|k,v| [k, v['a']]}]
+      }
       eq(seq.group('a').min('b'), {1 => 1, 2 => 2}) {|x|
         Hash[x.map{|k,v| [k, v['a']]}]
       }
@@ -177,6 +180,9 @@ Query: #{PP.pp(query, "")}\nBatch Conf: #{bc}
            2=>{"a"=>2, "arr"=>[0, 2], "b"=>2, "id"=>2}})
 
       eq(seq.group('a').max('a'), {0 => 0, 1 => 1, 2 => 2}) {|x|
+        Hash[x.map{|k,v| [k, v['a']]}]
+      }
+      eq(seq.group('a').max(), {0 => 0, 1 => 1, 2 => 2}) {|x|
         Hash[x.map{|k,v| [k, v['a']]}]
       }
       eq(seq.group('a').max('b'), {1 => 1, 2 => 2}) {|x|
