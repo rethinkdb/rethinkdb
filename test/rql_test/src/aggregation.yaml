@@ -447,17 +447,17 @@ tests:
       js: tbl.group('a').ungroup()('group')
       ot: ([0, 1, 2, 3])
 
-    - py: tbl.order_by(index='id').limit(16).group('a','a').map(r.row['id']).sum().groups_to_array()
-      js: tbl.order_by({index:'id'}).limit(16).group('a','a').map(r.row('id')).sum().groups_to_array()
-      rb: tbl.order_by(index:'id').limit(16).group('a','a').map{|row| row['id']}.sum().groups_to_array()
+    - py: tbl.order_by(index='id').limit(16).group('a','a').map(r.row['id']).sum().ungroup()
+      js: tbl.order_by({index:'id'}).limit(16).group('a','a').map(r.row('id')).sum().ungroup()
+      rb: tbl.order_by(index:'id').limit(16).group('a','a').map{|row| row['id']}.sum().ungroup()
       ot: ([{'group':[0,0],'reduction':24},{'group':[1,1],'reduction':28},{'group':[2,2],'reduction':32},{'group':[3,3],'reduction':36}])
 
-    - cd: tbl.group('a', null).count().groups_to_array()
+    - cd: tbl.group('a', null).count().ungroup()
       ot: ([{'group':[0,null],'reduction':25},{'group':[1,null],'reduction':25},{'group':[2,null],'reduction':25},{'group':[3,null],'reduction':25}])
 
-    - py: tbl.group('a', lambda row:[1,'two'], multi=True).count().groups_to_array()
-      js: tbl.group('a', function(row){return [1,'two']},{multi:true}).count().groups_to_array()
-      rb: tbl.group('a', lambda {|row| [1,'two']}, multi:true).count().groups_to_array()
+    - py: tbl.group('a', lambda row:[1,'two'], multi=True).count().ungroup()
+      js: tbl.group('a', function(row){return [1,'two']},{multi:true}).count().ungroup()
+      rb: tbl.group('a', lambda {|row| [1,'two']}, multi:true).count().ungroup()
       ot: ([{'group':[0,1],'reduction':25},{'group':[0,'two'],'reduction':25},{'group':[1,1],'reduction':25},{'group':[1,'two'],'reduction':25},{'group':[2,1],'reduction':25},{'group':[2,'two'],'reduction':25},{'group':[3,1],'reduction':25},{'group':[3,'two'],'reduction':25}])
 
     # proper test for seq.count()
