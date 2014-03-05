@@ -1,28 +1,45 @@
 #include "buffer_cache/alt/evicter.hpp"
 
 #include "buffer_cache/alt/page.hpp"
+#include "buffer_cache/alt/cache_balancer.hpp"
 
 namespace alt {
 
-evicter_t::evicter_t(memory_tracker_t *tracker, uint64_t memory_limit)
-    : tracker_(tracker), memory_limit_(memory_limit),
-      access_time_counter_(INITIAL_ACCESS_TIME) { }
+evicter_t::evicter_t(alt_cache_balancer_t *balancer,
+                     uint64_t memory_limit)
+    : balancer_(balancer), memory_limit_(memory_limit),
+      cache_miss_counter_(0),
+      access_time_counter_(INITIAL_ACCESS_TIME)
+{
+    // TODO: guarantee this once fully integrated
+    if (balancer_ != NULL) {
+        balancer_->add_evicter(this);
+    }
+}
 
 evicter_t::~evicter_t() {
     assert_thread();
+    if (balancer_ != NULL) {
+        balancer_->remove_evicter(this);
+    }
 }
 
+void evicter_t::update_memory_limit(uint64_t new_memory_limit) {
+    cache_miss_counter_ = 0;
+    memory_limit_ = new_memory_limit;
+    evict_if_necessary();
+    // TODO: read-ahead?
+}
 
 void evicter_t::add_not_yet_loaded(page_t *page) {
     assert_thread();
     unevictable_.add_without_size(page);
-    inform_tracker();
+    ++cache_miss_counter_;
 }
 
 void evicter_t::add_now_loaded_size(uint32_t ser_buf_size) {
     assert_thread();
     unevictable_.add_size(ser_buf_size);
-    inform_tracker();
     evict_if_necessary();
 }
 
@@ -34,14 +51,12 @@ bool evicter_t::page_is_in_unevictable_bag(page_t *page) const {
 void evicter_t::add_to_evictable_unbacked(page_t *page) {
     assert_thread();
     evictable_unbacked_.add(page, page->ser_buf_size_);
-    inform_tracker();
     evict_if_necessary();
 }
 
 void evicter_t::add_to_evictable_disk_backed(page_t *page) {
     assert_thread();
     evictable_disk_backed_.add(page, page->ser_buf_size_);
-    inform_tracker();
     evict_if_necessary();
 }
 
@@ -53,7 +68,6 @@ void evicter_t::move_unevictable_to_evictable(page_t *page) {
     rassert(new_bag == &evictable_disk_backed_
             || new_bag == &evictable_unbacked_);
     new_bag->add(page, page->ser_buf_size_);
-    inform_tracker();
     evict_if_necessary();
 }
 
@@ -64,7 +78,6 @@ void evicter_t::change_to_correct_eviction_bag(eviction_bag_t *current_bag,
     current_bag->remove(page, page->ser_buf_size_);
     eviction_bag_t *new_bag = correct_eviction_category(page);
     new_bag->add(page, page->ser_buf_size_);
-    inform_tracker();
     evict_if_necessary();
 }
 
@@ -87,7 +100,6 @@ void evicter_t::remove_page(page_t *page) {
     rassert(page->snapshot_refcount_ == 0);
     eviction_bag_t *bag = correct_eviction_category(page);
     bag->remove(page, page->ser_buf_size_);
-    inform_tracker();
     evict_if_necessary();
 }
 
@@ -116,11 +128,5 @@ void evicter_t::evict_if_necessary() {
         page->evict_self();
     }
 }
-
-void evicter_t::inform_tracker() const {
-    tracker_->inform_memory_change(in_memory_size(),
-                                   memory_limit_);
-}
-
 
 }  // namespace alt

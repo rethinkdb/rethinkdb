@@ -2,7 +2,6 @@
 #include "arch/runtime/coroutines.hpp"
 #include "arch/timing.hpp"
 #include "buffer_cache/alt/page_cache.hpp"
-// For alt_memory_tracker_t.  KSI: We'll want a mock memory_tracker_t subclass.
 #include "buffer_cache/alt/alt.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/pmap.hpp"
@@ -46,11 +45,11 @@ class test_txn_t;
 class test_cache_t : public page_cache_t {
 public:
     test_cache_t(serializer_t *serializer, alt_memory_tracker_t *tracker)
-        : page_cache_t(serializer, page_cache_config_t(), tracker),
+        : page_cache_t(serializer, page_cache_config_t()),
           tracker_(tracker) { }
     test_cache_t(serializer_t *serializer, alt_memory_tracker_t *tracker,
                  uint64_t memory_limit)
-        : page_cache_t(serializer, make_config(memory_limit), tracker),
+        : page_cache_t(serializer, make_config(memory_limit)),
           tracker_(tracker) { }
 
     void flush(scoped_ptr_t<test_txn_t> txn) {

@@ -58,11 +58,6 @@ alt_memory_tracker_t::alt_memory_tracker_t()
     : unwritten_changes_semaphore_(SOFT_UNWRITTEN_CHANGES_LIMIT) { }
 alt_memory_tracker_t::~alt_memory_tracker_t() { }
 
-void alt_memory_tracker_t::inform_memory_change(UNUSED uint64_t in_memory_size,
-                                                UNUSED uint64_t memory_limit) {
-    // KSI: implement this (for issue 97).
-}
-
 // KSI: An interface problem here is that this is measured in blocks while
 // inform_memory_change is measured in bytes.
 tracker_acq_t alt_memory_tracker_t::begin_txn_or_throttle(int64_t expected_change_count) {
@@ -76,11 +71,12 @@ void alt_memory_tracker_t::end_txn(UNUSED tracker_acq_t acq) {
     // Just let the acq destructor do its thing.
 }
 
-cache_t::cache_t(serializer_t *serializer, const alt_cache_config_t &config,
+cache_t::cache_t(serializer_t *serializer,
+                 const alt_cache_config_t &config,
                  perfmon_collection_t *perfmon_collection)
     : stats_(make_scoped<alt_cache_stats_t>(perfmon_collection)),
       tracker_(),
-      page_cache_(serializer, config.page_config, &tracker_) { }
+      page_cache_(serializer, config.page_config) { }
 
 cache_t::~cache_t() { }
 

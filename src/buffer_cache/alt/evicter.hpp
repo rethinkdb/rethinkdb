@@ -6,12 +6,7 @@
 #include "buffer_cache/alt/eviction_bag.hpp"
 #include "threading.hpp"
 
-class memory_tracker_t {
-public:
-    virtual ~memory_tracker_t() { }
-    virtual void inform_memory_change(uint64_t in_memory_size,
-                                      uint64_t memory_limit) = 0;
-};
+class alt_cache_balancer_t;
 
 namespace alt {
 
@@ -27,14 +22,20 @@ public:
     eviction_bag_t *correct_eviction_category(page_t *page);
     void remove_page(page_t *page);
 
-    explicit evicter_t(memory_tracker_t *tracker,
+    explicit evicter_t(alt_cache_balancer_t *balancer,
                        uint64_t memory_limit);
     ~evicter_t();
 
     bool interested_in_read_ahead_block(uint32_t ser_block_size) const;
 
+    void update_memory_limit(uint64_t new_memory_limit);
+
     uint64_t next_access_time() {
         return ++access_time_counter_;
+    }
+
+    uint64_t get_cache_misses() const {
+        return cache_miss_counter_;
     }
 
     static const uint64_t INITIAL_ACCESS_TIME = UINT64_MAX - 100;
@@ -45,9 +46,12 @@ private:
 
     void inform_tracker() const;
 
-    // LSI: Implement issue 97.
-    memory_tracker_t *const tracker_;
+    alt_cache_balancer_t *const balancer_;
     uint64_t memory_limit_;
+
+    // This gets incremented every time a page is loaded,
+    // and cleared when cache memory limits are re-evaluated
+    uint64_t cache_miss_counter_;
 
     // This gets incremented every time a page is accessed.
     uint64_t access_time_counter_;
@@ -60,8 +64,6 @@ private:
 
     DISABLE_COPYING(evicter_t);
 };
-
-
 
 }  // namespace alt
 

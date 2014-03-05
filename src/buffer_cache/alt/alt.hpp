@@ -19,9 +19,12 @@ class alt_cache_stats_t;
 class alt_snapshot_node_t;
 class perfmon_collection_t;
 
+// TODO: no namespace alt in this file?
+class alt_cache_balancer_t;
+
 // KSI: This is kind of F'd up a bit.  Throttling doesn't use the stuff we learn in
 // inform_memory_change (right now) so this is just a nonsensical mixing of notions.
-class alt_memory_tracker_t : public memory_tracker_t {
+class alt_memory_tracker_t {
 public:
     alt_memory_tracker_t();
     ~alt_memory_tracker_t();
@@ -31,9 +34,6 @@ public:
 
 private:
     friend class txn_t;
-
-    void inform_memory_change(uint64_t in_memory_size,
-                              uint64_t memory_limit);
 
     new_semaphore_t unwritten_changes_semaphore_;
     DISABLE_COPYING(alt_memory_tracker_t);

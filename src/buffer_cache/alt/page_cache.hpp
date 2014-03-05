@@ -27,6 +27,7 @@
 #include "serializer/types.hpp"
 
 class alt_memory_tracker_t;
+class alt_cache_balancer_t;
 class auto_drainer_t;
 class cache_t;
 class file_account_t;
@@ -292,8 +293,7 @@ private:
 class page_cache_t : public home_thread_mixin_t {
 public:
     page_cache_t(serializer_t *serializer,
-                 const page_cache_config_t &config,
-                 memory_tracker_t *tracker);
+                 const page_cache_config_t &config);
     ~page_cache_t();
 
     // Takes a txn to be flushed.  Calls on_flush_complete() (which resets the

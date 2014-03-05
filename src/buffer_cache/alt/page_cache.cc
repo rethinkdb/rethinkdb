@@ -139,12 +139,11 @@ void page_cache_t::read_ahead_cb_is_destroyed() {
 
 
 page_cache_t::page_cache_t(serializer_t *serializer,
-                           const page_cache_config_t &config,
-                           memory_tracker_t *tracker)
+                           const page_cache_config_t &config)
     : dynamic_config_(config),
       serializer_(serializer),
       free_list_(serializer),
-      evicter_(tracker, config.memory_limit),
+      evicter_(config.balancer, config.memory_limit),
       read_ahead_cb_(NULL),
       drainer_(make_scoped<auto_drainer_t>()) {
 
