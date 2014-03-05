@@ -3228,27 +3228,55 @@ module 'DataExplorerView', ->
                     position_scrollbar()
 
  
+        # JavaScript doesn't let us set a timezone
+        # So we create a date shifted of the timezone difference
+        # Then replace the timezone of the JS date with the one from the ReQL object
         date_to_string: (date) =>
-            if date.timezone?
-                timezone = date.timezone
-                
-                # Extract data from the timezone
-                timezone_array = date.timezone.split(':')
-                sign = timezone_array[0][0] # Keep the sign
-                timezone_array[0] = timezone_array[0].slice(1) # Remove the sign
+            timezone = date.timezone
+            
+            # Extract data from the timezone
+            timezone_array = date.timezone.split(':')
+            sign = timezone_array[0][0] # Keep the sign
+            timezone_array[0] = timezone_array[0].slice(1) # Remove the sign
 
-                # Save the timezone in minutes
-                timezone_int = (parseInt(timezone_array[0])*60+parseInt(timezone_array[1]))*60
-                if sign is '-'
-                    timezone_int = -1*timezone_int
-                # Add the user local timezone
-                timezone_int += (new Date()).getTimezoneOffset()*60
+            # Save the timezone in minutes
+            timezone_int = (parseInt(timezone_array[0])*60+parseInt(timezone_array[1]))*60
+            if sign is '-'
+                timezone_int = -1*timezone_int
+
+            # d = real date with user's timezone
+            d = new Date(date.epoch_time*1000)
+
+            # Add the user local timezone
+            timezone_int += d.getTimezoneOffset()*60
+
+            # d_shifted = date shifted with the difference between the two timezones
+            # (user's one and the one in the ReQL object)
+            d_shifted = new Date((date.epoch_time+timezone_int)*1000)
+
+            # If the timezone between the two dates is not the same,
+            # it means that we changed time between (e.g because of daylight savings)
+            if d.getTimezoneOffset() isnt d_shifted.getTimezoneOffset()
+                # d_shifted_bis = date shifted with the timezone of d_shifted and not d
+                d_shifted_bis = new Date((date.epoch_time+timezone_int-(d.getTimezoneOffset()-d_shifted.getTimezoneOffset())*60)*1000)
+
+                if d_shifted.getTimezoneOffset() isnt d_shifted_bis.getTimezoneOffset()
+                    # We moved the clock forward -- and therefore cannot generate the appropriate time with JS
+                    # Let's create the date outselves...
+                    str_pieces = d_shifted_bis.toString().match(/([^ ]* )([^ ]* )([^ ]* )([^ ]* )(\d{2})(.*)/)
+                    hours = parseInt(str_pieces[5])
+                    hours++
+                    console.log hours
+                    if hours.toString().length is 1
+                        hours = "0"+hours.toString()
+                    else
+                        hours = hours.toString()
+                    #Note str_pieces[0] is the whole string
+                    raw_date_str = str_pieces[1]+" "+str_pieces[2]+" "+str_pieces[3]+" "+str_pieces[4]+" "+hours+str_pieces[6]
+                else
+                    raw_date_str = d_shifted_bis.toString()
             else
-                timezone = '+00:00'
-                timezone_int = (new Date()).getTimezoneOffset()*60
-
-            # Tweak epoch and create a date
-            raw_date_str = (new Date((date.epoch_time+timezone_int)*1000)).toString()
+                raw_date_str = d_shifted.toString()
 
             # Remove the timezone and replace it with the good one
             return raw_date_str.slice(0, raw_date_str.indexOf('GMT')+3)+timezone
