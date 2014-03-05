@@ -33,3 +33,21 @@ Line 601
 -      (~"input.span@{index}, textarea.span@{index}, .uneditable-input.span@{index}") { .span(@index); }
 +      input.span@{index}, textarea.span@{index}, .uneditable-input.span@{index} { .span(@index); }
 ```
+
+## These changes are for the tooltip for the execution time in the data explorer
+.tooltip-inner {
+-  max-width: 200px;
++  max-width: 250px;
+   ...
+}
+
++.dataexplorer_tooltip .tooltip-arrow{
++  opacity: 0.6;
++}
++.dataexplorer_tooltip .tooltip-inner{
++  opacity: 0.6;
++  font-size: 13px;
++  font-family: 'Open Sans', sans-serif;
++  margin-left: 70px;
++}
+
