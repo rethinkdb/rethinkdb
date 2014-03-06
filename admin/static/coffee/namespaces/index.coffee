@@ -429,19 +429,6 @@ module 'NamespaceView', ->
                 input_error = true
                 template_error.no_database = true
 
-            # Need an integer value for the cache
-            if formdata.cache_size isnt '' and DataUtils.is_integer(formdata.cache_size) is false
-                input_error = true
-                template_error.cache_size_format = true
-            else if formdata.cache_size isnt '' # And need a value not too small or not too big
-                cache_size_int = parseInt formdata.cache_size
-                if cache_size_int < 16
-                    input_error = true
-                    template_error.cache_size_too_small = true
-                else if cache_size_int > 1024*64
-                    input_error = true
-                    template_error.cache_size_too_big = true
-
             if input_error is true
                 $('.alert_modal').html @error_template template_error
                 $('.alert_modal_content').slideDown 'fast'
@@ -462,7 +449,6 @@ module 'NamespaceView', ->
                         primary_uuid: universe_datacenter.get('id')
                         database: formdata.database
                         ack_expectations: ack
-                        cache_size: (parseInt(formdata.cache_size)*1024*1024 if formdata.cache_size isnt '')
                         primary_key: (formdata.primary_key if formdata.primary_key isnt '')
                         )
                     success: @on_success
