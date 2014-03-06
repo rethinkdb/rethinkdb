@@ -123,7 +123,7 @@ void persistent_file_t<metadata_t>::construct_serializer_and_cache(const bool cr
     {
         alt_cache_config_t cache_dynamic_config;
         cache_dynamic_config.page_config.memory_limit = MEGABYTE;
-        cache.init(new cache_t(serializer.get(), cache_dynamic_config, perfmon_parent));
+        cache.init(new cache_t(serializer.get(), NULL, cache_dynamic_config, perfmon_parent));
         cache_conn.init(new cache_conn_t(cache.get()));
     }
 

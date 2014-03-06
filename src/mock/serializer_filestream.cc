@@ -16,7 +16,8 @@ serializer_file_read_stream_t::serializer_file_read_stream_t(serializer_t *seria
         on_thread_t th(serializer->home_thread());
         has_block_zero = !serializer->get_delete_bit(0);
     }
-    cache_.init(new cache_t(serializer, alt_cache_config_t(),
+    cache_.init(new cache_t(serializer, NULL,
+                            alt_cache_config_t(),
                             &get_global_perfmon_collection()));
     cache_conn_.init(new cache_conn_t(cache_.get()));
     if (has_block_zero) {
@@ -87,7 +88,8 @@ serializer_file_write_stream_t::serializer_file_write_stream_t(serializer_t *ser
     // problematic.)
     delete_contiguous_blocks_from_0(serializer);
 
-    cache_.init(new cache_t(serializer, alt_cache_config_t(),
+    cache_.init(new cache_t(serializer, NULL,
+                            alt_cache_config_t(),
                             &get_global_perfmon_collection()));
     cache_conn_.init(new cache_conn_t(cache_.get()));
 

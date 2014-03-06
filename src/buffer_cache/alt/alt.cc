@@ -16,7 +16,7 @@ using alt::page_acq_t;
 using alt::page_cache_t;
 using alt::page_t;
 using alt::page_txn_t;
-using alt::tracker_acq_t;
+using alt::throttler_acq_t;
 
 const int SOFT_UNWRITTEN_CHANGES_LIMIT = 200;
 
@@ -54,29 +54,28 @@ private:
     DISABLE_COPYING(alt_snapshot_node_t);
 };
 
-alt_memory_tracker_t::alt_memory_tracker_t()
+alt_txn_throttler_t::alt_txn_throttler_t()
     : unwritten_changes_semaphore_(SOFT_UNWRITTEN_CHANGES_LIMIT) { }
-alt_memory_tracker_t::~alt_memory_tracker_t() { }
+alt_txn_throttler_t::~alt_txn_throttler_t() { }
 
-// KSI: An interface problem here is that this is measured in blocks while
-// inform_memory_change is measured in bytes.
-tracker_acq_t alt_memory_tracker_t::begin_txn_or_throttle(int64_t expected_change_count) {
-    tracker_acq_t acq;
+throttler_acq_t alt_txn_throttler_t::begin_txn_or_throttle(int64_t expected_change_count) {
+    throttler_acq_t acq;
     acq.semaphore_acq_.init(&unwritten_changes_semaphore_, expected_change_count);
     acq.semaphore_acq_.acquisition_signal()->wait();
     return acq;
 }
 
-void alt_memory_tracker_t::end_txn(UNUSED tracker_acq_t acq) {
+void alt_txn_throttler_t::end_txn(UNUSED throttler_acq_t acq) {
     // Just let the acq destructor do its thing.
 }
 
 cache_t::cache_t(serializer_t *serializer,
+                 alt_cache_balancer_t *balancer,
                  const alt_cache_config_t &config,
                  perfmon_collection_t *perfmon_collection)
     : stats_(make_scoped<alt_cache_stats_t>(perfmon_collection)),
-      tracker_(),
-      page_cache_(serializer, config.page_config) { }
+      throttler_(),
+      page_cache_(serializer, balancer, config.page_config) { }
 
 cache_t::~cache_t() { }
 
@@ -191,25 +190,25 @@ void txn_t::help_construct(repli_timestamp_t txn_timestamp,
                            cache_conn_t *cache_conn) {
     cache_->assert_thread();
     guarantee(expected_change_count >= 0);
-    tracker_acq_t tracker_acq
-        = cache_->tracker_.begin_txn_or_throttle(expected_change_count);
+    throttler_acq_t throttler_acq
+        = cache_->throttler_.begin_txn_or_throttle(expected_change_count);
 
     ASSERT_FINITE_CORO_WAITING;
 
     page_txn_.init(new page_txn_t(&cache_->page_cache_,
                                   txn_timestamp,
-                                  std::move(tracker_acq),
+                                  std::move(throttler_acq),
                                   cache_conn));
 }
 
-void txn_t::inform_tracker(cache_t *cache, tracker_acq_t *tracker_acq) {
-    cache->tracker_.end_txn(std::move(*tracker_acq));
+void txn_t::inform_tracker(cache_t *cache, throttler_acq_t *throttler_acq) {
+    cache->throttler_.end_txn(std::move(*throttler_acq));
 }
 
 void txn_t::pulse_and_inform_tracker(cache_t *cache,
-                                     tracker_acq_t *tracker_acq,
+                                     throttler_acq_t *throttler_acq,
                                      cond_t *pulsee) {
-    inform_tracker(cache, tracker_acq);
+    inform_tracker(cache, throttler_acq);
     pulsee->pulse();
 }
 

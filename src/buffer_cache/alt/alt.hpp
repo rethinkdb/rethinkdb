@@ -22,26 +22,25 @@ class perfmon_collection_t;
 // TODO: no namespace alt in this file?
 class alt_cache_balancer_t;
 
-// KSI: This is kind of F'd up a bit.  Throttling doesn't use the stuff we learn in
-// inform_memory_change (right now) so this is just a nonsensical mixing of notions.
-class alt_memory_tracker_t {
+class alt_txn_throttler_t {
 public:
-    alt_memory_tracker_t();
-    ~alt_memory_tracker_t();
+    alt_txn_throttler_t();
+    ~alt_txn_throttler_t();
 
-    alt::tracker_acq_t begin_txn_or_throttle(int64_t expected_change_count);
-    void end_txn(alt::tracker_acq_t acq);
+    alt::throttler_acq_t begin_txn_or_throttle(int64_t expected_change_count);
+    void end_txn(alt::throttler_acq_t acq);
 
 private:
     friend class txn_t;
 
     new_semaphore_t unwritten_changes_semaphore_;
-    DISABLE_COPYING(alt_memory_tracker_t);
+    DISABLE_COPYING(alt_txn_throttler_t);
 };
 
 class cache_t : public home_thread_mixin_t {
 public:
     explicit cache_t(serializer_t *serializer,
+                     alt_cache_balancer_t *balancer,
                      const alt_cache_config_t &dynamic_config,
                      perfmon_collection_t *perfmon_collection);
     ~cache_t();
@@ -71,9 +70,8 @@ private:
 
     scoped_ptr_t<alt_cache_stats_t> stats_;
 
-    // tracker_ is used for throttling (which can cause the txn_t constructor to
-    // block).
-    alt_memory_tracker_t tracker_;
+    // throttler_ can cause the txn_t constructor to block
+    alt_txn_throttler_t throttler_;
     alt::page_cache_t page_cache_;
 
     two_level_nevershrink_array_t<intrusive_list_t<alt_snapshot_node_t> > snapshot_nodes_by_block_id_;
@@ -102,13 +100,13 @@ public:
     cache_account_t *account() { return cache_account_; }
 
 private:
-    // Resets the *tracker_acq parameter.
+    // Resets the *throttler_acq parameter.
     static void inform_tracker(cache_t *cache,
-                               alt::tracker_acq_t *tracker_acq);
+                               alt::throttler_acq_t *throttler_acq);
 
-    // Resets the *tracker_acq parameter.
+    // Resets the *throttler_acq parameter.
     static void pulse_and_inform_tracker(cache_t *cache,
-                                         alt::tracker_acq_t *tracker_acq,
+                                         alt::throttler_acq_t *throttler_acq,
                                          cond_t *pulsee);
 
 

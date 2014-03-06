@@ -405,7 +405,7 @@ void run_blob_test() {
             &file_opener,
             &get_global_perfmon_collection());
 
-    cache_t cache(&log_serializer,
+    cache_t cache(&log_serializer, NULL,
                   alt_cache_config_t(),
                   &get_global_perfmon_collection());
 

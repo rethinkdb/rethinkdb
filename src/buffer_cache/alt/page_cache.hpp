@@ -26,7 +26,7 @@
 #include "repli_timestamp.hpp"
 #include "serializer/types.hpp"
 
-class alt_memory_tracker_t;
+class alt_txn_throttler_t;
 class alt_cache_balancer_t;
 class auto_drainer_t;
 class cache_t;
@@ -267,11 +267,11 @@ private:
     DISABLE_COPYING(page_read_ahead_cb_t);
 };
 
-class tracker_acq_t {
+class throttler_acq_t {
 public:
-    tracker_acq_t() { }
-    ~tracker_acq_t() { }
-    tracker_acq_t(tracker_acq_t &&movee)
+    throttler_acq_t() { }
+    ~throttler_acq_t() { }
+    throttler_acq_t(throttler_acq_t &&movee)
         : semaphore_acq_(std::move(movee.semaphore_acq_)) {
         movee.semaphore_acq_.reset();
     }
@@ -280,27 +280,28 @@ public:
     void update_dirty_page_count(int64_t new_count);
 
 private:
-    friend class ::alt_memory_tracker_t;
+    friend class ::alt_txn_throttler_t;
     // At first, the number of dirty pages is 0 and semaphore_acq_.count() >=
     // dirtied_count_.  Once the number of dirty pages gets bigger than the original
     // value of semaphore_acq_.count(), we use semaphore_acq_.change_count() to keep
     // the numbers equal.
     new_semaphore_acq_t semaphore_acq_;
 
-    DISABLE_COPYING(tracker_acq_t);
+    DISABLE_COPYING(throttler_acq_t);
 };
 
 class page_cache_t : public home_thread_mixin_t {
 public:
     page_cache_t(serializer_t *serializer,
+                 alt_cache_balancer_t *balancer,
                  const page_cache_config_t &config);
     ~page_cache_t();
 
     // Takes a txn to be flushed.  Calls on_flush_complete() (which resets the
-    // tracker_acq parameter) when done.
+    // throttler_acq parameter) when done.
     void flush_and_destroy_txn(
             scoped_ptr_t<page_txn_t> txn,
-            std::function<void(tracker_acq_t *)> on_flush_complete);
+            std::function<void(throttler_acq_t *)> on_flush_complete);
 
     current_page_t *page_for_block_id(block_id_t block_id);
     current_page_t *page_for_new_block_id(block_id_t *block_id_out);
@@ -521,7 +522,7 @@ public:
     page_txn_t(page_cache_t *page_cache,
                // Unused for read transactions, pass repli_timestamp_t::invalid.
                repli_timestamp_t txn_recency,
-               tracker_acq_t tracker_acq,
+               throttler_acq_t throttler_acq,
                cache_conn_t *cache_conn);
 
     // KSI: This is only to be called by the page cache -- should txn_t really use a
@@ -534,7 +535,7 @@ private:
     // To set cache_conn_ to NULL.
     friend class ::cache_conn_t;
 
-    // To access tracker_acq_.
+    // To access throttler_acq_.
     friend class flush_and_destroy_txn_waiter_t;
 
     // page cache has access to all of this type's innards, including fields.
@@ -564,7 +565,7 @@ private:
     cache_conn_t *cache_conn_;
 
     // An acquisition object for the memory tracker.
-    tracker_acq_t tracker_acq_;
+    throttler_acq_t throttler_acq_;
 
     repli_timestamp_t this_txn_recency_;
 

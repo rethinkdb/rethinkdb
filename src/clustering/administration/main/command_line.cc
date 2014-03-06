@@ -403,7 +403,7 @@ std::string get_web_path(const std::map<std::string, options::values_t> &opts, c
 
 uint64_t get_avail_mem_size() {
     uint64_t avail_mem_pages = sysconf(_SC_AVPHYS_PAGES);
-    uint64_t page_size = sysconf(_SC_PAGE_SIZE);
+    uint64_t page_size = sysconf(_SC_PAGESIZE);
     return avail_mem_pages * page_size;
 }
 

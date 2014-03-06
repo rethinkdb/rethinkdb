@@ -25,7 +25,7 @@ cache_conn_t::~cache_conn_t() {
 
 namespace alt {
 
-void tracker_acq_t::update_dirty_page_count(int64_t new_count) {
+void throttler_acq_t::update_dirty_page_count(int64_t new_count) {
     if (new_count > semaphore_acq_.count()) {
         semaphore_acq_.change_count(new_count);
     }
@@ -139,11 +139,12 @@ void page_cache_t::read_ahead_cb_is_destroyed() {
 
 
 page_cache_t::page_cache_t(serializer_t *serializer,
+                           alt_cache_balancer_t *balancer,
                            const page_cache_config_t &config)
     : dynamic_config_(config),
       serializer_(serializer),
       free_list_(serializer),
-      evicter_(config.balancer, config.memory_limit),
+      evicter_(balancer, config.memory_limit),
       read_ahead_cb_(NULL),
       drainer_(make_scoped<auto_drainer_t>()) {
 
@@ -193,7 +194,7 @@ class flush_and_destroy_txn_waiter_t : public signal_t::subscription_t {
 public:
     flush_and_destroy_txn_waiter_t(auto_drainer_t::lock_t &&lock,
                                    page_txn_t *txn,
-                                   std::function<void(tracker_acq_t *)> on_flush_complete)
+                                   std::function<void(throttler_acq_t *)> on_flush_complete)
         : lock_(std::move(lock)),
           txn_(txn),
           on_flush_complete_(std::move(on_flush_complete)) { }
@@ -201,7 +202,7 @@ public:
 private:
     void run() {
         // Tell everybody without delay that the flush is complete.
-        on_flush_complete_(&txn_->tracker_acq_);
+        on_flush_complete_(&txn_->throttler_acq_);
 
         // We have to do the rest _later_ because of signal_t::subscription_t not
         // allowing reentrant signal_t::subscription_t::reset() calls, and the like,
@@ -220,14 +221,14 @@ private:
 
     auto_drainer_t::lock_t lock_;
     page_txn_t *txn_;
-    std::function<void(tracker_acq_t *)> on_flush_complete_;
+    std::function<void(throttler_acq_t *)> on_flush_complete_;
 
     DISABLE_COPYING(flush_and_destroy_txn_waiter_t);
 };
 
 void page_cache_t::flush_and_destroy_txn(
         scoped_ptr_t<page_txn_t> txn,
-        std::function<void(tracker_acq_t *)> on_flush_complete) {
+        std::function<void(throttler_acq_t *)> on_flush_complete) {
     rassert(txn->live_acqs_.empty(),
             "current_page_acq_t lifespan exceeds its page_txn_t's");
     guarantee(!txn->began_waiting_for_flush_);
@@ -803,11 +804,11 @@ page_t *current_page_t::the_page_for_write(current_page_help_t help,
 
 page_txn_t::page_txn_t(page_cache_t *page_cache,
                        repli_timestamp_t txn_recency,
-                       tracker_acq_t tracker_acq,
+                       throttler_acq_t throttler_acq,
                        cache_conn_t *cache_conn)
     : page_cache_(page_cache),
       cache_conn_(cache_conn),
-      tracker_acq_(std::move(tracker_acq)),
+      throttler_acq_(std::move(throttler_acq)),
       this_txn_recency_(txn_recency),
       began_waiting_for_flush_(false),
       spawned_flush_(false) {
@@ -903,7 +904,7 @@ void page_txn_t::remove_acquirer(current_page_acq_t *acq) {
         // LSI: We could reacquire the same block and update the dirty page count
         // with a _correct_ value indicating that we're holding redundant dirty
         // pages for the same block id.
-        tracker_acq_.update_dirty_page_count(snapshotted_dirtied_pages_.size());
+        throttler_acq_.update_dirty_page_count(snapshotted_dirtied_pages_.size());
     } else {
         // It's okay to have two dirtied_page_t's or touched_page_t's for the
         // same block id -- compute_changes handles this.

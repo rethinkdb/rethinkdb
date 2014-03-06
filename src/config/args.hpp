@@ -88,7 +88,7 @@
 // Ratio of free ram to use for the cache by default
 #define DEFAULT_MAX_CACHE_RATIO                   2
 
-// Minimum amount of cache size to allocate per-table
+// Minimum amount of cache size to allocate per shard
 #define BASE_CACHE_SIZE                           (2 * MEGABYTE)
 
 // Interval to reevaluate cache sizes (in milliseconds)

@@ -28,7 +28,8 @@ TPTEST(BTreeSindex, LowLevelOps) {
         &file_opener,
         &get_global_perfmon_collection());
 
-    cache_t cache(&serializer, alt_cache_config_t(),
+    cache_t cache(&serializer, NULL,
+                  alt_cache_config_t(),
                   &get_global_perfmon_collection());
     cache_conn_t cache_conn(&cache);
 

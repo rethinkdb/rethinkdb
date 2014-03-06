@@ -39,7 +39,6 @@ btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
 {
     {
         alt_cache_config_t config;
-        config.page_config.balancer = balancer;
         // TODO: don't allow NULL balancers
         if (balancer != NULL) {
             config.page_config.memory_limit = balancer->get_base_mem_per_store();
@@ -47,7 +46,7 @@ btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
             // TODO: this is really small
             config.page_config.memory_limit = BASE_CACHE_SIZE;
         }
-        cache.init(new cache_t(serializer, config, &perfmon_collection));
+        cache.init(new cache_t(serializer, balancer, config, &perfmon_collection));
         general_cache_conn.init(new cache_conn_t(cache.get()));
     }
 
