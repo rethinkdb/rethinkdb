@@ -34,12 +34,14 @@ void evicter_t::update_memory_limit(uint64_t new_memory_limit) {
 void evicter_t::add_not_yet_loaded(page_t *page) {
     assert_thread();
     unevictable_.add_without_size(page);
+    update_in_memory_size();
     ++cache_miss_counter_;
 }
 
 void evicter_t::add_now_loaded_size(uint32_t ser_buf_size) {
     assert_thread();
     unevictable_.add_size(ser_buf_size);
+    update_in_memory_size();
     evict_if_necessary();
 }
 
@@ -51,12 +53,14 @@ bool evicter_t::page_is_in_unevictable_bag(page_t *page) const {
 void evicter_t::add_to_evictable_unbacked(page_t *page) {
     assert_thread();
     evictable_unbacked_.add(page, page->ser_buf_size_);
+    update_in_memory_size();
     evict_if_necessary();
 }
 
 void evicter_t::add_to_evictable_disk_backed(page_t *page) {
     assert_thread();
     evictable_disk_backed_.add(page, page->ser_buf_size_);
+    update_in_memory_size();
     evict_if_necessary();
 }
 
@@ -68,6 +72,7 @@ void evicter_t::move_unevictable_to_evictable(page_t *page) {
     rassert(new_bag == &evictable_disk_backed_
             || new_bag == &evictable_unbacked_);
     new_bag->add(page, page->ser_buf_size_);
+    update_in_memory_size();
     evict_if_necessary();
 }
 
@@ -78,6 +83,7 @@ void evicter_t::change_to_correct_eviction_bag(eviction_bag_t *current_bag,
     current_bag->remove(page, page->ser_buf_size_);
     eviction_bag_t *new_bag = correct_eviction_category(page);
     new_bag->add(page, page->ser_buf_size_);
+    update_in_memory_size();
     evict_if_necessary();
 }
 
@@ -100,12 +106,13 @@ void evicter_t::remove_page(page_t *page) {
     rassert(page->snapshot_refcount_ == 0);
     eviction_bag_t *bag = correct_eviction_category(page);
     bag->remove(page, page->ser_buf_size_);
+    update_in_memory_size();
     evict_if_necessary();
 }
 
-uint64_t evicter_t::in_memory_size() const {
+void evicter_t::update_in_memory_size() {
     assert_thread();
-    return unevictable_.size()
+    in_memory_size_ = unevictable_.size()
         + evictable_disk_backed_.size()
         + evictable_unbacked_.size();
 }
@@ -126,6 +133,7 @@ void evicter_t::evict_if_necessary() {
            && evictable_disk_backed_.remove_oldish(&page, access_time_counter_)) {
         evicted_.add(page, page->ser_buf_size_);
         page->evict_self();
+        update_in_memory_size();
     }
 }
 

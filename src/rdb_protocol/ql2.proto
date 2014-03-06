@@ -411,8 +411,8 @@ message Term {
         // Creates a table with a particular name in a particular
         // database.  (You may omit the first argument to use the
         // default database.)
-        TABLE_CREATE = 60; // Database, STRING, {datacenter:STRING, primary_key:STRING, cache_size:NUMBER, durability:STRING} -> OBJECT
-                           // STRING, {datacenter:STRING, primary_key:STRING, cache_size:NUMBER, durability:STRING} -> OBJECT
+        TABLE_CREATE = 60; // Database, STRING, {datacenter:STRING, primary_key:STRING, durability:STRING} -> OBJECT
+                           // STRING, {datacenter:STRING, primary_key:STRING, durability:STRING} -> OBJECT
         // Drops a table with a particular name from a particular
         // database.  (You may omit the first argument to use the
         // default database.)

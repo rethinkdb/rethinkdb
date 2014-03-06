@@ -79,8 +79,8 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<rdb
 
     for (size_t i = 0; i < store_shards.size(); ++i) {
         underlying_stores.push_back(
-                new rdb_protocol_t::store_t(serializers[i].get(),
-                    temp_files[i].name().permanent_path(), GIGABYTE, true,
+                new rdb_protocol_t::store_t(serializers[i].get(), NULL,
+                    temp_files[i].name().permanent_path(), true,
                     &get_global_perfmon_collection(), &ctx,
                     &io_backender, base_path_t(".")));
     }

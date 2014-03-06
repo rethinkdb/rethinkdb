@@ -341,8 +341,8 @@ TPTEST(RDBBtree, SindexPostConstruct) {
 
     rdb_protocol_t::store_t store(
             &serializer,
+            NULL,
             "unit_test_store",
-            GIGABYTE,
             true,
             &get_global_perfmon_collection(),
             NULL,
@@ -381,8 +381,8 @@ TPTEST(RDBBtree, SindexEraseRange) {
 
     rdb_protocol_t::store_t store(
             &serializer,
+            NULL,
             "unit_test_store",
-            GIGABYTE,
             true,
             &get_global_perfmon_collection(),
             NULL,
@@ -450,8 +450,8 @@ TPTEST(RDBBtree, SindexInterruptionViaDrop) {
 
     rdb_protocol_t::store_t store(
             &serializer,
+            NULL,
             "unit_test_store",
-            GIGABYTE,
             true,
             &get_global_perfmon_collection(),
             NULL,
@@ -491,8 +491,8 @@ TPTEST(RDBBtree, SindexInterruptionViaStoreDelete) {
     scoped_ptr_t<rdb_protocol_t::store_t> store(
             new rdb_protocol_t::store_t(
             &serializer,
+            NULL,
             "unit_test_store",
-            GIGABYTE,
             true,
             &get_global_perfmon_collection(),
             NULL,

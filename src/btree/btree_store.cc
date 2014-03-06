@@ -4,6 +4,7 @@
 #include "btree/operations.hpp"
 #include "btree/secondary_operations.hpp"
 #include "buffer_cache/alt/alt.hpp"
+#include "buffer_cache/alt/cache_balancer.hpp"
 #include "concurrency/wait_any.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "containers/disk_backed_queue.hpp"
@@ -24,8 +25,8 @@ sindex_not_post_constructed_exc_t::~sindex_not_post_constructed_exc_t() throw() 
 
 template <class protocol_t>
 btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
+                                         alt_cache_balancer_t *balancer,
                                          const std::string &perfmon_name,
-                                         int64_t cache_target,
                                          bool create,
                                          perfmon_collection_t *parent_perfmon_collection,
                                          typename protocol_t::context_t *,
@@ -38,7 +39,14 @@ btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
 {
     {
         alt_cache_config_t config;
-        config.page_config.memory_limit = cache_target;
+        config.page_config.balancer = balancer;
+        // TODO: don't allow NULL balancers
+        if (balancer != NULL) {
+            config.page_config.memory_limit = balancer->get_base_mem_per_store();
+        } else {
+            // TODO: this is really small
+            config.page_config.memory_limit = BASE_CACHE_SIZE;
+        }
         cache.init(new cache_t(serializer, config, &perfmon_collection));
         general_cache_conn.init(new cache_conn_t(cache.get()));
     }

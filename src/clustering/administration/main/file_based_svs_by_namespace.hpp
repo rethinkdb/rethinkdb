@@ -6,16 +6,19 @@
 
 #include "clustering/administration/reactor_driver.hpp"
 
+class alt_cache_balancer_t;
+
 template <class protocol_t>
 class file_based_svs_by_namespace_t : public svs_by_namespace_t<protocol_t> {
 public:
     file_based_svs_by_namespace_t(io_backender_t *io_backender,
+                                  alt_cache_balancer_t *balancer,
                                   const base_path_t& base_path)
-        : io_backender_(io_backender), base_path_(base_path), thread_counter_(0) { }
+        : io_backender_(io_backender), balancer_(balancer),
+          base_path_(base_path), thread_counter_(0) { }
 
     void get_svs(perfmon_collection_t *serializers_perfmon_collection,
                  namespace_id_t namespace_id,
-                 int64_t cache_size,
                  stores_lifetimer_t<protocol_t> *stores_out,
                  scoped_ptr_t<multistore_ptr_t<protocol_t> > *svs_out,
                  typename protocol_t::context_t *);
@@ -26,6 +29,7 @@ public:
 
 private:
     io_backender_t *io_backender_;
+    alt_cache_balancer_t *balancer_;
     const base_path_t base_path_;
 
     threadnum_t next_thread(int num_db_threads);

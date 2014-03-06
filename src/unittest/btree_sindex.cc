@@ -118,8 +118,8 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
 
     rdb_protocol_t::store_t store(
             &serializer,
+            NULL,
             "unit_test_store",
-            GIGABYTE,
             true,
             &get_global_perfmon_collection(),
             NULL,

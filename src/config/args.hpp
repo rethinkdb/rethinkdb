@@ -86,8 +86,16 @@
 #define DEFAULT_EXTENT_SIZE                       (512 * KILOBYTE)
 
 // Ratio of free ram to use for the cache by default
-// TODO: DEFAULT_MAX_CACHE_RATIO is unused. Should it be deleted?
-#define DEFAULT_MAX_CACHE_RATIO                   0.5
+#define DEFAULT_MAX_CACHE_RATIO                   2
+
+// Minimum amount of cache size to allocate per-table
+#define BASE_CACHE_SIZE                           (2 * MEGABYTE)
+
+// Interval to reevaluate cache sizes (in milliseconds)
+#define CACHE_REBALANCE_INTERVAL_MS               5000
+
+// Damping factor to prevent cache sizes from changing too fast
+#define CACHE_REBALANCE_DAMPING_FACTOR            40
 
 // The maximum number of concurrently active
 // index writes per merger serializer.

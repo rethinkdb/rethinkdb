@@ -194,8 +194,8 @@ test_cluster_group_t<protocol_t>::test_cluster_group_t(int n_machines)
                                                         &file_opener,
                                                         &get_global_perfmon_collection()));
         stores.push_back(
-                new typename protocol_t::store_t(&serializers[i],
-                    files[i].name().permanent_path(), GIGABYTE, true, NULL,
+                new typename protocol_t::store_t(&serializers[i], NULL,
+                    files[i].name().permanent_path(), true, NULL,
                     &ctx, io_backender.get(), base_path_t(".")));
         store_view_t<protocol_t> *store_ptr = &stores[i];
         svses.push_back(new multistore_ptr_t<protocol_t>(&store_ptr, 1));

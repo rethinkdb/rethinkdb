@@ -33,6 +33,7 @@ class io_backender_t;
 class real_superblock_t;
 class superblock_t;
 class txn_t;
+class alt_cache_balancer_t;
 
 class sindex_not_post_constructed_exc_t : public std::exception {
 public:
@@ -49,8 +50,8 @@ public:
     using home_thread_mixin_t::assert_thread;
 
     btree_store_t(serializer_t *serializer,
+                  alt_cache_balancer_t *balancer,
                   const std::string &perfmon_name,
-                  int64_t cache_target,
                   bool create,
                   perfmon_collection_t *parent_perfmon_collection,
                   typename protocol_t::context_t *,

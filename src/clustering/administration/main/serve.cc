@@ -37,6 +37,7 @@
 #include "rpc/directory/write_manager.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
 #include "rpc/semilattice/view/field.hpp"
+#include "buffer_cache/alt/cache_balancer.hpp"
 
 std::string service_address_ports_t::get_addresses_string() const {
     std::set<ip_address_t> actual_addresses = local_addresses;
@@ -68,6 +69,7 @@ bool do_serve(
     const base_path_t &base_path,
     metadata_persistence::cluster_persistent_file_t *cluster_metadata_file,
     metadata_persistence::auth_persistent_file_t *auth_metadata_file,
+    uint64_t total_cache_size,
     const peer_address_set_t &joins,
     service_address_ports_t address_ports,
     std::string web_assets,
@@ -256,6 +258,16 @@ bool do_serve(
         rdb_ctx.ns_repo = &rdb_namespace_repo;
 
         {
+            scoped_ptr_t<alt_cache_balancer_t> cache_balancer;
+
+            if (i_am_a_server) {
+                // Proxies do not have caches to balance
+                cache_balancer.init(new alt_cache_balancer_t(total_cache_size,
+                                                             BASE_CACHE_SIZE,
+                                                             CACHE_REBALANCE_DAMPING_FACTOR,
+                                                             CACHE_REBALANCE_INTERVAL_MS));
+            }
+
             // Reactor drivers
 
             // Dummy
@@ -266,7 +278,7 @@ bool do_serve(
 
             if (i_am_a_server) {
                 dummy_svs_source.init(new file_based_svs_by_namespace_t<mock::dummy_protocol_t>(
-                    io_backender, base_path));
+                    io_backender, cache_balancer.get(), base_path));
                 dummy_reactor_driver.init(new reactor_driver_t<mock::dummy_protocol_t>(
                     base_path,
                     io_backender,
@@ -299,7 +311,7 @@ bool do_serve(
 
             if (i_am_a_server) {
                 memcached_svs_source.init(new file_based_svs_by_namespace_t<memcached_protocol_t>(
-                    io_backender, base_path));
+                    io_backender, cache_balancer.get(), base_path));
                 memcached_reactor_driver.init(new reactor_driver_t<memcached_protocol_t>(
                     base_path,
                     io_backender,
@@ -332,7 +344,7 @@ bool do_serve(
 
             if (i_am_a_server) {
                 rdb_svs_source.init(new file_based_svs_by_namespace_t<rdb_protocol_t>(
-                    io_backender, base_path));
+                    io_backender, cache_balancer.get(), base_path));
                 rdb_reactor_driver.init(new reactor_driver_t<rdb_protocol_t>(
                         base_path,
                         io_backender,
@@ -481,6 +493,7 @@ bool serve(io_backender_t *io_backender,
            const base_path_t &base_path,
            metadata_persistence::cluster_persistent_file_t *cluster_persistent_file,
            metadata_persistence::auth_persistent_file_t *auth_persistent_file,
+           uint64_t total_cache_size,
            const peer_address_set_t &joins,
            service_address_ports_t address_ports,
            std::string web_assets,
@@ -491,6 +504,7 @@ bool serve(io_backender_t *io_backender,
                     base_path,
                     cluster_persistent_file,
                     auth_persistent_file,
+                    total_cache_size,
                     joins,
                     address_ports,
                     web_assets,
@@ -510,6 +524,7 @@ bool serve_proxy(const peer_address_set_t &joins,
                     base_path_t(""),
                     NULL,
                     NULL,
+                    0,
                     joins,
                     address_ports,
                     web_assets,
