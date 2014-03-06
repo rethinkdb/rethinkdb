@@ -957,7 +957,9 @@ page_cache_t::compute_changes(const std::set<page_txn_t *> &txns) {
                 }
             }
         }
-
+    }
+    for (auto it = txns.begin(); it != txns.end(); ++it) {
+        page_txn_t *txn = *it;
         for (size_t i = 0, e = txn->touched_pages_.size(); i < e; ++i) {
             const touched_page_t &t = txn->touched_pages_[i];
 
