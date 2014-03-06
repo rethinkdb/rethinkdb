@@ -178,9 +178,9 @@ public:
     insert(std::pair<counted_t<const datum_t>, T> &&val) {
         return m.insert(std::move(val));
     }
-    typename std::map<counted_t<const datum_t>, T>::iterator
-    erase(typename std::map<counted_t<const datum_t>, T>::const_iterator pos) {
-        return m.erase(pos);
+    void
+    erase(typename std::map<counted_t<const datum_t>, T>::iterator pos) {
+        m.erase(pos);
     }
 
     size_t size() { return m.size(); }
