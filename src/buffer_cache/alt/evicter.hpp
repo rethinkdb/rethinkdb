@@ -3,7 +3,10 @@
 
 #include <stdint.h>
 
+#include <functional>
+
 #include "buffer_cache/alt/eviction_bag.hpp"
+#include "concurrency/pubsub.hpp"
 #include "threading.hpp"
 
 class alt_cache_balancer_t;
@@ -29,6 +32,9 @@ public:
     bool interested_in_read_ahead_block(uint32_t ser_block_size) const;
 
     void update_memory_limit(uint64_t new_memory_limit);
+
+    void set_on_memory_limit_change_cb(
+            const std::function<void(uint64_t)> &on_memory_limit_change_cb);
 
     uint64_t next_access_time() {
         return ++access_time_counter_;
@@ -62,6 +68,10 @@ private:
     uint64_t memory_limit_;
     uint64_t in_memory_size_;
 
+    // Called with the new memory_limit_ whenever the value of `memory_limit_` is
+    // changed.
+    std::function<void(uint64_t)> on_memory_limit_change_cb_;
+
     // These are updated every time a page is loaded,
     // and cleared when cache memory limits are re-evaluated
     uint64_t cache_access_counter_;
@@ -70,7 +80,7 @@ private:
     // This gets incremented every time a page is accessed.
     uint64_t access_time_counter_;
 
-    // These track whether every page's eviction status.
+    // These track every page's eviction status.
     eviction_bag_t unevictable_;
     eviction_bag_t evictable_disk_backed_;
     eviction_bag_t evictable_unbacked_;

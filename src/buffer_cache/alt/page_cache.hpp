@@ -321,6 +321,10 @@ public:
     }
 
 private:
+    // Called by the evicter_ if the memory limit is changed.
+    void on_memory_limit_change(uint64_t new_limit);
+
+
     friend class page_read_ahead_cb_t;
     void add_read_ahead_buf(block_id_t block_id,
                             ser_buffer_t *buf,
