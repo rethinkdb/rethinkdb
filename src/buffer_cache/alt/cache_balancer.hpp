@@ -71,6 +71,9 @@ private:
     void add_evicter(alt::evicter_t *evicter);
     void remove_evicter(alt::evicter_t *evicter);
 
+    // Print a warning if we can't fit all the tables without using extra memory
+    void warn_if_overcommitted(size_t num_shards);
+
     // Callback for repeating timer
     void on_ring();
 
@@ -101,6 +104,8 @@ private:
     uint64_t total_cache_size;
     uint64_t base_mem_per_store;
     uint64_t damping_factor;
+    bool done_overcommit_warning;
+
     repeating_timer_t rebalance_timer;
 
     scoped_array_t<thread_info_t> thread_info;

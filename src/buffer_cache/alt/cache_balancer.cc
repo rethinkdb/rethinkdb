@@ -21,6 +21,7 @@ alt_cache_balancer_t::alt_cache_balancer_t(uint64_t _total_cache_size,
     total_cache_size(_total_cache_size),
     base_mem_per_store(_base_mem_per_store),
     damping_factor(_damping_factor),
+    done_overcommit_warning(false),
     rebalance_timer(interval_ms, this),
     thread_info(get_num_threads()),
     rebalance_pool(1, &pool_queue, this) { }
@@ -50,6 +51,18 @@ void alt_cache_balancer_t::on_ring() {
     pool_queue.give_value(NULL);
 }
 
+void alt_cache_balancer_t::warn_if_overcommitted(size_t num_shards) {
+    // Only do this the first time
+    bool overcommitted = ((num_shards * base_mem_per_store) > total_cache_size);
+    if (overcommitted && !done_overcommit_warning) {
+        logWRN("Too many tables to fit within the cache_size setting, more memory will be used");
+        done_overcommit_warning = true;
+    } else if (!overcommitted && done_overcommit_warning) {
+        logINF("Number of tables is now sufficiently low to fit within the cache_size setting");
+        done_overcommit_warning = false;
+    }
+}
+
 void alt_cache_balancer_t::coro_pool_callback(void *, UNUSED signal_t *interruptor) {
     assert_thread();
     scoped_array_t<std::vector<cache_data_t> > per_thread_data;
@@ -74,6 +87,9 @@ void alt_cache_balancer_t::coro_pool_callback(void *, UNUSED signal_t *interrupt
             total_evictions += data.evictions;
         }
     }
+
+    // Warn the user if they have too many tables to fit into the max cache size
+    warn_if_overcommitted(total_evicters);
 
     // Calculate new cache sizes if there were evictions
     if (total_evictions > 0) {
