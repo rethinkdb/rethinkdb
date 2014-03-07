@@ -425,7 +425,7 @@ void check_and_handle_split(value_sizer_t<void> *sizer,
         }
         // We set the recency of the new root block to the max of the subtrees'
         // recency and the current transaction's recency.
-        last_buf->manually_touch_recency(temp_buf.get_recency());
+        last_buf->manually_touch_recency(buf->get_recency());
 
         insert_root(last_buf->block_id(), sb);
     }
